@@ -6304,14 +6304,15 @@ class ClaimOpController extends Controller
         ', [$vn]);
 
         $drugs = DB::connection('hosxp')->select("
-            SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+            SELECT op.icode, COALESCE(sd.name, ni.name) AS name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                    gt.gpu_code, gg.gp_code, op.drugusage,
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
                    sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
                    op.paidst AS paids, pst.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code, op.income
+                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code, op.income,
+                   inc.income_csmbs_code
             FROM opitemrece op
-            INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
             LEFT JOIN drugusage du ON du.drugusage = op.drugusage
             LEFT JOIN nondrugitems ni ON ni.icode = op.icode
@@ -6326,6 +6327,7 @@ class ClaimOpController extends Controller
                 )
             LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
             LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+            LEFT JOIN income inc ON inc.income = op.income
             WHERE op.vn = ?
         ", [$vn]);
 
@@ -7556,15 +7558,16 @@ class ClaimOpController extends Controller
                 $stm_pays[$key] = $rec->amount;
             }
 
-            // Query drugs by VN for CSOP list validation
+            // Query drugs/items by VN for CSOP list validation
             $drugs_by_vn = [];
             $drugs = DB::connection('hosxp')->select("
-                SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                SELECT op.vn, op.icode, COALESCE(sd.name, ni.name) AS name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                        gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
-                       op.drugusage, op.qty, op.income
+                       op.drugusage, op.qty, op.income, ni.nhso_adp_code, inc.income_csmbs_code
                 FROM opitemrece op
-                INNER JOIN s_drugitems sd ON sd.icode = op.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 LEFT JOIN drugitems di ON di.icode = op.icode
+                LEFT JOIN nondrugitems ni ON ni.icode = op.icode
                 LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                     AND nd.date_approved = (
                         SELECT MAX(nd1.date_approved) 
@@ -7574,6 +7577,7 @@ class ClaimOpController extends Controller
                     )
                 LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
                 LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+                LEFT JOIN income inc ON inc.income = op.income
                 WHERE op.vn IN ('" . implode("','", $vns) . "')
             ");
             foreach ($drugs as $d) {
@@ -7650,7 +7654,110 @@ class ClaimOpController extends Controller
                 }
             }
 
-            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || $has_svpid_error || !$has_valid_pharmacist || $has_tmt_error || !$has_inv) {
+            // CSOP outpatient service validation rules (T72, T78, T84)
+            $map_income_to_csop_group = function($csmbs_code, $fallback_income) {
+                if (empty($csmbs_code)) {
+                    $fallback_income = str_pad($fallback_income, 2, '0', STR_PAD_LEFT);
+                    switch ($fallback_income) {
+                        case '01': return '1';
+                        case '02': return '2';
+                        case '03':
+                        case '04':
+                        case '17': return '3';
+                        case '05': return '5';
+                        case '06': return '6';
+                        case '07': return '7';
+                        case '08': return '8';
+                        case '09': return '9';
+                        case '10': return 'A';
+                        case '11': return 'B';
+                        case '12':
+                        case '18': return 'C';
+                        case '13': return 'D';
+                        case '14': return 'E';
+                        case '15': return 'F';
+                        case '16': return 'H';
+                        default: return 'G';
+                    }
+                }
+                switch (trim($csmbs_code)) {
+                    case '01': return '1';
+                    case '02': return '2';
+                    case '03':
+                    case '04': return '3';
+                    case '05': return '5';
+                    case '06': return '6';
+                    case '07': return '7';
+                    case '08': return '8';
+                    case '09': return '9';
+                    case '10': return 'A';
+                    case '11': return 'B';
+                    case '12': return 'C';
+                    case '13': return 'D';
+                    case '14': return 'E';
+                    case '15': return 'F';
+                    case '16': return 'H';
+                    case '17': return 'I';
+                    default: return 'G';
+                }
+            };
+
+            $has_op_service_fee = false;
+            $has_room_fee = false;
+            $other_groups = [];
+
+            foreach ($visit_drugs as $item) {
+                $adp = trim($item->nhso_adp_code ?? '');
+                if ($adp === '55020' || $adp === '55021') {
+                    $has_op_service_fee = true;
+                    continue;
+                }
+
+                $g = $map_income_to_csop_group($item->income_csmbs_code, $item->income);
+                if ($g === '2') {
+                    $has_room_fee = true;
+                }
+                $other_groups[$g] = true;
+            }
+
+            $has_csop_rule_error = false;
+            if ($has_op_service_fee) {
+                // Rule T72: Outpatient fee + room observation fee together
+                if ($has_room_fee) {
+                    $has_csop_rule_error = true;
+                }
+
+                // Rule T78: Outpatient fee + Group 15 (F) acupuncture only, no other groups
+                if (count($other_groups) === 1 && isset($other_groups['F'])) {
+                    $has_csop_rule_error = true;
+                }
+
+                // Rule T84: Outpatient fee, no doctor visit (SVPid not starting with ว)
+                // AND only scheduled procedures/investigations (Groups 8, B, E, F only)
+                $allowed_t84_groups = ['8', 'B', 'E', 'F'];
+                $only_t84_groups = true;
+                $has_any_item = !empty($other_groups);
+
+                foreach (array_keys($other_groups) as $g) {
+                    if (!in_array($g, $allowed_t84_groups)) {
+                        $only_t84_groups = false;
+                    }
+                }
+
+                $has_doctor = false;
+                if (!empty($row->doctor_license)) {
+                    $lic = strtoupper(trim($row->doctor_license));
+                    if (str_starts_with($lic, 'ว')) {
+                        $has_doctor = true;
+                    }
+                }
+
+                if ($has_any_item && $only_t84_groups && !$has_doctor) {
+                    $has_csop_rule_error = true;
+                }
+            }
+
+            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || $has_svpid_error || !$has_valid_pharmacist || $has_tmt_error || !$has_inv || $has_csop_rule_error) {
                 $row->claim_status = 'red';
             } else {
                 $row->claim_status = 'green';

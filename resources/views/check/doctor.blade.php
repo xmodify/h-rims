@@ -230,7 +230,20 @@
                                         @if (empty($row->council_code))
                                             <span class="text-muted small">-</span>
                                         @else
-                                            <span class="badge bg-light text-dark border">{{ $row->council_code }}</span>
+                                            @php
+                                                $councilMap = [
+                                                    '01' => 'แพทยสภา',
+                                                    '02' => 'สภาการพยาบาล',
+                                                    '03' => 'สภาเภสัชกรรม',
+                                                    '04' => 'ทันตแพทยสภา',
+                                                    '05' => 'สภากายภาพบำบัด',
+                                                    '06' => 'สภาเทคนิคการแพทย์',
+                                                    '07' => 'สัตวแพทยสภา',
+                                                    '08' => 'สภาการแพทย์แผนไทย'
+                                                ];
+                                                $councilText = isset($councilMap[$row->council_code]) ? $row->council_code . ' - ' . $councilMap[$row->council_code] : $row->council_code;
+                                            @endphp
+                                            <span class="badge bg-light text-dark border small" title="{{ $councilText }}">{{ $councilText }}</span>
                                         @endif
                                     </td>
                                     <td class="text-center small">{{ $sexText }}</td>

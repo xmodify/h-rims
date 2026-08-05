@@ -550,11 +550,29 @@ class CsopExportController extends Controller
             WHERE o.vn IN ($vns_placeholders)
         ", $vns);
 
-        foreach ($visits_info as $idx => $row) {
+        foreach ($visits_info as $row) {
             $errors = ['billtran' => [], 'billdisp' => [], 'opservices' => []];
             
+            // Match OPSERVICE row by VN
+            $op_row = null;
+            foreach ($opservices_table as $os) {
+                if (isset($os[1]) && $os[1] === $row->vn) {
+                    $op_row = $os;
+                    break;
+                }
+            }
+            $invoice_no = $op_row[0] ?? '';
+
+            // Match BILLTRAN row by invoice_no
+            $bt_row = null;
+            foreach ($billtran_table as $bt) {
+                if (isset($bt[4]) && $bt[4] === $invoice_no) {
+                    $bt_row = $bt;
+                    break;
+                }
+            }
+            
             // 1. BILLTRAN checks
-            $invoice_no = $billtran_table[$idx][4] ?? '';
             if (empty($invoice_no)) {
                 $errors['billtran'][] = "ไม่พบเลขใบแจ้งหนี้ (InvNo)";
             } elseif ($invoice_no === $row->vn) {
@@ -566,7 +584,7 @@ class CsopExportController extends Controller
             if (empty($row->hn)) {
                 $errors['billtran'][] = "ไม่พบ HN";
             }
-            $vn_claim_sum = (float)($billtran_table[$idx][16] ?? 0.0);
+            $vn_claim_sum = $bt_row ? (float)($bt_row[16] ?? 0.0) : 0.0;
             if ($vn_claim_sum <= 0.0) {
                 $errors['billtran'][] = "ยอดเงินเรียกเก็บ (ClaimAmt) ต้องมากกว่า 0";
             }
@@ -598,13 +616,6 @@ class CsopExportController extends Controller
             }
 
             // 3. OPSERVICE checks
-            $op_row = null;
-            foreach ($opservices_table as $os) {
-                if (isset($os[1]) && $os[1] === $row->vn) {
-                    $op_row = $os;
-                    break;
-                }
-            }
             if ($op_row) {
                 if (empty($op_row[11]) || $op_row[11] === '-') {
                     $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา";

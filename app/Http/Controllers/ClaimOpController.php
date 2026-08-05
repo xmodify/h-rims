@@ -7256,7 +7256,8 @@ class ClaimOpController extends Controller
             IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
-            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
+            doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -7265,6 +7266,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.pttype IN (' . $csop_pttypes_str . ')
@@ -7371,7 +7373,18 @@ class ClaimOpController extends Controller
                 }
             }
 
-            if (!$has_cid || !$has_pdx || $has_icd10_chi_error) {
+            $has_svpid_error = false;
+            if (empty($row->doctor_license)) {
+                $has_svpid_error = true;
+            } else {
+                $lic = trim($row->doctor_license);
+                $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+                if (!$is_valid_format) {
+                    $has_svpid_error = true;
+                }
+            }
+
+            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || $has_svpid_error) {
                 $row->claim_status = 'red';
             } elseif (!$has_inv) {
                 $row->claim_status = 'yellow';

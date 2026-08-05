@@ -326,11 +326,15 @@
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+        // Initialize tooltips safely
+        if (typeof bootstrap !== 'undefined') {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        } else if ($.fn.tooltip) {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        }
     });
 </script>
 @endpush

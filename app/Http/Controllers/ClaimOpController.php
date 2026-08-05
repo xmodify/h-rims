@@ -5976,13 +5976,16 @@ class ClaimOpController extends Controller
                     if (!empty($rec->error_codes)) {
                         $codes = array_filter(array_map('trim', explode(',', $rec->error_codes)));
                         foreach ($codes as $c) {
-                            $err_codes_accum[] = $c;
+                            $err_codes_accum[] = strtoupper($c);
                         }
                     }
                 }
 
-                if (!empty($err_codes_accum)) {
-                    $rep_errors[$vn] = implode(',', array_unique($err_codes_accum));
+                $err_codes_accum = array_unique($err_codes_accum);
+                $has_duplicate_pass = (in_array('T02', $err_codes_accum) && in_array('R01', $err_codes_accum) && in_array('S01', $err_codes_accum));
+
+                if (!empty($err_codes_accum) && !$has_duplicate_pass) {
+                    $rep_errors[$vn] = implode(',', $err_codes_accum);
                 } else {
                     $rep_errors[$vn] = ''; // Mark as has REP but no errors
                 }
@@ -6134,7 +6137,7 @@ class ClaimOpController extends Controller
                 }
                 if (empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0 ||
                     empty($drug->sks_product_category_id) || intval($drug->sks_product_category_id) <= 0 ||
-                    empty($drug->drugusage) || empty($drug->qty) || floatval($drug->qty) <= 0) {
+                    empty($drug->drugusage) || empty($drug->qty)) {
                     $has_drug_error = true;
                     break;
                 }
@@ -6227,7 +6230,7 @@ class ClaimOpController extends Controller
             
             if ($row->rep_error) {
                 $warning[] = $row;
-            } elseif ($has_rep || $row->stm_pay !== null || $row->endpoint === 'Y') {
+            } elseif ($has_rep || $row->stm_pay !== null) {
                 $claim_sent[] = $row;
             } else {
                 $search[] = $row;
@@ -7548,6 +7551,16 @@ class ClaimOpController extends Controller
                 }
             }
 
+            foreach ($rep_records as $vn_key => $rep_rec) {
+                if (!empty($rep_rec->error_codes)) {
+                    $codes = array_filter(array_map('trim', explode(',', $rep_rec->error_codes)));
+                    $upper_codes = array_map('strtoupper', $codes);
+                    if (in_array('T02', $upper_codes) && in_array('R01', $upper_codes) && in_array('S01', $upper_codes)) {
+                        $rep_rec->error_codes = '';
+                    }
+                }
+            }
+
             $stm_records = DB::table('stm_ofc_csop')
                 ->select('hn', 'vstdate', 'vsttime', 'amount')
                 ->whereIn('hn', array_column($claim, 'hn'))
@@ -7765,7 +7778,7 @@ class ClaimOpController extends Controller
 
             if ($row->rep_error) {
                 $warning[] = $row;
-            } elseif ($rep || $row->stm_pay || $row->endpoint === 'Y') {
+            } elseif ($rep || $row->stm_pay) {
                 $claim_sent[] = $row;
             } else {
                 $search[] = $row;

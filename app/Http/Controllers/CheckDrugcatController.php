@@ -143,7 +143,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%'
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -166,7 +166,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.hospdrugcode IS NULL  
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -189,7 +189,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.unitprice <> d.unitprice
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -212,7 +212,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.tmtid <> d3.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -235,7 +235,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.ndc24 <> d2.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -258,7 +258,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d2.ref_code LIKE '4%'
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND d2.ref_code LIKE '4%'
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_nhso', compact('drug'));
@@ -281,7 +281,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND nd.hospdrugcode IS NOT NULL 
               AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
             ORDER BY d.NAME,d.strength,d.units");
@@ -306,7 +306,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND (d2.ref_code IS NULL OR d2.ref_code = '') 
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
@@ -331,7 +331,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND (d3.ref_code IS NULL OR d3.ref_code = '') 
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
@@ -1104,7 +1104,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%'
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1128,7 +1128,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.hospdrugcode IS NULL  
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1152,7 +1152,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.unitprice <> d.unitprice
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1176,7 +1176,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.tmtid <> d3.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1200,7 +1200,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.ndc24 <> d2.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1224,7 +1224,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d2.ref_code LIKE '4%'
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND d2.ref_code LIKE '4%'
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('check.drugcat_fdh', compact('drug'));
@@ -1248,7 +1248,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND nd.hospdrugcode IS NOT NULL 
               AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
             ORDER BY d.NAME,d.strength,d.units");
@@ -1274,7 +1274,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND (d2.ref_code IS NULL OR d2.ref_code = '') 
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
@@ -1300,7 +1300,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
               AND (d3.ref_code IS NULL OR d3.ref_code = '') 
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");

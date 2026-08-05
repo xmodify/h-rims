@@ -4663,9 +4663,10 @@ class ClaimOpController extends Controller
             op_data.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
-            pt.sex, v.age_y
+            pt.sex, v.age_y, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -4723,9 +4724,10 @@ class ClaimOpController extends Controller
             rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
-            pt.sex, v.age_y
+            pt.sex, v.age_y, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn

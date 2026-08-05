@@ -459,8 +459,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -483,8 +485,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -507,8 +511,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm    
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -531,8 +537,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm   
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -555,8 +563,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm 
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -579,8 +589,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -603,8 +615,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -629,8 +643,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
@@ -655,8 +671,10 @@ class CheckDrugcatController extends Controller
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
-            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
+            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
+            LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1

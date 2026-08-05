@@ -131,6 +131,7 @@
                             <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ราคา</th>                   
                             <th class="text-center" colspan="2" style="background-color: #f0f9ff; border-bottom-color: #bae6fd !important;">รหัส TMT</th> 
                             <th class="text-center" colspan="2" style="background-color: #eef2ff; border-bottom-color: #c7d2fe !important;">ยาสมุนไพร</th>                  
+                            <th class="text-center" colspan="2" style="background-color: #f0fdf4; border-bottom-color: #bbf7d0 !important;">ProductCat</th>
                             <th class="text-center" colspan="2" style="background-color: #fff7ed; border-bottom-color: #ffedd5 !important;">บัญชียา (ED)</th>                                      
                         </tr>
                         <tr>                    
@@ -142,6 +143,8 @@
                             <th class="text-center small" style="background-color: #f0f9ff">สกส.</th>
                             <th class="text-center small" style="background-color: #eef2ff">TTMT</th> 
                             <th class="text-center small" style="background-color: #eef2ff">HERB</th>   
+                            <th class="text-center small" style="background-color: #f0fdf4">HOSxP</th> 
+                            <th class="text-center small" style="background-color: #f0fdf4">สกส.</th>  
                             <th class="text-center small" style="background-color: #fff7ed">HOSxP</th> 
                             <th class="text-center small" style="background-color: #fff7ed">สกส.</th>  
                         </tr>
@@ -156,7 +159,7 @@
                                 $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
                             @endphp
                             <td class="text-center" style="vertical-align: middle;" data-order="{{ $has_error ? 0 : 1 }}">
-                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}')">
+                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}', '{{ $row->prdcat_hos }}', '{{ $row->prdcat_nhso }}')">
                                     <i class="bi bi-eye-fill {{ $has_error ? 'text-danger' : 'text-success' }}" style="font-size: 1.15rem;"></i>
                                 </button>
                             </td>
@@ -184,6 +187,10 @@
                             </td>                                    
                             <td class="text-center small text-muted">{{ $row->ttmt_code }}</td>
                             <td class="text-center small"><span class="badge {{ $row->herb == 'Y' ? 'bg-success-soft text-success' : 'bg-light text-muted' }}">{{ $row->herb }}</span></td>
+                            <td class="text-center small text-muted">{{ $row->prdcat_hos ?: '-' }}</td>
+                            <td class="text-center small fw-bold {{ $row->prdcat_nhso != $row->prdcat_hos ? 'text-danger' : 'text-success' }}">
+                                {{ $row->prdcat_nhso ?: '-' }}
+                            </td>
                             <td class="text-center small text-muted">
                                 {{ $row->ised_hos }} @if($row->drugaccount) ({{ $row->drugaccount }}) @endif
                             </td>
@@ -296,16 +303,36 @@
     let currentExportType = '';
     let currentCheckedBoxes = [];
 
-    function showCompletenessModal(icode, name, tmt, ndc24, price, ised, generic, trade, dosage, units) {
+    function showCompletenessModal(icode, name, tmt, ndc24, price, ised, generic, trade, dosage, units, prdcat_hos, prdcat_nhso) {
         document.getElementById('modalDrugName').innerText = 'ชื่อยา: ' + name;
         document.getElementById('modalDrugCode').innerText = 'รหัส HOSxP: ' + icode;
         
         const container = document.getElementById('checkListContainer');
         container.innerHTML = '';
         
+        const catMap = {
+            '1': '1 - ยาแผนปัจจุบันทางการค้า',
+            '2': '2 - ยาแผนปัจจุบันผลิตเอง',
+            '3': '3 - ยาแผนไทยที่เป็นผลิตภัณฑ์ทางการค้า',
+            '4': '4 - ยาแผนไทยผลิตใช้เอง',
+            '5': '5 - ยาแผนการรักษาทางเลือกอื่น',
+            '6': '6 - เวชภัณฑ์',
+            '7': '7 - อื่นๆ'
+        };
+        
+        const prdcatHosText = catMap[prdcat_hos] || prdcat_hos || '-';
+        const prdcatNhsoText = catMap[prdcat_nhso] || prdcat_nhso || '-';
+        
         const fields = [
             { label: 'รหัสยาโรงพยาบาล (icode)', value: icode, check: !!icode },
-            { label: 'รหัส TMT ID', value: tmt, check: !!tmt },
+            { label: 'ประเภทผลิตภัณฑ์ HOSxP (ProductCat)', value: prdcatHosText, check: !!prdcat_hos },
+            { 
+                label: 'ประเภทผลิตภัณฑ์ สกส. (ProductCat)', 
+                value: prdcatNhsoText, 
+                check: !!prdcat_nhso,
+                warning: prdcat_hos && prdcat_nhso && prdcat_hos !== prdcat_nhso ? 'ข้อมูลประเภทผลิตภัณฑ์ไม่ตรงกับ HOSxP' : null
+            },
+            { label: 'รหัส TMT ID', value: tmt, check: !!tmt || (prdcat_hos !== '1' && prdcat_hos !== '2') },
             { 
                 label: 'รหัส 24 หลัก (NDC24) *ไม่บังคับสำหรับ สกส.', 
                 value: ndc24, 

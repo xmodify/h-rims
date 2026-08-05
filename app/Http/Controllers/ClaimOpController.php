@@ -7572,7 +7572,7 @@ class ClaimOpController extends Controller
                         WHERE nd.hospdrugcode = nd1.hospdrugcode 
                         AND nd1.updateflag IN ('A','U','E')
                     )
-                LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tpu_code, sd.sks_drug_code)
+                LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
                 LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
                 WHERE op.vn IN ('" . implode("','", $vns) . "')
             ");

@@ -171,7 +171,7 @@
                                 <tr>
                                     <th class="text-center" width="8%">รหัส</th>
                                     <th class="text-start" width="20%">ชื่อ - สกุล</th>
-                                    <th class="text-center" width="12%">ตำแหน่ง</th>
+                                    <th class="text-start" width="12%">ตำแหน่ง</th>
                                     <th class="text-center" width="12%">เลขใบประกอบวิชาชีพ</th>  
                                     <th class="text-center" width="12%">เลขบัตรประชาชน</th>
                                     <th class="text-center" width="10%">สภาวิชาชีพ</th>
@@ -209,7 +209,7 @@
                                 <tr>
                                     <td class="text-center fw-bold text-muted">{{ $row->code }}</td>
                                     <td class="text-start font-medium text-dark">{{ $row->name }}</td>
-                                    <td class="text-center small text-dark">
+                                    <td class="text-start small text-dark">
                                         {{ $row->position_name ?? '-' }}
                                     </td>
                                     <td class="text-center">

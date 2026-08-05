@@ -123,23 +123,23 @@
                             $cid = trim($row->cid ?? '');
                             $isCidValid = (!empty($cid) && strlen($cid) === 13);
                             
-                            $errors = [];
+                            $doc_errors = [];
                             if (empty($lic)) {
-                                $errors[] = 'ไม่มีเลขใบประกอบวิชาชีพ';
+                                $doc_errors[] = 'ไม่มีเลขใบประกอบวิชาชีพ';
                             } elseif (!$isLicValid) {
-                                $errors[] = "เลขใบประกอบฯ '{$lic}' รูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลข)";
+                                $doc_errors[] = "เลขใบประกอบฯ '{$lic}' รูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลข)";
                             }
                             
                             if (empty($cid)) {
-                                $errors[] = 'ไม่มีเลขบัตรประชาชน';
+                                $doc_errors[] = 'ไม่มีเลขบัตรประชาชน';
                             } elseif (!$isCidValid) {
-                                $errors[] = 'เลขบัตรประชาชนต้องยาว 13 หลัก';
+                                $doc_errors[] = 'เลขบัตรประชาชนต้องยาว 13 หลัก';
                             }
                             
-                            if (empty($errors)) {
+                            if (empty($doc_errors)) {
                                 $statusHtml = '<span class="badge bg-success-soft text-success"><i class="bi bi-check-circle-fill me-1"></i>ข้อมูลปกติ</span>';
                             } else {
-                                $tooltipText = implode(' | ', $errors);
+                                $tooltipText = implode(' | ', $doc_errors);
                                 $statusHtml = '<span class="badge bg-danger-soft text-danger cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" title="'.$tooltipText.'"><i class="bi bi-exclamation-triangle-fill me-1"></i>พบข้อผิดพลาด</span>';
                             }
 

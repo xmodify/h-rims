@@ -5880,7 +5880,7 @@ class ClaimOpController extends Controller
             $placeholders = implode(',', array_fill(0, count($vns), '?'));
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
-                       gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                       gt.gpu_code, gg.gp_code, COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
                        op.drugusage, op.qty, op.income
                 FROM opitemrece op
                 INNER JOIN s_drugitems sd ON sd.icode = op.icode
@@ -6307,7 +6307,7 @@ class ClaimOpController extends Controller
             SELECT op.icode, COALESCE(sd.name, ni.name) AS name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                    gt.gpu_code, gg.gp_code, op.drugusage,
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
-                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                   COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
                    op.paidst AS paids, pst.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code, op.income,
                    inc.income_csmbs_code
@@ -6702,7 +6702,7 @@ class ClaimOpController extends Controller
             SELECT op.icode, COALESCE(sd.name, ni.name) AS name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                    gt.gpu_code, gg.gp_code, op.drugusage,
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
-                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                   COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
                    op.paidst AS paids, pst.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code,
                    op.income, inc.income_csmbs_code
@@ -7562,7 +7562,7 @@ class ClaimOpController extends Controller
             $drugs_by_vn = [];
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, COALESCE(sd.name, ni.name) AS name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
-                       gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                       gt.gpu_code, gg.gp_code, COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
                        op.drugusage, op.qty, op.income, ni.nhso_adp_code, inc.income_csmbs_code
                 FROM opitemrece op
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode

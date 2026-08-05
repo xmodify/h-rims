@@ -905,41 +905,6 @@
                     }
                 });
 
-                // Add REP feedbacks to errors/warnings alert
-                const repErrors = [];
-                const repWarnings = [];
-                feedbacks.forEach(f => {
-                    const msg = `[${f.code}] ${f.desc}`;
-                    if (f.type === 'warning') {
-                        repWarnings.push(msg);
-                    } else {
-                        repErrors.push(msg);
-                    }
-                });
-
-                let repStatusHtml = '';
-                if (repErrors.length > 0 || repWarnings.length > 0) {
-                    const badgeClass = repErrors.length > 0 ? 'alert-danger' : 'alert-warning';
-                    const iconClass = repErrors.length > 0 ? 'bi-x-circle-fill' : 'bi-exclamation-circle-fill';
-                    const borderStyle = repErrors.length > 0 ? 'border-left: 5px solid #dc2626 !important; background-color: #fef2f2; color: #991b1b;' : 'border-left: 5px solid #d97706 !important; background-color: #fffbeb; color: #92400e;';
-                    const textColor = repErrors.length > 0 ? 'text-danger' : 'text-warning';
-                    const alertTitle = repErrors.length > 0 ? 'สถานะการส่งเคลมล่าสุด: ปฏิเสธการเบิก (มีข้อผิดพลาด REP Error จาก สกส.)' : 'สถานะการส่งเคลมล่าสุด: อนุมัติแบบมีข้อแนะนำ (REP Warning)';
-                    const listItems = [...repErrors, ...repWarnings];
-                    
-                    repStatusHtml = `
-                    <div class="col-12 mb-2">
-                      <div class="alert ${badgeClass} py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="${borderStyle}">
-                        <i class="bi ${iconClass} me-2 mt-1" style="font-size: 1.1rem; color: ${repErrors.length > 0 ? '#dc2626' : '#d97706'};"></i>
-                        <div>
-                          <div class="fw-bold mb-1 text-dark">${alertTitle}</div>
-                          <ul class="mb-0 ps-3 ${textColor}" style="${repErrors.length > 0 ? 'color: #991b1b !important;' : 'color: #92400e !important;'}">
-                            ${listItems.map(item => `<li>${item}</li>`).join('')}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>`;
-                }
-
                 // Determine validation status alert banner
                 let statusHtml = '';
                 if (errors.length > 0) {
@@ -949,7 +914,7 @@
                       <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
                         <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">ความพร้อมข้อมูลส่งออกรอบใหม่: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดใน HOSxP ที่ต้องแก้ไข)</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดใน HOSxP ที่ต้องแก้ไข)</div>
                           <ul class="mb-0 ps-3 text-danger">
                             ${errors.map(err => `<li>${err}</li>`).join('')}
                           </ul>
@@ -960,14 +925,14 @@
                     // YELLOW Status Alert
                     const allWarnings = [...warnings];
                     if (visit.endpoint !== 'Y') {
-                        allWarnings.push("สิทธิ์การรักษยังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
+                        allWarnings.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
                     }
                     statusHtml = `
                     <div class="col-12 mb-2">
                       <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
                         <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">ความพร้อมข้อมูลส่งออกรอบใหม่: ข้อมูลผ่านเกณฑ์ แต่มีข้อแนะนำ/ยังไม่ได้ปิดสิทธิ (สปสช.)</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่มีข้อแนะนำ/ยังไม่ได้ปิดสิทธิ (สปสช.)</div>
                           <ul class="mb-0 ps-3 text-warning" style="color: #92400e !important;">
                             ${allWarnings.map(warn => `<li>${warn}</li>`).join('')}
                           </ul>
@@ -981,14 +946,12 @@
                       <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
                         <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">ความพร้อมข้อมูลส่งออกรอบใหม่: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
                           <div class="text-muted">ข้อมูลการรับบริการถูกต้อง ครบถ้วน และปิดสิทธิเรียบร้อยแล้ว</div>
                         </div>
                       </div>
                     </div>`;
                 }
-
-                statusHtml = repStatusHtml + statusHtml;
 
                 let html = `
                 <style>

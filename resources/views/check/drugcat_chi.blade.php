@@ -153,7 +153,7 @@
                                 <input type="checkbox" name="selected_drugs[]" value="{{ $row->icode }}" class="form-check-input drug-checkbox">
                             </td>
                             @php
-                                $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->code_24_hos) || (strlen($row->code_24_hos) != 24) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
+                                $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
                             @endphp
                             <td class="text-center" style="vertical-align: middle;" data-order="{{ $has_error ? 0 : 1 }}">
                                 <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}')">
@@ -306,7 +306,12 @@
         const fields = [
             { label: 'รหัสยาโรงพยาบาล (icode)', value: icode, check: !!icode },
             { label: 'รหัส TMT ID', value: tmt, check: !!tmt },
-            { label: 'รหัส 24 หลัก (NDC24)', value: ndc24, check: !!ndc24 && ndc24.length === 24, err: ndc24 && ndc24.length !== 24 ? 'ต้องยาว 24 หลัก' : 'ห้ามว่าง' },
+            { 
+                label: 'รหัส 24 หลัก (NDC24) *ไม่บังคับสำหรับ สกส.', 
+                value: ndc24, 
+                check: true, 
+                warning: !ndc24 || ndc24.length !== 24 ? 'ควรระบุให้ครบ 24 หลัก' : null 
+            },
             { label: 'ราคายา (UnitPrice)', value: price ? parseFloat(price).toFixed(2) + ' บาท' : '-', check: !!price && parseFloat(price) > 0 },
             { label: 'ชื่อสามัญ (Generic Name)', value: generic, check: !!generic },
             { label: 'ชื่อการค้า (Trade Name)', value: trade, check: !!trade },
@@ -332,7 +337,11 @@
             
             const badge = document.createElement('span');
             if (f.check) {
-                badge.innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i>';
+                if (f.warning) {
+                    badge.innerHTML = `<span class="badge bg-warning-soft text-warning me-2" style="background-color: rgba(255, 193, 7, 0.15); color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${f.warning}</span><i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>`;
+                } else {
+                    badge.innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i>';
+                }
             } else {
                 const errMsg = f.err || 'ห้ามว่าง';
                 badge.innerHTML = `<span class="badge bg-danger-soft text-danger me-2" style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${errMsg}</span><i class="bi bi-x-circle-fill text-danger fs-5"></i>`;

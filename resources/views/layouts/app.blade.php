@@ -695,6 +695,8 @@
                                                         href="{{ url('check/nhso_subinscl') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สิทธิการรักษา สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/sss_equipdev_aipn') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Equipdev AIPN</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/doctor') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บุคลากรทางการแพทย์</a></li>
                                             </ul>
                                         </li>
                                     </ul>

@@ -306,6 +306,7 @@ Route::post('check/drugcat_fdh_export_preview', [CheckDrugcatController::class, 
 Route::get('check/pttype', [CheckController::class, 'pttype']);
 Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);
+Route::get('check/doctor', [CheckController::class, 'doctor']);
 
 //OPD------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'opd/oppp_visit', [OpdController::class, 'oppp_visit']);

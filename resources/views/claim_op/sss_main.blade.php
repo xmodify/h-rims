@@ -2028,14 +2028,50 @@
         const stationId = document.getElementById('export_station_id').value;
         const tflag = document.getElementById('export_tflag').value;
 
-        // Redirect/Download trigger
-        const queryParams = $.param({
-            vns: selectedVnsForExport,
-            session_id: sessionId,
-            station_id: stationId,
-            tflag: tflag
+        // Create a hidden form to submit via POST to avoid Request-URI Too Long (414)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url('claim_op/sss_export_ssop') }}";
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = "{{ csrf_token() }}";
+        form.appendChild(csrfInput);
+
+        // Add other inputs
+        const sessionInput = document.createElement('input');
+        sessionInput.type = 'hidden';
+        sessionInput.name = 'session_id';
+        sessionInput.value = sessionId;
+        form.appendChild(sessionInput);
+
+        const stationInput = document.createElement('input');
+        stationInput.type = 'hidden';
+        stationInput.name = 'station_id';
+        stationInput.value = stationId;
+        form.appendChild(stationInput);
+
+        const tflagInput = document.createElement('input');
+        tflagInput.type = 'hidden';
+        tflagInput.name = 'tflag';
+        tflagInput.value = tflag;
+        form.appendChild(tflagInput);
+
+        // Add VNs
+        selectedVnsForExport.forEach(vn => {
+            const vnInput = document.createElement('input');
+            vnInput.type = 'hidden';
+            vnInput.name = 'vns[]';
+            vnInput.value = vn;
+            form.appendChild(vnInput);
         });
-        window.location.href = "{{ url('claim_op/sss_export_ssop') }}?" + queryParams;
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
 
         $('#ssopPreviewModal').modal('hide');
         Swal.fire({

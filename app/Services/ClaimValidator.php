@@ -178,12 +178,12 @@ class ClaimValidator
 
         // check DRDX (Doctor License)
         $doc_lic = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
-        $is_doc_valid = (!empty($doc_lic) && preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $doc_lic));
+        $is_doc_valid = (!empty($doc_lic) && str_starts_with($doc_lic, 'ว'));
         if (!$is_doc_valid) {
             if (empty($doc_lic)) {
                 $errors[] = "ไม่พบเลขใบอนุญาตผู้วินิจฉัยโรค (DRDX) ของแพทย์ผู้รักษา";
             } else {
-                $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องเริ่มต้นด้วย ว, ท, ภ, พ";
+                $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องเริ่มต้นด้วย ว";
             }
         }
 

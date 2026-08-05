@@ -1176,7 +1176,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-05 12.00
+                                V.69-08-05 14.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1866,6 +1866,8 @@
                               <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
                               <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
                               <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+                              <tr><th class="text-muted">แพทย์ผู้ตรวจ</th><td>${visit.doctor_name ?? '-'}</td></tr>
+                              <tr><th class="text-muted">เลขใบอนุญาต</th><td>${visit.doctor_license ?? '-'}</td></tr>
                             </table>
                           </div>
                         </div>

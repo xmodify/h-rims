@@ -1045,6 +1045,8 @@
                           <tr><th class="text-muted" >PDX</th><td class="fw-bold text-danger" style="word-break: break-all;">${pdx}</td></tr>
                           <tr><th class="text-muted" >SDX</th><td class="text-dark" style="word-break: break-all;">${sec_diags.join(', ') || '-'}</td></tr>
                           <tr><th class="text-muted" >ICD-9</th><td class="text-dark" style="word-break: break-all;">${procedures.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted" >แพทย์ผู้ตรวจ</th><td class="text-dark" style="word-break: break-all;">${visit.doctor_name ?? '-'}</td></tr>
+                          <tr><th class="text-muted" >เลขใบอนุญาต</th><td class="text-dark" style="word-break: break-all;">${visit.doctor_license ?? '-'}</td></tr>
                         </table>
                       </div>
                     </div>

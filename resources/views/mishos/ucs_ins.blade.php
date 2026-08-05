@@ -968,6 +968,8 @@
                       <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
                       <tr><th class="text-muted">SDX</th><td style="word-break: break-all;">${data.sec_diags ? data.sec_diags.join(', ') : (visit.sdx || '-')}</td></tr>
                       <tr><th class="text-muted">ICD-9</th><td style="word-break: break-all;">${data.procedures ? data.procedures.join(', ') : (visit.icd9 || '-')}</td></tr>
+                      <tr><th class="text-muted">แพทย์ผู้ตรวจ</th><td>${visit.doctor_name ?? '-'}</td></tr>
+                      <tr><th class="text-muted">เลขใบอนุญาต</th><td>${visit.doctor_license ?? '-'}</td></tr>
                     </table>
                   </div>
                 </div>

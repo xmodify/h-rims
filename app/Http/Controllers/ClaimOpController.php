@@ -353,7 +353,8 @@ class ClaimOpController extends Controller
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
-                   vp.request_funds
+                   vp.request_funds,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -363,6 +364,7 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
 
         if (!$visit) {
@@ -1169,7 +1171,8 @@ class ClaimOpController extends Controller
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
-                   vp.request_funds
+                   vp.request_funds,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -1179,6 +1182,7 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
 
         if (!$visit) {
@@ -2225,7 +2229,8 @@ class ClaimOpController extends Controller
                    vp.request_funds,
                    IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
                    COALESCE(stm.receive_total, 0) + COALESCE(csop.amount, 0) AS receive_total,
-                   COALESCE(stm_uc.receive_pp, 0) AS receive_pp
+                   COALESCE(stm_uc.receive_pp, 0) AS receive_pp,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -2236,6 +2241,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN ovst_seq oq ON oq.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT cid, vstdate, 
                        GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
@@ -4845,7 +4851,8 @@ class ClaimOpController extends Controller
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
-                   vp.request_funds
+                   vp.request_funds,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -4855,6 +4862,7 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
 
         if (!$visit) {

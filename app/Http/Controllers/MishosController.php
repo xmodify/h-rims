@@ -6283,7 +6283,8 @@ class MishosController extends Controller
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
-                   vp.request_funds
+                   vp.request_funds,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -6293,6 +6294,7 @@ class MishosController extends Controller
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND (ep.claimCode LIKE "EP%" OR ep.claim_status = "success")
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
 
         if (!$visit) {

@@ -59,7 +59,7 @@ class CsopExportController extends Controller
                    v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, vp.pttype AS sss_pttype, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
-                   doc.licenseno AS doctor_license, doc.name AS doctor_name,
+                   CASE WHEN doc.licenseno LIKE '-%' OR doc.licenseno = '' OR doc.licenseno IS NULL THEN doc.regist_no ELSE doc.licenseno END AS doctor_license, doc.name AS doctor_name,
                    o.pttype AS ovst_pttype,
                    (SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL) AS sss_paid_amount
             FROM ovst o

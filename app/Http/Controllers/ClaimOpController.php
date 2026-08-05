@@ -7350,7 +7350,7 @@ class ClaimOpController extends Controller
                 }
             }
 
-            if (!$has_cid || !$has_pdx || $has_icd10_chi_error) {
+            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || !empty($row->rep_error)) {
                 $row->claim_status = 'red';
             } elseif (!$has_inv) {
                 $row->claim_status = 'yellow';

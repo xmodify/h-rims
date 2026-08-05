@@ -6227,7 +6227,7 @@ class ClaimOpController extends Controller
             
             if ($row->rep_error) {
                 $warning[] = $row;
-            } elseif ($has_rep || $row->stm_pay !== null) {
+            } elseif ($has_rep || $row->stm_pay !== null || $row->endpoint === 'Y') {
                 $claim_sent[] = $row;
             } else {
                 $search[] = $row;
@@ -7765,7 +7765,7 @@ class ClaimOpController extends Controller
 
             if ($row->rep_error) {
                 $warning[] = $row;
-            } elseif ($rep || $row->stm_pay) {
+            } elseif ($rep || $row->stm_pay || $row->endpoint === 'Y') {
                 $claim_sent[] = $row;
             } else {
                 $search[] = $row;

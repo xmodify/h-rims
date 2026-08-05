@@ -126,6 +126,11 @@ class ClaimValidator
 
     public function validatePpfsOnly($visit, $billedItems): array
     {
+        if (is_object($visit)) {
+            $visit->is_sss = true;
+        } elseif (is_array($visit)) {
+            $visit['is_sss'] = true;
+        }
         return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
     }
 
@@ -182,14 +187,17 @@ class ClaimValidator
             return ['errors' => [], 'warnings' => []];
         }
 
-        // check DRDX (Doctor License)
-        $doc_lic = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
-        $is_doc_valid = (!empty($doc_lic) && str_starts_with($doc_lic, 'ว'));
-        if (!$is_doc_valid) {
-            if (empty($doc_lic)) {
-                $errors[] = "ไม่พบเลขใบอนุญาตผู้วินิจฉัยโรค (DRDX) ของแพทย์ผู้รักษา";
-            } else {
-                $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องเริ่มต้นด้วย ว";
+        // check DRDX (Doctor License) - Only for Social Security (SSS)
+        $is_sss = is_object($visit) ? !empty($visit->is_sss) : (!empty($visit['is_sss']));
+        if ($is_sss) {
+            $doc_lic = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
+            $is_doc_valid = (!empty($doc_lic) && str_starts_with($doc_lic, 'ว'));
+            if (!$is_doc_valid) {
+                if (empty($doc_lic)) {
+                    $errors[] = "ไม่พบเลขใบอนุญาตผู้วินิจฉัยโรค (DRDX) ของแพทย์ผู้รักษา";
+                } else {
+                    $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องเริ่มต้นด้วย ว";
+                }
             }
         }
 

@@ -232,7 +232,7 @@ class CsopExportController extends Controller
                 }
 
                 $tmtid = !empty($item->tmtid) ? $item->tmtid : '';
-                $billitems_rows[] = "{$invoice_no}|{$row->vn}|{$billgr}|{$item->icode}|{$tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_charge}|{$sum_claim_up}|{$sum_claim}|0.00|{$disp_id}";
+                $billitems_rows[] = "{$invoice_no}|{$row->vstdate}|{$billgr}|{$item->icode}|{$tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_charge}|{$sum_claim_up}|{$sum_claim}|{$disp_id}|OP1";
             }
 
             $income = number_format($total_charge, 2, '.', '');

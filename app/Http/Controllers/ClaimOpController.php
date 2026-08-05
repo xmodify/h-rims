@@ -6523,7 +6523,8 @@ class ClaimOpController extends Controller
                    p.name AS pttype_name, p.hipdata_code, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
                    rc.rcpno_list, v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
                    vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno, v.paid_money, v.remain_money,
-                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
+                   doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -6531,6 +6532,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money, GROUP_CONCAT(r.rcpno) AS rcpno_list
                 FROM rcpt_print r
@@ -6553,17 +6555,19 @@ class ClaimOpController extends Controller
         ', [$vn]);
 
         $drugs = DB::connection('hosxp')->select("
-            SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+            SELECT op.icode, COALESCE(sd.name, ni.name) AS name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                    gt.gpu_code, gg.gp_code, op.drugusage,
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
                    sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
                    op.paidst AS paids, pst.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code
+                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code,
+                   op.income, inc.income_csmbs_code
             FROM opitemrece op
-            INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
             LEFT JOIN drugusage du ON du.drugusage = op.drugusage
             LEFT JOIN nondrugitems ni ON ni.icode = op.icode
+            LEFT JOIN income inc ON inc.income = op.income
             LEFT JOIN paidst pst ON pst.paidst = op.paidst
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
@@ -6644,6 +6648,134 @@ class ClaimOpController extends Controller
                 'desc' => 'กรุณาระบุรหัสโรคการวินิจฉัยหลัก (diagtype = 1) ในระบบ HOSxP',
                 'status' => 'danger'
             ];
+        } else {
+            $validator = new \App\Services\ClaimValidator();
+            $res = $validator->validateIcd10Chi($visit->pdx, '1');
+            if (!$res['is_valid']) {
+                $pre_audits[] = [
+                    'code' => 'S54',
+                    'title' => 'รหัสวินิจฉัยหลักไม่ถูกต้องตามเกณฑ์ สกส.',
+                    'desc' => $res['message'] . ' (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP หรือปรับ CodeSet เป็น TT หากเป็นแพทย์แผนไทย)',
+                    'status' => 'danger'
+                ];
+            }
+        }
+
+        // CSOP outpatient service validation rules (T72, T78, T84)
+        $map_income_to_csop_group = function($csmbs_code, $fallback_income) {
+            if (empty($csmbs_code)) {
+                $fallback_income = str_pad($fallback_income, 2, '0', STR_PAD_LEFT);
+                switch ($fallback_income) {
+                    case '01': return '1';
+                    case '02': return '2';
+                    case '03':
+                    case '04':
+                    case '17': return '3';
+                    case '05': return '5';
+                    case '06': return '6';
+                    case '07': return '7';
+                    case '08': return '8';
+                    case '09': return '9';
+                    case '10': return 'A';
+                    case '11': return 'B';
+                    case '12':
+                    case '18': return 'C';
+                    case '13': return 'D';
+                    case '14': return 'E';
+                    case '15': return 'F';
+                    case '16': return 'H';
+                    default: return 'G';
+                }
+            }
+            switch (trim($csmbs_code)) {
+                case '01': return '1';
+                case '02': return '2';
+                case '03':
+                case '04': return '3';
+                case '05': return '5';
+                case '06': return '6';
+                case '07': return '7';
+                case '08': return '8';
+                case '09': return '9';
+                case '10': return 'A';
+                case '11': return 'B';
+                case '12': return 'C';
+                case '13': return 'D';
+                case '14': return 'E';
+                case '15': return 'F';
+                case '16': return 'H';
+                case '17': return 'I';
+                default: return 'G';
+            }
+        };
+
+        $has_op_service_fee = false;
+        $has_room_fee = false;
+        $other_groups = [];
+
+        foreach ($drugs as $item) {
+            $adp = trim($item->nhso_adp_code ?? '');
+            if ($adp === '55020' || $adp === '55021') {
+                $has_op_service_fee = true;
+                continue;
+            }
+
+            $g = $map_income_to_csop_group($item->income_csmbs_code, $item->income);
+            if ($g === '2') {
+                $has_room_fee = true;
+            }
+            $other_groups[$g] = true;
+        }
+
+        if ($has_op_service_fee) {
+            // Rule T72: Outpatient fee + room observation fee together
+            if ($has_room_fee) {
+                $pre_audits[] = [
+                    'code' => 'T72',
+                    'title' => 'เบิกค่าบริการผู้ป่วยนอกร่วมกับค่าเตียงสังเกตอาการ',
+                    'desc' => 'มีการเบิกค่าบริการผู้ป่วยนอก (55020/55021) ร่วมกับค่าเตียงสังเกตอาการ (หมวด 2) สกส. จะตรวจติด C รหัส T72',
+                    'status' => 'danger'
+                ];
+            }
+
+            // Rule T78: Outpatient fee + Group 15 (F) acupuncture only, no other groups
+            if (count($other_groups) === 1 && isset($other_groups['F'])) {
+                $pre_audits[] = [
+                    'code' => 'T78',
+                    'title' => 'เบิกค่าบริการผู้ป่วยนอกร่วมกับบริการฝังเข็มหมวด 15 เท่านั้น',
+                    'desc' => 'มีการเบิกค่าบริการผู้ป่วยนอกร่วมกับบริการฝังเข็ม (หมวด 15/F) โดยไม่มีค่ารักษาหมวดอื่นร่วมด้วย สกส. จะตรวจติด C รหัส T78',
+                    'status' => 'danger'
+                ];
+            }
+
+            // Rule T84: Outpatient fee, no doctor visit (SVPid not starting with ว)
+            // AND only scheduled procedures/investigations (Groups 8, B, E, F only)
+            $allowed_t84_groups = ['8', 'B', 'E', 'F'];
+            $only_t84_groups = true;
+            $has_any_item = !empty($other_groups);
+
+            foreach (array_keys($other_groups) as $g) {
+                if (!in_array($g, $allowed_t84_groups)) {
+                    $only_t84_groups = false;
+                }
+            }
+
+            $has_doctor = false;
+            if (!empty($visit->doctor_license)) {
+                $lic = strtoupper(trim($visit->doctor_license));
+                if (str_starts_with($lic, 'ว')) {
+                    $has_doctor = true;
+                }
+            }
+
+            if ($has_any_item && $only_t84_groups && !$has_doctor) {
+                $pre_audits[] = [
+                    'code' => 'T84',
+                    'title' => 'เบิกค่าบริการผู้ป่วยนอกโดยไม่มีประวัติพบแพทย์ (เฉพาะทำหัตถการ)',
+                    'desc' => 'มีการเบิกค่าบริการผู้ป่วยนอกและหัตถการ (หมวด 8, B, E, F) แต่ไม่มีประวัติการพบแพทย์ (ใบอนุญาตแพทย์ไม่ได้ขึ้นต้นด้วย ว.) สกส. จะตรวจติด C รหัส T84',
+                    'status' => 'danger'
+                ];
+            }
         }
 
         $latest_rep = DB::table('rep_sss_ssop')
@@ -7209,7 +7341,16 @@ class ClaimOpController extends Controller
             $has_cc = !empty($row->cc);
             $has_cid = (!empty($row->cid) && strlen($row->cid) === 13);
             
-            if (!$has_cid || !$has_pdx) {
+            $has_icd10_chi_error = false;
+            if (!empty($row->pdx)) {
+                $validator = new \App\Services\ClaimValidator();
+                $res = $validator->validateIcd10Chi($row->pdx, '1');
+                if (!$res['is_valid']) {
+                    $has_icd10_chi_error = true;
+                }
+            }
+
+            if (!$has_cid || !$has_pdx || $has_icd10_chi_error) {
                 $row->claim_status = 'red';
             } elseif (!$has_inv) {
                 $row->claim_status = 'yellow';

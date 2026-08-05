@@ -138,14 +138,65 @@ class ImportCsController extends Controller
                                         }
                                     }
 
-                                    // Try to match visit/vn in HOSxP using HN and Date/Time
+                                    // Try to match visit/vn in HOSxP using Invoice No
                                     $vn = null;
-                                    if ($hn && $dttran) {
+                                    if (!empty($invno)) {
                                         $vn = DB::connection('hosxp')
+                                            ->table('rcpt_debt')
+                                            ->where('debt_id', $invno)
+                                            ->value('vn');
+                                        
+                                        if (!$vn) {
+                                            $vn = DB::connection('hosxp')
+                                                ->table('ovst_sss_billtran')
+                                                ->where('invno', $invno)
+                                                ->value('vn');
+                                        }
+
+                                    }
+
+                                    // Fallback to matching by HN and Date/Time if vn is still null
+                                    if (!$vn && $hn && $dttran) {
+                                        // 1. Try exact HN + vstdate + vsttime (Hour and Minute)
+                                        $query = DB::connection('hosxp')
                                             ->table('ovst')
                                             ->where('hn', $hn)
-                                            ->where('vstdate', $dttran)
-                                            ->value('vn');
+                                            ->where('vstdate', $dttran);
+                                        if ($dttran_time) {
+                                            $query->whereRaw("LEFT(vsttime, 5) = ?", [substr($dttran_time, 0, 5)]);
+                                        }
+                                        $vn = $query->value('vn');
+
+                                        // 2. Try exact HN + vstdate without time if still null
+                                        if (!$vn) {
+                                            $vn = DB::connection('hosxp')
+                                                ->table('ovst')
+                                                ->where('hn', $hn)
+                                                ->where('vstdate', $dttran)
+                                                ->value('vn');
+                                        }
+
+                                        // 3. Try clean HN + vstdate + vsttime (Hour and Minute)
+                                        if (!$vn) {
+                                            $hn_clean = ltrim($hn, '0');
+                                            $query = DB::connection('hosxp')
+                                                ->table('ovst')
+                                                ->where('hn', 'like', '%' . $hn_clean)
+                                                ->where('vstdate', $dttran);
+                                            if ($dttran_time) {
+                                                $query->whereRaw("LEFT(vsttime, 5) = ?", [substr($dttran_time, 0, 5)]);
+                                            }
+                                            $vn = $query->value('vn');
+
+                                            // 4. Try clean HN + vstdate without time
+                                            if (!$vn) {
+                                                $vn = DB::connection('hosxp')
+                                                    ->table('ovst')
+                                                    ->where('hn', 'like', '%' . $hn_clean)
+                                                    ->where('vstdate', $dttran)
+                                                    ->value('vn');
+                                            }
+                                        }
                                     }
 
                                     $stat = null;

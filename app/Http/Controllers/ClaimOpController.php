@@ -6671,13 +6671,12 @@ class ClaimOpController extends Controller
             ];
         } else {
             $lic = trim($visit->doctor_license);
-            $has_dot = str_contains($lic, '.');
-            $starts_with_valid = preg_match('/^[วทภพ\-]/u', $lic);
-            if ($has_dot || !$starts_with_valid) {
+            $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+            if (!$is_valid_format) {
                 $pre_audits[] = [
                     'code' => 'S15',
                     'title' => 'เลขที่ใบประกอบวิชาชีพ SvPID ไม่ถูกต้อง',
-                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ห้ามมีจุด . และต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ -)",
+                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น เช่น ว15245 หรือ -)",
                     'status' => 'danger'
                 ];
             }

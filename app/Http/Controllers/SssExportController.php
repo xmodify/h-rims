@@ -695,6 +695,25 @@ class SssExportController extends Controller
             } elseif ($invoice_no === $vn) {
                 $errors['opservices'][] = "เลขใบแจ้งหนี้ใช้เลข VN (ยังไม่ได้ออกใบแจ้งหนี้)";
             }
+
+            $op_row = null;
+            foreach ($opservices_table as $os) {
+                if (isset($os[1]) && $os[1] === $vn) {
+                    $op_row = $os;
+                    break;
+                }
+            }
+            if ($op_row) {
+                $lic = trim($op_row[11] ?? '');
+                if (empty($lic)) {
+                    $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา";
+                } else {
+                    $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+                    if (!$is_valid_format) {
+                        $errors['opservices'][] = "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น) (S15)";
+                    }
+                }
+            }
             $diags = DB::connection('hosxp')->select("
                 SELECT icd10, diagtype 
                 FROM ovstdiag 

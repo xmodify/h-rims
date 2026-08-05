@@ -617,8 +617,14 @@ class CsopExportController extends Controller
 
             // 3. OPSERVICE checks
             if ($op_row) {
-                if (empty($op_row[11]) || $op_row[11] === '-') {
+                $lic = trim($op_row[11] ?? '');
+                if (empty($lic)) {
                     $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา";
+                } else {
+                    $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+                    if (!$is_valid_format) {
+                        $errors['opservices'][] = "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น) (S15)";
+                    }
                 }
             }
 

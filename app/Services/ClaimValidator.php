@@ -176,6 +176,12 @@ class ClaimValidator
             return ['errors' => [], 'warnings' => []];
         }
 
+        // If already compensated / paid, skip validation errors
+        $has_compensation = (!empty($visit->repno) || (!empty($visit->receive_total) && floatval($visit->receive_total) > 0) || (!empty($visit->rep_nhso) && floatval($visit->rep_nhso) > 0));
+        if ($has_compensation) {
+            return ['errors' => [], 'warnings' => []];
+        }
+
         // check DRDX (Doctor License)
         $doc_lic = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
         $is_doc_valid = (!empty($doc_lic) && str_starts_with($doc_lic, 'ว'));

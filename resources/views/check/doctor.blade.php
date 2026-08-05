@@ -209,12 +209,8 @@
                                 <tr>
                                     <td class="text-center fw-bold text-muted">{{ $row->code }}</td>
                                     <td class="text-start font-medium text-dark">{{ $row->name }}</td>
-                                    <td class="text-center small">
-                                        @if (empty($row->position_name))
-                                            <span class="text-muted small">-</span>
-                                        @else
-                                            <span class="badge bg-info-soft text-info-dark border">{{ $row->position_name }}</span>
-                                        @endif
+                                    <td class="text-center small text-dark">
+                                        {{ $row->position_name ?? '-' }}
                                     </td>
                                     <td class="text-center">
                                         @if (empty($lic))

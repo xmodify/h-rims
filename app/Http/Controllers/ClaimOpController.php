@@ -5795,6 +5795,7 @@ class ClaimOpController extends Controller
             SELECT o.vn AS seq,o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain, vp.pttype AS sss_pttype,
             pt.cid, vp.begin_date, vp.expire_date,
             os.cc,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
@@ -5813,6 +5814,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
@@ -5879,7 +5881,7 @@ class ClaimOpController extends Controller
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                        gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
-                       op.drugusage, op.qty
+                       op.drugusage, op.qty, op.income
                 FROM opitemrece op
                 INNER JOIN s_drugitems sd ON sd.icode = op.icode
                 LEFT JOIN drugitems di ON di.icode = op.icode
@@ -6169,8 +6171,43 @@ class ClaimOpController extends Controller
                 }
             }
 
+            // Check SvPID (S15) doctor license formatting check
+            $has_valid_doc_license = false;
+            if (!empty($row->doctor_license)) {
+                $lic = trim($row->doctor_license);
+                $has_valid_doc_license = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+            }
+
+            // Check Pharmacist license presence (if drugs exist)
+            $has_valid_pharmacist = true;
+            if (!empty($visit_drugs)) {
+                $lic = !empty($row->doctor_license) ? trim($row->doctor_license) : '';
+                if (empty($lic) || $lic === '-') {
+                    $has_valid_pharmacist = false;
+                }
+            }
+
+            // Check TMT ID for modern medicines
+            $has_tmt_error = false;
+            foreach ($visit_drugs as $drug) {
+                $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
+                if (str_starts_with($drug->icode, '3')) {
+                    if (isset($drug->income) && $drug->income === '05') {
+                        $item_prdcat = '6';
+                    } else {
+                        $item_prdcat = '7';
+                    }
+                } elseif (empty($item_prdcat)) {
+                    $item_prdcat = '1';
+                }
+                if ($item_prdcat === '1' && empty($drug->tmtid)) {
+                    $has_tmt_error = true;
+                    break;
+                }
+            }
+
             // Determine eye status color: red (errors), yellow (warnings/not closed), green (all good & closed)
-            $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates && !$has_icd10_chi_error);
+            $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates && !$has_icd10_chi_error && $has_valid_doc_license && $has_valid_pharmacist && !$has_tmt_error);
             if (!$is_valid) {
                 $row->claim_status = 'red';
             } elseif ($row->endpoint !== 'Y') {
@@ -7518,6 +7555,30 @@ class ClaimOpController extends Controller
                 $key = $rec->hn . '_' . $rec->vstdate . '_' . substr($rec->vsttime, 0, 5);
                 $stm_pays[$key] = $rec->amount;
             }
+
+            // Query drugs by VN for CSOP list validation
+            $drugs_by_vn = [];
+            $drugs = DB::connection('hosxp')->select("
+                SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                       gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                       op.drugusage, op.qty, op.income
+                FROM opitemrece op
+                INNER JOIN s_drugitems sd ON sd.icode = op.icode
+                LEFT JOIN drugitems di ON di.icode = op.icode
+                LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
+                    AND nd.date_approved = (
+                        SELECT MAX(nd1.date_approved) 
+                        FROM hrims.drugcat_chi nd1 
+                        WHERE nd.hospdrugcode = nd1.hospdrugcode 
+                        AND nd1.updateflag IN ('A','U','E')
+                    )
+                LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tpu_code, sd.sks_drug_code)
+                LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+                WHERE op.vn IN ('" . implode("','", $vns) . "')
+            ");
+            foreach ($drugs as $d) {
+                $drugs_by_vn[$d->vn][] = $d;
+            }
         }
 
         $search = [];
@@ -7559,10 +7620,38 @@ class ClaimOpController extends Controller
                 }
             }
 
-            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || $has_svpid_error) {
+            $visit_drugs = $drugs_by_vn[$row->vn] ?? [];
+
+            // Check Pharmacist license presence (if drugs exist) for CSOP
+            $has_valid_pharmacist = true;
+            if (!empty($visit_drugs)) {
+                $lic = !empty($row->doctor_license) ? trim($row->doctor_license) : '';
+                if (empty($lic) || $lic === '-') {
+                    $has_valid_pharmacist = false;
+                }
+            }
+
+            // Check TMT ID for modern medicines for CSOP
+            $has_tmt_error = false;
+            foreach ($visit_drugs as $drug) {
+                $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
+                if (str_starts_with($drug->icode, '3')) {
+                    if (isset($drug->income) && $drug->income === '05') {
+                        $item_prdcat = '6';
+                    } else {
+                        $item_prdcat = '7';
+                    }
+                } elseif (empty($item_prdcat)) {
+                    $item_prdcat = '1';
+                }
+                if ($item_prdcat === '1' && empty($drug->tmtid)) {
+                    $has_tmt_error = true;
+                    break;
+                }
+            }
+
+            if (!$has_cid || !$has_pdx || $has_icd10_chi_error || $has_svpid_error || !$has_valid_pharmacist || $has_tmt_error || !$has_inv) {
                 $row->claim_status = 'red';
-            } elseif (!$has_inv) {
-                $row->claim_status = 'yellow';
             } else {
                 $row->claim_status = 'green';
             }

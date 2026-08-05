@@ -7223,7 +7223,7 @@ class ClaimOpController extends Controller
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
                   IFNULL(csop.amount, 0) AS receive_total,
-                  CASE WHEN csop.hn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
+                  CASE WHEN (csop.hn IS NOT NULL OR rep.vn IS NOT NULL) THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
             FROM ovst o            
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -7242,12 +7242,18 @@ class ClaimOpController extends Controller
                 WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)
+            LEFT JOIN (
+                SELECT vn
+                FROM hrims.rep_ofc_csop
+                WHERE dttran_date BETWEEN ? AND ?
+                GROUP BY vn
+            ) rep ON rep.vn = o.vn
             WHERE p.pttype IN (' . $csop_pttypes_str . ')
                 AND (o.an = "" OR o.an IS NULL)
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');

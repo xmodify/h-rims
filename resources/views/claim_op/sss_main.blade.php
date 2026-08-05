@@ -714,6 +714,7 @@
 
                 dt_search = $('#t_search').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -731,6 +732,7 @@
 
                 dt_claim = $('#t_claim').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -748,6 +750,7 @@
 
                 dt_warning = $('#t_warning').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -1488,7 +1491,7 @@
                 emptyTable: "ไม่พบข้อมูลในตาราง"
             },
             pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
             order: []
         };
 

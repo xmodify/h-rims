@@ -768,7 +768,7 @@
 
                 $(document).on('change', '.select_all_claims', function() {
                     const checked = this.checked;
-                    $('.claim-select-check').each(function() {
+                    $(this).closest('table').find('.claim-select-check').each(function() {
                         this.checked = checked;
                     });
                 });
@@ -1679,7 +1679,7 @@
     let selectedVnsForExport = [];
     window.exportSelectedSSOP = function() {
         selectedVnsForExport = [];
-        $('.claim-select-check:checked').each(function() {
+        $('.tab-pane.active .claim-select-check:checked').each(function() {
             selectedVnsForExport.push(this.value);
         });
 

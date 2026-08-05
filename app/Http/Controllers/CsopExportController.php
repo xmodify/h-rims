@@ -59,7 +59,7 @@ class CsopExportController extends Controller
                    v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, vp.pttype AS sss_pttype, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
-                   CASE WHEN doc.licenseno LIKE '-%' OR doc.licenseno = '' OR doc.licenseno IS NULL THEN doc.regist_no ELSE doc.licenseno END AS doctor_license, doc.name AS doctor_name,
+                   doc.licenseno AS doctor_license, doc.name AS doctor_name,
                    o.pttype AS ovst_pttype,
                    (SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL) AS sss_paid_amount
             FROM ovst o
@@ -313,7 +313,7 @@ class CsopExportController extends Controller
                 $disp_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$v->vsttime}"));
                 $rxtime_val = !empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes'));
                 $end_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$rxtime_val}"));
-                $license = !empty($v->rx_license_no) ? $v->rx_license_no : (!empty($v->doctor_license) ? $v->doctor_license : '-');
+                $license = !empty($v->doctor_license) ? $v->doctor_license : '-';
                 
                 $session_items = array_filter($disp_items, function($x) use ($item, $rx_no) {
                     $x_rx_no = !empty($x->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $x->hos_guid), 0, 9) : $x->vn;

@@ -59,7 +59,7 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-sm-4">
                             <label for="seq_no" class="form-label small text-muted mb-1">งวดที่ส่ง (Sequence)</label>
-                            <input type="text" id="seq_no" class="form-control text-center fw-bold" value="001" placeholder="001" maxlength="3" style="border-radius: 8px; height: 38px;">
+                            <input type="text" id="seq_no" class="form-control text-center fw-bold" value="0001" placeholder="0001" maxlength="4" style="border-radius: 8px; height: 38px;">
                         </div>
                         <div class="col-sm-8 d-flex flex-column gap-2">
                             <button type="button" onclick="exportData('new')" class="btn btn-primary btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
@@ -243,7 +243,7 @@
             <div class="modal-body p-4">
                 <div class="alert alert-info py-2 px-3 small border-0 d-flex align-items-center" style="background-color: rgba(13, 202, 240, 0.1); color: #055160; border-radius: 8px;">
                     <i class="bi bi-info-circle-fill me-2"></i> 
-                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ ว 246 จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
+                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ <strong id="previewFileName" class="text-danger"></strong> จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
                 </div>
                 <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                     <table class="table table-bordered table-striped table-hover small text-nowrap" id="previewTable">
@@ -398,6 +398,10 @@
                     $('#previewTable').DataTable().destroy();
                 }
 
+                const hospCode = '{{ \App\Models\MainSetting::where("name", "hospital_code")->value("value") ?: "10989" }}';
+                let seqVal = document.getElementById('seq_no').value.trim() || '1';
+                seqVal = seqVal.padStart(4, '0');
+                document.getElementById('previewFileName').innerText = hospCode + 'DrugN' + seqVal + '.xlsx';
                 document.getElementById('previewCount').innerText = res.data.length;
                 const tbody = document.getElementById('previewTableBody');
                 tbody.innerHTML = '';
@@ -491,8 +495,8 @@
         document.getElementById('confirmExportBtn').addEventListener('click', function() {
             if (currentCheckedBoxes.length === 0 || !currentExportType) return;
             
-            let seq = document.getElementById('seq_no').value.trim() || '001';
-            seq = seq.padStart(3, '0');
+            let seq = document.getElementById('seq_no').value.trim() || '0001';
+            seq = seq.padStart(4, '0');
             
             let baseUrl = '{{ url("check/drugcat_chi_export_new") }}';
             if (currentExportType === 'edit') {

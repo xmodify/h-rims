@@ -672,10 +672,10 @@ class CheckDrugcatController extends Controller
     }
 
     //ส่งออกรายการใหม่ สกส (กรณีไม่พบที่ สกส) - UpdateFlag = A-------------------------------------------------------------------------------------------------
-    public function drugcat_chi_export_new(Request $request, $seq = '001')
+    public function drugcat_chi_export_new(Request $request, $seq = '0001')
     {
         $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
         
         $icodes = $request->input('icodes', []);
         if (empty($icodes) || !is_array($icodes)) {
@@ -728,10 +728,10 @@ class CheckDrugcatController extends Controller
     }
 
     //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขข้อมูลผลิตภัณฑ์) - UpdateFlag = E--------------------------------------------------------------------------------------
-    public function drugcat_chi_export_edit(Request $request, $seq = '001')
+    public function drugcat_chi_export_edit(Request $request, $seq = '0001')
     {
         $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
         
         $icodes = $request->input('icodes', []);
         if (empty($icodes) || !is_array($icodes)) {
@@ -789,10 +789,10 @@ class CheckDrugcatController extends Controller
     }
 
     //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขราคาส่งขาย) - UpdateFlag = U--------------------------------------------------------------------------------------
-    public function drugcat_chi_export_update(Request $request, $seq = '001')
+    public function drugcat_chi_export_update(Request $request, $seq = '0001')
     {
         $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
         
         $icodes = $request->input('icodes', []);
         if (empty($icodes) || !is_array($icodes)) {

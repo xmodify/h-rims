@@ -6235,7 +6235,8 @@ class ClaimOpController extends Controller
                    p.name AS pttype_name, p.hipdata_code, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
                    rc.rcpno_list, v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
                    vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno, v.paid_money, v.remain_money,
-                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
+                   doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -6243,6 +6244,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money, GROUP_CONCAT(r.rcpno) AS rcpno_list
                 FROM rcpt_print r

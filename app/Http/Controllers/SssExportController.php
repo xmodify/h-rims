@@ -563,9 +563,8 @@ class SssExportController extends Controller
         $sss_pttypes_by_vn = $data['sss_pttypes_by_vn'] ?? [];
 
         $billtran_table = [];
-        foreach ($data['billtran_rows'] as $idx => $row) {
+        foreach ($data['billtran_rows'] as $row) {
             $fields = explode('|', $row);
-            $fields[] = $data['visits_list'][$idx]->vn ?? '';
             $billtran_table[] = $fields;
         }
 
@@ -613,26 +612,43 @@ class SssExportController extends Controller
 
         // Perform backend validation to detect missing required fields
         $validation = [];
-        foreach ($data['visits_list'] as $idx => $row) {
-            $vn = $row->vn;
+        foreach ($data['visits_list'] as $row) {
+            if (empty($row['sss_pttype'] ?? null)) {
+                // If it is array or object, handle both
+                $sss_pttype = is_array($row) ? ($row['sss_pttype'] ?? null) : ($row->sss_pttype ?? null);
+                if (empty($sss_pttype)) {
+                    continue;
+                }
+            }
+            $rowObj = (object)$row;
+            $vn = $rowObj->vn;
             $errors = [];
 
-            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $raw_invo = !empty($rowObj->sss_invno) ? $rowObj->sss_invno : (!empty($rowObj->debt_id_list) ? $rowObj->debt_id_list : '');
             $invoice_no = $this->resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn, $data['sss_debt_map'] ?? []);
             
+            // Match BILLTRAN row by invoice_no
+            $bt_row = null;
+            foreach ($billtran_table as $bt) {
+                if (isset($bt[4]) && $bt[4] === $invoice_no) {
+                    $bt_row = $bt;
+                    break;
+                }
+            }
+
             // 1. BILLTRAN checks
             if (empty($invoice_no)) {
                 $errors['billtran'][] = "ไม่พบเลขใบแจ้งหนี้ (InvNo)";
             } elseif ($invoice_no === $vn) {
                 $errors['billtran'][] = "เลขใบแจ้งหนี้ใช้เลข VN (ยังไม่ได้ออกใบแจ้งหนี้)";
             }
-            if (empty($row->cid) || strlen($row->cid) !== 13) {
+            if (empty($rowObj->cid) || strlen($rowObj->cid) !== 13) {
                 $errors['billtran'][] = "เลขบัตรประชาชน (CID) ว่างหรือความยาวไม่ครบ 13 หลัก";
             }
-            if (empty($row->hn)) {
+            if (empty($rowObj->hn)) {
                 $errors['billtran'][] = "ไม่พบ HN";
             }
-            $vn_claim_sum = (float)($billtran_table[$idx][16] ?? 0.0);
+            $vn_claim_sum = $bt_row ? (float)($bt_row[16] ?? 0.0) : 0.0;
             if ($vn_claim_sum <= 0) {
                 $errors['billtran'][] = "ยอดเงินเรียกเก็บ (ClaimAmt) ต้องมากกว่า 0";
             }
@@ -696,9 +712,9 @@ class SssExportController extends Controller
             }
 
             $validation[$vn] = [
-                'hn' => $row->hn,
-                'name' => trim($row->pname . $row->fname . ' ' . $row->lname),
-                'vstdate' => $row->vstdate,
+                'hn' => $rowObj->hn,
+                'name' => trim($rowObj->pname . $rowObj->fname . ' ' . $rowObj->lname),
+                'vstdate' => $rowObj->vstdate,
                 'billtran_ok' => empty($errors['billtran']),
                 'billtran_err' => implode(', ', $errors['billtran'] ?? []),
                 'billdisp_ok' => empty($errors['billdisp']),

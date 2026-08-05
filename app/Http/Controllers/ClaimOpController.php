@@ -5982,7 +5982,7 @@ class ClaimOpController extends Controller
                 }
 
                 $err_codes_accum = array_unique($err_codes_accum);
-                $has_duplicate_pass = (in_array('T02', $err_codes_accum) && in_array('R01', $err_codes_accum) && in_array('S01', $err_codes_accum));
+                $has_duplicate_pass = (in_array('S01', $err_codes_accum) || in_array('T02', $err_codes_accum));
 
                 if (!empty($err_codes_accum) && !$has_duplicate_pass) {
                     $rep_errors[$vn] = implode(',', $err_codes_accum);
@@ -7555,7 +7555,7 @@ class ClaimOpController extends Controller
                 if (!empty($rep_rec->error_codes)) {
                     $codes = array_filter(array_map('trim', explode(',', $rep_rec->error_codes)));
                     $upper_codes = array_map('strtoupper', $codes);
-                    if (in_array('T02', $upper_codes) && in_array('R01', $upper_codes) && in_array('S01', $upper_codes)) {
+                    if (in_array('S01', $upper_codes) || in_array('T02', $upper_codes)) {
                         $rep_rec->error_codes = '';
                     }
                 }

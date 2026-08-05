@@ -6272,7 +6272,7 @@ class ClaimOpController extends Controller
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
                    sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
                    op.paidst AS paids, pst.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code
+                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code, op.income
             FROM opitemrece op
             INNER JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
@@ -6484,19 +6484,92 @@ class ClaimOpController extends Controller
 
         // 4. Audit ICD10 CHI: Check if diagnosis codes are valid (Validate ONLY primary diagnosis/PDX)
         $validator = new \App\Services\ClaimValidator();
+        $has_pdx = false;
         foreach ($diagnoses as $d) {
             if (($d->diagtype ?? '') != '1') {
                 continue;
             }
+            $has_pdx = true;
             $res = $validator->validateIcd10Chi($d->icd10 ?? '', '1');
             if (!$res['is_valid']) {
                 $pre_audits[] = [
                     'code' => '',
-                    'title' => '',
+                    'title' => 'รหัสวินิจฉัยหลักผิดกฎ',
                     'desc' => $res['message'] . ' (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP)',
                     'status' => 'danger'
                 ];
             }
+        }
+        if (!$has_pdx) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)',
+                'desc' => 'ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค',
+                'status' => 'danger'
+            ];
+        }
+
+        // 5. Audit BILLDISP: Pharmacist/Prescriber License and TMT ID for SSOP
+        $has_dispense = !empty($drugs);
+        if ($has_dispense) {
+            $license = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
+            if (empty($license) || $license === '-') {
+                $pre_audits[] = [
+                    'code' => '',
+                    'title' => 'ไม่พบเลขใบอนุญาตผู้สั่งยา/เภสัชกร',
+                    'desc' => 'ไม่พบเลขใบอนุญาตประกอบวิชาชีพของแพทย์ผู้สั่งยา/จัดจ่ายยาในระบบ',
+                    'status' => 'danger'
+                ];
+            }
+            foreach ($drugs as $drug) {
+                $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
+                if (str_starts_with($drug->icode, '3')) {
+                    if ($drug->income === '05') {
+                        $item_prdcat = '6';
+                    } else {
+                        $item_prdcat = '7';
+                    }
+                } elseif (empty($item_prdcat)) {
+                    $item_prdcat = '1';
+                }
+                if ($item_prdcat === '1' && empty($drug->tmtid)) {
+                    $pre_audits[] = [
+                        'code' => '',
+                        'title' => 'ยาไม่มีรหัสมาตรฐาน TMT',
+                        'desc' => "ยา {$drug->icode} ({$drug->name}) ไม่มีรหัสมาตรฐาน TMT ในแฟ้ม Drug Catalog",
+                        'status' => 'danger'
+                    ];
+                }
+            }
+        }
+
+        // 6. Audit Invoice No.
+        $raw_invo = !empty($visit->sss_invno) ? $visit->sss_invno : (!empty($visit->debt_id_list) ? $visit->debt_id_list : '');
+        if (empty($raw_invo)) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'ไม่พบเลขใบแจ้งหนี้ (InvNo)',
+                'desc' => 'ไม่พบเลขใบแจ้งหนี้ (InvNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP',
+                'status' => 'danger'
+            ];
+        } elseif ($raw_invo === $vn) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'เลขใบแจ้งหนี้ใช้เลข VN',
+                'desc' => 'เลขใบแจ้งหนี้ใช้เลข VN (ยังไม่ได้ออกใบแจ้งหนี้จริง)',
+                'status' => 'danger'
+            ];
+        }
+
+        // 7. Audit Claim Amount
+        $uc_money = (float)($visit->uc_money ?? 0.0);
+        if ($uc_money <= 0.0) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'ยอดเงินเรียกเก็บไม่ถูกต้อง',
+                'desc' => 'ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท',
+                'status' => 'danger'
+            ];
         }
 
         $latest_rep = DB::table('rep_sss_ssop')
@@ -6808,6 +6881,69 @@ class ClaimOpController extends Controller
                     'status' => 'danger'
                 ];
             }
+        }
+
+        // CSOP Pharmacist License and TMT ID checks
+        $has_dispense = !empty($drugs);
+        if ($has_dispense) {
+            $license = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
+            if (empty($license) || $license === '-') {
+                $pre_audits[] = [
+                    'code' => '',
+                    'title' => 'ไม่พบเลขใบอนุญาตผู้สั่งยา/เภสัชกร',
+                    'desc' => 'ไม่พบเลขใบอนุญาตประกอบวิชาชีพของแพทย์ผู้สั่งยา/จัดจ่ายยาในระบบ',
+                    'status' => 'danger'
+                ];
+            }
+            foreach ($drugs as $drug) {
+                $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
+                if (str_starts_with($drug->icode, '3')) {
+                    if ($drug->income === '05') {
+                        $item_prdcat = '6';
+                    } else {
+                        $item_prdcat = '7';
+                    }
+                } elseif (empty($item_prdcat)) {
+                    $item_prdcat = '1';
+                }
+                if ($item_prdcat === '1' && empty($drug->tmtid)) {
+                    $pre_audits[] = [
+                        'code' => '',
+                        'title' => 'ยาไม่มีรหัสมาตรฐาน TMT',
+                        'desc' => "ยา {$drug->icode} ({$drug->name}) ไม่มีรหัสมาตรฐาน TMT ในแฟ้ม Drug Catalog",
+                        'status' => 'danger'
+                    ];
+                }
+            }
+        }
+
+        // Audit Invoice No for CSOP
+        $raw_invo = !empty($visit->csop_invno) ? $visit->csop_invno : (!empty($visit->debt_id_list) ? $visit->debt_id_list : '');
+        if (empty($raw_invo)) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'ไม่พบเลขใบแจ้งหนี้ (InvNo)',
+                'desc' => 'ไม่พบเลขใบแจ้งหนี้ (InvNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP',
+                'status' => 'danger'
+            ];
+        } elseif ($raw_invo === $vn) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'เลขใบแจ้งหนี้ใช้เลข VN',
+                'desc' => 'เลขใบแจ้งหนี้ใช้เลข VN (ยังไม่ได้ออกใบแจ้งหนี้จริง)',
+                'status' => 'danger'
+            ];
+        }
+
+        // Audit Claim Amount for CSOP
+        $uc_money = (float)($visit->uc_money ?? 0.0);
+        if ($uc_money <= 0.0) {
+            $pre_audits[] = [
+                'code' => '',
+                'title' => 'ยอดเงินเรียกเก็บไม่ถูกต้อง',
+                'desc' => 'ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท',
+                'status' => 'danger'
+            ];
         }
 
         $latest_rep = DB::table('rep_sss_ssop')

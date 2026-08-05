@@ -488,7 +488,11 @@ class CsopExportController extends Controller
             'billdisp_rows' => $billdisp_rows,
             'dispensed_rows' => $dispensed_rows,
             'opservices_rows' => $opservices_rows,
-            'opdx_rows' => $opdx_rows
+            'opdx_rows' => $opdx_rows,
+            'visits_list' => $visits->toArray(),
+            'disp_items' => $disp_items,
+            'csop_pttypes' => $csop_pttypes,
+            'csop_debt_map' => $csop_debt_map
         ];
     }
 
@@ -631,6 +635,26 @@ class CsopExportController extends Controller
                 } else {
                     if (empty($disp_row[7]) || $disp_row[7] === '-') {
                         $errors['billdisp'][] = "ไม่พบเลขใบอนุญาตผู้สั่งยา/เภสัชกร";
+                    }
+
+                    // TMT ID check for CSOP (modern medicines)
+                    $vn_disp_items = array_filter($data['disp_items'] ?? [], function($item) use ($row) {
+                        return $item->vn === $row->vn;
+                    });
+                    foreach ($vn_disp_items as $item) {
+                        $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
+                        if (str_starts_with($item->icode, '3')) {
+                            if ($item->income === '05') {
+                                $item_prdcat = '6';
+                            } else {
+                                $item_prdcat = '7';
+                            }
+                        } elseif (empty($item_prdcat)) {
+                            $item_prdcat = '1';
+                        }
+                        if ($item_prdcat === '1' && empty($item->tmtid)) {
+                            $errors['billdisp'][] = "ยา icode {$item->icode} ไม่มีรหัสมาตรฐาน TMT";
+                        }
                     }
                 }
             }

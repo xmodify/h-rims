@@ -688,6 +688,25 @@ class SssExportController extends Controller
                 }
                 return true;
             });
+            
+            $has_dispense = !empty($vn_disp_items);
+            if ($has_dispense) {
+                $disp_row = null;
+                foreach ($billdisp_table as $bd) {
+                    if (isset($bd[16]) && $bd[16] === $vn) {
+                        $disp_row = $bd;
+                        break;
+                    }
+                }
+                if (!$disp_row) {
+                    $errors['billdisp'][] = "ไม่พบรายการจัดจ่ายยาสำหรับผู้ป่วย";
+                } else {
+                    if (empty($disp_row[7]) || $disp_row[7] === '-') {
+                        $errors['billdisp'][] = "ไม่พบเลขใบอนุญาตผู้สั่งยา/เภสัชกร";
+                    }
+                }
+            }
+
             foreach ($vn_disp_items as $item) {
                 $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
                 if (str_starts_with($item->icode, '3')) {
@@ -737,14 +756,22 @@ class SssExportController extends Controller
                 WHERE vn = ?
             ", [$vn]);
             $has_pdx = false;
+            $pdx_code = null;
             foreach ($diags as $d) {
                 if ($d->diagtype == '1') {
                     $has_pdx = true;
+                    $pdx_code = trim($d->icd10 ?? '');
                     break;
                 }
             }
-            if (!$has_pdx) {
+            if (!$has_pdx || empty($pdx_code)) {
                 $errors['opservices'][] = "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)";
+            } else {
+                $validator = new \App\Services\ClaimValidator();
+                $res = $validator->validateIcd10Chi($pdx_code, '1');
+                if (!$res['is_valid']) {
+                    $errors['opservices'][] = "รหัสวินิจฉัยหลัก {$pdx_code} ไม่ถูกต้องตามบัญชี สกส. (S54) (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP)";
+                }
             }
 
             $validation[$vn] = [

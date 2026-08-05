@@ -1176,12 +1176,12 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-05 15.00
+                                V.69-08-05 22.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
                                     <div class="nav-license-badge license-active" title="ลิขสิทธิ์ถูกต้อง">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Active ({{ \App\Services\LicenseVerificationService::formatThaiShortDate($licenseInfo['expires_at']) }})
+                                        <i class="bi bi-patch-check-fill me-1"></i> Active
                                     </div>
                                 @elseif($licenseInfo['status'] === 'expired')
                                     <div class="nav-license-badge license-expired" title="ลิขสิทธิ์หมดอายุ">

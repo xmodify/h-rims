@@ -865,28 +865,10 @@
 
                 let invoice_no = visit.csop_invno && visit.csop_invno !== '0' ? visit.csop_invno : (visit.debt_id_list && visit.debt_id_list !== '0' ? visit.debt_id_list : '');
 
-                // Validation errors
+                // Validation errors & warnings populated solely from backend pre-audits
                 const errors = [];
-                if (!invoice_no || invoice_no === '0' || invoice_no === 0) {
-                    errors.push("ไม่พบเลขใบแจ้งหนี้ (InvoiceNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP");
-                }
-                if (!visit.cid || visit.cid.length !== 13) {
-                    errors.push("เลขบัตรประชาชน (CID) ว่างหรือความยาวไม่ครบ 13 หลัก");
-                }
-                if (!visit.hn) {
-                    errors.push("ไม่พบ HN");
-                }
-                if (!has_pdx) {
-                    errors.push("ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค");
-                }
-                const uc_money = parseFloat(visit.uc_money || 0);
-                if (uc_money <= 0) {
-                    errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท");
-                }
-
-                // Add backend pre-audit checks to errors/warnings
-                const preAudits = data.pre_audits || [];
                 const warnings = [];
+                const preAudits = data.pre_audits || [];
                 
                 preAudits.forEach(audit => {
                     let msg = '';

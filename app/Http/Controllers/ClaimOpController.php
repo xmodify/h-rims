@@ -6661,6 +6661,28 @@ class ClaimOpController extends Controller
             }
         }
 
+        // SvPID (S15) check
+        if (empty($visit->doctor_license)) {
+            $pre_audits[] = [
+                'code' => 'S15',
+                'title' => 'ไม่พบเลขใบประกอบวิชาชีพแพทย์ (SvPID)',
+                'desc' => 'กรุณาระบุเลขใบประกอบวิชาชีพของแพทย์ผู้รักษาในระบบ HOSxP',
+                'status' => 'danger'
+            ];
+        } else {
+            $lic = trim($visit->doctor_license);
+            $has_dot = str_contains($lic, '.');
+            $starts_with_valid = preg_match('/^[วทภพ\-]/u', $lic);
+            if ($has_dot || !$starts_with_valid) {
+                $pre_audits[] = [
+                    'code' => 'S15',
+                    'title' => 'เลขที่ใบประกอบวิชาชีพ SvPID ไม่ถูกต้อง',
+                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ห้ามมีจุด . และต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ -)",
+                    'status' => 'danger'
+                ];
+            }
+        }
+
         // CSOP outpatient service validation rules (T72, T78, T84)
         $map_income_to_csop_group = function($csmbs_code, $fallback_income) {
             if (empty($csmbs_code)) {

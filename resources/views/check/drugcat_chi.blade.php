@@ -127,21 +127,21 @@
                             <th class="text-center" rowspan="2">รหัส HOSxP</th>             
                             <th class="text-center" rowspan="2" width="22%">ชื่อยา</th>                   
                             <th class="text-center" rowspan="2">หน่วยนับ</th>
+                            <th class="text-center" colspan="2" style="background-color: #f5f3ff; border-bottom-color: #ddd6fe !important;">รหัส 24 หลัก</th>                                      
                             <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ราคา</th>                   
                             <th class="text-center" colspan="2" style="background-color: #f0f9ff; border-bottom-color: #bae6fd !important;">รหัส TMT</th> 
                             <th class="text-center" colspan="2" style="background-color: #eef2ff; border-bottom-color: #c7d2fe !important;">ยาสมุนไพร</th>                  
-                            <th class="text-center" colspan="2" style="background-color: #f5f3ff; border-bottom-color: #ddd6fe !important;">รหัส 24 หลัก</th>                                      
                             <th class="text-center" colspan="2" style="background-color: #fff7ed; border-bottom-color: #ffedd5 !important;">บัญชียา (ED)</th>                                      
                         </tr>
                         <tr>                    
+                            <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
+                            <th class="text-center small" style="background-color: #f5f3ff">สกส.</th>  
                             <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
                             <th class="text-center small" style="background-color: #e0f2fe">สกส.</th> 
                             <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
                             <th class="text-center small" style="background-color: #f0f9ff">สกส.</th>
                             <th class="text-center small" style="background-color: #eef2ff">TTMT</th> 
                             <th class="text-center small" style="background-color: #eef2ff">HERB</th>   
-                            <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                            <th class="text-center small" style="background-color: #f5f3ff">สกส.</th>  
                             <th class="text-center small" style="background-color: #fff7ed">HOSxP</th> 
                             <th class="text-center small" style="background-color: #fff7ed">สกส.</th>  
                         </tr>
@@ -170,6 +170,10 @@
                             <td class="text-center fw-bold">{{ $row->icode }}</td>                          
                             <td class="text-start small fw-bold text-dark">{{ $row->dname }}</td>                        
                             <td class="text-start small text-muted">{{ $row->units }}</td>
+                            <td class="text-center small text-muted">{{ $row->code_24_hos }}</td>
+                            <td class="text-center small fw-bold {{ $row->code_24_nhso != $row->code_24_hos ? 'text-danger' : 'text-info' }}">
+                                {{ $row->code_24_nhso }}
+                            </td>
                             <td class="text-end small">{{ number_format($row->price_hos,2) }}</td>
                             <td class="text-end small fw-bold {{ $row->price_nhso != $row->price_hos ? 'text-danger' : 'text-success' }}">
                                 {{ number_format($row->price_nhso,2) }}
@@ -180,10 +184,6 @@
                             </td>                                    
                             <td class="text-center small text-muted">{{ $row->ttmt_code }}</td>
                             <td class="text-center small"><span class="badge {{ $row->herb == 'Y' ? 'bg-success-soft text-success' : 'bg-light text-muted' }}">{{ $row->herb }}</span></td>
-                            <td class="text-center small text-muted">{{ $row->code_24_hos }}</td>
-                            <td class="text-center small fw-bold {{ $row->code_24_nhso != $row->code_24_hos ? 'text-danger' : 'text-info' }}">
-                                {{ $row->code_24_nhso }}
-                            </td>
                             <td class="text-center small text-muted">
                                 {{ $row->ised_hos }} @if($row->drugaccount) ({{ $row->drugaccount }}) @endif
                             </td>

@@ -185,9 +185,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">ระบบกำลังรอโครงสร้างไฟล์อ้างอิง...</td>
-                                            </tr>
+                                            <!-- AJAX Loaded -->
                                         </tbody>
                                     </table>
                                 </div>
@@ -208,9 +206,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">ระบบกำลังรอโครงสร้างไฟล์อ้างอิง...</td>
-                                            </tr>
+                                            <!-- AJAX Loaded -->
                                         </tbody>
                                     </table>
                                 </div>

@@ -1427,14 +1427,16 @@
                     $('#modal-warnings-count').text(warningsCount);
 
                     if (errorsHtml === '') {
-                        errorsHtml = '<tr><td colspan="6" class="text-center text-muted py-4">ไม่มีรายการติด C (Error)</td></tr>';
-                    }
-                    if (warningsHtml === '') {
-                        warningsHtml = '<tr><td colspan="6" class="text-center text-muted py-4">ไม่มีรายการติดสถานะเตือน (Warning)</td></tr>';
+                        $('#t_modal_errors tbody').html('');
+                    } else {
+                        $('#t_modal_errors tbody').html(errorsHtml);
                     }
 
-                    $('#t_modal_errors tbody').html(errorsHtml);
-                    $('#t_modal_warnings tbody').html(warningsHtml);
+                    if (warningsHtml === '') {
+                        $('#t_modal_warnings tbody').html('');
+                    } else {
+                        $('#t_modal_warnings tbody').html(warningsHtml);
+                    }
 
                     // Initialize simple datatables for search
                     const dtConfig = {
@@ -1444,6 +1446,8 @@
                             search: "ค้นหา:",
                             lengthMenu: "แสดง _MENU_ รายการ",
                             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                            zeroRecords: "ไม่พบข้อมูลรายการติด C",
+                            emptyTable: "ไม่มีรายการข้อมูล",
                             paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
                         }
                     };

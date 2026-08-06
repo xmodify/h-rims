@@ -1445,8 +1445,8 @@
 
                     // Initialize simple datatables for search
                     const dtConfig = {
-                        pageLength: 10,
-                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                        pageLength: 5,
+                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
                         language: {
                             search: "ค้นหา:",
                             lengthMenu: "แสดง _MENU_ รายการ",

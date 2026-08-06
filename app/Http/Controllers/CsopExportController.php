@@ -676,21 +676,45 @@ class CsopExportController extends Controller
             }
 
             // 4. OPDX / ICD-10 (S54) checks
-            $pdx_code = null;
+            $has_pdx = false;
+            $validator = new \App\Services\ClaimValidator();
             foreach ($opdx_table as $dx) {
-                if (isset($dx[1]) && $dx[1] == $row->vn && isset($dx[2]) && $dx[2] === '1') {
-                    $pdx_code = trim($dx[4] ?? '');
-                    break;
+                if (isset($dx[1]) && $dx[1] == $row->vn) {
+                    $dx_code = trim($dx[4] ?? '');
+                    $diag_type = trim($dx[2] ?? '');
+                    if ($diag_type === '1') {
+                        $has_pdx = true;
+                    }
+                    if (!empty($dx_code)) {
+                        $res = $validator->validateIcd10Chi($dx_code, $diag_type);
+                        if (!$res['is_valid']) {
+                            $errors['opservices'][] = "รหัสวินิจฉัย {$dx_code} (ประเภท {$diag_type}) ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                        }
+                    }
                 }
             }
-            if (empty($pdx_code)) {
+            if (!$has_pdx) {
                 $errors['opservices'][] = "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)";
-            } else {
-                $validator = new \App\Services\ClaimValidator();
-                $res = $validator->validateIcd10Chi($pdx_code, '1');
-                if (!$res['is_valid']) {
-                    $errors['opservices'][] = "รหัสวินิจฉัยหลัก {$pdx_code} ไม่ถูกต้องตามบัญชี สกส. (S54)";
+            }
+
+            // 4.1 BillItems sum checks (T33, T45)
+            $billitems_charge_sum = 0.0;
+            $billitems_claim_sum = 0.0;
+            foreach ($billitems_table as $item_row) {
+                if (isset($item_row[0]) && $item_row[0] === $invoice_no) {
+                    $billitems_charge_sum += (float)($item_row[8] ?? 0.0);
+                    $billitems_claim_sum += (float)($item_row[10] ?? 0.0);
                 }
+            }
+            
+            $bt_amount = $bt_row ? (float)($bt_row[8] ?? 0.0) : 0.0;
+            $bt_claim = $bt_row ? (float)($bt_row[16] ?? 0.0) : 0.0;
+            
+            if (abs($bt_amount - $billitems_charge_sum) > 0.01) {
+                $errors['billtran'][] = "ยอดเงินรวม InvNo นี้ไม่ตรงกับยอดรวมใน BillItems (T33) (BILLTRAN: {$bt_amount} != BillItems: {$billitems_charge_sum})";
+            }
+            if (abs($bt_claim - $billitems_claim_sum) > 0.01) {
+                $errors['billtran'][] = "ผลรวมจำนวนเงินขอเบิก ClaimAmount ไม่เท่ากับยอดเงินที่ขอเบิกรวม ClaimAmt (T45) (BILLTRAN: {$bt_claim} != BillItems: {$billitems_claim_sum})";
             }
 
             // 5. CSOP rules (T72, T78, T84) checks

@@ -6801,14 +6801,24 @@ class ClaimOpController extends Controller
             ];
         } else {
             $validator = new \App\Services\ClaimValidator();
-            $res = $validator->validateIcd10Chi($visit->pdx, '1');
-            if (!$res['is_valid']) {
-                $pre_audits[] = [
-                    'code' => 'S54',
-                    'title' => 'รหัสวินิจฉัยหลักไม่ถูกต้องตามเกณฑ์ สกส.',
-                    'desc' => $res['message'] . ' (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP หรือปรับ CodeSet เป็น TT หากเป็นแพทย์แผนไทย)',
-                    'status' => 'danger'
-                ];
+            $has_pdx = false;
+            foreach ($diagnoses as $diag) {
+                $icd10 = trim($diag->icd10 ?? '');
+                $diagtype = trim($diag->diagtype ?? '');
+                if ($diagtype === '1') {
+                    $has_pdx = true;
+                }
+                if (!empty($icd10)) {
+                    $res = $validator->validateIcd10Chi($icd10, $diagtype);
+                    if (!$res['is_valid']) {
+                        $pre_audits[] = [
+                            'code' => 'S54',
+                            'title' => "รหัสวินิจฉัย {$icd10} (ประเภท {$diagtype}) ไม่ถูกต้องตามเกณฑ์ สกส.",
+                            'desc' => $res['message'] . ' (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP หรือปรับ CodeSet เป็น TT)',
+                            'status' => 'danger'
+                        ];
+                    }
+                }
             }
         }
 
@@ -7623,11 +7633,31 @@ class ClaimOpController extends Controller
             $has_cid = (!empty($row->cid) && strlen($row->cid) === 13);
             
             $has_icd10_chi_error = false;
+            $validator = new \App\Services\ClaimValidator();
             if (!empty($row->pdx)) {
-                $validator = new \App\Services\ClaimValidator();
                 $res = $validator->validateIcd10Chi($row->pdx, '1');
                 if (!$res['is_valid']) {
                     $has_icd10_chi_error = true;
+                }
+            }
+            if (!$has_icd10_chi_error && !empty($row->sdx)) {
+                $sdxs = explode(',', $row->sdx);
+                foreach ($sdxs as $s) {
+                    $res = $validator->validateIcd10Chi(trim($s), '3');
+                    if (!$res['is_valid']) {
+                        $has_icd10_chi_error = true;
+                        break;
+                    }
+                }
+            }
+            if (!$has_icd10_chi_error && !empty($row->icd9)) {
+                $icd9s = explode(',', $row->icd9);
+                foreach ($icd9s as $i) {
+                    $res = $validator->validateIcd10Chi(trim($i), '2');
+                    if (!$res['is_valid']) {
+                        $has_icd10_chi_error = true;
+                        break;
+                    }
                 }
             }
 

@@ -7817,7 +7817,8 @@ class ClaimOpController extends Controller
     {
         $errors = DB::connection('hosxp')->select("
             SELECT rep.vn, rep.hn, CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS ptname, 
-                   rep.rep_file, rep.rep_no AS repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat
+                   rep.rep_file, rep.rep_no AS repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat,
+                   rep.dttran_date AS vstdate
             FROM (
                 SELECT * FROM (
                     SELECT *, ROW_NUMBER() OVER (PARTITION BY vn ORDER BY COALESCE(rep_date, '1970-01-01') DESC, COALESCE(rep_time, '00:00:00') DESC, COALESCE(rep_no, '') DESC, COALESCE(rep_file, '') DESC, id DESC) as rn
@@ -7843,7 +7844,8 @@ class ClaimOpController extends Controller
     {
         $errors = DB::connection('hosxp')->select("
             SELECT rep.vn, rep.hn, CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS ptname, 
-                   rep.rep_file, rep.repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat
+                   rep.rep_file, rep.repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat,
+                   rep.dttran_date AS vstdate
             FROM (
                 SELECT * FROM (
                     SELECT *, ROW_NUMBER() OVER (PARTITION BY vn ORDER BY COALESCE(rep_date, '1970-01-01') DESC, COALESCE(rep_time, '00:00:00') DESC, COALESCE(repno, '') DESC, COALESCE(rep_file, '') DESC, id DESC) as rn

@@ -176,7 +176,7 @@
                                     <table id="t_modal_errors" class="table table-bordered table-striped align-middle w-100" style="font-size: 0.82rem;">
                                         <thead class="table-light text-center">
                                             <tr>
-                                                <th width="12%">VN</th>
+                                                <th width="12%">วันที่รับบริการ</th>
                                                 <th width="12%">HN</th>
                                                 <th>ชื่อ-สกุลผู้ป่วย</th>
                                                 <th>เลขตอบรับ / ไฟล์</th>
@@ -197,7 +197,7 @@
                                     <table id="t_modal_warnings" class="table table-bordered table-striped align-middle w-100" style="font-size: 0.82rem;">
                                         <thead class="table-light text-center">
                                             <tr>
-                                                <th width="12%">VN</th>
+                                                <th width="12%">วันที่รับบริการ</th>
                                                 <th width="12%">HN</th>
                                                 <th>ชื่อ-สกุลผู้ป่วย</th>
                                                 <th>เลขตอบรับ / ไฟล์</th>
@@ -1394,16 +1394,25 @@
                             repDisplay = `<div class="small text-muted text-truncate" style="max-width:180px;" title="${row.rep_file}">${repDisplay}</div>`;
                         }
 
+                        let vstDateStr = row.vstdate || '-';
+                        if (vstDateStr.includes('-')) {
+                            let parts = vstDateStr.split('-');
+                            if (parts.length === 3) {
+                                let thYear = parseInt(parts[0], 10) + 543;
+                                vstDateStr = `${parts[2]}/${parts[1]}/${thYear}`;
+                            }
+                        }
+
                         const makeRow = (badges) => `
                             <tr>
-                                <td class="text-center font-weight-bold"><a href="javascript:void(0)" onclick="showDetails('${row.vn}')" class="text-primary">${row.vn}</a></td>
+                                <td class="text-center font-weight-bold"><a href="javascript:void(0)" onclick="showRepDetails('${row.vn}')" class="text-primary">${vstDateStr}</a></td>
                                 <td class="text-center">${row.hn || '-'}</td>
                                 <td>${row.ptname || 'ไม่ทราบชื่อ'}</td>
                                 <td>${repDisplay}</td>
                                 <td class="text-center">${badges}</td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="showDetails('${row.vn}')" title="ดูรายละเอียดผู้ป่วย">
-                                        <i class="bi bi-eye"></i>
+                                    <button class="btn btn-sm btn-outline-primary shadow-sm" onclick="showRepDetails('${row.vn}')" title="ดูรายละเอียดข้อผิดพลาด">
+                                        <i class="bi bi-search me-1"></i> ดูรายละเอียด
                                     </button>
                                 </td>
                             </tr>

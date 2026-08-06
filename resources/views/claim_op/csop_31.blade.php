@@ -1332,6 +1332,127 @@
         // No chronic disease feedback to load for CSOP
     };
 
+    window.loadModalErrors = function() {
+        if ($.fn.DataTable.isDataTable('#t_modal_errors')) {
+            $('#t_modal_errors').DataTable().destroy();
+        }
+        if ($.fn.DataTable.isDataTable('#t_modal_warnings')) {
+            $('#t_modal_warnings').DataTable().destroy();
+        }
+
+        const loadingHtml = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <span class="spinner-border spinner-border-sm text-primary me-2"></span>กำลังโหลดข้อมูล...
+                </td>
+            </tr>
+        `;
+        $('#t_modal_errors tbody').html(loadingHtml);
+        $('#t_modal_warnings tbody').html(loadingHtml);
+
+        $.get("{{ url('claim_op/csop_rep_errors') }}")
+            .done(function(res) {
+                if (res.success) {
+                    let errorsHtml = '';
+                    let warningsHtml = '';
+                    let errorsCount = 0;
+                    let warningsCount = 0;
+
+                    res.data.forEach(row => {
+                        let rowAllBadgesHtml = '';
+                        let rowWarningsHtml = '';
+                        let hasError = false;
+                        let hasWarning = false;
+
+                        if (row.error_codes) {
+                            let codes = row.error_codes.split(',');
+                            codes.forEach(c => {
+                                let cleanC = c.split(':')[0].trim();
+                                let isWarn = cleanC.toUpperCase().startsWith('W') || cleanC.startsWith('8');
+                                let badgeClass = isWarn ? 'bg-warning text-dark' : 'bg-danger text-white';
+                                let badgeHtml = `<span class="badge ${badgeClass} me-1 pointer p-2" onclick="showRepDetails('${row.vn}')" style="cursor:pointer; font-size: 0.75rem;" title="คลิกดูรายละเอียด">${c}</span>`;
+                                
+                                rowAllBadgesHtml += badgeHtml;
+                                if (isWarn) {
+                                    hasWarning = true;
+                                    rowWarningsHtml += badgeHtml;
+                                } else {
+                                    hasError = true;
+                                }
+                            });
+                        }
+
+                        let repDisplay = row.rep_file || '-';
+                        if (row.repno) {
+                            let dateText = row.rep_date ? row.rep_date : '';
+                            if (dateText.includes('-')) {
+                                let parts = dateText.split('-');
+                                if (parts.length === 3) {
+                                    let thYear = parseInt(parts[0], 10) + 543;
+                                    dateText = `${parts[2]}/${parts[1]}/${thYear}`;
+                                }
+                            }
+                            let repDateStr = dateText ? `<br><span class="badge bg-light text-dark border mt-1" style="font-size:0.68rem;"><i class="bi bi-calendar-event me-1"></i>${dateText}</span>` : '';
+                            repDisplay = `<div class="fw-bold text-dark">#${row.repno}</div><div class="small text-muted text-truncate" style="max-width:180px; font-size:0.75rem;" title="${row.rep_file}">${repDisplay}</div>${repDateStr}`;
+                        } else {
+                            repDisplay = `<div class="small text-muted text-truncate" style="max-width:180px;" title="${row.rep_file}">${repDisplay}</div>`;
+                        }
+
+                        const makeRow = (badges) => `
+                            <tr>
+                                <td class="text-center font-weight-bold"><a href="javascript:void(0)" onclick="showDetails('${row.vn}')" class="text-primary">${row.vn}</a></td>
+                                <td class="text-center">${row.hn || '-'}</td>
+                                <td>${row.ptname || 'ไม่ทราบชื่อ'}</td>
+                                <td>${repDisplay}</td>
+                                <td class="text-center">${badges}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showDetails('${row.vn}')" title="ดูรายละเอียดผู้ป่วย">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+
+                        if (hasError) {
+                            errorsHtml += makeRow(rowAllBadgesHtml);
+                            errorsCount++;
+                        }
+                        if (hasWarning) {
+                            warningsHtml += makeRow(rowWarningsHtml);
+                            warningsCount++;
+                        }
+                    });
+
+                    $('#modal-errors-count').text(errorsCount);
+                    $('#modal-warnings-count').text(warningsCount);
+
+                    if (errorsHtml === '') {
+                        errorsHtml = '<tr><td colspan="6" class="text-center text-muted py-4">ไม่มีรายการติด C (Error)</td></tr>';
+                    }
+                    if (warningsHtml === '') {
+                        warningsHtml = '<tr><td colspan="6" class="text-center text-muted py-4">ไม่มีรายการติดสถานะเตือน (Warning)</td></tr>';
+                    }
+
+                    $('#t_modal_errors tbody').html(errorsHtml);
+                    $('#t_modal_warnings tbody').html(warningsHtml);
+
+                    // Initialize simple datatables for search
+                    const dtConfig = {
+                        pageLength: 10,
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+                        language: {
+                            search: "ค้นหา:",
+                            lengthMenu: "แสดง _MENU_ รายการ",
+                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                        }
+                    };
+                    $('#t_modal_errors').DataTable(dtConfig);
+                    $('#t_modal_warnings').DataTable(dtConfig);
+                }
+            });
+    };
+
     window.uploadSssZip = function(type) {
         const inputId = type === 'rep' ? 'zip_file_rep' : 'zip_file_stm';
         const input = document.getElementById(inputId);

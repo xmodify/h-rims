@@ -7812,4 +7812,56 @@ class ClaimOpController extends Controller
 
         return view('claim_op.csop_31', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim', 'warning'));
     }
+
+    public function csop_rep_errors(Request $request)
+    {
+        $errors = DB::connection('hosxp')->select("
+            SELECT rep.vn, rep.hn, CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS ptname, 
+                   rep.rep_file, rep.rep_no AS repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat
+            FROM (
+                SELECT * FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY vn ORDER BY COALESCE(rep_date, '1970-01-01') DESC, COALESCE(rep_time, '00:00:00') DESC, COALESCE(rep_no, '') DESC, COALESCE(rep_file, '') DESC, id DESC) as rn
+                    FROM hrims.rep_ofc_csop
+                ) t1 WHERE t1.rn = 1
+            ) rep
+            LEFT JOIN patient pt ON pt.hn = rep.hn
+            LEFT JOIN hrims.stm_ofc_csop stm ON stm.hn = rep.hn AND stm.vstdate = rep.dttran_date AND LEFT(stm.vsttime, 5) = LEFT(rep.dttran_time, 5)
+            WHERE rep.error_codes IS NOT NULL 
+              AND rep.error_codes <> ''
+              AND stm.hn IS NULL
+            ORDER BY rep.id DESC
+            LIMIT 500
+        ");
+
+        return response()->json([
+            'success' => true,
+            'data' => $errors
+        ]);
+    }
+
+    public function sss_rep_errors(Request $request)
+    {
+        $errors = DB::connection('hosxp')->select("
+            SELECT rep.vn, rep.hn, CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS ptname, 
+                   rep.rep_file, rep.repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.stat
+            FROM (
+                SELECT * FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY vn ORDER BY COALESCE(rep_date, '1970-01-01') DESC, COALESCE(rep_time, '00:00:00') DESC, COALESCE(repno, '') DESC, COALESCE(rep_file, '') DESC, id DESC) as rn
+                    FROM hrims.rep_sss_ssop
+                ) t1 WHERE t1.rn = 1
+            ) rep
+            LEFT JOIN patient pt ON pt.hn = rep.hn
+            LEFT JOIN hrims.stm_sss_ssop stm ON stm.hn = rep.hn AND stm.vstdate = rep.dttran_date AND LEFT(stm.vsttime, 5) = LEFT(rep.dttran_time, 5)
+            WHERE rep.error_codes IS NOT NULL 
+              AND rep.error_codes <> ''
+              AND stm.hn IS NULL
+            ORDER BY rep.id DESC
+            LIMIT 500
+        ");
+
+        return response()->json([
+            'success' => true,
+            'data' => $errors
+        ]);
+    }
 }

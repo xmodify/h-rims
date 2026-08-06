@@ -370,6 +370,8 @@ Route::get('claim_op/csop_detail', [ClaimOpController::class, 'csop_detail']);
 Route::post('import/csop_rep_save', [\App\Http\Controllers\ImportCsController::class, 'import_rep_csop']);
 Route::match(['get', 'post'], 'claim_op/csop_export', [\App\Http\Controllers\CsopExportController::class, 'csop_export'])->middleware('rims_license');
 Route::post('claim_op/csop_export_preview', [\App\Http\Controllers\CsopExportController::class, 'csop_export_preview'])->middleware('rims_license');
+Route::get('claim_op/csop_rep_errors', [ClaimOpController::class, 'csop_rep_errors']);
+Route::get('claim_op/sss_rep_errors', [ClaimOpController::class, 'sss_rep_errors']);
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);
 Route::match(['get', 'post'], 'claim_op/sss_hc', [ClaimOpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_op/rcpt', [ClaimOpController::class, 'rcpt']);

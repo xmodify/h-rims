@@ -582,7 +582,7 @@ class CsopExportController extends Controller
             // Match OPSERVICE row by VN
             $op_row = null;
             foreach ($opservices_table as $os) {
-                if (isset($os[1]) && $os[1] === $row->vn) {
+                if (isset($os[1]) && $os[1] == $row->vn) {
                     $op_row = $os;
                     break;
                 }
@@ -592,7 +592,7 @@ class CsopExportController extends Controller
             // Match BILLTRAN row by invoice_no
             $bt_row = null;
             foreach ($billtran_table as $bt) {
-                if (isset($bt[4]) && $bt[4] === $invoice_no) {
+                if (isset($bt[4]) && $bt[4] == $invoice_no) {
                     $bt_row = $bt;
                     break;
                 }
@@ -618,7 +618,7 @@ class CsopExportController extends Controller
             // 2. BILLDISP checks (Only if dispensing items exist)
             $has_dispense = false;
             foreach ($dispenseditems_table as $d_row) {
-                if (isset($d_row[0]) && str_contains($d_row[0], $row->vn)) {
+                if (isset($d_row[0]) && str_contains((string)$d_row[0], (string)$row->vn)) {
                     $has_dispense = true;
                     break;
                 }
@@ -627,7 +627,7 @@ class CsopExportController extends Controller
                 // Verify Dispensing details
                 $disp_row = null;
                 foreach ($billdisp_table as $bd) {
-                    if (isset($bd[16]) && $bd[16] === $row->vn) {
+                    if (isset($bd[16]) && $bd[16] == $row->vn) {
                         $disp_row = $bd;
                         break;
                     }
@@ -641,7 +641,7 @@ class CsopExportController extends Controller
 
                     // TMT ID check for CSOP (modern medicines)
                     $vn_disp_items = array_filter($data['disp_items'] ?? [], function($item) use ($row) {
-                        return $item->vn === $row->vn;
+                        return $item->vn == $row->vn;
                     });
                     foreach ($vn_disp_items as $item) {
                         $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
@@ -678,7 +678,7 @@ class CsopExportController extends Controller
             // 4. OPDX / ICD-10 (S54) checks
             $pdx_code = null;
             foreach ($opdx_table as $dx) {
-                if (isset($dx[1]) && $dx[1] === $row->vn && isset($dx[2]) && $dx[2] === '1') {
+                if (isset($dx[1]) && $dx[1] == $row->vn && isset($dx[2]) && $dx[2] === '1') {
                     $pdx_code = trim($dx[4] ?? '');
                     break;
                 }
@@ -699,7 +699,7 @@ class CsopExportController extends Controller
             $other_groups = [];
 
             foreach ($billitems_table as $item_row) {
-                if (isset($item_row[0]) && $item_row[0] === $invoice_no) {
+                if (isset($item_row[0]) && $item_row[0] == $invoice_no) {
                     $muad = $item_row[2] ?? '';
                     $std_code = trim($item_row[4] ?? '');
                     

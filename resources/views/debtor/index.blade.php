@@ -22,7 +22,13 @@
             </a>
             @auth
                 @if(auth()->user()->status === 'admin' || auth()->user()->allow_debtor_acc === 'Y')
-                    <a class="btn btn-outline-primary btn-sm shadow-sm" href="{{ url('debtor/acc_ledger') }}" target="_blank">
+                    @php
+                        $is_debtor_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('debtor_control');
+                    @endphp
+                    <a class="btn btn-outline-primary btn-sm shadow-sm" 
+                        href="{{ $is_debtor_licensed ? url('debtor/acc_ledger') : '#' }}" 
+                        @if(!$is_debtor_licensed) onclick="showLicenseRequiredAlert(event)" @endif
+                        target="{{ $is_debtor_licensed ? '_blank' : '_self' }}">
                         <i class="bi bi-journal-text me-1"></i> ทะเบียนคุมลูกหนี้
                     </a>
                 @endif

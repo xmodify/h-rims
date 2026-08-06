@@ -624,7 +624,7 @@
                                         <li>
                                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_check_right == 'Y')
                                                 @php
-                                                    $is_nhso_check_licensed = \App\Services\LicenseVerificationService::isLicensed();
+                                                    $is_nhso_check_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('nhso_checkright');
                                                 @endphp
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ $is_nhso_check_licensed ? url('check/nhso_right') : '#' }}"
@@ -922,7 +922,7 @@
                                         </li>
                                         <!-- ชี้ขวา -->
                                         @php
-                                            $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
+                                            $is_ssop_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_ssop');
                                             view()->share('is_ssop_licensed', $is_ssop_licensed);
                                         @endphp
                                         <li class="dropend position-relative">
@@ -1178,7 +1178,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-05 22.00
+                                V.69-08-06 21.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

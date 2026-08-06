@@ -159,7 +159,7 @@
                                 $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
                             @endphp
                             <td class="text-center" style="vertical-align: middle;" data-order="{{ $has_error ? 0 : 1 }}">
-                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}', '{{ $row->prdcat_hos }}', '{{ $row->prdcat_nhso }}')">
+                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal({{ json_encode($row->icode) }}, {{ json_encode($row->dname) }}, {{ json_encode($row->code_tmt_hos) }}, {{ json_encode($row->code_24_hos) }}, {{ json_encode($row->price_hos) }}, {{ json_encode($row->ised_hos) }}, {{ json_encode($row->GenericName) }}, {{ json_encode($row->TradeName) }}, {{ json_encode($row->DosageForm) }}, {{ json_encode($row->units) }}, {{ json_encode($row->prdcat_hos) }}, {{ json_encode($row->prdcat_nhso) }})">
                                     <i class="bi bi-eye-fill {{ $has_error ? 'text-danger' : 'text-success' }}" style="font-size: 1.15rem;"></i>
                                 </button>
                             </td>
@@ -325,14 +325,20 @@
         
         const fields = [
             { label: 'รหัสยาโรงพยาบาล (icode)', value: icode, check: !!icode },
-            { label: 'ประเภทผลิตภัณฑ์ HOSxP (ProductCat)', value: prdcatHosText, check: !!prdcat_hos },
-            { 
+            { label: 'ประเภทผลิตภัณฑ์ HOSxP (ProductCat)', value: prdcatHosText, check: !!prdcat_hos }
+        ];
+
+        if (prdcat_nhso && prdcat_nhso !== 'null' && prdcat_nhso !== '') {
+            fields.push({ 
                 label: 'ประเภทผลิตภัณฑ์ สกส. (ProductCat)', 
                 value: prdcatNhsoText, 
                 check: !!prdcat_nhso,
                 warning: prdcat_hos && prdcat_nhso && prdcat_hos !== prdcat_nhso ? 'ข้อมูลประเภทผลิตภัณฑ์ไม่ตรงกับ HOSxP' : null
-            },
-            { label: 'รหัส TMT ID', value: tmt, check: !!tmt || (prdcat_hos !== '1' && prdcat_hos !== '2') },
+            });
+        }
+
+        fields.push(
+            { label: 'รหัส TMT ID', value: tmt, check: !!tmt || (prdcat_hos != 1 && prdcat_hos != 2) },
             { 
                 label: 'รหัส 24 หลัก (NDC24) *ไม่บังคับสำหรับ สกส.', 
                 value: ndc24, 
@@ -344,7 +350,7 @@
             { label: 'ชื่อการค้า (Trade Name)', value: trade, check: !!trade },
             { label: 'รูปแบบยา (Dosage Form)', value: dosage, check: !!dosage },
             { label: 'หน่วยนับ (Content)', value: units, check: !!units }
-        ];
+        );
         
         fields.forEach(f => {
             const item = document.createElement('div');

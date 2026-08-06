@@ -201,48 +201,102 @@
 
     <!-- License Scope Info Modal -->
     <div class="modal fade" id="licenseInfoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content shadow-lg border-0 rounded-4">
                 <div class="modal-header bg-primary text-white border-0 py-3">
                     <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i> ขอบเขตการอนุมัติสิทธิ์ (License Scope)</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4 text-dark">
-                    <p class="text-muted mb-3">ระบบ/ฟังก์ชันของโปรแกรม "RiMS" (rims_license) ที่ถูกควบคุมสิทธิ์ใช้งานภายใต้ลิขสิทธิ์ปัจจุบัน:</p>
+                    @php
+                        $licInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
+                        $moduleDetails = $licInfo['module_details'] ?? [];
+                        $licenseType = $licInfo['license_type'] ?? 'Standard';
+
+                        $moduleMeta = [
+                            'export_ssop' => ['icon' => 'bi-file-earmark-arrow-up-fill', 'color' => 'success', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลประกันสังคม (SSOP Export)'],
+                            'export_aipn' => ['icon' => 'bi-file-earmark-medical-fill', 'color' => 'success', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลประกันสังคมผู้ป่วยใน (AIPN Export)'],
+                            'export_csop' => ['icon' => 'bi-file-earmark-zip-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยนอก (CSOP Export)'],
+                            'export_cipn' => ['icon' => 'bi-file-earmark-lock-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยใน (CIPN Export)'],
+                            'nhso_checkright' => ['icon' => 'bi-card-checklist', 'color' => 'info', 'desc' => 'เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)'],
+                            'debtor_control' => ['icon' => 'bi-cash-coin', 'color' => 'purple', 'desc' => 'ระบบทะเบียนคุมลูกหนี้ และบันทึกการรับชำระหนี้ (DebtorControl)'],
+                        ];
+                    @endphp
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted mb-0">ระบบ/ฟังก์ชันของโปรแกรม "RiMS" (rims_license) ที่ได้รับสิทธิ์ใช้งาน:</p>
+                        <span class="badge bg-primary rounded-pill px-3 py-1.5 fw-bold">ประเภท: {{ strtoupper($licenseType) }}</span>
+                    </div>
                     
                     <div class="list-group list-group-flush rounded-3 border mb-3">
-                        <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
-                            <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex">
-                                <i class="bi bi-file-earmark-arrow-up-fill fs-5"></i>
+                        @if(!empty($moduleDetails))
+                            @foreach($moduleDetails as $index => $module)
+                                @php
+                                    $code = $module['code'] ?? '';
+                                    $name = $module['name'] ?? $code;
+                                    $status = $module['status'] ?? 'inactive';
+                                    $expiredAt = $module['expired_at'] ?? null;
+                                    
+                                    $meta = $moduleMeta[$code] ?? ['icon' => 'bi-shield-check', 'color' => 'secondary', 'desc' => 'ระบบงานในโปรแกรม RiMS'];
+                                    $colorClass = $meta['color'] === 'purple' ? 'text-primary bg-primary bg-opacity-10' : 'text-'.$meta['color'].' bg-'.$meta['color'].' bg-opacity-10';
+                                @endphp
+                                <div class="list-group-item d-flex align-items-center justify-content-between gap-3 py-3 {{ $index < count($moduleDetails) - 1 ? 'border-bottom' : '' }}">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle p-2 d-flex {{ $colorClass }}">
+                                            <i class="{{ $meta['icon'] }} fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <strong class="d-block text-dark">{{ $name }}</strong>
+                                            <span class="text-muted small">{{ $meta['desc'] }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end shrink-0">
+                                        @if($status === 'active')
+                                            <span class="badge bg-success rounded-pill fw-bold text-white px-2.5 py-1 mb-1 d-inline-block">Active</span>
+                                        @else
+                                            <span class="badge bg-danger rounded-pill fw-bold text-white px-2.5 py-1 mb-1 d-inline-block">Inactive</span>
+                                        @endif
+                                        @if($expiredAt)
+                                            <span class="d-block text-muted small" style="font-size: 0.75rem;">หมดอายุ: {{ \App\Services\LicenseVerificationService::formatThaiShortDate($expiredAt) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <!-- Fallback standard listing -->
+                            <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
+                                <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex">
+                                    <i class="bi bi-file-earmark-arrow-up-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block text-dark">ระบบส่งออกข้อมูลประกันสังคม (SSOP)</strong>
+                                    <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
+                                </div>
                             </div>
-                            <div>
-                                <strong class="d-block text-dark">ระบบส่งออกข้อมูลประกันสังคม (SSOP)</strong>
-                                <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
+                            <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
+                                <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 d-flex">
+                                    <i class="bi bi-file-earmark-zip-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block text-dark">ระบบส่งออกข้อมูลสวัสดิการข้าราชการ (CSOP)</strong>
+                                    <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลข้าราชการ (CSOP Export)</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
-                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 d-flex">
-                                <i class="bi bi-file-earmark-zip-fill fs-5"></i>
+                            <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                                <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex">
+                                    <i class="bi bi-card-checklist fs-5"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block text-dark">ระบบตรวจสอบสิทธิการรักษา (สปสช. SRM)</strong>
+                                    <span class="text-muted small">เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)</span>
+                                </div>
                             </div>
-                            <div>
-                                <strong class="d-block text-dark">ระบบส่งออกข้อมูลสวัสดิการข้าราชการ (CSOP)</strong>
-                                <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลข้าราชการ (CSOP Export)</span>
-                            </div>
-                        </div>
-                        <div class="list-group-item d-flex align-items-center gap-3 py-3">
-                            <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex">
-                                <i class="bi bi-card-checklist fs-5"></i>
-                            </div>
-                            <div>
-                                <strong class="d-block text-dark">ระบบตรวจสอบสิทธิการรักษา (สปสช. SRM)</strong>
-                                <span class="text-muted small">เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)</span>
-                            </div>
-                        </div>
+                        @endif
                     </div>
 
                     <div class="alert alert-warning border-0 small mb-0 rounded-3">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        หากคีย์ลิขสิทธิ์หมดอายุหรือถูกปิดใช้งาน ระบบจะระงับการทำรายการในหัวข้อข้างต้นชั่วคราวจนกว่าจะได้รับการเปิดสิทธิ์อนุมัติใหม่
+                        หากคีย์ลิขสิทธิ์หมดอายุหรือถูกปิดใช้งาน ระบบจะระงับการทำงานชั่วคราวจนกว่าจะได้รับการเปิดสิทธิ์อนุมัติใหม่
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0">

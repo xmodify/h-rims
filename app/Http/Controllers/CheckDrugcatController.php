@@ -460,7 +460,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -486,7 +486,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -512,7 +512,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -538,7 +538,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -564,7 +564,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -590,7 +590,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -616,7 +616,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -644,7 +644,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -672,7 +672,7 @@ class CheckDrugcatController extends Controller
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm,
-            sd.sks_product_category_id AS prdcat_hos, nd.productcat AS prdcat_nhso
+            COALESCE(d.sks_product_category_id, sd.sks_product_category_id) AS prdcat_hos, nd.productcat AS prdcat_nhso
             FROM drugitems d
             LEFT JOIN s_drugitems sd ON sd.icode = d.icode
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
@@ -706,18 +706,27 @@ class CheckDrugcatController extends Controller
         }, $icodes);
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
         
+        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+        $s_trade = $has_sks ? "s.TradeName" : "NULL";
+        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+        $s_strength = $has_sks ? "s.Strength" : "NULL";
+        $s_date = $has_sks ? "s.DateEffective" : "NULL";
+
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
                 d.sks_product_category_id AS ProductCat,
                 d.sks_drug_code AS TMTID,
-                IFNULL(s.SpecPrep, '') AS SpecPrep,
+                {$s_spec} AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                IFNULL(d.strength, s.Strength) AS Strength,
-                IFNULL(d.dosageform, s.DosageForm) AS Content,
+                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                IFNULL(d.strength, {$s_strength}) AS Strength,
+                IFNULL(d.dosageform, {$s_dose}) AS Content,
                 d.unitprice AS UnitPrice,
                 dr.comp AS Distributor,
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
@@ -728,13 +737,13 @@ class CheckDrugcatController extends Controller
                 'A' AS UpdateFlag,
                 '' AS DateChange,
                 '' AS DateUpdate,
-                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective,
+                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective,
                 NULL AS Reimbprice
             FROM drugitems d
             LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
             LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
             LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            {$s_join}
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
@@ -761,19 +770,28 @@ class CheckDrugcatController extends Controller
             return DB::connection('hosxp')->getPdo()->quote($val);
         }, $icodes);
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
+        
+        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+        $s_trade = $has_sks ? "s.TradeName" : "NULL";
+        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+        $s_strength = $has_sks ? "s.Strength" : "NULL";
+        $s_date = $has_sks ? "s.DateEffective" : "NULL";
 
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
                 d.sks_product_category_id AS ProductCat,
                 d.sks_drug_code AS TMTID,
-                IFNULL(s.SpecPrep, '') AS SpecPrep,
+                {$s_spec} AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                IFNULL(d.strength, s.Strength) AS Strength,
-                IFNULL(d.dosageform, s.DosageForm) AS Content,
+                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                IFNULL(d.strength, {$s_strength}) AS Strength,
+                IFNULL(d.dosageform, {$s_dose}) AS Content,
                 d.unitprice AS UnitPrice,
                 dr.comp AS Distributor,
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
@@ -823,18 +841,27 @@ class CheckDrugcatController extends Controller
         }, $icodes);
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
 
+        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+        $s_trade = $has_sks ? "s.TradeName" : "NULL";
+        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+        $s_strength = $has_sks ? "s.Strength" : "NULL";
+        $s_date = $has_sks ? "s.DateEffective" : "NULL";
+
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
                 d.sks_product_category_id AS ProductCat,
                 d.sks_drug_code AS TMTID,
-                IFNULL(s.SpecPrep, '') AS SpecPrep,
+                {$s_spec} AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                IFNULL(d.strength, s.Strength) AS Strength,
-                IFNULL(d.dosageform, s.DosageForm) AS Content,
+                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                IFNULL(d.strength, {$s_strength}) AS Strength,
+                IFNULL(d.dosageform, {$s_dose}) AS Content,
                 d.unitprice AS UnitPrice,
                 dr.comp AS Distributor,
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
@@ -848,7 +875,7 @@ class CheckDrugcatController extends Controller
                 DATE_FORMAT(CASE 
                     WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
                     WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                    WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                    WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
                     ELSE CURRENT_DATE()
                 END, '%d/%m/%Y') AS DateEffective,
                 NULL AS Reimbprice
@@ -856,7 +883,7 @@ class CheckDrugcatController extends Controller
             LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
             LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
             LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            {$s_join}
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
@@ -882,10 +909,19 @@ class CheckDrugcatController extends Controller
         }, $icodes);
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
         
+        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+        $s_trade = $has_sks ? "s.TradeName" : "NULL";
+        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+        $s_strength = $has_sks ? "s.Strength" : "NULL";
+        $s_date = $has_sks ? "s.DateEffective" : "NULL";
+
         $updateFlag = 'A';
         $dateChangeExpr = "'' AS DateChange";
         $dateUpdateExpr = "'' AS DateUpdate";
-        $dateEffectiveExpr = "DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective";
+        $dateEffectiveExpr = "DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective";
         
         if ($type === 'edit') {
             $updateFlag = 'E';
@@ -893,7 +929,7 @@ class CheckDrugcatController extends Controller
             $dateEffectiveExpr = "DATE_FORMAT(CASE 
                 WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
                 WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
                 ELSE CURRENT_DATE()
             END, '%d/%m/%Y') AS DateEffective";
         } elseif ($type === 'update') {
@@ -902,7 +938,7 @@ class CheckDrugcatController extends Controller
             $dateEffectiveExpr = "DATE_FORMAT(CASE 
                 WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
                 WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
                 ELSE CURRENT_DATE()
             END, '%d/%m/%Y') AS DateEffective";
         }
@@ -913,13 +949,13 @@ class CheckDrugcatController extends Controller
                     d.icode AS HospDrugCode,
                     d.sks_product_category_id AS ProductCat,
                     d.sks_drug_code AS TMTID,
-                    IFNULL(s.SpecPrep, '') AS SpecPrep,
+                    {$s_spec} AS SpecPrep,
                     IFNULL(d.generic_name, d.`name`) AS GenericName,
-                    IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                    IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                    IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                    IFNULL(d.strength, s.Strength) AS Strength,
-                    IFNULL(d.dosageform, s.DosageForm) AS Content,
+                    IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                    IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                    IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                    IFNULL(d.strength, {$s_strength}) AS Strength,
+                    IFNULL(d.dosageform, {$s_dose}) AS Content,
                     d.unitprice AS UnitPrice,
                     dr.comp AS Distributor,
                     CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
@@ -936,7 +972,7 @@ class CheckDrugcatController extends Controller
                 LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
                 LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
                 LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-                LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+                {$s_join}
                 LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
                     FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
                 WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
@@ -1343,34 +1379,43 @@ class CheckDrugcatController extends Controller
         }, $icodes);
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
         
+        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+        $s_trade = $has_sks ? "s.TradeName" : "NULL";
+        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+        $s_strength = $has_sks ? "s.Strength" : "NULL";
+        $s_date = $has_sks ? "s.DateEffective" : "NULL";
+
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
                 d.sks_product_category_id AS ProductCat,
                 d.sks_drug_code AS TMTID,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                IFNULL(d.strength, s.Strength) AS Strength,
+                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                IFNULL(d.strength, {$s_strength}) AS Strength,
                 d.unitprice AS UnitPrice,
                 dr.comp AS Distributor,
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
                 CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                IFNULL(s.SpecPrep, '') AS SpecPrep,
+                {$s_spec} AS SpecPrep,
                 d.did AS NDC24,
                 CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
                 d.unitprice AS Packprice,
                 '' AS DateChange,
                 '' AS DateUpdate,
-                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
+                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
                 IFNULL(nd.filename, '') AS FileName,
                 '{$hosp_code}' AS HospCode
             FROM drugitems d
             LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
             LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
             LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            {$s_join}
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
@@ -1401,34 +1446,43 @@ class CheckDrugcatController extends Controller
         $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
 
         try {
+            $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
+            $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
+            $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
+            $s_trade = $has_sks ? "s.TradeName" : "NULL";
+            $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
+            $s_dose = $has_sks ? "s.DosageForm" : "NULL";
+            $s_strength = $has_sks ? "s.Strength" : "NULL";
+            $s_date = $has_sks ? "s.DateEffective" : "NULL";
+
             $drugs = DB::connection('hosxp')->select("
                 SELECT  
                     d.icode AS HospDrugCode,
                     d.sks_product_category_id AS ProductCat,
                     d.sks_drug_code AS TMTID,
                     IFNULL(d.generic_name, d.`name`) AS GenericName,
-                    IFNULL(d.trade_name, s.TradeName) AS TradeName,
-                    IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
-                    IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
-                    IFNULL(d.strength, s.Strength) AS Strength,
+                    IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                    IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                    IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                    IFNULL(d.strength, {$s_strength}) AS Strength,
                     d.unitprice AS UnitPrice,
                     dr.comp AS Distributor,
                     CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
                     CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                    IFNULL(s.SpecPrep, '') AS SpecPrep,
+                    {$s_spec} AS SpecPrep,
                     d.did AS NDC24,
                     CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
                     d.unitprice AS Packprice,
                     '' AS DateChange,
                     '' AS DateUpdate,
-                    DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
+                    DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
                     IFNULL(nd.filename, '') AS FileName,
                     '{$hosp_code}' AS HospCode
                 FROM drugitems d
                 LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
                 LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
                 LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-                LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+                {$s_join}
                 LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                     FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode
                 WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'

@@ -1,9 +1,9 @@
 @php
-    $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
+    $is_ssop_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_ssop');
     $tabs = [
         ['id' => 'search', 'title' => 'รอส่ง Claim', 'icon' => 'bi-clock-history', 'badge_class' => 'bg-secondary', 'data' => $search, 'show_checkbox' => true],
         ['id' => 'claim', 'title' => 'ส่ง Claim แล้ว', 'icon' => 'bi-send-check', 'badge_class' => 'bg-success', 'data' => $claim, 'show_checkbox' => false],
-        ['id' => 'warning', 'title' => 'ติด C', 'icon' => 'bi-exclamation-octagon', 'badge_class' => 'bg-danger', 'data' => $warning, 'show_checkbox' => true]
+        ['id' => 'warning', 'title' => 'ติด C', 'icon' => 'bi-exclamation-triangle', 'badge_class' => 'bg-danger', 'data' => $warning, 'show_checkbox' => false],
     ];
 @endphp
 

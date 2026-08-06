@@ -106,7 +106,7 @@ class CsopExportController extends Controller
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid, op.pttype,
                    sd.name AS drug_name, n.name AS nondrug_name,
                    inc.income_csmbs_code,
-                   COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
+                   COALESCE(li.tmlt_code, lsg.tmlt_code, nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -120,6 +120,8 @@ class CsopExportController extends Controller
                     AND nd1.updateflag IN ('A','U','E')
                 )
             LEFT JOIN income inc ON inc.income = op.income
+            LEFT JOIN lab_items li ON li.icode = op.icode
+            LEFT JOIN lab_items_sub_group lsg ON lsg.group_icode = op.icode
             WHERE op.vn IN ($visits_placeholders)
         ", $vns);
 
@@ -345,14 +347,14 @@ class CsopExportController extends Controller
                 $disp_sessions[$disp_id] = true;
             }
 
-            $prdcat = !empty($item->sks_product_category_id) ? $item->sks_product_category_id : '';
+            $prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
             if (str_starts_with($item->icode, '3')) {
                 if ($item->income === '05') {
                     $prdcat = '6';
                 } else {
                     $prdcat = '7';
                 }
-            } elseif (empty($prdcat)) {
+            } elseif (empty($prdcat) || !in_array($prdcat, ['1', '2', '3', '4', '5'])) {
                 $prdcat = '1';
             }
             $tmtid = !empty($item->tmtid) ? $item->tmtid : '';
@@ -649,7 +651,7 @@ class CsopExportController extends Controller
                             } else {
                                 $item_prdcat = '7';
                             }
-                        } elseif (empty($item_prdcat)) {
+                        } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                             $item_prdcat = '1';
                         }
                         if ($item_prdcat === '1' && empty($item->tmtid)) {

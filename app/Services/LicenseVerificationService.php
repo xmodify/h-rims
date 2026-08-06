@@ -129,7 +129,10 @@ class LicenseVerificationService
                     'expires_at' => $expiresAt,
                     'checked_at' => $now,
                     'offline' => false,
-                    'message' => $resData['message'] ?? ''
+                    'message' => $resData['message'] ?? '',
+                    'license_type' => $resData['license_type'] ?? 'standard',
+                    'modules' => $resData['modules'] ?? [],
+                    'module_details' => $resData['module_details'] ?? []
                 ];
 
                 Cache::put(self::CACHE_KEY, $info, 30 * 86400); // Store up to 30 days but logic checks 7 days TTL
@@ -169,5 +172,49 @@ class LicenseVerificationService
     {
         $info = self::getLicenseStatusInfo();
         return isset($info['status']) && $info['status'] === 'active';
+    }
+
+    /**
+     * Check if a specific module is licensed and active
+     */
+    public static function isModuleLicensed($moduleCode)
+    {
+        $info = self::getLicenseStatusInfo();
+        
+        // 1. If overall license is not active, everything is blocked
+        if (!isset($info['status']) || $info['status'] !== 'active') {
+            return false;
+        }
+
+        // 2. If it's a full license, all modules are allowed
+        $licenseType = $info['license_type'] ?? 'standard';
+        if (strtolower($licenseType) === 'full') {
+            return true;
+        }
+
+        // 3. If it's a module license, check the specific module status & expiration
+        $moduleDetails = $info['module_details'] ?? [];
+
+        foreach ($moduleDetails as $detail) {
+            if (isset($detail['code']) && $detail['code'] === $moduleCode) {
+                $status = $detail['status'] ?? 'inactive';
+                $expiredAt = $detail['expired_at'] ?? null;
+
+                if ($status !== 'active') {
+                    return false;
+                }
+
+                // Check module expiration date if specified
+                if (!empty($expiredAt) && strtotime($expiredAt) < strtotime(date('Y-m-d'))) {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        // Check fallback modules array list if module_details is not populated
+        $modules = $info['modules'] ?? [];
+        return in_array($moduleCode, $modules);
     }
 }

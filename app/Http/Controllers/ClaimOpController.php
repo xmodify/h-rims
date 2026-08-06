@@ -6204,7 +6204,7 @@ class ClaimOpController extends Controller
                     } else {
                         $item_prdcat = '7';
                     }
-                } elseif (empty($item_prdcat)) {
+                } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                     $item_prdcat = '1';
                 }
                 if ($item_prdcat === '1' && empty($drug->tmtid)) {
@@ -6597,7 +6597,7 @@ class ClaimOpController extends Controller
                     } else {
                         $item_prdcat = '7';
                     }
-                } elseif (empty($item_prdcat)) {
+                } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                     $item_prdcat = '1';
                 }
                 if ($item_prdcat === '1' && empty($drug->tmtid)) {
@@ -6971,7 +6971,7 @@ class ClaimOpController extends Controller
                     } else {
                         $item_prdcat = '7';
                     }
-                } elseif (empty($item_prdcat)) {
+                } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                     $item_prdcat = '1';
                 }
                 if ($item_prdcat === '1' && empty($drug->tmtid)) {
@@ -7663,7 +7663,7 @@ class ClaimOpController extends Controller
                     } else {
                         $item_prdcat = '7';
                     }
-                } elseif (empty($item_prdcat)) {
+                } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                     $item_prdcat = '1';
                 }
                 if ($item_prdcat === '1' && empty($drug->tmtid)) {

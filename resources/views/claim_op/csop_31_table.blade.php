@@ -1,5 +1,5 @@
 @php
-    $is_csop_licensed = \App\Services\LicenseVerificationService::isLicensed();
+    $is_csop_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_csop');
     $tabs = [
         ['id' => 'search', 'title' => 'รอส่ง Claim', 'icon' => 'bi-clock-history', 'badge_class' => 'bg-secondary', 'data' => $search, 'show_checkbox' => true],
         ['id' => 'claim', 'title' => 'ส่ง Claim แล้ว', 'icon' => 'bi-send-check', 'badge_class' => 'bg-success', 'data' => $claim, 'show_checkbox' => false],

@@ -414,6 +414,11 @@ class ClaimValidator
             return ['is_valid' => true, 'message' => ''];
         }
 
+        // If it is a Thai Traditional Medicine code (starts with U5, U6, U7), it is valid for TT CodeSet
+        if (preg_match('/^U[567]/i', $clean)) {
+            return ['is_valid' => true, 'message' => ''];
+        }
+
         $row = \Illuminate\Support\Facades\DB::table('lookup_icd10_chi')
             ->where('code', $clean)
             ->first();

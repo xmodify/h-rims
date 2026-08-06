@@ -1405,7 +1405,7 @@
 
                         const makeRow = (badges) => `
                             <tr>
-                                <td class="text-center font-weight-bold"><a href="javascript:void(0)" onclick="showRepDetails('${row.vn}')" class="text-primary">${vstDateStr}</a></td>
+                                <td class="text-center font-weight-bold text-dark">${vstDateStr}</td>
                                 <td class="text-center">${row.hn || '-'}</td>
                                 <td>${row.ptname || 'ไม่ทราบชื่อ'}</td>
                                 <td>${repDisplay}</td>

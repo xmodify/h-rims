@@ -2024,7 +2024,7 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn
             LEFT JOIN ward w ON w.ward=i.ward
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (
@@ -2074,7 +2074,7 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn
             LEFT JOIN ward w ON w.ward=i.ward
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (

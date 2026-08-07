@@ -959,7 +959,7 @@ class SssExportController extends Controller
             LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN ipt_pttype ip ON ip.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
-            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             WHERE i.an IN ($ans_placeholders)
         ", $ans);
@@ -1538,10 +1538,7 @@ class SssExportController extends Controller
             ->leftJoin('ipt as i', 'i.an', '=', 'a.an')
             ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'a.an')
             ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
-            ->leftJoin('visit_pttype as vp', function($join) {
-                $join->on('vp.vn', '=', 'i.vn')
-                     ->on('vp.pttype', '=', 'ip.pttype');
-            })
+            ->leftJoin('visit_pttype as vp', 'vp.vn', '=', 'i.vn')
             ->leftJoin('ward as w', 'w.ward', '=', 'a.ward')
             ->leftJoin('spclty as sp', 'sp.spclty', '=', 'a.spclty')
             ->leftJoin('doctor as doc', 'doc.code', '=', 'a.dx_doctor')

@@ -1036,6 +1036,17 @@ class SssExportController extends Controller
                 'admwt' => $admwt
             ];
 
+            // 1. Check Authen
+            if (empty($adm->auth_code)) {
+                $audit_results[] = [
+                    'an' => $an,
+                    'hn' => $hn,
+                    'ptname' => $ptname,
+                    'message' => "ยังไม่มีเลขอนุมัติสิทธิ์ (Authen Code) หรือขอสิทธิ์ไม่สำเร็จ",
+                    'level' => 'error'
+                ];
+            }
+
             // Coinsurance Check
             // Query all patient rights registered for this admission in ipt_pttype
             $pttypes = DB::connection('hosxp')->select("
@@ -1550,7 +1561,7 @@ class SssExportController extends Controller
         $warnings = [];
 
         // 1. Check Authen
-        if (empty($adm->auth_code) || $adm->auth_code !== 'Y') {
+        if (empty($adm->auth_code)) {
             $errors[] = "ยังไม่มีเลขอนุมัติสิทธิ์ (Authen Code) หรือขอสิทธิ์ไม่สำเร็จ";
         }
 

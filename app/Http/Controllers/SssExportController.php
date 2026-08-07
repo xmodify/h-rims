@@ -1180,7 +1180,8 @@ class SssExportController extends Controller
                 $billgr = '19';
                 switch ($inc) {
                     case '01': $billgr = '01'; break;
-                    case '10': $billgr = '02'; break;
+                    case '02': $billgr = '02'; break;
+                    case '10': $billgr = '10'; break;
                     case '03': $billgr = '03'; break;
                     case '04': $billgr = '04'; break;
                     case '05': $billgr = '05'; break;
@@ -1643,7 +1644,8 @@ class SssExportController extends Controller
             $billgr = '19';
             switch ($inc) {
                 case '01': $billgr = '01'; break;
-                case '10': $billgr = '02'; break;
+                case '02': $billgr = '02'; break;
+                case '10': $billgr = '10'; break;
                 case '03': $billgr = '03'; break;
                 case '04': $billgr = '04'; break;
                 case '05': $billgr = '05'; break;

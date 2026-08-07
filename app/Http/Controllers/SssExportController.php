@@ -1187,6 +1187,11 @@ class SssExportController extends Controller
                 $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
                 $discount = (float)($item->discount ?: 0.0);
 
+                // Skip items with price or quantity <= 0 (e.g., patient's own medicines)
+                if ($charge_amt <= 0 || $qty <= 0) {
+                    continue;
+                }
+
                 // Map to AIPN BillGr
                 $billgr = '19';
                 if (!empty($item->income_csmbs_code)) {
@@ -1685,6 +1690,14 @@ class SssExportController extends Controller
         ", [$an]);
 
         foreach ($items as $item) {
+            $qty = (float)$item->qty;
+            $sum_price = (float)$item->sum_price;
+            
+            // Skip validation checks for items with price or quantity <= 0 (e.g., patient's own medicines)
+            if ($sum_price <= 0 || $qty <= 0) {
+                continue;
+            }
+
             $billgr = '19';
             if (!empty($item->income_csmbs_code)) {
                 $csmbs_code = trim($item->income_csmbs_code);

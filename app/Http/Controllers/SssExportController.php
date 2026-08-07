@@ -1172,9 +1172,10 @@ class SssExportController extends Controller
 
             // 3. BillItems (Inpatient item charges)
             $billitems_raw = DB::connection('hosxp')->select("
-                SELECT o.vstdate, o.icode, o.qty, o.sum_price, o.unitprice, o.discount, o.income,
+                SELECT o.vstdate, o.icode, o.qty, o.sum_price, o.unitprice, o.discount, o.income, inc.income_csmbs_code,
                        COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
                 FROM opitemrece o
+                LEFT JOIN income inc ON inc.income = o.income
                 WHERE o.an = ?
             ", [$an]);
 
@@ -1187,25 +1188,34 @@ class SssExportController extends Controller
                 $discount = (float)($item->discount ?: 0.0);
 
                 // Map to AIPN BillGr
-                $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
                 $billgr = '19';
-                switch ($inc) {
-                    case '01': $billgr = '01'; break;
-                    case '02': $billgr = '02'; break;
-                    case '10': $billgr = '10'; break;
-                    case '03': $billgr = '03'; break;
-                    case '04': $billgr = '04'; break;
-                    case '05': $billgr = '05'; break;
-                    case '06': $billgr = '06'; break;
-                    case '07': $billgr = '07'; break;
-                    case '08': $billgr = '08'; break;
-                    case '09': $billgr = '09'; break;
-                    case '16': $billgr = '12'; break;
-                    case '12': $billgr = '16'; break;
-                    case '13': $billgr = '14'; break;
-                    case '14': $billgr = '13'; break;
-                    case '15': $billgr = '15'; break;
-                    case '11': $billgr = '11'; break;
+                if (!empty($item->income_csmbs_code)) {
+                    $csmbs_code = trim($item->income_csmbs_code);
+                    if ($csmbs_code === '88') {
+                        $billgr = '17';
+                    } else {
+                        $billgr = str_pad($csmbs_code, 2, '0', STR_PAD_LEFT);
+                    }
+                } else {
+                    $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
+                    switch ($inc) {
+                        case '01': $billgr = '01'; break;
+                        case '02': $billgr = '02'; break;
+                        case '10': $billgr = '10'; break;
+                        case '03': $billgr = '03'; break;
+                        case '04': $billgr = '04'; break;
+                        case '05': $billgr = '05'; break;
+                        case '06': $billgr = '06'; break;
+                        case '07': $billgr = '07'; break;
+                        case '08': $billgr = '08'; break;
+                        case '09': $billgr = '09'; break;
+                        case '16': $billgr = '12'; break;
+                        case '12': $billgr = '16'; break;
+                        case '13': $billgr = '14'; break;
+                        case '14': $billgr = '13'; break;
+                        case '15': $billgr = '15'; break;
+                        case '11': $billgr = '11'; break;
+                    }
                 }
 
                 $billgrcs = $billgr;
@@ -1665,34 +1675,44 @@ class SssExportController extends Controller
 
         // Fetch Charge Items & catalog validations
         $items = DB::connection('hosxp')->select("
-            SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income,
+            SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income, inc.income_csmbs_code,
                    COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
             FROM opitemrece o
+            LEFT JOIN income inc ON inc.income = o.income
             WHERE o.an = ?
             GROUP BY o.icode
             ORDER BY income ASC, icode ASC
         ", [$an]);
 
         foreach ($items as $item) {
-            $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
             $billgr = '19';
-            switch ($inc) {
-                case '01': $billgr = '01'; break;
-                case '02': $billgr = '02'; break;
-                case '10': $billgr = '10'; break;
-                case '03': $billgr = '03'; break;
-                case '04': $billgr = '04'; break;
-                case '05': $billgr = '05'; break;
-                case '06': $billgr = '06'; break;
-                case '07': $billgr = '07'; break;
-                case '08': $billgr = '08'; break;
-                case '09': $billgr = '09'; break;
-                case '16': $billgr = '12'; break;
-                case '12': $billgr = '16'; break;
-                case '13': $billgr = '14'; break;
-                case '14': $billgr = '13'; break;
-                case '15': $billgr = '15'; break;
-                case '11': $billgr = '11'; break;
+            if (!empty($item->income_csmbs_code)) {
+                $csmbs_code = trim($item->income_csmbs_code);
+                if ($csmbs_code === '88') {
+                    $billgr = '17';
+                } else {
+                    $billgr = str_pad($csmbs_code, 2, '0', STR_PAD_LEFT);
+                }
+            } else {
+                $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
+                switch ($inc) {
+                    case '01': $billgr = '01'; break;
+                    case '02': $billgr = '02'; break;
+                    case '10': $billgr = '10'; break;
+                    case '03': $billgr = '03'; break;
+                    case '04': $billgr = '04'; break;
+                    case '05': $billgr = '05'; break;
+                    case '06': $billgr = '06'; break;
+                    case '07': $billgr = '07'; break;
+                    case '08': $billgr = '08'; break;
+                    case '09': $billgr = '09'; break;
+                    case '16': $billgr = '12'; break;
+                    case '12': $billgr = '16'; break;
+                    case '13': $billgr = '14'; break;
+                    case '14': $billgr = '13'; break;
+                    case '15': $billgr = '15'; break;
+                    case '11': $billgr = '11'; break;
+                }
             }
             
             $unitprice = (float)$item->unitprice;

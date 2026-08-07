@@ -2202,6 +2202,24 @@ $search = DB::connection('hosxp')->select(
                 }
             }
 
+            // 6. Drug Catalog Check
+            $opd_drugs = DB::connection('hosxp')->select("
+                SELECT o.icode, o.income
+                FROM opitemrece o
+                WHERE o.an = ? AND o.income IN ('03', '04')
+            ", [$row->an]);
+            
+            if (!empty($opd_drugs)) {
+                foreach ($opd_drugs as $item) {
+                    $exists = DB::table('drugcat_chi')
+                        ->where('hospdrugcode', $item->icode)
+                        ->exists();
+                    if (!$exists) {
+                        $errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
+                    }
+                }
+            }
+
             if (!empty($errors)) {
                 $row->rep_error = implode(', ', $errors);
             }

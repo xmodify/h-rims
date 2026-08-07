@@ -1216,14 +1216,6 @@ class SssExportController extends Controller
                                 'level' => 'error'
                             ];
                         }
-                    } else {
-                        $audit_results[] = [
-                            'an' => $an,
-                            'hn' => $hn,
-                            'ptname' => $ptname,
-                            'message' => "รหัสอุปกรณ์ {$item->icode} ไม่พบในรายการมาตรฐานของ สกส. (Error 365)",
-                            'level' => 'error'
-                        ];
                     }
                 }
 
@@ -1675,8 +1667,6 @@ class SssExportController extends Controller
                     if ($unitprice > $equip->rate) {
                         $errors[] = "รหัสอุปกรณ์ {$item->icode} (" . trim($item->item_name) . ") ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
                     }
-                } else {
-                    $errors[] = "รหัสอุปกรณ์ {$item->icode} (" . trim($item->item_name) . ") ไม่พบในรายการมาตรฐานของ สกส. (Error 365)";
                 }
             }
 

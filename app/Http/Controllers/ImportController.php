@@ -478,7 +478,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -631,7 +632,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -774,7 +776,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -2373,7 +2376,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -2513,7 +2517,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -2646,7 +2651,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -3092,7 +3098,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -3232,7 +3239,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -3365,7 +3373,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -3811,7 +3820,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -3951,7 +3961,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -4084,7 +4095,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -4530,7 +4542,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -4670,7 +4683,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -4803,7 +4817,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -5250,7 +5265,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -5390,7 +5406,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -5523,7 +5540,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -6955,7 +6973,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%");
@@ -7099,7 +7118,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%")
@@ -7247,7 +7267,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%")
@@ -7624,7 +7645,8 @@ class ImportController extends Controller
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
                 $query->where(function ($q) use ($search) {
-                    $q->where('hn', 'like', "%$search%")
+                    $q->where('repno', 'like', "%$search%")
+                        ->orWhere('hn', 'like', "%$search%")
                         ->orWhere('cid', 'like', "%$search%")
                         ->orWhere('pt_name', 'like', "%$search%")
                         ->orWhere('stm_filename', 'like', "%$search%")

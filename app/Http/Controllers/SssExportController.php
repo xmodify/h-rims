@@ -146,7 +146,7 @@ class SssExportController extends Controller
         $billitems_raw = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid, op.pttype,
                    sd.name AS drug_name, n.name AS nondrug_name,
-                   COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
+                   COALESCE(li.tmlt_code, lsg.tmlt_code, nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -159,6 +159,8 @@ class SssExportController extends Controller
                     WHERE nd.hospdrugcode = nd1.hospdrugcode 
                     AND nd1.updateflag IN ('A','U','E')
                 )
+            LEFT JOIN lab_items li ON li.icode = op.icode
+            LEFT JOIN lab_items_sub_group lsg ON lsg.group_icode = op.icode
             WHERE op.vn IN ($visits_placeholders)
         ", $vns);
 
@@ -383,7 +385,7 @@ class SssExportController extends Controller
                 $disp_sessions[$disp_id] = true;
             }
 
-            $prdcat = !empty($item->sks_product_category_id) ? $item->sks_product_category_id : '';
+            $prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
             if (str_starts_with($item->icode, '3')) {
                 // If it starts with 3, it's a non-drug, so it must be 6 or 7 (never 1-5)
                 if ($item->income === '05') {
@@ -391,7 +393,7 @@ class SssExportController extends Controller
                 } else {
                     $prdcat = '7';
                 }
-            } elseif (empty($prdcat)) {
+            } elseif (empty($prdcat) || !in_array($prdcat, ['1', '2', '3', '4', '5'])) {
                 $prdcat = '1';
             }
             $tmtid = !empty($item->tmtid) ? $item->tmtid : '';
@@ -715,7 +717,7 @@ class SssExportController extends Controller
                     } else {
                         $item_prdcat = '7';
                     }
-                } elseif (empty($item_prdcat)) {
+                } elseif (empty($item_prdcat) || !in_array($item_prdcat, ['1', '2', '3', '4', '5'])) {
                     $item_prdcat = '1';
                 }
                 // Only require TMT for Modern Medicine (prdcat = 1)
@@ -846,14 +848,740 @@ class SssExportController extends Controller
     }
 
     /**
-     * Resolve single invoice number from HOSxP and REP records
+     * Pre-Audit and Preview AIPN Export
      */
+    public function sss_export_preview_aipn(Request $request)
+    {
+        $ans = $request->input('ans', []);
+        $session_no = $request->input('session_no');
+        $tcode = $request->input('tcode', '');
+        $care_as = $request->input('care_as', 'M');
+
+        if (empty($ans)) {
+            return response()->json(['success' => false, 'message' => 'กรุณาเลือก AN ที่ต้องการส่งออก']);
+        }
+
+        try {
+            $data = $this->generate_aipn_data_array($ans, $session_no, $tcode, $care_as);
+            return response()->json(array_merge(['success' => true], $data));
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' . $e->getMessage() . ' at line ' . $e->getLine()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download AIPN ZIP
+     */
+    public function sss_export_aipn(Request $request)
+    {
+        $ans = $request->input('ans', []);
+        $session_no = $request->input('session_no');
+        $tcode = $request->input('tcode', '');
+        $care_as = $request->input('care_as', 'M');
+
+        if (empty($ans)) {
+            return redirect()->back()->with('error', 'กรุณาเลือก AN ที่ต้องการส่งออก');
+        }
+
+        try {
+            $data = $this->generate_aipn_data_array($ans, $session_no, $tcode, $care_as);
+            
+            $hcode = LicenseVerificationService::getHcode();
+            $tcode_suffix = !empty($tcode) ? "-{$tcode}" : "";
+            $zip_name = "{$hcode}AIPN{$tcode_suffix}{$session_no}.zip";
+            
+            $temp_dir = storage_path('app/temp_aipn');
+            if (!file_exists($temp_dir)) {
+                mkdir($temp_dir, 0777, true);
+            }
+            $zip_path = "{$temp_dir}/{$zip_name}";
+
+            $zip = new ZipArchive();
+            if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+                foreach ($data['xml_files'] as $filename => $xml_content) {
+                    // Convert UTF-8 XML string to windows-874 using iconv
+                    $encoded_content = iconv('UTF-8', 'windows-874//IGNORE', $xml_content);
+                    $zip->addFromString($filename, $encoded_content);
+                }
+                $zip->close();
+            } else {
+                return redirect()->back()->with('error', 'ไม่สามารถสร้างไฟล์ ZIP ได้');
+            }
+
+            return response()->download($zip_path)->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Core logic to fetch data, perform pre-audit, and generate XMLs
+     */
+    private function generate_aipn_data_array($ans, $session_no, $tcode = '', $care_as = 'M')
+    {
+        $hcode = LicenseVerificationService::getHcode();
+        
+        $hname = Cache::remember('hospitalname_licensed', 86400, function() {
+            try {
+                return DB::connection('hosxp')->table('opdconfig')->value('hospitalname');
+            } catch (\Throwable $e) {
+                return 'รพ.';
+            }
+        });
+
+        $subm_dt = date('YmdHis');
+        $datetime_iso = date('Y-m-d\TH:i:s');
+
+        $ipadt_data = [];
+        $ipdx_data = [];
+        $ipop_data = [];
+        $billitems_data = [];
+        $audit_results = [];
+        $xml_files = [];
+        $first_xml = '';
+
+        // Query Patient Inpatient records
+        $ans_placeholders = implode(',', array_fill(0, count($ans), '?'));
+        $admissions = DB::connection('hosxp')->select("
+            SELECT i.an, i.hn, pt.pname, pt.fname, pt.lname, pt.cid, pt.birthday AS dob, pt.sex, pt.marrystatus AS marry, pt.nationality,
+                   i.regdate, i.regtime, i.dchdate, i.dchtime, i.dchstts AS dch_status, i.dchtype AS dch_type,
+                   i.bw AS admwt,
+                   i.ward, i.spclty,
+                   ip.auth_code,
+                   ip.hospmain AS hospmain,
+                   pu.pttype_upp_type_code AS payplan,
+                   i.vn
+            FROM ipt i
+            LEFT JOIN an_stat a ON a.an = i.an
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
+            WHERE i.an IN ($ans_placeholders)
+        ", $ans);
+
+        $validator = new \App\Services\ClaimValidator();
+
+        foreach ($admissions as $adm) {
+            $an = $adm->an;
+            $hn = $adm->hn;
+            $ptname = trim($adm->pname . $adm->fname . ' ' . $adm->lname);
+
+            // DTAdm & DTDisch
+            $dtadm = $adm->regdate . 'T' . ($adm->regtime ?: '00:00:00');
+            $dtdisch = $adm->dchdate . 'T' . ($adm->dchtime ?: '00:00:00');
+
+            // Map demographic fields
+            $idtype = (!empty($adm->cid) && strlen($adm->cid) === 13) ? '0' : '9';
+            $pidpat = $adm->cid ?: '';
+            
+            // Sex: 1=ชาย, 2=หญิง
+            $sex = ($adm->sex == '1' || $adm->sex == 'ชาย') ? '1' : (($adm->sex == '2' || $adm->sex == 'หญิง') ? '2' : '9');
+            
+            // Marry mapping
+            $marry = '9';
+            if ($adm->marry == '1' || $adm->marry == 'โสด') $marry = '1';
+            elseif ($adm->marry == '2' || $adm->marry == 'คู่' || $adm->marry == 'สมรส') $marry = '2';
+            elseif ($adm->marry == '3' || $adm->marry == 'หม้าย' || $adm->marry == 'หย่า') $marry = '3';
+
+            // Nation mapping
+            $nation = ($adm->nationality == '99' || $adm->nationality == 'TH' || strpos($adm->nationality, 'ไทย') !== false) ? '99' : '97';
+
+            // AdmType
+            $admtype = 'O';
+            if (isset($adm->adm_type)) {
+                if ($adm->adm_type == 'A') $admtype = 'A';
+                elseif ($adm->adm_type == 'E') $admtype = 'E';
+                elseif ($adm->adm_type == 'C') $admtype = 'C';
+                elseif ($adm->adm_type == 'L') $admtype = 'L';
+                elseif ($adm->adm_type == 'N') $admtype = 'N';
+                elseif ($adm->adm_type == 'U') $admtype = 'U';
+            }
+
+            // AdmSource
+            $admsource = 'O';
+            if (isset($adm->adm_source)) {
+                if ($adm->adm_source == 'O') $admsource = 'O';
+                elseif ($adm->adm_source == 'E') $admsource = 'E';
+                elseif ($adm->adm_source == 'B') $admsource = 'B';
+                elseif ($adm->adm_source == 'T') $admsource = 'T';
+                elseif ($adm->adm_source == 'R') $admsource = 'R';
+            }
+
+            // Weight
+            $admwt = $adm->admwt ? number_format($adm->admwt, 3, '.', '') : '0.000';
+
+            // UPayPlan check
+            $upayplan = $adm->payplan ?: '80';
+
+            // Build IPADT array for preview
+            $ipadt_data[] = [
+                'an' => $an,
+                'hn' => $hn,
+                'idtype' => $idtype,
+                'pidpat' => $pidpat,
+                'ptname' => $ptname,
+                'dob' => $adm->dob,
+                'sex' => $sex,
+                'admtype' => $admtype,
+                'admsource' => $admsource,
+                'dtadm' => $dtadm,
+                'dtdisch' => $dtdisch,
+                'dischstat' => $adm->dch_status ?: '1',
+                'dischtype' => $adm->dch_type ?: '1',
+                'admwt' => $admwt
+            ];
+
+            // Coinsurance Check
+            // Query all patient rights registered for this admission in ipt_pttype
+            $pttypes = DB::connection('hosxp')->select("
+                SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code
+                FROM ipt_pttype ip
+                LEFT JOIN pttype p ON p.pttype = ip.pttype
+                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
+                WHERE ip.an = ?
+            ", [$an]);
+
+            $has_ssem72 = false;
+            foreach ($pttypes as $pt) {
+                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
+                    $has_ssem72 = true;
+                    break;
+                }
+            }
+
+            if (in_array($upayplan, ['85', '95'])) {
+                if (!$has_ssem72) {
+                    $audit_results[] = [
+                        'an' => $an,
+                        'hn' => $hn,
+                        'ptname' => $ptname,
+                        'message' => "สิทธิหลัก (UPayPlan {$upayplan}) ต้องการสิทธิร่วมจ่าย Coinsurance SSEM72 (Error 369) กรุณาเพิ่มสิทธิร่วมให้ถูกต้อง",
+                        'level' => 'error'
+                    ];
+                }
+            }
+
+            // 1. Diagnosis
+            $diags = DB::connection('hosxp')->select("
+                SELECT d.icd10, d.diagtype, d.doctor, doc.licenseno, doc.name AS doctor_name, d.entry_datetime
+                FROM iptdiag d
+                LEFT JOIN doctor doc ON doc.code = d.doctor
+                WHERE d.an = ?
+                ORDER BY d.diagtype ASC, d.diag_no ASC
+            ", [$an]);
+
+            $ipdx_rows = [];
+            $has_pdx = false;
+            foreach ($diags as $idx => $d) {
+                $diagtype = $d->diagtype ?: '3';
+                if ($diagtype == '1') {
+                    $has_pdx = true;
+                }
+
+                $icd10 = trim($d->icd10);
+                
+                // Validate ICD10 against standard
+                $val_res = $validator->validateIcd10Chi($icd10, $diagtype);
+                if (!$val_res['is_valid'] && !in_array(substr($icd10, 0, 2), ['U5', 'U6', 'U7'])) {
+                    $audit_results[] = [
+                        'an' => $an,
+                        'hn' => $hn,
+                        'ptname' => $ptname,
+                        'message' => "รหัสวินิจฉัยโรค {$icd10} ประเภท {$diagtype} ไม่ถูกต้องตามบัญชี สกส. (S54)",
+                        'level' => 'error'
+                    ];
+                }
+
+                $ipdx_rows[] = [
+                    'an' => $an,
+                    'seq' => $idx + 1,
+                    'dxtype' => $diagtype,
+                    'codesys' => '1',
+                    'code' => $icd10,
+                    'diagterm' => $this->escape_xml($d->icd10),
+                    'dr' => $d->licenseno ?: 'ว00000',
+                    'datediag' => substr($d->entry_datetime ?: $adm->regdate, 0, 10)
+                ];
+                $ipdx_data[] = end($ipdx_rows);
+            }
+
+            if (!$has_pdx) {
+                $audit_results[] = [
+                    'an' => $an,
+                    'hn' => $hn,
+                    'ptname' => $ptname,
+                    'message' => "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)",
+                    'level' => 'error'
+                ];
+            }
+
+            // 2. Operation/Procedure
+            $procs = DB::connection('hosxp')->select("
+                SELECT o.icd9, o.opdate, o.optime, o.enddate, o.endtime, o.doctor, doc.licenseno, o.oper_note_text
+                FROM iptoprt o
+                LEFT JOIN doctor doc ON doc.code = o.doctor
+                WHERE o.an = ?
+                ORDER BY o.iptoprt_id ASC
+            ", [$an]);
+
+            $ipop_rows = [];
+            foreach ($procs as $idx => $p) {
+                $datein = ($p->opdate ?: $adm->regdate) . 'T' . ($p->optime ?: '00:00:00');
+                $dateout = ($p->enddate ?: $adm->dchdate) . 'T' . ($p->endtime ?: '00:00:00');
+
+                // Check datein and dateout are within admission range
+                if ($p->opdate < $adm->regdate || $p->opdate > $adm->dchdate) {
+                    $audit_results[] = [
+                        'an' => $an,
+                        'hn' => $hn,
+                        'ptname' => $ptname,
+                        'message' => "วันที่ทำหัตถการ {$p->opdate} อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)",
+                        'level' => 'warning'
+                    ];
+                }
+
+                $ipop_rows[] = [
+                    'an' => $an,
+                    'seq' => $idx + 1,
+                    'codesys' => '1',
+                    'code' => trim($p->icd9),
+                    'procterm' => $this->escape_xml(trim($p->icd9)),
+                    'dr' => $p->licenseno ?: 'ว00000',
+                    'datein' => $datein,
+                    'dateout' => $dateout,
+                    'location' => '1'
+                ];
+                $ipop_data[] = end($ipop_rows);
+            }
+
+            // 3. BillItems (Inpatient item charges)
+            $billitems_raw = DB::connection('hosxp')->select("
+                SELECT o.vstdate, o.icode, o.qty, o.sum_price, o.unitprice, o.discount, o.income,
+                       COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
+                FROM opitemrece o
+                WHERE o.an = ?
+            ", [$an]);
+
+            $billitems_rows = [];
+            $seq_item = 1;
+            foreach ($billitems_raw as $item) {
+                $qty = (float)$item->qty;
+                $unitprice = (float)$item->unitprice;
+                $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
+                $discount = (float)($item->discount ?: 0.0);
+
+                // Map to AIPN BillGr
+                $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
+                $billgr = '19';
+                switch ($inc) {
+                    case '01': $billgr = '01'; break;
+                    case '10': $billgr = '02'; break;
+                    case '03': $billgr = '03'; break;
+                    case '04': $billgr = '04'; break;
+                    case '05': $billgr = '05'; break;
+                    case '06': $billgr = '06'; break;
+                    case '07': $billgr = '07'; break;
+                    case '08': $billgr = '08'; break;
+                    case '09': $billgr = '09'; break;
+                    case '16': $billgr = '12'; break;
+                    case '12': $billgr = '16'; break;
+                    case '13': $billgr = '14'; break;
+                    case '14': $billgr = '13'; break;
+                    case '15': $billgr = '15'; break;
+                    case '11': $billgr = '11'; break;
+                }
+
+                // Determine claim category (D=DRG/Standard, T=High Cost Device/Supplies)
+                $claimcat = 'D';
+                $stdcode = '';
+                
+                // If claimcat is T (income category 10/02), check lookup_sss_equipdev_aipn
+                if ($billgr === '02') {
+                    $claimcat = 'T';
+                    // Fetch limit rate from lookup_sss_equipdev_aipn
+                    $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $item->icode)->first();
+                    if ($equip) {
+                        $stdcode = $equip->code;
+                        if ($unitprice > $equip->rate) {
+                            $audit_results[] = [
+                                'an' => $an,
+                                'hn' => $hn,
+                                'ptname' => $ptname,
+                                'message' => "รหัสอุปกรณ์ {$item->icode} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)",
+                                'level' => 'error'
+                            ];
+                        }
+                    } else {
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสอุปกรณ์ {$item->icode} ไม่พบในรายการมาตรฐานของ สกส. (Error 365)",
+                            'level' => 'error'
+                        ];
+                    }
+                }
+
+                // Drugs check against catalog (03, 04)
+                if (in_array($billgr, ['03', '04'])) {
+                    $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
+                    if ($drug) {
+                        $stdcode = $drug->tmtid;
+                    }
+                }
+
+                // Lab/Blood Catalog check (06, 07)
+                if (in_array($billgr, ['06', '07'])) {
+                    $lab = DB::table('labcat_chi')->where('lccode', $item->icode)->orWhere('cscode', $item->icode)->first();
+                    if ($lab) {
+                        $stdcode = $lab->tmlt ?: '';
+                    } else {
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} ไม่พบใน Lab Catalog (Error 367)",
+                            'level' => 'error'
+                        ];
+                    }
+                }
+
+                $billitems_rows[] = [
+                    'an' => $an,
+                    'seq' => $seq_item++,
+                    'servdate' => $item->vstdate,
+                    'billgr' => $billgr,
+                    'lccode' => $item->icode,
+                    'descript' => $this->escape_xml(trim($item->item_name ?: '')),
+                    'qty' => number_format($qty, 2, '.', ''),
+                    'unitprice' => number_format($unitprice, 2, '.', ''),
+                    'chargeamt' => number_format($charge_amt, 2, '.', ''),
+                    'discount' => number_format($discount, 2, '.', ''),
+                    'claimsys' => 'SS',
+                    'billgrcs' => $billgr,
+                    'cscode' => $item->icode,
+                    'codesys' => (!empty($stdcode)) ? (($billgr === '02') ? '0' : 'TMT') : '0',
+                    'stdcode' => $stdcode,
+                    'claimcat' => $claimcat,
+                    'claimup' => ($claimcat === 'D') ? '0.00' : number_format($unitprice, 2, '.', ''),
+                    'claimamt' => ($claimcat === 'D') ? '0.00' : number_format($charge_amt - $discount, 2, '.', '')
+                ];
+                $billitems_data[] = end($billitems_rows);
+            }
+
+            // Calculate Invoices summary
+            $drg_charge = 0.00;
+            $xdrg_claim = 0.00;
+            foreach ($billitems_rows as $row) {
+                $net = (float)$row['chargeamt'] - (float)$row['discount'];
+                if ($row['claimcat'] === 'D') {
+                    $drg_charge += $net;
+                } elseif ($row['claimcat'] === 'T') {
+                    $claim_amt = (float)$row['claimamt'];
+                    $xdrg_claim += min($net, $claim_amt);
+                }
+            }
+
+            // 4. Generate XML content
+            $xml = '<?xml version="1.0" encoding="windows-874"?>' . "\r\n";
+            $xml .= '<CIPN submissionType="A">' . "\r\n";
+            
+            // Header
+            $tcode_suffix = !empty($tcode) ? "-{$tcode}" : "";
+            $xml .= '  <Header>' . "\r\n";
+            $xml .= '    <DocClass>IPClaim</DocClass>' . "\r\n";
+            $xml .= '    <DocSysID version="2.1">AIPN' . $tcode_suffix . '</DocSysID>' . "\r\n";
+            $xml .= '    <serviceEvent>ADT</serviceEvent>' . "\r\n";
+            $xml .= '    <authorID>' . $hcode . '</authorID>' . "\r\n";
+            $xml .= '    <authorName>RIMS ' . $this->escape_xml($hname) . '</authorName>' . "\r\n";
+            $xml .= '    <effectiveTime>' . $datetime_iso . '</effectiveTime>' . "\r\n";
+            $xml .= '  </Header>' . "\r\n";
+
+            // ClaimAuth
+            $hmain = $adm->hospmain ?: $hcode;
+            $xml .= '  <ClaimAuth>' . "\r\n";
+            $xml .= '    <AuthCode>' . $this->escape_xml($adm->auth_code ?: '') . '</AuthCode>' . "\r\n";
+            $xml .= '    <AuthDT>' . $dtadm . '</AuthDT>' . "\r\n";
+            $xml .= '    <UPayPlan>' . $upayplan . '</UPayPlan>' . "\r\n";
+            $xml .= '    <ServiceType>IP</ServiceType>' . "\r\n";
+            $xml .= '    <ProjectCode></ProjectCode>' . "\r\n";
+            $xml .= '    <EventCode></EventCode>' . "\r\n";
+            $xml .= '    <UserReserve></UserReserve>' . "\r\n";
+            $xml .= '    <Hmain>' . $hmain . '</Hmain>' . "\r\n";
+            $xml .= '    <Hcare>' . $hcode . '</Hcare>' . "\r\n";
+            $actual_care_as = $care_as;
+            if ($actual_care_as === 'AUTO') {
+                $actual_care_as = ($upayplan == '85') ? 'X' : 'M';
+            }
+            $xml .= '    <CareAs>' . $actual_care_as . '</CareAs>' . "\r\n";
+            $xml .= '    <ServiceSubType></ServiceSubType>' . "\r\n";
+            $xml .= '  </ClaimAuth>' . "\r\n";
+
+            // IPADT (Delimited String)
+            // AN|HN|IDTYPE|PIDPAT|TITLE|NAMEPAT|DOB|SEX|MARRIAGE|CHANGWAT|AMPHUR|NATION|AdmType|AdmSource|DTAdm|DTDisch|LeaveDay|DischStat|DischType|AdmWt|DischWard|Dept
+            $ipadt_fields = [
+                $an,
+                $hn,
+                $idtype,
+                $pidpat,
+                $this->escape_xml($adm->pname ?: ''),
+                $this->escape_xml(trim($adm->fname . ' ' . $adm->lname)),
+                $adm->dob ?: '',
+                $sex,
+                $marry,
+                '', // CHANGWAT
+                '', // AMPHUR
+                $nation,
+                $admtype,
+                $admsource,
+                $dtadm,
+                $dtdisch,
+                '', // LeaveDay
+                $adm->dch_status ?: '1',
+                $adm->dch_type ?: '1',
+                $admwt,
+                $adm->ward ?: '',
+                $adm->spclty ?: '12' // Dept
+            ];
+            $xml .= '  <IPADT>' . implode('|', $ipadt_fields) . '</IPADT>' . "\r\n";
+
+            // IPDx (Delimited String)
+            // sequence|DxType|CodeSys|Code|DiagTerm|DR|DateDiag
+            $xml .= '  <IPDx Reccount="' . count($ipdx_rows) . '">' . "\r\n";
+            foreach ($ipdx_rows as $row) {
+                $dx_fields = [
+                    $row['seq'],
+                    $row['dxtype'],
+                    $row['codesys'],
+                    $row['code'],
+                    $row['diagterm'],
+                    $row['dr'],
+                    $row['datediag']
+                ];
+                $xml .= implode('|', $dx_fields) . "\r\n";
+            }
+            $xml .= '  </IPDx>' . "\r\n";
+
+            // IPOp (Delimited String)
+            // sequence|CodeSys|Code|ProcTerm|DR|DateIn|DateOut|Location
+            $xml .= '  <IPOp Reccount="' . count($ipop_rows) . '">' . "\r\n";
+            foreach ($ipop_rows as $row) {
+                $op_fields = [
+                    $row['seq'],
+                    $row['codesys'],
+                    $row['code'],
+                    $row['procterm'],
+                    $row['dr'],
+                    $row['datein'],
+                    $row['dateout'],
+                    $row['location']
+                ];
+                $xml .= implode('|', $op_fields) . "\r\n";
+            }
+            $xml .= '  </IPOp>' . "\r\n";
+
+            // Invoices (Delimited String inside BillItems)
+            // sequence|ServDate|BillGr|LCCode|Descript|QTY|UnitPrice|ChargeAmt|Discount|ProcedureSeq|DiagnosisSeq|ClaimSys|BillGrCS|CSCode|CodeSys|STDCode|ClaimCat|DateRev|ClaimUP|ClaimAmt
+            $xml .= '  <Invoices>' . "\r\n";
+            $xml .= '    <InvNumber>' . $an . '</InvNumber>' . "\r\n";
+            $xml .= '    <InvDT>' . $dtdisch . '</InvDT>' . "\r\n";
+            $xml .= '    <BillItems Reccount="' . count($billitems_rows) . '">' . "\r\n";
+            foreach ($billitems_rows as $row) {
+                $bi_fields = [
+                    $row['seq'],
+                    $row['servdate'],
+                    $row['billgr'],
+                    $row['lccode'],
+                    $row['descript'],
+                    $row['qty'],
+                    $row['unitprice'],
+                    $row['chargeamt'],
+                    $row['discount'],
+                    '', // ProcedureSeq
+                    '', // DiagnosisSeq
+                    $row['claimsys'],
+                    $row['billgrcs'],
+                    $row['cscode'],
+                    $row['codesys'],
+                    $row['stdcode'],
+                    $row['claimcat'],
+                    $row['servdate'], // DateRev
+                    $row['claimup'],
+                    $row['claimamt']
+                ];
+                $xml .= implode('|', $bi_fields) . "\r\n";
+            }
+            $xml .= '    </BillItems>' . "\r\n";
+            $xml .= '    <InvAddDiscount>0.00</InvAddDiscount>' . "\r\n";
+            $xml .= '    <DRGCharge>' . number_format($drg_charge, 2, '.', '') . '</DRGCharge>' . "\r\n";
+            $xml .= '    <XDRGClaim>' . number_format($xdrg_claim, 2, '.', '') . '</XDRGClaim>' . "\r\n";
+            $xml .= '  </Invoices>' . "\r\n";
+
+            // Coinsurance
+            $xml .= '  <Coinsurance>' . "\r\n";
+            
+            // Calculate total net for fallback if needed
+            $total_net = 0.00;
+            foreach ($billitems_rows as $row) {
+                $total_net += ((float)$row['chargeamt'] - (float)$row['discount']);
+            }
+
+            // Get registered pttypes for this admission to dynamically write Coinsurance entries
+            $pttypes = DB::connection('hosxp')->select("
+                SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code, ip.debt_amount
+                FROM ipt_pttype ip
+                LEFT JOIN pttype p ON p.pttype = ip.pttype
+                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
+                WHERE ip.an = ?
+            ", [$an]);
+
+            $coinsurance_items = [];
+            $has_ssem72_entry = false;
+            
+            foreach ($pttypes as $pt) {
+                $code = null;
+                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
+                    $code = 'SSEM72';
+                    $has_ssem72_entry = true;
+                } elseif ($pt->cipn_instype_code === 'RTAA' || $pt->pttype === 'RTAA' || strpos($pt->pttype, 'RTAA') !== false || strpos($pt->name, 'พรบ') !== false) {
+                    $code = 'RTAA';
+                } elseif ($pt->cipn_instype_code === 'CSMBS') {
+                    $code = 'CSMBS';
+                } elseif ($pt->cipn_instype_code === 'SSEC') {
+                    $code = 'SSEC';
+                } elseif ($pt->cipn_instype_code === 'MSSDLV') {
+                    $code = 'MSSDLV';
+                } elseif ($pt->cipn_instype_code === 'PRIV') {
+                    $code = 'PRIV';
+                }
+                
+                if ($code) {
+                    $amount = (float)($pt->debt_amount ?: 0.00);
+                    $coinsurance_items[$code] = $amount;
+                }
+            }
+            
+            // If UPayPlan is 85 or 95, and SSEM72 is not in the list but required, we force it
+            if (in_array($upayplan, ['85', '95']) && !$has_ssem72_entry) {
+                $coinsurance_items['SSEM72'] = 0.00;
+            }
+            
+            // If SSEM72 is the only item in coinsurance, and its amount is 0, we fallback to total_net
+            if (count($coinsurance_items) === 1 && isset($coinsurance_items['SSEM72']) && $coinsurance_items['SSEM72'] == 0.00) {
+                $coinsurance_items['SSEM72'] = $total_net;
+            }
+            
+            // Generate XML elements for Coinsurance
+            foreach ($coinsurance_items as $ins_code => $ins_amount) {
+                $xml .= '    <Insurance>' . "\r\n";
+                $xml .= '      <InsTypeCode>' . $ins_code . '</InsTypeCode>' . "\r\n";
+                $xml .= '      <InsTotal>' . number_format($ins_amount, 2, '.', '') . '</InsTotal>' . "\r\n";
+                $xml .= '      <InsRoomBoard>0.00</InsRoomBoard>' . "\r\n";
+                $xml .= '      <InsProfFee>0.00</InsProfFee>' . "\r\n";
+                $xml .= '      <InsOther>' . number_format($ins_amount, 2, '.', '') . '</InsOther>' . "\r\n";
+                $xml .= '    </Insurance>' . "\r\n";
+            }
+            
+            $xml .= '  </Coinsurance>' . "\r\n";
+            $xml .= '</CIPN>' . "\r\n";
+
+            // Compute MD5 / HMAC signature
+            $xml_main = substr($xml, strpos($xml, '<CIPN'));
+            $hmac = md5($xml_main);
+            $xml .= "\r\n" . '<?EndNote HMAC="' . $hmac . '" ?>';
+
+            $xml_filename = "{$hcode}-AIPN-{$an}-{$subm_dt}.xml";
+            $xml_files[$xml_filename] = $xml;
+
+            if (empty($first_xml)) {
+                $first_xml = $xml;
+            }
+        }
+
+        return [
+            'raw_xml' => $first_xml,
+            'ipadt_data' => $ipadt_data,
+            'ipdx_data' => $ipdx_data,
+            'ipop_data' => $ipop_data,
+            'billitems_data' => $billitems_data,
+            'audit_results' => $audit_results,
+            'xml_files' => $xml_files
+        ];
+    }
+
+    /**
+     * Inpatient AN Details for modal check
+     */
+    public function sss_an_details(Request $request)
+    {
+        $an = $request->input('an');
+        
+        $adm = DB::connection('hosxp')->table('an_stat as a')
+            ->leftJoin('patient as pt', 'pt.hn', '=', 'a.hn')
+            ->leftJoin('ipt as i', 'i.an', '=', 'a.an')
+            ->leftJoin('ward as w', 'w.ward', '=', 'a.ward')
+            ->leftJoin('spclty as sp', 'sp.spclty', '=', 'a.spclty')
+            ->leftJoin('doctor as doc', 'doc.code', '=', 'a.dx_doctor')
+            ->leftJoin('pttype as p', 'p.pttype', '=', 'a.pttype')
+            ->select('a.an', 'a.hn', 'pt.pname', 'pt.fname', 'pt.lname', 'pt.cid', 'pt.birthday', 'pt.sex', 'pt.marrystatus as marry_status', 'pt.nationality',
+                     'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type',
+                     'i.bw as weight', 'w.name as ward_name', 'sp.name as spclty_name', 'doc.name as doctor_name',
+                     'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money')
+            ->where('a.an', $an)
+            ->first();
+
+        if (!$adm) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูล AN นี้']);
+        }
+
+        // Fetch Diagnoses
+        $diags = DB::connection('hosxp')->select("
+            SELECT d.icd10, d.diagtype, doc.name AS doctor_name, d.entry_datetime,
+                   COALESCE((SELECT name FROM icd101 WHERE code = d.icd10), '') as icd_name
+            FROM iptdiag d
+            LEFT JOIN doctor doc ON doc.code = d.doctor
+            WHERE d.an = ?
+            ORDER BY d.diagtype ASC, d.diag_no ASC
+        ", [$an]);
+
+        // Fetch Procedures
+        $procs = DB::connection('hosxp')->select("
+            SELECT o.icd9, o.opdate, o.optime, o.enddate, o.endtime, doc.name AS doctor_name,
+                   COALESCE((SELECT name FROM icd9cm1 WHERE code = o.icd9), '') as icd_name
+            FROM iptoprt o
+            LEFT JOIN doctor doc ON doc.code = o.doctor
+            WHERE o.an = ?
+            ORDER BY o.iptoprt_id ASC
+        ", [$an]);
+
+        // Fetch Charge Items (grouped by icode)
+        $items = DB::connection('hosxp')->select("
+            SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income,
+                   COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
+            FROM opitemrece o
+            WHERE o.an = ?
+            GROUP BY o.icode
+            ORDER BY income ASC, icode ASC
+        ", [$an]);
+
+        return response()->json([
+            'success' => true,
+            'admission' => $adm,
+            'diags' => $diags,
+            'procs' => $procs,
+            'items' => $items
+        ]);
+    }
+
     private function resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn = [], $sss_debt_map = [])
     {
         if (isset($sss_debt_map[$vn])) {
             return (string)$sss_debt_map[$vn];
         }
-
         if (empty($raw_invo)) {
             return '';
         }
@@ -867,20 +1595,7 @@ class SssExportController extends Controller
                 }
             }
         }
-        
-        if (count($h_invoices) <= 1) {
-            return !empty($h_invoices) ? $h_invoices[0] : '';
-        }
-        
-        if (isset($rep_invs_by_vn[$vn])) {
-            foreach ($h_invoices as $h_inv) {
-                if (in_array($h_inv, $rep_invs_by_vn[$vn])) {
-                    return $h_inv;
-                }
-            }
-        }
-        
-        return $h_invoices[0];
+        return !empty($h_invoices) ? $h_invoices[0] : '';
     }
 
 }

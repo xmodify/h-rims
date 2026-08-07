@@ -1,3 +1,6 @@
+@php
+    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn');
+@endphp
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
         <div class="px-4 pt-2 pb-0 border-bottom">
@@ -40,6 +43,11 @@
                             <button type="button" class="btn btn-outline-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importFeedbackModal">
                                 <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
                             </button>
+                            @if($is_aipn_licensed)
+                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedAIPN()">
+                                <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก AIPN (.zip)
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -73,6 +81,10 @@
                         <table id="t_search" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_aipn_licensed)
+                                    <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
+                                    @endif
+                                    <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
@@ -98,6 +110,20 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
+                                    @if($is_aipn_licensed)
+                                    <td class="text-center">
+                                        <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
+                                    </td>
+                                    @endif
+                                    <td class="text-center">
+                                        @php
+                                            $btn_color = ($row->auth_code == 'Y' && $row->dch_sum == 'Y') ? 'btn-outline-success' : 'btn-outline-danger';
+                                            $btn_title = ($row->auth_code == 'Y' && $row->dch_sum == 'Y') ? 'ผ่านเงื่อนไขโครงสร้างเบื้องต้น' : 'ไม่ผ่านเงื่อนไข (โปรดตรวจ Authen หรือการสรุป Chart)';
+                                        @endphp
+                                        <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    </td>
                                     <td class="text-start ps-3" data-order="{{ $row->auth_code == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
@@ -158,7 +184,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_aipn_licensed ? 13 : 12 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -174,6 +200,7 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
@@ -202,6 +229,15 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
+                                    <td class="text-center">
+                                        @php
+                                            $btn_color = !empty($row->rep_warning) ? 'btn-outline-warning' : 'btn-outline-success';
+                                            $btn_title = !empty($row->rep_warning) ? 'ส่งเคลมสำเร็จ แต่มีข้อแนะนำ (Warning)' : 'ส่งเคลมสำเร็จและผ่านการอนุมัติ';
+                                        @endphp
+                                        <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    </td>
                                     <td class="text-start ps-3" data-order="{{ $row->auth_code == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
@@ -282,7 +318,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -299,6 +335,10 @@
                         <table id="t_warning" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_aipn_licensed)
+                                    <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
+                                    @endif
+                                    <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
@@ -327,6 +367,16 @@
                                 @endphp
                                 @foreach($warning as $row) 
                                 <tr>
+                                    @if($is_aipn_licensed)
+                                    <td class="text-center">
+                                        <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
+                                    </td>
+                                    @endif
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="ติด C (Denied Claim)">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    </td>
                                     <td class="text-start ps-3" data-order="{{ $row->auth_code == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
@@ -418,7 +468,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ติด C:</th>
+                                    <th colspan="{{ $is_aipn_licensed ? 13 : 12 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ติด C:</th>
                                     <th class="text-end small">{{ number_format($w_sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($w_sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($w_sum_claim_price,2) }}</th>

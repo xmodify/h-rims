@@ -2108,32 +2108,100 @@ $search = DB::connection('hosxp')->select(
             AND (rep.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        // Process rep error codes and warnings
-        foreach ([$search, $claim] as $dataset) {
-            foreach ($dataset as $row) {
-                $row->rep_error = null;
-                $row->rep_warning = null;
-                if (!empty($row->rep_error_codes)) {
-                    $errs = [];
-                    $warns = [];
-                    $codes = explode(',', $row->rep_error_codes);
-                    foreach ($codes as $c) {
-                        $parts = explode(':', $c, 2);
-                        $base_code = trim($parts[0]);
-                        $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8');
-                        if ($is_warn) {
-                            $warns[] = trim($c);
-                        } else {
-                            $errs[] = trim($c);
-                        }
-                    }
-                    if (!empty($errs)) {
-                        $row->rep_error = implode(',', $errs);
-                    }
-                    if (!empty($warns)) {
-                        $row->rep_warning = implode(',', $warns);
+        // Process rep error codes and warnings for already submitted claims
+        foreach ($claim as $row) {
+            $row->rep_error = null;
+            $row->rep_warning = null;
+            if (!empty($row->rep_error_codes)) {
+                $errs = [];
+                $warns = [];
+                $codes = explode(',', $row->rep_error_codes);
+                foreach ($codes as $c) {
+                    $parts = explode(':', $c, 2);
+                    $base_code = trim($parts[0]);
+                    $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8');
+                    if ($is_warn) {
+                        $warns[] = trim($c);
+                    } else {
+                        $errs[] = trim($c);
                     }
                 }
+                if (!empty($errs)) {
+                    $row->rep_error = implode(',', $errs);
+                }
+                if (!empty($warns)) {
+                    $row->rep_warning = implode(',', $warns);
+                }
+            }
+        }
+
+        // Structural validation for unsent admissions ($search)
+        $validator = new \App\Services\ClaimValidator();
+
+        foreach ($search as $row) {
+            $row->rep_error = null;
+            $row->rep_warning = null;
+            $errors = [];
+
+            // 3. Coinsurance SSEM72 Check
+            $pttypes = DB::connection('hosxp')->select("
+                SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code
+                FROM ipt_pttype ip
+                LEFT JOIN pttype p ON p.pttype = ip.pttype
+                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
+                WHERE ip.an = ?
+            ", [$row->an]);
+
+            $has_ssem72 = false;
+            foreach ($pttypes as $pt) {
+                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
+                    $has_ssem72 = true;
+                    break;
+                }
+            }
+
+            $payplan = DB::connection('hosxp')->table('ipt as i')
+                ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->where('i.an', $row->an)
+                ->value('pu.pttype_upp_type_code') ?: '80';
+
+            if (in_array($payplan, ['85', '95']) && !$has_ssem72) {
+                $errors[] = "ขาดสิทธิ Coinsurance SSEM72";
+            }
+
+            // 4. ICD10 Check
+            if (!empty($row->icd10)) {
+                $val_res = $validator->validateIcd10Chi($row->icd10, '1');
+                if (!$val_res['is_valid'] && !in_array(substr($row->icd10, 0, 2), ['U5', 'U6', 'U7'])) {
+                    $errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
+                }
+            } else {
+                $errors[] = "ไม่มีรหัสวินิจฉัยหลัก (PDX)";
+            }
+
+            // 5. Lab/Blood Catalog (06, 07) Check
+            $opd_items = DB::connection('hosxp')->select("
+                SELECT o.icode, o.income
+                FROM opitemrece o
+                WHERE o.an = ? AND o.income IN ('06', '07')
+            ", [$row->an]);
+            
+            if (!empty($opd_items)) {
+                foreach ($opd_items as $item) {
+                    $exists = DB::table('labcat_chi')
+                        ->where('lccode', $item->icode)
+                        ->orWhere('cscode', $item->icode)
+                        ->exists();
+                    if (!$exists) {
+                        $errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
+                    }
+                }
+            }
+
+            if (!empty($errors)) {
+                $row->rep_error = implode(', ', $errors);
             }
         }
 

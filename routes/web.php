@@ -387,6 +387,9 @@ Route::match(['get', 'post'], 'claim_ip/bkk', [ClaimIpController::class, 'bkk'])
 Route::match(['get', 'post'], 'claim_ip/bmt', [ClaimIpController::class, 'bmt']);
 Route::match(['get', 'post'], 'claim_ip/srt', [ClaimIpController::class, 'srt']);
 Route::match(['get', 'post'], 'claim_ip/sss', [ClaimIpController::class, 'sss']);
+Route::match(['get', 'post'], 'claim_ip/sss_export_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_aipn'])->middleware('rims_license');
+Route::post('claim_ip/sss_export_preview_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview_aipn'])->middleware('rims_license');
+Route::get('claim_ip/sss_an_details', [\App\Http\Controllers\SssExportController::class, 'sss_an_details'])->middleware('rims_license');
 Route::get('claim_ip/sss_detail', [ClaimIpController::class, 'sss_detail']);
 Route::get('claim_ip/sss_rep_errors', [ClaimIpController::class, 'sss_rep_errors']);
 Route::post('claim_ip/rep_sss_aipn_import', [ImportSssController::class, 'import_aipn_rep']);

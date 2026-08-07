@@ -231,8 +231,8 @@
                                 <tr>
                                     <td class="text-center">
                                         @php
-                                            $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : ((!empty($row->current_warnings) || !empty($row->rep_warning)) ? 'btn-outline-warning' : 'btn-outline-success');
-                                            $btn_title = !empty($row->current_errors) ? 'ไม่ผ่านเงื่อนไขโครงสร้าง ณ ปัจจุบัน (โปรดตรวจดูข้อผิดพลาด)' : ((!empty($row->current_warnings) || !empty($row->rep_warning)) ? 'มีข้อแนะนำ/เตือนความพร้อม (Warning)' : 'ส่งเคลมสำเร็จและผ่านการอนุมัติ');
+                                            $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : (!empty($row->rep_warning) ? 'btn-outline-warning' : 'btn-outline-success');
+                                            $btn_title = !empty($row->current_errors) ? 'ไม่ผ่านเงื่อนไขโครงสร้าง ณ ปัจจุบัน (โปรดตรวจดูข้อผิดพลาด)' : (!empty($row->rep_warning) ? 'ส่งเคลมสำเร็จ แต่มีข้อแนะนำ (Warning)' : 'ส่งเคลมสำเร็จและผ่านการอนุมัติ');
                                         @endphp
                                         <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
                                             <i class="bi bi-eye-fill"></i>
@@ -374,8 +374,8 @@
                                     @endif
                                     <td class="text-center">
                                         @php
-                                            $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : (!empty($row->current_warnings) ? 'btn-outline-warning' : 'btn-outline-success');
-                                            $btn_title = !empty($row->current_errors) ? 'ไม่ผ่านเงื่อนไขโครงสร้าง ณ ปัจจุบัน (โปรดตรวจดูข้อผิดพลาด)' : (!empty($row->current_warnings) ? 'มีข้อแนะนำ/เตือนความพร้อม (Warning)' : 'ผ่านเงื่อนไขโครงสร้าง (แก้ไขข้อผิดพลาดแล้ว)');
+                                            $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : 'btn-outline-success';
+                                            $btn_title = !empty($row->current_errors) ? 'ไม่ผ่านเงื่อนไขโครงสร้าง ณ ปัจจุบัน (โปรดตรวจดูข้อผิดพลาด)' : 'ผ่านเงื่อนไขโครงสร้าง (แก้ไขข้อผิดพลาดแล้ว)';
                                         @endphp
                                         <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
                                             <i class="bi bi-eye-fill"></i>

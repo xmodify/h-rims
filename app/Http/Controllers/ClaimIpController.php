@@ -2220,26 +2220,22 @@ $search = DB::connection('hosxp')->select(
                 }
             }
 
-            if (!empty($errors)) {
-                $row->rep_error = implode(', ', $errors);
-            }
-
             // Check Operation dates (Error 251)
             $procs = DB::connection('hosxp')->select("
                 SELECT opdate, icd9
                 FROM iptoprt
                 WHERE an = ?
             ", [$row->an]);
-            $warnings = [];
             foreach ($procs as $p) {
                 if (!empty($p->opdate)) {
                     if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
-                        $warnings[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา";
+                        $errors[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา (Error 251)";
                     }
                 }
             }
-            if (!empty($warnings)) {
-                $row->rep_warning = implode(', ', $warnings);
+
+            if (!empty($errors)) {
+                $row->rep_error = implode(', ', $errors);
             }
         }
 
@@ -2333,26 +2329,22 @@ $search = DB::connection('hosxp')->select(
                 }
             }
 
-            if (!empty($c_errors)) {
-                $row->current_errors = implode(', ', $c_errors);
-            }
-
             // Check Operation dates (Error 251)
             $procs = DB::connection('hosxp')->select("
                 SELECT opdate, icd9
                 FROM iptoprt
                 WHERE an = ?
             ", [$row->an]);
-            $c_warnings = [];
             foreach ($procs as $p) {
                 if (!empty($p->opdate)) {
                     if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
-                        $c_warnings[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา";
+                        $c_errors[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา (Error 251)";
                     }
                 }
             }
-            if (!empty($c_warnings)) {
-                $row->current_warnings = implode(', ', $c_warnings);
+
+            if (!empty($c_errors)) {
+                $row->current_errors = implode(', ', $c_errors);
             }
         }
 

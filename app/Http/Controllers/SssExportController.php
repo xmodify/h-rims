@@ -1152,7 +1152,7 @@ class SssExportController extends Controller
                         'hn' => $hn,
                         'ptname' => $ptname,
                         'message' => "วันที่ทำหัตถการ {$p->opdate} อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)",
-                        'level' => 'warning'
+                        'level' => 'error'
                     ];
                 }
 
@@ -1604,7 +1604,7 @@ class SssExportController extends Controller
 
         foreach ($procs as $p) {
             if ($p->opdate < $adm->regdate || $p->opdate > $adm->dchdate) {
-                $warnings[] = "วันที่ทำหัตถการ {$p->opdate} ({$p->icd9}) อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)";
+                $errors[] = "วันที่ทำหัตถการ {$p->opdate} ({$p->icd9}) อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)";
             }
         }
 

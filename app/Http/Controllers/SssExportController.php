@@ -1257,7 +1257,7 @@ class SssExportController extends Controller
                             'an' => $an,
                             'hn' => $hn,
                             'ptname' => $ptname,
-                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 367)",
+                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
                             'level' => 'error'
                         ];
                     }
@@ -1690,7 +1690,7 @@ class SssExportController extends Controller
             if (in_array($billgr, ['06', '07'])) {
                 $lab = DB::table('labcat_chi')->where('lccode', $item->icode)->orWhere('cscode', $item->icode)->first();
                 if (!$lab) {
-                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 367)";
+                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
                 }
             }
         }

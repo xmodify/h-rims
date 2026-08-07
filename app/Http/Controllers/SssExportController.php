@@ -1208,10 +1208,10 @@ class SssExportController extends Controller
                     case '11': $billgr = '11'; break;
                 }
 
-                // Determine claim category (D=DRG/Standard, T=High Cost Device/Supplies)
-                $claimcat = 'D';
+                $billgrcs = $billgr;
                 $stdcode = '';
-                
+                $claimcat = 'D';
+
                 // If claimcat is T (income category 10/02), check lookup_sss_equipdev_aipn
                 if ($billgr === '02') {
                     $claimcat = 'T';
@@ -1269,6 +1269,10 @@ class SssExportController extends Controller
                                 'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMLT/STDCode (Error 644)",
                                 'level' => 'error'
                             ];
+                            // FALLBACK: map to other service categories
+                            $billgr = '17';
+                            $billgrcs = '88';
+                            $stdcode = '';
                         }
                     } else {
                         $audit_results[] = [
@@ -1278,6 +1282,10 @@ class SssExportController extends Controller
                             'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
                             'level' => 'error'
                         ];
+                        // FALLBACK: map to other service categories
+                        $billgr = '17';
+                        $billgrcs = '88';
+                        $stdcode = '';
                     }
                 }
 
@@ -1293,7 +1301,7 @@ class SssExportController extends Controller
                     'chargeamt' => number_format($charge_amt, 2, '.', ''),
                     'discount' => number_format($discount, 2, '.', ''),
                     'claimsys' => 'SS',
-                    'billgrcs' => $billgr,
+                    'billgrcs' => $billgrcs,
                     'cscode' => $item->icode,
                     'codesys' => (!empty($stdcode)) ? (($billgr === '02') ? '0' : 'TMT') : '0',
                     'stdcode' => $stdcode,

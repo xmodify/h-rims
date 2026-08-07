@@ -2192,12 +2192,16 @@ $search = DB::connection('hosxp')->select(
             
             if (!empty($opd_items)) {
                 foreach ($opd_items as $item) {
-                    $exists = DB::table('labcat_chi')
+                    $lab = DB::table('labcat_chi')
                         ->where('lccode', $item->icode)
                         ->orWhere('cscode', $item->icode)
-                        ->exists();
-                    if (!$exists) {
+                        ->first();
+                    if (!$lab) {
                         $errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
+                    } else {
+                        if (empty($lab->tmlt)) {
+                            $errors[] = "รหัสบริการ {$item->icode} ไม่มีรหัส TMLT/STDCode (Error 644)";
+                        }
                     }
                 }
             }
@@ -2211,11 +2215,15 @@ $search = DB::connection('hosxp')->select(
             
             if (!empty($opd_drugs)) {
                 foreach ($opd_drugs as $item) {
-                    $exists = DB::table('drugcat_chi')
+                    $drug = DB::table('drugcat_chi')
                         ->where('hospdrugcode', $item->icode)
-                        ->exists();
-                    if (!$exists) {
+                        ->first();
+                    if (!$drug) {
                         $errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
+                    } else {
+                        if (empty($drug->tmtid)) {
+                            $errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                        }
                     }
                 }
             }
@@ -2302,12 +2310,16 @@ $search = DB::connection('hosxp')->select(
             ", [$row->an]);
             if (!empty($opd_items)) {
                 foreach ($opd_items as $item) {
-                    $exists = DB::table('labcat_chi')
+                    $lab = DB::table('labcat_chi')
                         ->where('lccode', $item->icode)
                         ->orWhere('cscode', $item->icode)
-                        ->exists();
-                    if (!$exists) {
+                        ->first();
+                    if (!$lab) {
                         $c_errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
+                    } else {
+                        if (empty($lab->tmlt)) {
+                            $c_errors[] = "รหัสบริการ {$item->icode} ไม่มีรหัส TMLT/STDCode (Error 644)";
+                        }
                     }
                 }
             }
@@ -2320,11 +2332,15 @@ $search = DB::connection('hosxp')->select(
             ", [$row->an]);
             if (!empty($opd_drugs)) {
                 foreach ($opd_drugs as $item) {
-                    $exists = DB::table('drugcat_chi')
+                    $drug = DB::table('drugcat_chi')
                         ->where('hospdrugcode', $item->icode)
-                        ->exists();
-                    if (!$exists) {
+                        ->first();
+                    if (!$drug) {
                         $c_errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
+                    } else {
+                        if (empty($drug->tmtid)) {
+                            $c_errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                        }
                     }
                 }
             }

@@ -2237,6 +2237,89 @@ $search = DB::connection('hosxp')->select(
         }
         $passed_a_map = array_flip($passed_a_ans);
 
+        // Pre-audit validation loop for already sent/denied claims to check current status in HOSxP
+        foreach ($claim as $row) {
+            $row->current_errors = null;
+            $c_errors = [];
+
+            // 1. Coinsurance SSEM72 Check
+            $pttypes = DB::connection('hosxp')->select("
+                SELECT ip.pttype, p.name, s.cipn_instype_code
+                FROM ipt_pttype ip
+                LEFT JOIN pttype p ON p.pttype = ip.pttype
+                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
+                WHERE ip.an = ?
+            ", [$row->an]);
+
+            $has_ssem72 = false;
+            foreach ($pttypes as $pt) {
+                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
+                    $has_ssem72 = true;
+                    break;
+                }
+            }
+
+            $payplan = DB::connection('hosxp')->table('ipt as i')
+                ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->where('i.an', $row->an)
+                ->value('pu.pttype_upp_type_code') ?: '80';
+
+            if (in_array($payplan, ['85', '95']) && !$has_ssem72) {
+                $c_errors[] = "ขาดสิทธิ Coinsurance SSEM72";
+            }
+
+            // 2. PDX Check
+            if (!empty($row->icd10)) {
+                $val_res = $validator->validateIcd10Chi($row->icd10, '1');
+                if (!$val_res['is_valid'] && !in_array(substr($row->icd10, 0, 2), ['U5', 'U6', 'U7'])) {
+                    $c_errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
+                }
+            } else {
+                $c_errors[] = "ไม่มีรหัสวินิจฉัยหลัก (PDX)";
+            }
+
+            // 3. Lab Catalog Check
+            $opd_items = DB::connection('hosxp')->select("
+                SELECT o.icode, o.income
+                FROM opitemrece o
+                WHERE o.an = ? AND o.income IN ('06', '07')
+            ", [$row->an]);
+            if (!empty($opd_items)) {
+                foreach ($opd_items as $item) {
+                    $exists = DB::table('labcat_chi')
+                        ->where('lccode', $item->icode)
+                        ->orWhere('cscode', $item->icode)
+                        ->exists();
+                    if (!$exists) {
+                        $c_errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
+                    }
+                }
+            }
+
+            // 4. Drug Catalog Check
+            $opd_drugs = DB::connection('hosxp')->select("
+                SELECT o.icode, o.income
+                FROM opitemrece o
+                WHERE o.an = ? AND o.income IN ('03', '04')
+            ", [$row->an]);
+            if (!empty($opd_drugs)) {
+                foreach ($opd_drugs as $item) {
+                    $exists = DB::table('drugcat_chi')
+                        ->where('hospdrugcode', $item->icode)
+                        ->exists();
+                    if (!$exists) {
+                        $c_errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
+                    }
+                }
+            }
+
+            if (!empty($c_errors)) {
+                $row->current_errors = implode(', ', $c_errors);
+            }
+        }
+
         $warning = [];
         $claim_sent = [];
         foreach ($claim as $row) {

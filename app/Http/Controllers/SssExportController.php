@@ -1523,14 +1523,15 @@ class SssExportController extends Controller
         $adm = DB::connection('hosxp')->table('an_stat as a')
             ->leftJoin('patient as pt', 'pt.hn', '=', 'a.hn')
             ->leftJoin('ipt as i', 'i.an', '=', 'a.an')
+            ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'a.an')
             ->leftJoin('ward as w', 'w.ward', '=', 'a.ward')
             ->leftJoin('spclty as sp', 'sp.spclty', '=', 'a.spclty')
             ->leftJoin('doctor as doc', 'doc.code', '=', 'a.dx_doctor')
             ->leftJoin('pttype as p', 'p.pttype', '=', 'a.pttype')
             ->select('a.an', 'a.hn', 'pt.pname', 'pt.fname', 'pt.lname', 'pt.cid', 'pt.birthday', 'pt.sex', 'pt.marrystatus as marry_status', 'pt.nationality',
-                     'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type',
+                     'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type', 'i.dch_sum',
                      'i.bw as weight', 'w.name as ward_name', 'sp.name as spclty_name', 'doc.name as doctor_name',
-                     'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money')
+                     'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money', 'ip.auth_code')
             ->where('a.an', $an)
             ->first();
 
@@ -1538,7 +1539,18 @@ class SssExportController extends Controller
             return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูล AN นี้']);
         }
 
-        // Fetch Diagnoses
+        $errors = [];
+        $warnings = [];
+
+        // 1. Check Authen
+        if (empty($adm->auth_code) || $adm->auth_code !== 'Y') {
+            $errors[] = "ยังไม่มีเลขอนุมัติสิทธิ์ (Authen Code) หรือขอสิทธิ์ไม่สำเร็จ";
+        }
+
+
+        $validator = new \App\Services\ClaimValidator();
+
+        // Fetch Diagnoses & Check PDX
         $diags = DB::connection('hosxp')->select("
             SELECT d.icd10, d.diagtype, doc.name AS doctor_name, d.entry_datetime,
                    COALESCE((SELECT name FROM icd101 WHERE code = d.icd10), '') as icd_name
@@ -1548,7 +1560,24 @@ class SssExportController extends Controller
             ORDER BY d.diagtype ASC, d.diag_no ASC
         ", [$an]);
 
-        // Fetch Procedures
+        $has_pdx = false;
+        foreach ($diags as $d) {
+            $diagtype = $d->diagtype ?: '3';
+            if ($diagtype == '1') {
+                $has_pdx = true;
+            }
+            $icd10 = trim($d->icd10);
+            $val_res = $validator->validateIcd10Chi($icd10, $diagtype);
+            if (!$val_res['is_valid'] && !in_array(substr($icd10, 0, 2), ['U5', 'U6', 'U7'])) {
+                $errors[] = "รหัสวินิจฉัยโรค {$icd10} ประเภท {$diagtype} ไม่ถูกต้องตามบัญชี สกส. (S54)";
+            }
+        }
+
+        if (!$has_pdx) {
+            $errors[] = "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)";
+        }
+
+        // Fetch Procedures & Check operation dates
         $procs = DB::connection('hosxp')->select("
             SELECT o.icd9, o.opdate, o.optime, o.enddate, o.endtime, doc.name AS doctor_name,
                    COALESCE((SELECT name FROM icd9cm1 WHERE code = o.icd9), '') as icd_name
@@ -1558,7 +1587,42 @@ class SssExportController extends Controller
             ORDER BY o.iptoprt_id ASC
         ", [$an]);
 
-        // Fetch Charge Items (grouped by icode)
+        foreach ($procs as $p) {
+            if ($p->opdate < $adm->regdate || $p->opdate > $adm->dchdate) {
+                $warnings[] = "วันที่ทำหัตถการ {$p->opdate} ({$p->icd9}) อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)";
+            }
+        }
+
+        // Coinsurance / SSEM72 check
+        $pttype_upp = DB::connection('hosxp')->table('ipt_pttype as ip')
+            ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+            ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+            ->where('ip.an', $an)
+            ->select('pu.pttype_upp_type_code as payplan')
+            ->first();
+        $upayplan = $pttype_upp->payplan ?? '80';
+
+        $pttypes = DB::connection('hosxp')->select("
+            SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code
+            FROM ipt_pttype ip
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
+            WHERE ip.an = ?
+        ", [$an]);
+
+        $has_ssem72 = false;
+        foreach ($pttypes as $pt) {
+            if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
+                $has_ssem72 = true;
+                break;
+            }
+        }
+
+        if (in_array($upayplan, ['85', '95']) && !$has_ssem72) {
+            $errors[] = "สิทธิหลัก (UPayPlan {$upayplan}) ต้องการสิทธิร่วมจ่าย Coinsurance SSEM72 (Error 369) กรุณาเพิ่มสิทธิร่วมให้ถูกต้อง";
+        }
+
+        // Fetch Charge Items & catalog validations
         $items = DB::connection('hosxp')->select("
             SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income,
                    COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
@@ -1568,12 +1632,56 @@ class SssExportController extends Controller
             ORDER BY income ASC, icode ASC
         ", [$an]);
 
+        foreach ($items as $item) {
+            $inc = str_pad($item->income, 2, '0', STR_PAD_LEFT);
+            $billgr = '19';
+            switch ($inc) {
+                case '01': $billgr = '01'; break;
+                case '10': $billgr = '02'; break;
+                case '03': $billgr = '03'; break;
+                case '04': $billgr = '04'; break;
+                case '05': $billgr = '05'; break;
+                case '06': $billgr = '06'; break;
+                case '07': $billgr = '07'; break;
+                case '08': $billgr = '08'; break;
+                case '09': $billgr = '09'; break;
+                case '16': $billgr = '12'; break;
+                case '12': $billgr = '16'; break;
+                case '13': $billgr = '14'; break;
+                case '14': $billgr = '13'; break;
+                case '15': $billgr = '15'; break;
+                case '11': $billgr = '11'; break;
+            }
+            
+            $unitprice = (float)$item->unitprice;
+
+            if ($billgr === '02') {
+                $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $item->icode)->first();
+                if ($equip) {
+                    if ($unitprice > $equip->rate) {
+                        $errors[] = "รหัสอุปกรณ์ {$item->icode} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
+                    }
+                } else {
+                    $errors[] = "รหัสอุปกรณ์ {$item->icode} ไม่พบในรายการมาตรฐานของ สกส. (Error 365)";
+                }
+            }
+
+            if (in_array($billgr, ['06', '07'])) {
+                $lab = DB::table('labcat_chi')->where('lccode', $item->icode)->orWhere('cscode', $item->icode)->first();
+                if (!$lab) {
+                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} ไม่พบใน Lab Catalog (Error 367)";
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
             'admission' => $adm,
             'diags' => $diags,
             'procs' => $procs,
-            'items' => $items
+            'items' => $items,
+            'errors' => $errors,
+            'warnings' => $warnings
         ]);
     }
 

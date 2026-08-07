@@ -117,8 +117,8 @@
                                     @endif
                                     <td class="text-center">
                                         @php
-                                            $btn_color = ($row->auth_code == 'Y' && $row->dch_sum == 'Y') ? 'btn-outline-success' : 'btn-outline-danger';
-                                            $btn_title = ($row->auth_code == 'Y' && $row->dch_sum == 'Y') ? 'ผ่านเงื่อนไขโครงสร้างเบื้องต้น' : 'ไม่ผ่านเงื่อนไข (โปรดตรวจ Authen หรือการสรุป Chart)';
+                                            $btn_color = ($row->auth_code == 'Y') ? 'btn-outline-success' : 'btn-outline-danger';
+                                            $btn_title = ($row->auth_code == 'Y') ? 'ผ่านเงื่อนไขโครงสร้างเบื้องต้น' : 'ไม่ผ่านเงื่อนไข (โปรดตรวจ Authen)';
                                         @endphp
                                         <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
                                             <i class="bi bi-eye-fill"></i>

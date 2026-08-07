@@ -1250,24 +1250,43 @@ class SssExportController extends Controller
                 if (in_array($billgr, ['03', '04'])) {
                     $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
                     if ($drug) {
-                        $stdcode = $drug->tmtid;
+                        $stdcode = $drug->tmtid ?: '';
                         if (empty($stdcode)) {
+                            // Herbal medicine, supplies, etc. (productcat 3-7) does not require TMT
+                            if ((int)$drug->productcat < 3) {
+                                $audit_results[] = [
+                                    'an' => $an,
+                                    'hn' => $hn,
+                                    'ptname' => $ptname,
+                                    'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)",
+                                    'level' => 'error'
+                                ];
+                            }
+                        }
+                    } else {
+                        if (str_starts_with(trim($item->icode), '1')) {
+                            // Remap drug not in catalog to other services
+                            $billgr = '17';
+                            $billgrcs = '88';
+                            $stdcode = '';
+                            $claimcat = 'D';
+
                             $audit_results[] = [
                                 'an' => $an,
                                 'hn' => $hn,
                                 'ptname' => $ptname,
-                                'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)",
+                                'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
+                                'level' => 'error'
+                            ];
+                        } else {
+                            $audit_results[] = [
+                                'an' => $an,
+                                'hn' => $hn,
+                                'ptname' => $ptname,
+                                'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
                                 'level' => 'error'
                             ];
                         }
-                    } else {
-                        $audit_results[] = [
-                            'an' => $an,
-                            'hn' => $hn,
-                            'ptname' => $ptname,
-                            'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
-                            'level' => 'error'
-                        ];
                     }
                 }
 
@@ -1290,17 +1309,33 @@ class SssExportController extends Controller
                             $stdcode = '';
                         }
                     } else {
-                        $audit_results[] = [
-                            'an' => $an,
-                            'hn' => $hn,
-                            'ptname' => $ptname,
-                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
-                            'level' => 'error'
-                        ];
-                        // FALLBACK: map to other service categories
-                        $billgr = '17';
-                        $billgrcs = '88';
-                        $stdcode = '';
+                        if (str_starts_with(trim($item->icode), '3')) {
+                            // Remap lab not in catalog to other services
+                            $billgr = '17';
+                            $billgrcs = '88';
+                            $stdcode = '';
+                            $claimcat = 'D';
+
+                            $audit_results[] = [
+                                'an' => $an,
+                                'hn' => $hn,
+                                'ptname' => $ptname,
+                                'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
+                                'level' => 'error'
+                            ];
+                        } else {
+                            $audit_results[] = [
+                                'an' => $an,
+                                'hn' => $hn,
+                                'ptname' => $ptname,
+                                'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
+                                'level' => 'error'
+                            ];
+                            // FALLBACK: map to other service categories
+                            $billgr = '17';
+                            $billgrcs = '88';
+                            $stdcode = '';
+                        }
                     }
                 }
 
@@ -1743,10 +1778,18 @@ class SssExportController extends Controller
                 $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
                 if ($drug) {
                     if (empty($drug->tmtid)) {
-                        $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)";
+                        if ((int)$drug->productcat < 3) {
+                            $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)";
+                        }
                     }
                 } else {
-                    $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
+                    if (str_starts_with(trim($item->icode), '1')) {
+                        // Remap drug not in catalog to other services
+                        $billgr = '17';
+                        $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
+                    } else {
+                        $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
+                    }
                 }
             }
 
@@ -1757,7 +1800,13 @@ class SssExportController extends Controller
                         $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMLT/STDCode (Error 644)";
                     }
                 } else {
-                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
+                    if (str_starts_with(trim($item->icode), '3')) {
+                        // Remap lab not in catalog to other services
+                        $billgr = '17';
+                        $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
+                    } else {
+                        $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
+                    }
                 }
             }
         }

@@ -2185,13 +2185,19 @@ $search = DB::connection('hosxp')->select(
 
             // 5. Lab/Blood Catalog (06, 07) Check
             $opd_items = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income
+                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
                 FROM opitemrece o
                 WHERE o.an = ? AND o.income IN ('06', '07')
             ", [$row->an]);
             
             if (!empty($opd_items)) {
                 foreach ($opd_items as $item) {
+                    $qty = (float)$item->qty;
+                    $unitprice = (float)$item->unitprice;
+                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
+                    if ($charge_amt <= 0 || $qty <= 0) {
+                        continue;
+                    }
                     $lab = DB::table('labcat_chi')
                         ->where('lccode', $item->icode)
                         ->orWhere('cscode', $item->icode)
@@ -2208,13 +2214,19 @@ $search = DB::connection('hosxp')->select(
 
             // 6. Drug Catalog Check
             $opd_drugs = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income
+                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
                 FROM opitemrece o
                 WHERE o.an = ? AND o.income IN ('03', '04')
             ", [$row->an]);
             
             if (!empty($opd_drugs)) {
                 foreach ($opd_drugs as $item) {
+                    $qty = (float)$item->qty;
+                    $unitprice = (float)$item->unitprice;
+                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
+                    if ($charge_amt <= 0 || $qty <= 0) {
+                        continue;
+                    }
                     $drug = DB::table('drugcat_chi')
                         ->where('hospdrugcode', $item->icode)
                         ->first();
@@ -2222,7 +2234,9 @@ $search = DB::connection('hosxp')->select(
                         $errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
                     } else {
                         if (empty($drug->tmtid)) {
-                            $errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                            if ((int)$drug->productcat < 3) {
+                                $errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                            }
                         }
                     }
                 }

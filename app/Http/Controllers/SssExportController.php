@@ -950,7 +950,7 @@ class SssExportController extends Controller
                    i.regdate, i.regtime, i.dchdate, i.dchtime, i.dchstts AS dch_status, i.dchtype AS dch_type,
                    i.bw AS admwt,
                    i.ward, i.spclty,
-                   ip.auth_code,
+                   COALESCE(NULLIF(ip.auth_code, ''), NULLIF(vp.auth_code, '')) AS auth_code,
                    ip.hospmain AS hospmain,
                    pu.pttype_upp_type_code AS payplan,
                    i.vn
@@ -959,6 +959,7 @@ class SssExportController extends Controller
             LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN ipt_pttype ip ON ip.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             WHERE i.an IN ($ans_placeholders)
         ", $ans);
@@ -1231,6 +1232,14 @@ class SssExportController extends Controller
                     $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
                     if ($drug) {
                         $stdcode = $drug->tmtid;
+                    } else {
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
+                            'level' => 'error'
+                        ];
                     }
                 }
 
@@ -1244,7 +1253,7 @@ class SssExportController extends Controller
                             'an' => $an,
                             'hn' => $hn,
                             'ptname' => $ptname,
-                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} ไม่พบใน Lab Catalog (Error 367)",
+                            'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 367)",
                             'level' => 'error'
                         ];
                     }
@@ -1524,14 +1533,19 @@ class SssExportController extends Controller
             ->leftJoin('patient as pt', 'pt.hn', '=', 'a.hn')
             ->leftJoin('ipt as i', 'i.an', '=', 'a.an')
             ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'a.an')
+            ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+            ->leftJoin('visit_pttype as vp', function($join) {
+                $join->on('vp.vn', '=', 'i.vn')
+                     ->on('vp.pttype', '=', 'ip.pttype');
+            })
             ->leftJoin('ward as w', 'w.ward', '=', 'a.ward')
             ->leftJoin('spclty as sp', 'sp.spclty', '=', 'a.spclty')
             ->leftJoin('doctor as doc', 'doc.code', '=', 'a.dx_doctor')
-            ->leftJoin('pttype as p', 'p.pttype', '=', 'a.pttype')
             ->select('a.an', 'a.hn', 'pt.pname', 'pt.fname', 'pt.lname', 'pt.cid', 'pt.birthday', 'pt.sex', 'pt.marrystatus as marry_status', 'pt.nationality',
-                     'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type', 'i.dch_sum',
+                     'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type',
                      'i.bw as weight', 'w.name as ward_name', 'sp.name as spclty_name', 'doc.name as doctor_name',
-                     'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money', 'ip.auth_code')
+                     'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money',
+                     DB::raw("COALESCE(NULLIF(ip.auth_code, ''), NULLIF(vp.auth_code, '')) as auth_code"))
             ->where('a.an', $an)
             ->first();
 
@@ -1659,17 +1673,24 @@ class SssExportController extends Controller
                 $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $item->icode)->first();
                 if ($equip) {
                     if ($unitprice > $equip->rate) {
-                        $errors[] = "รหัสอุปกรณ์ {$item->icode} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
+                        $errors[] = "รหัสอุปกรณ์ {$item->icode} (" . trim($item->item_name) . ") ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
                     }
                 } else {
-                    $errors[] = "รหัสอุปกรณ์ {$item->icode} ไม่พบในรายการมาตรฐานของ สกส. (Error 365)";
+                    $errors[] = "รหัสอุปกรณ์ {$item->icode} (" . trim($item->item_name) . ") ไม่พบในรายการมาตรฐานของ สกส. (Error 365)";
+                }
+            }
+
+            if (in_array($billgr, ['03', '04'])) {
+                $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
+                if (!$drug) {
+                    $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
                 }
             }
 
             if (in_array($billgr, ['06', '07'])) {
                 $lab = DB::table('labcat_chi')->where('lccode', $item->icode)->orWhere('cscode', $item->icode)->first();
                 if (!$lab) {
-                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} ไม่พบใน Lab Catalog (Error 367)";
+                    $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 367)";
                 }
             }
         }

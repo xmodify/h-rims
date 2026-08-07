@@ -2018,12 +2018,13 @@ $search = DB::connection('hosxp')->select(
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF(COALESCE(NULLIF(ip.auth_code, \'\'), NULLIF(vp.auth_code, \'\')) <> "", "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
             LEFT JOIN ward w ON w.ward=i.ward
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (
@@ -2067,12 +2068,13 @@ $search = DB::connection('hosxp')->select(
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF(COALESCE(NULLIF(ip.auth_code, \'\'), NULLIF(vp.auth_code, \'\')) <> "", "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn = i.vn AND vp.pttype = ip.pttype
             LEFT JOIN ward w ON w.ward=i.ward
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (

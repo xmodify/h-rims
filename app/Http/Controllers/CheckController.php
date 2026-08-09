@@ -44,9 +44,6 @@ class CheckController extends Controller
 
     public function nhso_right(Request $request)
     {
-        if (!LicenseVerificationService::isLicensed()) {
-            return response()->view('errors.restricted', ['module' => 'ระบบระงับการทำงานชั่วคราว: สำหรับ License เท่านั้น'], 403);
-        }
         return view('check.nhso_right');
     }
 
@@ -246,16 +243,8 @@ class CheckController extends Controller
 
         $defaultPrices = ['UCS' => 0.0, 'OFC' => 0.0, 'SSS' => 0.0, 'LGO' => 0.0, 'FS' => 0.0, 'UCEP' => 0.0];
 
-        // Check if HOSxP v4 pttype_items_price table exists
+        // Disabled HOSxP v4 pttype_items_price check for now as requested
         $hasPttypeItemsPrice = false;
-        try {
-            $checkTable = DB::connection('hosxp')->select("SHOW TABLES LIKE 'pttype_items_price'");
-            if (!empty($checkTable)) {
-                $hasPttypeItemsPrice = true;
-            }
-        } catch (\Exception $e) {
-            $hasPttypeItemsPrice = false;
-        }
 
         $attachPriceInfo = function(array $rows) use ($loadRules, $defaultPrices, $hasPttypeItemsPrice): array {
             $icodes = array_column($rows, 'icode');

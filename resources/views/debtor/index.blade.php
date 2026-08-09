@@ -60,7 +60,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_103" data-name="1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -72,7 +72,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_109" data-name="1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -84,7 +84,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_201" data-name="1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -96,7 +96,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_203" data-name="1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -111,7 +111,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_209" data-name="1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -123,7 +123,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_216" data-name="1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -138,7 +138,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_301" data-name="1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -150,7 +150,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_303" data-name="1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -162,7 +162,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_307" data-name="1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -174,7 +174,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_309" data-name="1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -186,7 +186,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_401" data-name="1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -198,7 +198,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_501" data-name="1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -210,7 +210,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_503" data-name="1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -225,7 +225,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_701" data-name="1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -237,7 +237,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_702" data-name="1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -252,7 +252,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_106" data-name="1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -264,7 +264,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_108" data-name="1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -276,7 +276,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_110" data-name="1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -294,7 +294,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_602" data-name="1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -306,7 +306,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_801" data-name="1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -318,7 +318,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_803" data-name="1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -343,7 +343,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.202-ลูกหนี้ค่ารักษา UC-IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_202" data-name="1102050101.202-ลูกหนี้ค่ารักษา UC-IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -355,7 +355,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_217" data-name="1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -367,7 +367,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_302" data-name="1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -379,7 +379,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_304" data-name="1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -391,7 +391,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_308" data-name="1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -403,7 +403,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_310" data-name="1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -415,7 +415,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_402" data-name="1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -427,7 +427,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_502" data-name="1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -439,7 +439,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_504" data-name="1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -454,7 +454,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050101_704" data-name="1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -466,7 +466,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_107" data-name="1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -478,7 +478,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_109" data-name="1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -490,7 +490,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_111" data-name="1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -505,7 +505,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_603" data-name="1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -517,7 +517,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_802" data-name="1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -529,7 +529,7 @@
                                                 <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP
                                             </a>
                                             <button type="button" class="btn btn-outline-primary btn-xs open-dashboard ms-2" title="Dashboard" style="padding: 1px 4px; border-radius: 4px;" data-code="1102050102_804" data-name="1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP">
-                                                <i class="bi bi-bar-chart-fill" style="background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                                <i class="bi bi-bar-chart-fill" style="display: inline-block; background: linear-gradient(180deg, #fd7e14, #28a745); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;"></i>
                                             </button>
                                         </div>
                                     </td>

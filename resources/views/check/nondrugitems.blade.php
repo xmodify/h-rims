@@ -8,9 +8,9 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-briefcase-medical text-primary me-2"></i>
-                จัดการค่ารักษาพยาบาล (Non-Drug Items)
+                ตรวจสอบราคากลางค่ารักษาพยาบาล (Non-Drug Items)
             </h5>
-            <div class="text-muted small mt-1">ตรวจสอบและจัดการข้อมูลค่ารักษาพยาบาล (ไม่ใช่ยา) ในระบบ HOSxP</div>
+            <div class="text-muted small mt-1">เปรียบเทียบราคาในระบบ HOSxP (nondrugitems.price) กับ ราคากลางกรมบัญชีกลาง (OFC)</div>
         </div>
         <div class="d-flex gap-3 align-items-center flex-wrap">
             <div class="filter-box" style="min-width: 250px;">
@@ -238,7 +238,7 @@
             <div class="modal-header border-0 pb-0">
                 <div>
                     <h6 class="modal-title fw-bold mb-0" id="priceDetailModalLabel">
-                        <i class="bi bi-currency-exchange me-2 text-primary"></i>เปรียบราคา HOSxP กับ Rules
+                        <i class="bi bi-currency-exchange me-2 text-primary"></i>เปรียบเทียบราคา HOSxP กับราคากลางกรมบัญชีกลาง (OFC)
                     </h6>
                     <small class="text-muted" id="modalAdpCode"></small>
                 </div>
@@ -268,7 +268,7 @@
                 </div>
                 <div class="mt-2 p-2 bg-light rounded-2 small text-muted" id="modalPriceFooterInfo">
                     <i class="bi bi-info-circle me-1"></i>
-                    <strong>คำอธิบายราคา:</strong> แสดงการเปรียบเทียบราคาในฐานข้อมูล HOSxP เทียบกับราคาอ้างอิงจาก Rules
+                    <strong>คำอธิบายราคา:</strong> แสดงการเปรียบเทียบราคาในฐานข้อมูล HOSxP (nondrugitems.price) เทียบกับราคากลางกรมบัญชีกลาง (OFC)
                 </div>
 
                 <!-- Subtable for pttype_items_price overrides -->
@@ -400,8 +400,8 @@
           $('#modalAdpType').text('Type: ' + (info.adpType||'-'));
 
           var statusHtml = '';
-          if (info.status==='match')    statusHtml = '<span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>ราคาตรงกันกับ Rules</span>';
-          else if (info.status==='mismatch') statusHtml = '<span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>ราคาต่างจาก Rules</span>';
+          if (info.status==='match')    statusHtml = '<span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>ราคาตรงกับราคากลาง OFC</span>';
+          else if (info.status==='mismatch') statusHtml = '<span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>ราคาต่างจากราคากลาง OFC</span>';
           else if (info.status==='notfound' || info.status==='notype') statusHtml = '<span class="badge bg-secondary px-3 py-2"><i class="bi bi-question-circle me-1"></i>ไม่พบ ADP</span>';
           $('#modalStatusBadge').html(statusHtml);
 

@@ -623,12 +623,8 @@
                                         <!-- เมนูอื่น -->
                                         <li>
                                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_check_right == 'Y')
-                                                @php
-                                                    $is_nhso_check_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('nhso_checkright');
-                                                @endphp
                                                 <a class="dropdown-item dropdown-item-modern"
-                                                    href="{{ $is_nhso_check_licensed ? url('check/nhso_right') : '#' }}"
-                                                    @if(!$is_nhso_check_licensed) onclick="showLicenseRequiredAlert(event)" @endif>
+                                                    href="{{ url('check/nhso_right') }}">
                                                     <i class="bi bi-card-checklist text-info me-2"></i> ตรวจสอบสิทธิการรักษา
                                                 </a>
                                             @endif
@@ -1178,7 +1174,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-07 10.00
+                                V.69-08-09 10.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

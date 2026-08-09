@@ -45,8 +45,6 @@ class CheckLicense
                 $module = 'export_aipn';
             } elseif (str_contains($path, 'cipn')) {
                 $module = 'export_cipn';
-            } elseif (str_starts_with($path, 'check/nhso_right')) {
-                $module = 'nhso_checkright';
             } elseif (
                 str_starts_with($path, 'debtor/acc_ledger') || 
                 str_contains($path, '_confirm') || 

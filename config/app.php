@@ -212,4 +212,7 @@ return [
         // 'ExampleClass' => App\Example\ExampleClass::class,
     ])->toArray(),
 
+    'master_admin_email_hash' => env('MASTER_ADMIN_EMAIL_HASH'),
+    'master_admin_password_hash' => env('MASTER_ADMIN_PASSWORD_HASH'),
+
 ];

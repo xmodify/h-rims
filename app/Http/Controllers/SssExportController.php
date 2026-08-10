@@ -1580,9 +1580,13 @@ class SssExportController extends Controller
 
             // Compute MD5 / HMAC signature
             $xml_main = substr($xml, strpos($xml, '<CIPN'));
-            $xml_main_encoded = iconv('UTF-8', 'windows-874//IGNORE', $xml_main);
+            // Ensure $xml_main ends exactly at </CIPN> and we add exactly one empty line after it (which is \r\n\r\n)
+            $xml_main_trimmed = rtrim($xml_main);
+            $xml_main_encoded = iconv('UTF-8', 'windows-874//IGNORE', $xml_main_trimmed . "\r\n\r\n");
             $hmac = md5($xml_main_encoded);
-            $xml .= "\r\n" . '<?EndNote HMAC="' . $hmac . '" ?>';
+            
+            // Rebuild the final XML content ensuring exactly one empty line after </CIPN> and then the <?EndNote tag
+            $xml = substr($xml, 0, strpos($xml, '<CIPN')) . $xml_main_trimmed . "\r\n\r\n" . '<?EndNote HMAC="' . $hmac . '" ?>';
 
             $xml_filename = "{$hcode}-AIPN-{$an}-{$subm_dt}.xml";
             $xml_files[$xml_filename] = $xml;

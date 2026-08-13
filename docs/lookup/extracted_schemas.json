@@ -12091,24 +12091,6 @@
                 "default": null,
                 "extra": ""
             },
-            "rep_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_no": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
             "repline": {
                 "type": "int(11)",
                 "nullable": true,
@@ -12151,18 +12133,6 @@
                 "default": null,
                 "extra": ""
             },
-            "stat": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "station": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
             "amount": {
                 "type": "decimal(10,2)",
                 "nullable": true,
@@ -12183,6 +12153,36 @@
             },
             "updated_at": {
                 "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stat": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "station": {
+                "type": "varchar(10)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -12421,24 +12421,6 @@
                 "default": null,
                 "extra": ""
             },
-            "rep_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_no": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
             "repline": {
                 "type": "int(11)",
                 "nullable": true,
@@ -12499,18 +12481,6 @@
                 "default": null,
                 "extra": ""
             },
-            "stat": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "station": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
             "amount": {
                 "type": "decimal(10,2)",
                 "nullable": true,
@@ -12537,6 +12507,36 @@
             },
             "updated_at": {
                 "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stat": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "station": {
+                "type": "varchar(10)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -12571,6 +12571,1642 @@
                 {
                     "column": "dttran_date",
                     "unique": false
+                }
+            ]
+        }
+    },
+    "rep_ucs": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_type": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "is_appeal": {
+                "type": "tinyint(1)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tran_id": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_type": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "net_compensate_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "net_compensate_employer": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_from": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "error_code": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "main_fund": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sub_fund": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "service_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "refer_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "has_right": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "use_right": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chk": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "maininscl": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "subinscl": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "href": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "prov1": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rg1": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "prov2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rg2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_hmain3": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "da": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "proj": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pa": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drg": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rw": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ca_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_non_vehicle_drug_device": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_vehicle_drug_device": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_central_reimburse": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "self_pay": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "payrate_point": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "delay_ps": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "delay_percent": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ccuf": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw2": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "salary_percent": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "salary_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_after_salary": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hc_iphc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hc_ophc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_opae": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ipnb": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ipuc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ip3sss": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ip7sss": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_carae": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_caref": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_caref_puc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "inst_opinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "inst_ipinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipaec": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipaer": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinrgc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinrgr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinspsn": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipprcc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipprcc_puc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipbkk_inst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ip_ontop": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_cataract": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_ssj_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_hosp_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_catinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rc_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosc_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosr_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llop": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llrgc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llrgr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_lp": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_stroke_stemi_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmidml": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_pp": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmishd": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmicnt": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_palliative_care": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dm": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_hc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_dent": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_fs": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_others": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_hsub": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_hc": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_ae": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_inst": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_ip": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_dmis": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_old": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_add": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_net": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fs": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "va": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "remark": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "audit_results": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pay_pattern": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "seq_no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invoice_no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invoice_lt": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ],
+            "idx_cid_vstdate": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "repno": [
+                {
+                    "column": "repno",
+                    "unique": false
+                }
+            ],
+            "tran_id": [
+                {
+                    "column": "tran_id",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "rep_ucsexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_type": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "is_appeal": {
+                "type": "tinyint(1)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tran_id": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_type": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "net_compensate_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "net_compensate_employer": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_from": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "error_code": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "main_fund": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sub_fund": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "service_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "refer_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "has_right": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "use_right": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chk": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "maininscl": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "subinscl": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "href": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "prov1": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rg1": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "prov2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rg2": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_hmain3": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "da": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "proj": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pa": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drg": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rw": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ca_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_non_vehicle_drug_device": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_vehicle_drug_device": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_central_reimburse": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "self_pay": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "payrate_point": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "delay_ps": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "delay_percent": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ccuf": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw2": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "salary_percent": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "salary_amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "compensate_after_salary": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hc_iphc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hc_ophc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_opae": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ipnb": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ipuc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ip3sss": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_ip7sss": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_carae": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_caref": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ae_caref_puc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "inst_opinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "inst_ipinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipaec": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipaer": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinrgc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinrgr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipinspsn": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipprcc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipprcc_puc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ipbkk_inst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ip_ip_ontop": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_cataract": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_ssj_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_hosp_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_catinst": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rc_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosc_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_rcuhosr_workload": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llop": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llrgc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_llrgr": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_lp": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_stroke_stemi_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmidml": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_pp": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmishd": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dmicnt": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_palliative_care": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_dm": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_hc": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_dent": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_fs": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_others": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_hsub": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "opbkk_nhso": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_hc": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_ae": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_inst": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_ip": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_dmis": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_old": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_add": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "base_rate_net": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fs": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "va": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "remark": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "audit_results": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pay_pattern": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "seq_no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invoice_no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invoice_lt": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
                 }
             ]
         }

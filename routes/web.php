@@ -14,6 +14,7 @@ use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ImportDmisController;
+use App\Http\Controllers\ImportRepController;
 use App\Http\Controllers\CheckController;
 use App\Http\Controllers\CheckDrugcatController;
 use App\Http\Controllers\CheckLabcatController;
@@ -109,6 +110,16 @@ Route::match(['get', 'post'], 'ipd_finance_chk_opd_wait_transfer', [HomeControll
 Route::match(['get', 'post'], 'ipd_finance_chk_wait_rcpt_money', [HomeController::class, 'ipd_finance_chk_wait_rcpt_money']);
 
 //Import---------------------------------------------------------------------------------------------------------------------------
+Route::get('import/rep', [ImportRepController::class, 'rep_index'])->name('import.rep');
+Route::match(['get', 'post'], 'import/rep_ucs', [ImportRepController::class, 'rep_ucs'])->name('rep_ucs');
+Route::post('import/rep_ucs_save', [ImportRepController::class, 'rep_ucs_save']);
+Route::get('import/rep_ucs/chart-data', [ImportRepController::class, 'rep_ucs_getChartData'])->name('import.rep_ucs.chart-data');
+Route::get('import/rep_ucs/c-code-chart-data', [ImportRepController::class, 'rep_ucs_getCCodeChartData'])->name('import.rep_ucs.c-code-chart-data');
+Route::get('import/rep_ucs/fail-details', [ImportRepController::class, 'rep_ucs_getFailDetails'])->name('import.rep_ucs.fail-details');
+Route::match(['get', 'post'], 'import/rep_ucs_detail', [ImportRepController::class, 'rep_ucs_detail']);
+Route::match(['get', 'post'], 'import/rep_ucs_detail_opd', [ImportRepController::class, 'rep_ucs_detail_opd'])->name('rep_ucs_detail_opd');
+Route::match(['get', 'post'], 'import/rep_ucs_detail_ipd', [ImportRepController::class, 'rep_ucs_detail_ipd'])->name('rep_ucs_detail_ipd');
+
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');
 Route::match(['get', 'post'], 'import/dmis', [ImportDmisController::class, 'index'])->name('import.dmis');

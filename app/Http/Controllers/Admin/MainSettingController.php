@@ -1011,6 +1011,8 @@ class MainSettingController extends Controller
             'rep_ofc_csop' => ['vn', 'hn'],
             'rep_sss_aipn' => ['an', 'hn'],
             'rep_sss_ssop' => ['vn', 'hn'],
+            'rep_ucs' => ['hn', 'an'],
+            'rep_ucsexcel' => ['hn', 'an'],
             'sss_chronic' => ['hn'],
             'sss_chronic_register' => ['cid'],
             'stm_bkk' => ['hn', 'an', 'cid'],

@@ -215,7 +215,7 @@ class ClaimOpController extends Controller
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             claim_items.project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail,
+            stm.receive_total,stm.repno,rep.error_code AS rep_error_code,rep.repno AS rep_repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -256,12 +256,18 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5) 
+            LEFT JOIN (
+                SELECT hn, vstdate, GROUP_CONCAT(DISTINCT error_code) AS error_code, GROUP_CONCAT(DISTINCT repno) AS repno
+                FROM hrims.rep_ucs
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate 
             WHERE (o.an ="" OR o.an IS NULL) 
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));

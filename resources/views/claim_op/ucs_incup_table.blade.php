@@ -236,26 +236,36 @@
                                         @endif
                                     </td>
                                     <td class="text-center small">
-                                        @if(!empty($row->check_detail))
-                                            @php
-                                                $prefix = '';
-                                                $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
-                                                if (!empty($row->ec_status)) {
-                                                    $first_char = substr($row->ec_status, 0, 1);
-                                                    if (in_array($first_char, ['2', '3'])) {
-                                                        $prefix = $first_char . '-';
-                                                        if ($first_char === '3') {
-                                                            $badge_style = 'background-color: #fd7e14; color: #fff;'; // Orange for 3
-                                                        } else {
-                                                            $badge_style = 'background-color: #f43f5e; color: #fff;'; // Rose red for 2
+                                        <div class="d-flex flex-column gap-1 align-items-center">
+                                            @if(!empty($row->check_detail))
+                                                @php
+                                                    $prefix = '';
+                                                    $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
+                                                    if (!empty($row->ec_status)) {
+                                                        $first_char = substr($row->ec_status, 0, 1);
+                                                        if (in_array($first_char, ['2', '3'])) {
+                                                            $prefix = $first_char . '-';
+                                                            if ($first_char === '3') {
+                                                                $badge_style = 'background-color: #fd7e14; color: #fff;'; // Orange for 3
+                                                            } else {
+                                                                $badge_style = 'background-color: #f43f5e; color: #fff;'; // Rose red for 2
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            @endphp
-                                            <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
+                                                @endphp
+                                                <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
+                                            @endif
+
+                                            @if(!empty($row->rep_error_code))
+                                                <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error_code }}">
+                                                    C: {{ $row->rep_error_code }}
+                                                </span>
+                                            @endif
+
+                                            @if(empty($row->check_detail) && empty($row->rep_error_code))
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
@@ -301,7 +311,9 @@
                                     <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
                                         {{ number_format($diff, 2) }}
                                     </td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
+                                    <td class="text-center small text-muted">
+                                        {{ $row->repno ?: ($row->rep_repno ?: '-') }}
+                                    </td>
                                 </tr>
                                 @php 
                                     $count++; 

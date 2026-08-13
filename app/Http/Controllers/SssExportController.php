@@ -1393,7 +1393,7 @@ class SssExportController extends Controller
             $xml .= '    <DocSysID version="2.1">AIPN' . $tcode_suffix . '</DocSysID>' . "\r\n";
             $xml .= '    <serviceEvent>ADT</serviceEvent>' . "\r\n";
             $xml .= '    <authorID>' . $hcode . '</authorID>' . "\r\n";
-            $xml .= '    <authorName>RIMS ' . $this->escape_xml($hname) . '</authorName>' . "\r\n";
+            $xml .= '    <authorName>' . $this->escape_xml($hname) . '</authorName>' . "\r\n";
             $xml .= '    <effectiveTime>' . $datetime_iso . '</effectiveTime>' . "\r\n";
             $xml .= '  </Header>' . "\r\n";
 

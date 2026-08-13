@@ -592,10 +592,15 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern">
                                         <li>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.rep') }}">
+                                                <i class="bi bi-file-earmark-spreadsheet-fill me-1 text-success"></i>การตรวจสอบเบื้องต้น Rep
+                                            </a>
+                                        </li>
+                                        <li>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement') }}">
                                                 <i class="bi bi-file-earmark-arrow-up-fill me-1 text-primary"></i> Statement OP-IP
                                             </a>
-                                        </li>
+                                        </li>                                        
                                         @if ($hasLookupIcode_kidney)
                                             <li>
                                                 <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement_kidney') }}">
@@ -1174,7 +1179,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-14 10.00
+                                V.69-08-14 16.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1303,6 +1308,13 @@
                             <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal
                         </a>
                     @endif
+                </div>
+            @endif
+            @if (request()->routeIs('rep_*') || request()->is('import/rep_*') || request()->is('import/rep_*/*'))
+                <div class="container-fluid px-lg-4 mb-3">
+                    <a href="{{ route('import.rep') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง REP Portal
+                    </a>
                 </div>
             @endif
             @yield('content')

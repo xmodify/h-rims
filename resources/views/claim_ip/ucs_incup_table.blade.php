@@ -178,8 +178,7 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-center" rowspan="2">E-Claim</th>
-                                    <th class="text-center" rowspan="2">Error</th>
+                                    <th class="text-center" rowspan="2">Error (REP)</th>
                                     <th class="text-center" rowspan="2">ตึก</th>
                                     <th class="text-center" rowspan="2">Admit</th>
                                     <th class="text-center" rowspan="2">D/C</th>
@@ -215,21 +214,14 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
-                                    <td class="text-center">
-                                        @if(substr($row->ec_status, 0, 1) == '0')
-                                            <span class="badge bg-secondary-soft text-secondary py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '1')
-                                            <span class="badge bg-warning-soft text-warning py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
-                                            <span class="badge bg-danger-soft text-danger py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '3')
-                                            <span class="badge bg-orange-soft text-orange py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
-                                            <span class="badge bg-primary-soft text-primary py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @endif
-                                    </td>
                                     <td class="text-center small" data-order="{{ $row->rep_error ?: '-' }}">
-                                        <div class="text-truncate text-danger" style="max-width: 100px;" title="{{ $row->rep_error }}">{{ $row->rep_error ?: '-' }}</div>
+                                        @if(!empty($row->rep_error))
+                                            <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error }}">
+                                                C: {{ $row->rep_error }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     </td>
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">
@@ -276,7 +268,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

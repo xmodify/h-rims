@@ -81,7 +81,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL
+                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL
                          THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
                          ELSE 0 
                     END AS claim_sent_price,
@@ -112,6 +112,12 @@ class ClaimIpController extends Controller
                 ) stm ON stm.an = i.an  
                 LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an
+                    FROM hrims.rep_ucs
+                    WHERE rep_type = "IP"
+                    GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
                 WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
@@ -141,7 +147,7 @@ $search = DB::connection('hosxp')->select('
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
+                fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -171,6 +177,11 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT an FROM hrims.rep_ucs
+                WHERE rep_type = "IP"
+                GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
                 SELECT an FROM hrims.stm_ucs 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
@@ -181,6 +192,7 @@ $search = DB::connection('hosxp')->select('
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND fdh.an IS NULL
             AND ec.an IS NULL
+            AND rep.an IS NULL
             AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -191,8 +203,8 @@ $search = DB::connection('hosxp')->select('
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
+                rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -227,11 +239,24 @@ $search = DB::connection('hosxp')->select('
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
             ) stm ON stm.an = i.an  
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_ucs
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
-            AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL)
+            AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         
@@ -314,7 +339,7 @@ $search = DB::connection('hosxp')->select('
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL
+                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL
                          THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
                          ELSE 0 
                     END AS claim_sent_price,
@@ -345,10 +370,15 @@ $search = DB::connection('hosxp')->select('
                 ) stm ON stm.an = i.an  
                 LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an
+                    FROM hrims.rep_ucs
+                    WHERE rep_type = "IP"
+                    GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-                WHERE i.confirm_discharge = "Y" 
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
                 AND p.hipdata_code IN ("UCS","WEL") 
                 AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 GROUP BY i.an
@@ -375,7 +405,7 @@ $search = DB::connection('hosxp')->select('
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
+                fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -405,6 +435,11 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT an FROM hrims.rep_ucs
+                WHERE rep_type = "IP"
+                GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
                 SELECT an FROM hrims.stm_ucs 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
@@ -415,6 +450,7 @@ $search = DB::connection('hosxp')->select('
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND fdh.an IS NULL
             AND ec.an IS NULL
+            AND rep.an IS NULL
             AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -425,8 +461,8 @@ $search = DB::connection('hosxp')->select('
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
+                rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -461,11 +497,24 @@ $search = DB::connection('hosxp')->select('
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
             ) stm ON stm.an = i.an
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_ucs
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
-            AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL) 
+            AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         

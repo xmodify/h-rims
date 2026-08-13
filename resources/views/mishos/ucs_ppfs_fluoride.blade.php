@@ -4,6 +4,33 @@
 
 @section('content')
 
+<style>
+
+/* Custom pastel background for main tabs */
+#search-tab {
+    background-color: #fef2f2 !important; /* Soft pastel red/pink */
+    color: #dc2626 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#search-tab.active {
+    background-color: #dc2626 !important;
+    color: #fff !important;
+}
+
+#claim-tab {
+    background-color: #f0fdf4 !important; /* Soft pastel green */
+    color: #166534 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#claim-tab.active {
+    background-color: #166534 !important;
+    color: #fff !important;
+}
+</style>
+
+
     <!-- Page Header & Logic Filters -->
 
     <!-- Page Header & Logic Filters -->
@@ -192,7 +219,13 @@
 
                 if (res.success) {
 
-                    container.innerHTML = res.table_html;
+                    if (params.skip_chart) {
+                        const tempDiv = $('<div>').html(res.table_html);
+                        $('#data-container .card-header').replaceWith(tempDiv.find('.card-header'));
+                        $('#data-container .card-body').replaceWith(tempDiv.find('.card-body'));
+                    } else {
+                        container.innerHTML = res.table_html;
+                    }
 
                     window.currentPatientItems = res.patient_items || [];
 
@@ -290,10 +323,8 @@
 
                     // Draw chart from cache
 
-                    if (window.currentChartData && window.drawChart) {
-
+                    if (!params.skip_chart && window.currentChartData && window.drawChart) {
                         window.drawChart(window.currentChartData);
-
                     }
 
                 }
@@ -469,12 +500,13 @@
             window.initDataTables = function() {
 
         if ($.fn.DataTable.isDataTable('#t_search')) {
-
             $('#t_search').DataTable().destroy();
-
+        }
+        if ($.fn.DataTable.isDataTable('#t_claim')) {
+            $('#t_claim').DataTable().destroy();
         }
 
-        $('#t_search').DataTable({
+        var dt_options = {
 
                 dom: '<"row mb-3"' +
 
@@ -525,9 +557,9 @@
                     }
 
                 }
-
-            });
-
+        };
+        $('#t_search').DataTable(dt_options);
+        $('#t_claim').DataTable(dt_options);
     };
 
 
@@ -778,7 +810,13 @@
 
                 if (res.success) {
 
-                    container.innerHTML = res.table_html;
+                    if (params.skip_chart) {
+                        const tempDiv = $('<div>').html(res.table_html);
+                        $('#data-container .card-header').replaceWith(tempDiv.find('.card-header'));
+                        $('#data-container .card-body').replaceWith(tempDiv.find('.card-body'));
+                    } else {
+                        container.innerHTML = res.table_html;
+                    }
 
                     window.currentPatientItems = res.patient_items || [];
 
@@ -876,10 +914,8 @@
 
                     // Draw chart from cache
 
-                    if (window.currentChartData && window.drawChart) {
-
+                    if (!params.skip_chart && window.currentChartData && window.drawChart) {
                         window.drawChart(window.currentChartData);
-
                     }
 
                 }
@@ -937,6 +973,9 @@
                 searchRow.setAttribute('data-order', dataOrder);
                 if ($.fn.DataTable.isDataTable('#t_search')) {
                     $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
+                }
+                if ($.fn.DataTable.isDataTable('#t_claim')) {
+                    $('#t_claim').DataTable().cell(searchRow).invalidate().draw(false);
                 }
             }
 

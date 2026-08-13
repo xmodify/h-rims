@@ -257,7 +257,13 @@
         })
         .done(function(res) {
             if (res.success) {
-                container.innerHTML = res.table_html;
+                if (dataParams.skip_chart) {
+                  const tempDiv = $('<div>').html(res.table_html);
+                  $('#data-container .card-header').replaceWith(tempDiv.find('.card-header'));
+                  $('#data-container .card-body').replaceWith(tempDiv.find('.card-body'));
+              } else {
+                  container.innerHTML = res.table_html;
+              }
                 window.patientItems = res.patient_items || [];
 
                 $('.datepicker_th').datepicker({
@@ -357,8 +363,8 @@
                 if (res.chart_data) {
                     window.currentChartData = res.chart_data;
                 }
-                if (window.currentChartData) {
-                    drawChart(window.currentChartData);
+                if (!dataParams.skip_chart && window.currentChartData) {
+                  drawChart(window.currentChartData);
                 }
             }
         })

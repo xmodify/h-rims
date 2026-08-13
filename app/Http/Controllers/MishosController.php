@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class MishosController extends Controller
 {
-    //Check Login
     public function __construct()
     {
         $this->middleware([
@@ -21,8 +20,9 @@ class MishosController extends Controller
             }
         ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ae(Request $request)
+    //-
+
+        public function ucs_ae(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -52,42 +52,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -95,37 +59,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -139,24 +74,14 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,(IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) - IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0)) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
                 FROM ovst o           
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn  
-                LEFT JOIN (
-                    SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                    WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-                ) inc ON inc.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
+                
                 LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
                 LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
                 LEFT JOIN ( SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -172,40 +97,35 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
+            0 AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
             LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))   
 		    LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
@@ -220,133 +140,76 @@ class MishosController extends Controller
 			AND p.hipdata_code IN ("UCS","WEL") 							
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
 			AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ae_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ae_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_walkin(Request $request)
+
+        public function ucs_walkin(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -376,42 +239,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -419,37 +246,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -463,24 +261,14 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,(IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) - IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0)) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
                 FROM ovst o           
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn           
-                LEFT JOIN (
-                    SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                    WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-                ) inc ON inc.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
+                
                 LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
                 LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN"))
                 LEFT JOIN ( SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -496,40 +284,35 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
+            0 AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
             LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN"))
             LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
@@ -544,133 +327,76 @@ class MishosController extends Controller
 			AND p.hipdata_code IN ("UCS","WEL") 							
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
 			AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_walkin_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_walkin_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_herb(Request $request)
+
+        public function ucs_herb(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -700,42 +426,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -743,37 +433,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -800,14 +461,7 @@ class MishosController extends Controller
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.herb32 = "Y"
                     WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
                 ) o1 ON o1.vn=o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
 					INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.herb32 = "Y"
 					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02" GROUP BY op.vn) herb ON herb.vn=o.vn						
@@ -822,21 +476,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ORDER BY o.vstdate,o.vsttime ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price, 0)) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -844,18 +503,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.herb32 = "Y"
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
@@ -872,133 +521,76 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 	
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_herb_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_herb_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_telemed(Request $request)
+
+        public function ucs_telemed(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -1028,42 +620,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -1071,37 +627,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -1122,14 +649,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("TELMED"))
@@ -1148,21 +668,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, tele.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1170,18 +695,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("TELMED")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
@@ -1198,133 +713,76 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 	
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_telemed_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_telemed_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_rider(Request $request)
+
+        public function ucs_rider(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -1354,42 +812,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -1397,37 +819,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -1448,14 +841,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("DRUGP"))
@@ -1474,21 +860,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, rider.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1496,18 +887,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("DRUGP")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
@@ -1524,133 +905,76 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 	
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_rider_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_rider_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_gdm(Request $request)
+
+        public function ucs_gdm(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -1680,42 +1004,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -1723,37 +1011,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -1774,14 +1033,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008"))
@@ -1800,21 +1052,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_compensate_pay AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1822,18 +1079,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -1851,133 +1098,76 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 	 
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_gdm_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_gdm_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_drug_clopidogrel(Request $request)
+
+        public function ucs_drug_clopidogrel(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -2002,48 +1192,14 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
+        
         $drug_clopidogrel = DB::table('main_setting')->where('name', 'drug_clopidogrel')->value('value');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
 
         $month = [];
         $claim_price = [];
@@ -2051,37 +1207,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -2114,21 +1241,30 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$drug_clopidogrel, $start_date_b, $end_date_b, $drug_clopidogrel, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_bindings = [
+                $drug_clopidogrel,
+                $start_date_b,
+                $end_date_b,
+                $drug_clopidogrel,
+                $start_date_b,
+                $end_date_b,
+                $start_date_b,
+                $end_date_b
+            ];
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -2136,18 +1272,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode = ?	AND o1.paidst = "02"		
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
@@ -2161,133 +1287,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)
             AND p.hipdata_code IN ("UCS","WEL")            
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_bindings = [
+                $drug_clopidogrel,
+                $start_date,
+                $end_date,
+                $drug_clopidogrel,
+                $start_date,
+                $end_date,
+                $start_date,
+                $end_date
+            ];
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_drug_clopidogrel_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_drug_sk(Request $request)
+
+        public function ucs_drug_sk(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -2317,42 +1390,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -2360,37 +1397,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -2410,14 +1418,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("STEMI1"))
@@ -2436,21 +1437,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_dmis_drug AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -2458,18 +1464,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN drugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("STEMI1")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
@@ -2486,133 +1482,76 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 	
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_drug_sk_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_drug_sk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ins(Request $request)
+
+        public function ucs_ins(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -2642,42 +1581,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -2685,37 +1588,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -2735,14 +1609,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT op.vn FROM opitemrece op
                     INNER JOIN nondrugitems n ON n.icode = op.icode
@@ -2768,21 +1635,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
                 pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                 IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2791,18 +1663,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_type_id = "2"
 			INNER JOIN hrims.lookup_icode li ON li.icode = o1.icode AND li.uc_cr = "Y"
@@ -2824,134 +1686,76 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)
             AND p.hipdata_code IN ("UCS","WEL")       
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsInsRows($search);
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->validateUcsInsRows($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ins_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ins_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_palliative(Request $request)
+
+        public function ucs_palliative(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -2981,42 +1785,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -3024,37 +1792,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -3074,14 +1813,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30001","Cons01","Eva001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
@@ -3098,21 +1830,26 @@ class MishosController extends Controller
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+                ORDER BY YEAR(vstdate), MONTH(vstdate)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_palliative AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -3120,18 +1857,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30001","Cons01","Eva001")
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
@@ -3148,133 +1875,76 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)
             AND p.hipdata_code IN ("UCS","WEL")       
             AND o.vstdate BETWEEN ? AND ? 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->checkClosedStatusOnly($search);
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $this->checkClosedStatusOnly($all_visits);
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_palliative_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_palliative_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_fp(Request $request)
+
+        public function ucs_ppfs_fp(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3306,78 +1976,14 @@ class MishosController extends Controller
         session()->save();
         ini_set('memory_limit', '1024M');
 
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
         $month = [];
         $claim_price = [];
         $claim_sent_price = [];
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -3385,14 +1991,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                     AND (o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 			        OR o1.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
@@ -3409,41 +2008,46 @@ class MishosController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
                 AND o1.vn IS NOT NULL
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -3453,18 +2057,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND (o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 			    OR o1.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
@@ -3483,135 +2077,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'vn');
+        $this->allocatePpfs($all_visits, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_fp_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_prt(Request $request)
+
+        public function ucs_ppfs_prt(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3635,49 +2174,13 @@ class MishosController extends Controller
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
         $lab_prt = DB::table('main_setting')->where('name', 'lab_prt')->value('value');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
 
         $month = [];
         $claim_price = [];
@@ -3685,37 +2188,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -3723,14 +2197,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014"))
@@ -3745,41 +2212,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["30014"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["30014"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -3789,18 +2261,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN lab_head lh ON lh.vn=o.vn
@@ -3817,135 +2279,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["30014"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["30014"], 'vn');
+        $this->allocatePpfs($all_visits, ["30014"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_prt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_ida(Request $request)
+
+        public function ucs_ppfs_ida(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3975,42 +2382,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -4018,37 +2389,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -4056,14 +2398,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
@@ -4078,41 +2413,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["13001"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["13001"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -4122,18 +2462,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
@@ -4148,135 +2478,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["13001"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["13001"], 'vn');
+        $this->allocatePpfs($all_visits, ["13001"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_ida_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_ferrofolic(Request $request)
+
+        public function ucs_ppfs_ferrofolic(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -4306,42 +2581,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -4349,37 +2588,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -4387,14 +2597,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
@@ -4409,41 +2612,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["14001"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["14001"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -4453,18 +2661,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
@@ -4479,135 +2677,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["14001"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["14001"], 'vn');
+        $this->allocatePpfs($all_visits, ["14001"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_fluoride(Request $request)
+
+        public function ucs_ppfs_fluoride(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -4637,42 +2780,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -4680,37 +2787,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -4730,41 +2808,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["15001"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["15001"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -4774,18 +2857,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
@@ -4800,135 +2873,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["15001"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["15001"], 'vn');
+        $this->allocatePpfs($all_visits, ["15001"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_fluoride_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_anc(Request $request)
+
+        public function ucs_ppfs_anc(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -4958,42 +2976,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -5001,37 +2983,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -5039,14 +2992,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013"))
@@ -5062,41 +3008,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["30008", "30009", "30010", "30011", "30012", "30013"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["30008", "30009", "30010", "30011", "30012", "30013"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -5107,18 +3058,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -5135,135 +3076,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["30008", "30009", "30010", "30011", "30012", "30013"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["30008", "30009", "30010", "30011", "30012", "30013"], 'vn');
+        $this->allocatePpfs($all_visits, ["30008", "30009", "30010", "30011", "30012", "30013"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_anc_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_postnatal(Request $request)
+
+        public function ucs_ppfs_postnatal(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -5293,42 +3179,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -5336,37 +3186,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -5374,14 +3195,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016"))
@@ -5397,41 +3211,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["30015", "30016"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["30015", "30016"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -5441,18 +3260,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -5469,135 +3278,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["30015", "30016"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["30015", "30016"], 'vn');
+        $this->allocatePpfs($all_visits, ["30015", "30016"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_postnatal_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_fittest(Request $request)
+
+        public function ucs_ppfs_fittest(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -5627,42 +3381,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -5670,37 +3388,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -5708,14 +3397,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005"))
@@ -5731,41 +3413,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["90005"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["90005"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -5775,18 +3462,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
             LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005"))
             LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -5803,135 +3480,80 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["90005"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["90005"], 'vn');
+        $this->allocatePpfs($all_visits, ["90005"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_fittest_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
-    public function ucs_ppfs_scr(Request $request)
+
+        public function ucs_ppfs_scr(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -5961,42 +3583,6 @@ class MishosController extends Controller
         }
 
         session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
-
-        if (!$request->ajax() && !$request->wantsJson()) {
-            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
-        }
-
-        session()->save();
-        ini_set('memory_limit', '1024M');
 
         $month = [];
         $claim_price = [];
@@ -6004,37 +3590,8 @@ class MishosController extends Controller
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
+            $sum_month_sql = '
 
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $month = [];
-        $claim_price = [];
-        $claim_sent_price = [];
-        $receive_total = [];
-
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -6042,14 +3599,7 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL 
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
+                
 				INNER JOIN (
                     SELECT vn FROM opitemrece 
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004"))
@@ -6065,41 +3615,46 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $this->allocatePpfs($sum_month, ["12003", "12004"], 'vn');
-        $grouped = [];
-        foreach ($sum_month as $row) {
-            $time = strtotime($row->vstdate);
-            $m = intval(date('n', $time));
-            $y = intval(date('Y', $time)) + 543;
-            $monthNames = [
-                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
-                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
-            ];
-            $monthStr = $monthNames[$m] . " " . substr($y, -2);
-            $key = date('Y-m', $time);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                GROUP BY o.vn ) AS a
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
             }
-            $grouped[$key]['claim_price'] += floatval($row->claim_price);
-            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
-            $grouped[$key]['receive_total'] += floatval($row->receive_total);
-        }
-        ksort($grouped);
-        $month = array_column($grouped, 'month');
-        $claim_price = array_column($grouped, 'claim_price');
-        $claim_sent_price = array_column($grouped, 'claim_sent_price');
-        $receive_total = array_column($grouped, 'receive_total');
-        }
-        }
-        }
-        }
-        }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $this->allocatePpfs($sum_month, ["12003", "12004"], 'vn');
+            $grouped = [];
+            foreach ($sum_month as $row) {
+                $time = strtotime($row->vstdate);
+                $m = intval(date('n', $time));
+                $y = intval(date('Y', $time)) + 543;
+                $monthNames = [
+                    1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+                    7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+                ];
+                $monthStr = $monthNames[$m] . ' ' . substr($y, -2);
+                $key = date('Y-m', $time);
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
+                }
+                $grouped[$key]['claim_price'] += floatval($row->claim_price);
+                $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
+                $grouped[$key]['receive_total'] += floatval($row->receive_total);
+            }
+            ksort($grouped);
+            $month = array_column($grouped, 'month');
+            $claim_price = array_column($grouped, 'claim_price');
+            $claim_sent_price = array_column($grouped, 'claim_sent_price');
+            $receive_total = array_column($grouped, 'receive_total');
         }
 
-        $search = DB::connection('hosxp')->select('
+            $search_sql = '
+
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -6109,18 +3664,8 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT vn,SUM(sum_price) AS income FROM opitemrece 
-                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL 
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
+            
+            
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -6137,132 +3682,77 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
 
-        $this->validateUcsPpfsRows($search);
-        $this->allocatePpfs($search, ["12003", "12004"], 'seq');
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        // Extra allocations
+        $this->allocatePpfs($sum_month, ["12003", "12004"], 'vn');
+        $this->allocatePpfs($all_visits, ["12003", "12004"], 'seq');
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+        $this->validateUcsPpfsRows($all_visits);
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
+        $search = [];
+        $claim = [];
+        foreach ($all_visits as $row) {
+            $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
+            if ($isSent) {
+                $claim[] = $row;
+            } else {
+                $search[] = $row;
+            }
         }
 
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
+        $table_html = view('mishos.ucs_ppfs_scr_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        if ($request->ajax()) {
-            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search'
-            ))->render();
-
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
-
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
 
     public function ucs_ppfs_visit_details(\Illuminate\Http\Request $request)
@@ -6662,5 +4152,4 @@ class MishosController extends Controller
             $row->receive_total = $row_receive_total;
         }
     }
-
 }

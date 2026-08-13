@@ -215,7 +215,13 @@
       })
       .done(function(res) {
           if (res.success) {
-              container.innerHTML = res.table_html;
+              if (dataParams.skip_chart) {
+                  const tempDiv = $('<div>').html(res.table_html);
+                  $('#data-container .card-header').replaceWith(tempDiv.find('.card-header'));
+                  $('#data-container .card-body').replaceWith(tempDiv.find('.card-body'));
+              } else {
+                  container.innerHTML = res.table_html;
+              }
 
               // Re-initialize Datepicker
               $('.datepicker_th').datepicker({
@@ -312,7 +318,7 @@
               }
 
               // Draw chart if we have data
-              if (window.currentChartData) {
+              if (!dataParams.skip_chart && window.currentChartData) {
                   drawChart(
                       window.currentChartData.month,
                       window.currentChartData.claim_price,

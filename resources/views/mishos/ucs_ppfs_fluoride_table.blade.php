@@ -51,8 +51,14 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search"
                         type="button" role="tab">
-                        <i class="bi bi-clock-history me-1"></i> รายการรับบริการ
+                        <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
                      <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim"
+                        type="button" role="tab">
+                        <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
+                     <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span></button>
                 </li>
             </ul>
         </div>
@@ -66,7 +72,6 @@
                                 <tr>
                                     <th class="text-center">#</th>
                                     <th class="text-center">ตรวจสอบ</th>
-                                    <th class="text-center">ส่ง Claim</th>
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
                                     <th class="text-center">HN</th>
@@ -94,60 +99,44 @@
                                     <td class="text-center text-muted small">{{ $count }}</td>
                                     <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
-                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif(!empty($row->validation_warnings))
-                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
-                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
-                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @endif
                                     </td>
-                                    <td class="text-center" data-order="{{ $row->claim == 'Y' ? 1 : 0 }}">
-                                        @if($row->claim && $row->claim == 'Y')
-                                            <span class="badge bg-success-soft text-success p-2 rounded-circle" title="ส่งเคลมแล้ว"><i class="bi bi-check-circle-fill" style="font-size: 0.9rem;"></i></span>
-                                        @else
-                                            <span class="badge bg-secondary-soft text-secondary p-2 rounded-circle" title="ยังไม่ได้ส่ง"><i class="bi bi-dash-circle-fill" style="font-size: 0.9rem;"></i></span>
-                                        @endif
-                                    </td>
                                     <td class="text-center small">
                                             {{ DateThai($row->vstdate) }}<br>
-                                            <span class="text-muted"
-                                                style="font-size: 0.75rem;">{{ $row->vsttime }}</span>
-                                        </td>
+                                            <span class="text-muted" style="font-size: 0.75rem;">{{ $row->vsttime }}</span>
+                                    </td>
                                     <td class="text-center small">{{ $row->oqueue }}</td>
                                     <td class="text-center small text-primary fw-bold">{{ $row->hn }}</td>
                                     <td class="text-start text-dark fw-bold small">{{ $row->ptname }}</td>
                                     <td class="text-start small text-muted">
-                                            <div class="text-truncate" style="max-width: 150px;"
-                                                title="{{ $row->pttype }}">{{ $row->pttype }}</div>
+                                            <div class="text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</div>
                                             <div style="font-size: 0.7rem;">[{{ $row->hospmain }}]</div>
-                                        </td>
+                                    </td>
                                     <td class="text-start small text-muted">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income, 2) }}</td>
                                     <td class="text-end small">{{ number_format($row->rcpt_money, 2) }}</td>
-                                    <td class="text-end small fw-bold text-primary">
-                                            {{ number_format($row->claim_price, 2) }}</td>
-                                    <td
-                                            class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price, 2) }}</td>
+                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
                                             {{ number_format($row->receive_total, 2) }}
-                                        </td>
-                                    <td
-                                            class="text-end small fw-bold {{ $row->receive_total - $row->claim_price > 0 ? 'text-success' : ($row->receive_total - $row->claim_price < 0 ? 'text-danger' : 'text-muted') }}">
+                                    </td>
+                                    <td class="text-end small fw-bold {{ ($row->receive_total - $row->claim_price) > 0 ? 'text-success' : (($row->receive_total - $row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                             {{ number_format($row->receive_total - $row->claim_price, 2) }}
-                                        </td>
+                                    </td>
                                     <td class="text-center small">{{ $row->repno ?? '-' }}</td>
                                 </tr>
                                     @php
@@ -161,17 +150,128 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="8" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income, 2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money, 2) }}</th>
-                                    <th class="text-end small fw-bold text-primary">
-                                        {{ number_format($sum_claim_price, 2) }}</th>
-                                    <th
-                                        class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price, 2) }}</th>
+                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($sum_receive_total, 2) }}
                                     </th>
-                                    <th
-                                        class="text-end small fw-bold {{ $sum_receive_total - $sum_claim_price > 0 ? 'text-success' : ($sum_receive_total - $sum_claim_price < 0 ? 'text-danger' : 'text-muted') }}">
+                                    <th class="text-end small fw-bold {{ $sum_receive_total - $sum_claim_price > 0 ? 'text-success' : ($sum_receive_total - $sum_claim_price < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($sum_receive_total - $sum_claim_price, 2) }}
+                                    </th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Claim -->
+                <div class="tab-pane fade" id="claim" role="tabpanel">
+                    <div class="table-responsive">
+                        <table id="t_claim" class="table table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">ตรวจสอบ</th>
+                                    <th class="text-center" width="8%">วันที่รับบริการ</th>
+                                    <th class="text-center">Queue</th>
+                                    <th class="text-center">HN</th>
+                                    <th class="text-start" width="12%">ชื่อ-สกุล</th>
+                                    <th class="text-start" width="15%">สิทธิการรักษา</th>
+                                    <th class="text-start">รายการเรียกเก็บ</th>
+                                    <th class="text-end">ค่ารักษาทั้งหมด</th>
+                                    <th class="text-end">ชำระเอง</th>
+                                    <th class="text-end text-primary">เรียกเก็บ</th>
+                                    <th class="text-center text-danger">Error</th>
+                                    <th class="text-end text-success">ชดเชย</th>
+                                    <th class="text-end">ส่วนต่าง</th>
+                                    <th class="text-center">REPNO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $count = 1;
+                                    $sum_income = 0;
+                                    $sum_rcpt_money = 0;
+                                    $sum_claim_price = 0;
+                                    $sum_receive_total = 0;
+                                @endphp
+                                @foreach ($claim as $row)
+                                    <tr>
+                                    <td class="text-center text-muted small">{{ $count }}</td>
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
+                                        @if(!$row->is_valid)
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif($row->endpoint_valid)
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @endif
+                                    </td>
+                                    <td class="text-center small">
+                                            {{ DateThai($row->vstdate) }}<br>
+                                            <span class="text-muted" style="font-size: 0.75rem;">{{ $row->vsttime }}</span>
+                                    </td>
+                                    <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-center small text-primary fw-bold">{{ $row->hn }}</td>
+                                    <td class="text-start text-dark fw-bold small">{{ $row->ptname }}</td>
+                                    <td class="text-start small text-muted">
+                                            <div class="text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</div>
+                                            <div style="font-size: 0.7rem;">[{{ $row->hospmain }}]</div>
+                                    </td>
+                                    <td class="text-start small text-muted">{{ $row->claim_list }}</td>
+                                    <td class="text-end small">{{ number_format($row->income, 2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->rcpt_money, 2) }}</td>
+                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price, 2) }}</td>
+                                    <td class="text-center small">
+                                        @if(!empty($row->rep_error_code))
+                                            <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด Error REP: {{ $row->rep_error_code }}">
+                                                C: {{ $row->rep_error_code }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                            {{ number_format($row->receive_total, 2) }}
+                                    </td>
+                                    <td class="text-end small fw-bold {{ ($row->receive_total - $row->claim_price) > 0 ? 'text-success' : (($row->receive_total - $row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                            {{ number_format($row->receive_total - $row->claim_price, 2) }}
+                                    </td>
+                                    <td class="text-center small">{{ $row->repno ?: ($row->rep_error_code ? '-' : ($row->rep_repno ?: '-')) }}</td>
+                                </tr>
+                                    @php
+                                        $count++;
+                                        $sum_income += $row->income;
+                                        $sum_rcpt_money += $row->rcpt_money;
+                                        $sum_claim_price += $row->claim_price;
+                                        $sum_receive_total += $row->receive_total;
+                                    @endphp
+                                @endforeach
+                            </tbody>
+                            <tfoot class="bg-light-soft">
+                                <tr>
+                                    <th colspan="8" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th class="text-end small">{{ number_format($sum_income, 2) }}</th>
+                                    <th class="text-end small">{{ number_format($sum_rcpt_money, 2) }}</th>
+                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price, 2) }}</th>
+                                    <th></th>
+                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($sum_receive_total, 2) }}
+                                    </th>
+                                    <th class="text-end small fw-bold {{ $sum_receive_total - $sum_claim_price > 0 ? 'text-success' : ($sum_receive_total - $sum_claim_price < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($sum_receive_total - $sum_claim_price, 2) }}
                                     </th>
                                     <th></th>
@@ -182,5 +282,4 @@
                 </div>
             </div>
         </div>
-    </div>
     </div>

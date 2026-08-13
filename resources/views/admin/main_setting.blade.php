@@ -218,7 +218,6 @@
                             'export_aipn' => ['icon' => 'bi-file-earmark-medical-fill', 'color' => 'success', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลประกันสังคมผู้ป่วยใน (AIPN Export)'],
                             'export_csop' => ['icon' => 'bi-file-earmark-zip-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยนอก (CSOP Export)'],
                             'export_cipn' => ['icon' => 'bi-file-earmark-lock-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยใน (CIPN Export)'],
-                            'nhso_checkright' => ['icon' => 'bi-card-checklist', 'color' => 'info', 'desc' => 'เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)'],
                             'debtor_control' => ['icon' => 'bi-cash-coin', 'color' => 'purple', 'desc' => 'ระบบทะเบียนคุมลูกหนี้ และบันทึกการรับชำระหนี้ (DebtorControl)'],
                         ];
                     @endphp

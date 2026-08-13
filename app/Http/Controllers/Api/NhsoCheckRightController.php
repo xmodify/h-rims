@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use App\Services\LicenseVerificationService;
 
 class NhsoCheckRightController extends Controller
 {
@@ -20,10 +19,6 @@ class NhsoCheckRightController extends Controller
                 $user = auth()->user();
                 if ($user && $user->status !== 'admin' && $user->allow_check_right !== 'Y') {
                     return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ใช้งานโมดูลตรวจสอบสิทธินี้'], 403);
-                }
-                
-                if (!LicenseVerificationService::isLicensed()) {
-                    return response()->json(['status' => 'error', 'message' => 'ระบบระงับการทำงานชั่วคราว: สำหรับ License เท่านั้น กรุณาลงทะเบียน License ที่เมนูตั้งค่าระบบ'], 403);
                 }
                 
                 return $next($request);

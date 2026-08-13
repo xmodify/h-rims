@@ -1112,7 +1112,7 @@ class SssExportController extends Controller
                     'an' => $an,
                     'seq' => $idx + 1,
                     'dxtype' => $diagtype,
-                    'codesys' => '1',
+                    'codesys' => 'ICD-10',
                     'code' => $icd10,
                     'diagterm' => $this->escape_xml($d->icd10),
                     'dr' => $d->licenseno ?: 'ว00000',
@@ -1159,7 +1159,7 @@ class SssExportController extends Controller
                 $ipop_rows[] = [
                     'an' => $an,
                     'seq' => $idx + 1,
-                    'codesys' => '1',
+                    'codesys' => 'ICD9CM',
                     'code' => trim($p->icd9),
                     'procterm' => $this->escape_xml(trim($p->icd9)),
                     'dr' => $p->licenseno ?: 'ว00000',
@@ -1173,9 +1173,11 @@ class SssExportController extends Controller
             // 3. BillItems (Inpatient item charges)
             $billitems_raw = DB::connection('hosxp')->select("
                 SELECT o.vstdate, o.icode, o.qty, o.sum_price, o.unitprice, o.discount, o.income, inc.income_csmbs_code,
+                       n.nhso_adp_code,
                        COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
                 FROM opitemrece o
                 LEFT JOIN income inc ON inc.income = o.income
+                LEFT JOIN nondrugitems n ON n.icode = o.icode
                 WHERE o.an = ?
             ", [$an]);
 
@@ -1231,7 +1233,8 @@ class SssExportController extends Controller
                 if ($billgr === '02') {
                     $claimcat = 'T';
                     // Fetch limit rate from lookup_sss_equipdev_aipn
-                    $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $item->icode)->first();
+                    $std_adp_code = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : $item->icode;
+                    $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $std_adp_code)->first();
                     if ($equip) {
                         $stdcode = $equip->code;
                         if ($unitprice > $equip->rate) {
@@ -1239,9 +1242,13 @@ class SssExportController extends Controller
                                 'an' => $an,
                                 'hn' => $hn,
                                 'ptname' => $ptname,
-                                'message' => "รหัสอุปกรณ์ {$item->icode} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)",
+                                'message' => "รหัสอุปกรณ์ {$std_adp_code} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)",
                                 'level' => 'error'
                             ];
+                        }
+                    } else {
+                        if (!empty($item->nhso_adp_code)) {
+                            $stdcode = trim($item->nhso_adp_code);
                         }
                     }
                 }
@@ -1352,8 +1359,8 @@ class SssExportController extends Controller
                     'discount' => number_format($discount, 2, '.', ''),
                     'claimsys' => 'SS',
                     'billgrcs' => $billgrcs,
-                    'cscode' => $item->icode,
-                    'codesys' => (!empty($stdcode)) ? (($billgr === '02') ? '0' : 'TMT') : '0',
+                    'cscode' => ($billgr === '02' && !empty($stdcode)) ? $stdcode : $item->icode,
+                    'codesys' => (!empty($stdcode)) ? (($billgr === '02') ? '0' : (in_array($billgr, ['06', '07']) ? 'TMLT' : 'TMT')) : '',
                     'stdcode' => $stdcode,
                     'claimcat' => $claimcat,
                     'claimup' => ($claimcat === 'D') ? '0.00' : number_format($unitprice, 2, '.', ''),
@@ -1404,7 +1411,11 @@ class SssExportController extends Controller
             $xml .= '    <Hcare>' . $hcode . '</Hcare>' . "\r\n";
             $actual_care_as = $care_as;
             if ($actual_care_as === 'AUTO') {
-                $actual_care_as = ($upayplan == '85') ? 'X' : 'M';
+                if ($hmain === $hcode) {
+                    $actual_care_as = 'M';
+                } else {
+                    $actual_care_as = in_array($upayplan, ['85', '95']) ? 'X' : 'B';
+                }
             }
             $xml .= '    <CareAs>' . $actual_care_as . '</CareAs>' . "\r\n";
             $xml .= '    <ServiceSubType></ServiceSubType>' . "\r\n";
@@ -1721,9 +1732,11 @@ class SssExportController extends Controller
         // Fetch Charge Items & catalog validations
         $items = DB::connection('hosxp')->select("
             SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income, inc.income_csmbs_code,
+                   MIN(n.nhso_adp_code) AS nhso_adp_code,
                    COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
             FROM opitemrece o
             LEFT JOIN income inc ON inc.income = o.income
+            LEFT JOIN nondrugitems n ON n.icode = o.icode
             WHERE o.an = ?
             GROUP BY o.icode
             ORDER BY income ASC, icode ASC
@@ -1771,10 +1784,11 @@ class SssExportController extends Controller
             $unitprice = (float)$item->unitprice;
 
             if ($billgr === '02') {
-                $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $item->icode)->first();
+                $std_adp_code = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : $item->icode;
+                $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $std_adp_code)->first();
                 if ($equip) {
                     if ($unitprice > $equip->rate) {
-                        $errors[] = "รหัสอุปกรณ์ {$item->icode} (" . trim($item->item_name) . ") ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
+                        $errors[] = "รหัสอุปกรณ์ {$std_adp_code} (" . trim($item->item_name) . ") ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
                     }
                 }
             }

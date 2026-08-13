@@ -46,11 +46,7 @@ class CheckLicense
             } elseif (str_contains($path, 'cipn')) {
                 $module = 'export_cipn';
             } elseif (
-                str_starts_with($path, 'debtor/acc_ledger') || 
-                str_contains($path, '_confirm') || 
-                str_contains($path, '/lock') || 
-                str_contains($path, '/unlock') || 
-                str_contains($path, 'lock_debtor')
+                str_starts_with($path, 'debtor/acc_ledger')
             ) {
                 $module = 'debtor_control';
             }
@@ -75,7 +71,6 @@ class CheckLicense
                 'export_aipn' => 'ระบบส่งออกข้อมูลประกันสังคม AIPN',
                 'export_csop' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CSOP',
                 'export_cipn' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CIPN',
-                'nhso_checkright' => 'ระบบตรวจสอบสิทธิ์การรักษา (สปสช.)',
                 'debtor_control' => 'ระบบทะเบียนคุมลูกหนี้ (DebtorControl)',
             ];
 

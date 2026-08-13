@@ -74,9 +74,9 @@
         if (!container) return;
 
         if (dataParams.skip_chart) {
-            const tableContainer = document.querySelector('.table-responsive');
-            if (tableContainer) {
-                tableContainer.innerHTML = `
+            const cardBody = document.querySelector('#data-container .card-body');
+            if (cardBody) {
+                cardBody.innerHTML = `
                     <div class="text-center py-5">
                         <div class="d-flex justify-content-center mb-3">
                             <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>

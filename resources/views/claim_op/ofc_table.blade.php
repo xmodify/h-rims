@@ -242,7 +242,11 @@
                                             }
                                         @endphp
                                         <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
-                                    @else
+                                    @endif
+                                    @if(!empty($row->rep_error_code))
+                                        <span class="badge bg-danger fw-bold d-block mt-1" style="font-size: 0.72rem; margin: 0 auto; width: fit-content;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error_code }}">C: {{ $row->rep_error_code }}</span>
+                                    @endif
+                                    @if(empty($row->check_detail) && empty($row->rep_error_code))
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
@@ -279,7 +283,7 @@
                                 <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
                                     {{ number_format($diff, 2) }}
                                 </td>
-                                <td class="text-center small text-muted">{{ $row->repno }}</td> 
+                                <td class="text-center small text-muted">{{ $row->repno ?: ($row->rep_repno ?: '-') }}</td> 
                             </tr>
                             @php 
                                 $count++; 

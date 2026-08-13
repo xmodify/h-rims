@@ -120,6 +120,16 @@ Route::match(['get', 'post'], 'import/rep_ucs_detail', [ImportRepController::cla
 Route::match(['get', 'post'], 'import/rep_ucs_detail_opd', [ImportRepController::class, 'rep_ucs_detail_opd'])->name('rep_ucs_detail_opd');
 Route::match(['get', 'post'], 'import/rep_ucs_detail_ipd', [ImportRepController::class, 'rep_ucs_detail_ipd'])->name('rep_ucs_detail_ipd');
 
+Route::match(['get', 'post'], 'import/rep_ofc', [ImportRepController::class, 'rep_ofc'])->name('rep_ofc');
+Route::post('import/rep_ofc_save', [ImportRepController::class, 'rep_ofc_save']);
+Route::get('import/rep_ofc/chart-data', [ImportRepController::class, 'rep_ofc_getChartData'])->name('import.rep_ofc.chart-data');
+Route::get('import/rep_ofc/c-code-chart-data', [ImportRepController::class, 'rep_ofc_getCCodeChartData'])->name('import.rep_ofc.c-code-chart-data');
+Route::get('import/rep_ofc/fail-details', [ImportRepController::class, 'rep_ofc_getFailDetails'])->name('import.rep_ofc.fail-details');
+Route::match(['get', 'post'], 'import/rep_ofc_detail', [ImportRepController::class, 'rep_ofc_detail'])->name('rep_ofc_detail');
+Route::match(['get', 'post'], 'import/rep_ofc_detail_opd', [ImportRepController::class, 'rep_ofc_detail_opd'])->name('rep_ofc_detail_opd');
+Route::match(['get', 'post'], 'import/rep_ofc_detail_ipd', [ImportRepController::class, 'rep_ofc_detail_ipd'])->name('rep_ofc_detail_ipd');
+
+
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');
 Route::match(['get', 'post'], 'import/dmis', [ImportDmisController::class, 'index'])->name('import.dmis');

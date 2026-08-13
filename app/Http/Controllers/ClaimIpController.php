@@ -772,7 +772,7 @@ $visits = DB::connection('hosxp')->select('
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL
+                    CASE WHEN ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL OR rep.an IS NOT NULL
                          THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
                          ELSE 0 
                     END AS claim_sent_price,
@@ -817,6 +817,12 @@ $visits = DB::connection('hosxp')->select('
                     GROUP BY i2.an
                 ) csop ON csop.an = i.an
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an 
+                    FROM hrims.rep_ofc 
+                    WHERE rep_type = "IP" AND dchdate BETWEEN ? AND ?
+                    GROUP BY an
+                ) rep ON rep.an = i.an
                 WHERE i.confirm_discharge = "Y" 
                 AND i.dchdate BETWEEN ? AND ?
                 AND p.hipdata_code = "OFC"
@@ -824,7 +830,7 @@ $visits = DB::connection('hosxp')->select('
             ) AS a
             GROUP BY y, m
             ORDER BY y, m',
-            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
+            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
         );
 
         $month = array_column($sum_month, 'month');
@@ -876,6 +882,12 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT an 
+                FROM hrims.rep_ofc 
+                WHERE rep_type = "IP" AND dchdate BETWEEN ? AND ?
+                GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
                 SELECT an FROM hrims.stm_ofc 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
@@ -897,9 +909,9 @@ $search = DB::connection('hosxp')->select(
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "OFC" 
             AND ec.an IS NULL
-            AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL
+            AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL AND rep.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         // 4. Claimed Data (OFC)
@@ -912,7 +924,8 @@ $search = DB::connection('hosxp')->select(
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
-                CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno,
+                CONCAT_WS(",", stm.repno, cipn.rid, csop.rid, rep_eclaim.repno) AS repno,
+                rep_eclaim.error_code AS rep_error_code, rep_eclaim.repno AS rep_repno,
                 ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
@@ -943,6 +956,19 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_ofc
+                    WHERE rep_type = "IP" AND dchdate BETWEEN ? AND ?
+                ) t1 WHERE t1.rn = 1
+            ) rep_eclaim ON rep_eclaim.an = i.an
+            LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno 
                 FROM hrims.stm_ofc 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
@@ -966,9 +992,9 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "OFC" 
-            AND (ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL)
+            AND (ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL OR rep_eclaim.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         

@@ -6,18 +6,18 @@
     <!-- Import Form Card -->
     <div class="row justify-content-center mt-3 mb-4">
         <div class="col-md-8">
-            <div class="card dash-card accent-9">
-                <div class="card-body">
-                    <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/rep_ucs_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+            <div class="card dash-card border-0 shadow-sm" style="border-top: 4px solid #0d6efd !important; border-radius: 14px;">
+                <div class="card-body p-4">
+                    <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/rep_ofc_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf
                         <div class="text-center mb-3">
-                            <h6 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ REP (Excel Only)</h6>
+                            <h6 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel me-2 text-primary"></i> นำเข้าไฟล์ REP ข้าราชการ (Excel Only)</h6>
                             <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่จำกัดจำนวนไฟล์</p>
                         </div>
                         
                         <div class="input-group mb-3">
                             <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
+                            <button class="btn btn-primary px-4" type="submit" style="border-radius: 0 10px 10px 0;">
                                 <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
                             </button>
                         </div>
@@ -34,18 +34,18 @@
     </div>
 
     <!-- Page Header & Search -->
-    <div class="page-header-box">
+    <div class="page-header-box mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3 p-3 bg-white shadow-sm" style="border-radius: 14px;">
         <div>
-            <h5 class="text-dark mb-0 fw-bold">
-                <i class="bi bi-cloud-arrow-down-fill text-success me-2"></i>
-                ข้อมูลการตรวจสอบเบื้องต้น (REP) ประกันสุขภาพ UCS [OP-IP]
+            <h5 class="text-dark mb-0 fw-bold text-truncate" style="max-width: 500px;">
+                <i class="bi bi-cloud-arrow-down-fill text-primary me-2"></i>
+                ข้อมูลการตรวจสอบเบื้องต้น (REP) สิทธิ์ข้าราชการ OFC [OP-IP]
             </h5>
             <div class="text-muted small mt-1">ปีงบประมาณประจำปัจจุบัน: {{ $budget_year }}</div>
-            <div class="mt-2 d-flex gap-2">
-                <a href="{{ url('/import/rep_ucs_detail_opd') }}" class="btn btn-primary btn-sm rounded-pill px-3">
+            <div class="mt-2 d-flex gap-2 flex-wrap">
+                <a href="{{ url('/import/rep_ofc_detail_opd') }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
                     <i class="bi bi-person-badge me-1"></i> รายละเอียด OPD
                 </a>
-                <a href="{{ url('/import/rep_ucs_detail_ipd') }}" class="btn btn-danger btn-sm rounded-pill px-3">
+                <a href="{{ url('/import/rep_ofc_detail_ipd') }}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
                     <i class="bi bi-hospital me-1"></i> รายละเอียด IPD
                 </a>
                 <button type="button" class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#chartModal" id="btnShowChart">
@@ -60,7 +60,7 @@
         <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
             <div class="d-flex align-items-center gap-2">
-                <span class="text-muted small">ปีงบประมาณ:</span>
+                <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
                 <select class="form-select form-select-sm" name="budget_year" style="width: 160px; border-radius: 8px;">
                     @foreach ($budget_year_select as $row)
                         <option value="{{ $row->LEAVE_YEAR_ID }}"
@@ -75,10 +75,10 @@
     </div>
 
     <!-- Data Table Card -->
-    <div class="card dash-card border-top-0">
+    <div class="card dash-card border-0 shadow-sm mb-4" style="border-radius: 14px;">
         <div class="card-body p-4">
             <div class="table-responsive">
-                <table id="rep_ucs" class="table table-modern w-100">
+                <table id="rep_ofc_table" class="table table-modern w-100">
                     <thead>
                         <tr>
                             <th class="text-center" width="25%">ชื่อ File</th>
@@ -100,7 +100,7 @@
                             $total_charge = 0;
                             $total_receive = 0;
                         @endphp
-                        @foreach($rep_ucs as $row)
+                        @foreach($rep_ofc as $row)
                         @php
                             $total_cid += $row->count_cid;
                             $total_pass += $row->count_pass;
@@ -151,7 +151,7 @@
                                 @endif
                             </td>
                             <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
-                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>
+                            <td class="text-end text-primary fw-bold">{{ number_format($row->receive_total,2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -174,7 +174,7 @@
                                 @endif
                             </td>
                             <td class="text-end text-muted">{{ number_format($total_charge,2) }}</td>
-                            <td class="text-end text-success">{{ number_format($total_receive,2) }}</td>
+                            <td class="text-end text-primary">{{ number_format($total_receive,2) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -189,12 +189,12 @@
         <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
             <div class="modal-header border-0 pb-0">
                 <div class="d-flex align-items-center">
-                    <div class="icon-box icon-bg-1 mb-0 me-3" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; background-color: #0284c7; border-radius: 12px; color: white;">
+                    <div class="icon-box bg-primary text-white mb-0 me-3" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
                         <i class="bi bi-bar-chart-fill fs-5"></i>
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold text-dark" id="db_title">Dashboard</h5>
-                        <div class="text-muted small" id="db_subtitle">ยอดชดเชยสุทธิรายเดือน REP ประกันสุขภาพ UCS</div>
+                        <div class="text-muted small" id="db_subtitle">ยอดชดเชยสุทธิรายเดือน REP สิทธิ์ข้าราชการ OFC</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -243,7 +243,7 @@
         <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
             <div class="modal-header border-0 pb-0">
                 <div class="d-flex align-items-center">
-                    <div class="icon-box bg-danger-soft text-danger mb-0 me-3" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; background-color: rgba(239, 68, 68, 0.08); border-radius: 12px; color: #ef4444;">
+                    <div class="icon-box bg-danger-soft text-danger mb-0 me-3" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; background-color: rgba(239, 68, 68, 0.08); border-radius: 12px;">
                         <i class="bi bi-exclamation-triangle-fill fs-5"></i>
                     </div>
                     <div>
@@ -355,7 +355,7 @@
             text: "{!! session('rep_success') !!}",
             icon: 'success',
             confirmButtonText: 'ปิด',
-            confirmButtonColor: '#673ab7',
+            confirmButtonColor: '#0d6efd',
             customClass: {
                 confirmButton: 'btn btn-primary btn-sm px-4'
             },
@@ -404,7 +404,7 @@
                     text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
                     icon: 'warning',
                     confirmButtonText: 'ปิด',
-                    confirmButtonColor: '#673ab7',
+                    confirmButtonColor: '#0d6efd',
                     customClass: {
                         confirmButton: 'btn btn-primary btn-sm px-4'
                     }
@@ -418,7 +418,7 @@
 
         $(document).ready(function () {
 
-            $('#rep_ucs').DataTable({
+            $('#rep_ofc_table').DataTable({
                 ordering: false,
                 dom: '<"row mb-3"' +
                         '<"col-md-6"l>' +
@@ -434,7 +434,7 @@
                     extend: 'excelHtml5',
                     text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
                     className: 'btn btn-success btn-sm',
-                    title: 'ข้อมูล REP ประกันสุขภาพ UCS [OP-IP]'
+                    title: 'ข้อมูล REP สิทธิ์ข้าราชการ OFC [OP-IP]'
                 }
                 ],
                 language: {
@@ -476,13 +476,13 @@
                 const budgetYear = $('#modal_filter_budget_year').val();
                 const budgetYearText = $('#modal_filter_budget_year option:selected').text().trim();
 
-                $('#db_subtitle').text(`ยอดชดเชยสุทธิรายเดือน REP ประกันสุขภาพ UCS ปีงบประมาณ: ${budgetYearText}`);
+                $('#db_subtitle').text(`ยอดชดเชยสุทธิรายเดือน REP สิทธิ์ข้าราชการ OFC ปีงบประมาณ: ${budgetYearText}`);
 
                 $('#chart_container').addClass('d-none');
                 $('#loading_spinner').removeClass('d-none');
 
                 $.ajax({
-                    url: "{{ route('import.rep_ucs.chart-data') }}",
+                    url: "{{ route('import.rep_ofc.chart-data') }}",
                     method: "GET",
                     data: {
                         budget_year: budgetYear
@@ -522,7 +522,7 @@
                         toolbar: { show: false }
                     },
                     markers: { size: 4 },
-                    colors: ['#10b981', '#ef4444'],
+                    colors: ['#0d6efd', '#ef4444'],
                     fill: {
                         type: "gradient",
                         gradient: {
@@ -591,7 +591,7 @@
 
                 // AJAX Request
                 $.ajax({
-                    url: "{{ route('import.rep_ucs.fail-details') }}",
+                    url: "{{ route('import.rep_ofc.fail-details') }}",
                     method: "GET",
                     data: {
                         rep_filename: filename,
@@ -660,7 +660,7 @@
                 }
 
                 $.ajax({
-                    url: "{{ route('import.rep_ucs.c-code-chart-data') }}",
+                    url: "{{ route('import.rep_ofc.c-code-chart-data') }}",
                     method: "GET",
                     data: {
                         budget_year: budgetYear,

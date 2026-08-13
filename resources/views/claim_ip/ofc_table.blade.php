@@ -214,8 +214,18 @@
                                             <span class="badge bg-primary-soft text-primary py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
                                         @endif
                                     </td>                                  
-                                    <td class="text-center small" data-order="{{ $row->rep_error ?: '-' }}">
-                                        <div class="text-truncate text-danger" style="max-width: 100px;" title="{{ $row->rep_error }}">{{ $row->rep_error ?: '-' }}</div>
+                                    <td class="text-center small" data-order="{{ $row->rep_error ?: ($row->rep_error_code ?: '-') }}">
+                                        @if(!empty($row->rep_error))
+                                            <div class="text-truncate text-danger fw-bold" style="max-width: 100px;" title="{{ $row->rep_error }}">{{ $row->rep_error }}</div>
+                                        @endif
+                                        @if(!empty($row->rep_error_code))
+                                            <span class="badge bg-danger fw-bold d-block mt-1" style="font-size: 0.72rem; margin: 0 auto; width: fit-content;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error_code }}">
+                                                C: {{ $row->rep_error_code }}
+                                            </span>
+                                        @endif
+                                        @if(empty($row->rep_error) && empty($row->rep_error_code))
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     </td>
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">
@@ -245,7 +255,7 @@
                                     <td class="text-end small">{{ number_format($row->receive_total-$row->receive_treatment,2) }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($row->receive_total,2) }}</td>
                                     <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($row->receive_total-$row->claim_price,2) }}</td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
+                                    <td class="text-center small text-muted">{{ $row->repno ?: ($row->rep_repno ?: '-') }}</td>
                                 </tr>
                                 @php 
                                     $count++; 

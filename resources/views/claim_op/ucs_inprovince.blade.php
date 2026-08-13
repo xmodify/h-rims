@@ -175,9 +175,13 @@
             type: "POST",
             data: Object.assign({ _token: "{{ csrf_token() }}" }, dataParams),
             success: function(res) {
-                
-                // Inject updated tables HTML partial
-                $('#data-container').html(res.table_html);
+                if (dataParams.skip_chart) {
+                    const tempDiv = $('<div>').html(res.table_html);
+                    $('#data-container .card-header').replaceWith(tempDiv.find('.card-header'));
+                    $('#data-container .card-body').replaceWith(tempDiv.find('.card-body'));
+                } else {
+                    $('#data-container').html(res.table_html);
+                }
 
                 // Sync current chart data
                 if (res.chart_data) {
@@ -185,7 +189,7 @@
                 }
 
                 // Render Chart
-                if (window.currentChartData) {
+                if (!dataParams.skip_chart && window.currentChartData) {
                     drawChart(window.currentChartData);
                 }
 

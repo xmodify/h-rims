@@ -4809,8 +4809,8 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             op_data.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS ppfs,
-            rep.rep_eclaim_detail_nhso AS rep_nhso,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
+            rep.net_compensate_nhso AS rep_nhso,
+            rep.error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
             pt.sex, v.age_y, doc.licenseno AS doctor_license
             FROM ovst o
@@ -4845,7 +4845,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
+            LEFT JOIN hrims.rep_sss rep ON rep.seq_no=o.vn AND rep.rep_type="OP"
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs

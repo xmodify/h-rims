@@ -57,6 +57,54 @@
                     </div>
                 </div>
             </div>
+            <!-- 3. REP SSS [OP-IP] -->
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm stm-card card-sss">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-box bg-indigo-soft text-indigo me-3">
+                                <i class="bi bi-shield-fill-plus fs-3"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title fw-bold mb-0 text-dark">REP-SSS [OP-IP]</h5>
+                                <span class="badge bg-indigo-soft text-indigo small mt-1">สิทธิ์ประกันสังคม</span>
+                            </div>
+                        </div>
+                        <p class="text-muted small flex-grow-1">
+                            ข้อมูลการชดเชยค่าบริการระบบสิทธิ์ประกันสังคม (SSS) จาก e-Claim ทั้งประเภทผู้ป่วยนอกและผู้ป่วยใน เพื่อใช้วิเคราะห์และตรวจสอบเคสติดขัด
+                        </p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ url('/import/rep_sss') }}" class="btn btn-outline-indigo btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 4. REP LGO [OP-IP] -->
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm stm-card card-lgo">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-box bg-cyan-soft text-cyan me-3">
+                                <i class="bi bi-building fs-3"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title fw-bold mb-0 text-dark">REP-LGO [OP-IP]</h5>
+                                <span class="badge bg-cyan-soft text-cyan small mt-1">สิทธิ์องค์กรปกครองส่วนท้องถิ่น</span>
+                            </div>
+                        </div>
+                        <p class="text-muted small flex-grow-1">
+                            ข้อมูลการชดเชยค่าบริการระบบสิทธิ์พนักงานส่วนท้องถิ่น (LGO/อปท.) จาก e-Claim ทั้งประเภทผู้ป่วยนอกและผู้ป่วยใน เพื่อใช้วิเคราะห์และตรวจสอบเคสติดขัด
+                        </p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ url('/import/rep_lgo') }}" class="btn btn-outline-cyan btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -72,6 +120,8 @@
         
         .card-ucs { border-top: 4px solid #10b981 !important; }
         .card-ofc { border-top: 4px solid #0d6efd !important; }
+        .card-sss { border-top: 4px solid #6f42c1 !important; }
+        .card-lgo { border-top: 4px solid #17a2b8 !important; }
 
         .card-ucs:hover { 
             border-color: #10b981 !important; 
@@ -82,6 +132,18 @@
         .card-ofc:hover { 
             border-color: #0d6efd !important; 
             box-shadow: 0 12px 24px rgba(13, 110, 253, 0.15) !important; 
+            transform: translateY(-5px); 
+        }
+
+        .card-sss:hover { 
+            border-color: #6f42c1 !important; 
+            box-shadow: 0 12px 24px rgba(111, 66, 193, 0.15) !important; 
+            transform: translateY(-5px); 
+        }
+
+        .card-lgo:hover { 
+            border-color: #17a2b8 !important; 
+            box-shadow: 0 12px 24px rgba(23, 162, 184, 0.15) !important; 
             transform: translateY(-5px); 
         }
 
@@ -100,11 +162,23 @@
         .bg-primary-soft { background-color: rgba(13, 110, 253, 0.08) !important; }
         .text-primary { color: #0d6efd !important; }
 
+        .bg-indigo-soft { background-color: rgba(111, 66, 193, 0.08) !important; }
+        .text-indigo { color: #6f42c1 !important; }
+
+        .bg-cyan-soft { background-color: rgba(23, 162, 184, 0.08) !important; }
+        .text-cyan { color: #17a2b8 !important; }
+
         .btn-outline-emerald { color: #10b981; border-color: #10b981; }
         .btn-outline-emerald:hover { color: #fff; background-color: #10b981; border-color: #10b981; }
 
         .btn-outline-primary { color: #0d6efd; border-color: #0d6efd; }
         .btn-outline-primary:hover { color: #fff; background-color: #0d6efd; border-color: #0d6efd; }
+
+        .btn-outline-indigo { color: #6f42c1; border-color: #6f42c1; }
+        .btn-outline-indigo:hover { color: #fff; background-color: #6f42c1; border-color: #6f42c1; }
+
+        .btn-outline-cyan { color: #17a2b8; border-color: #17a2b8; }
+        .btn-outline-cyan:hover { color: #fff; background-color: #17a2b8; border-color: #17a2b8; }
     </style>
 
 @endsection

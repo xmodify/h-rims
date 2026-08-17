@@ -129,6 +129,23 @@ Route::match(['get', 'post'], 'import/rep_ofc_detail', [ImportRepController::cla
 Route::match(['get', 'post'], 'import/rep_ofc_detail_opd', [ImportRepController::class, 'rep_ofc_detail_opd'])->name('rep_ofc_detail_opd');
 Route::match(['get', 'post'], 'import/rep_ofc_detail_ipd', [ImportRepController::class, 'rep_ofc_detail_ipd'])->name('rep_ofc_detail_ipd');
 
+Route::match(['get', 'post'], 'import/rep_sss', [ImportRepController::class, 'rep_sss'])->name('rep_sss');
+Route::post('import/rep_sss_save', [ImportRepController::class, 'rep_sss_save']);
+Route::get('import/rep_sss/chart-data', [ImportRepController::class, 'rep_sss_getChartData'])->name('import.rep_sss.chart-data');
+Route::get('import/rep_sss/c-code-chart-data', [ImportRepController::class, 'rep_sss_getCCodeChartData'])->name('import.rep_sss.c-code-chart-data');
+Route::get('import/rep_sss/fail-details', [ImportRepController::class, 'rep_sss_getFailDetails'])->name('import.rep_sss.fail-details');
+Route::match(['get', 'post'], 'import/rep_sss_detail', [ImportRepController::class, 'rep_sss_detail'])->name('rep_sss_detail');
+Route::match(['get', 'post'], 'import/rep_sss_detail_opd', [ImportRepController::class, 'rep_sss_detail_opd'])->name('rep_sss_detail_opd');
+Route::match(['get', 'post'], 'import/rep_sss_detail_ipd', [ImportRepController::class, 'rep_sss_detail_ipd'])->name('rep_sss_detail_ipd');
+
+Route::match(['get', 'post'], 'import/rep_lgo', [ImportRepController::class, 'rep_lgo'])->name('rep_lgo');
+Route::post('import/rep_lgo_save', [ImportRepController::class, 'rep_lgo_save']);
+Route::get('import/rep_lgo/chart-data', [ImportRepController::class, 'rep_lgo_getChartData'])->name('import.rep_lgo.chart-data');
+Route::get('import/rep_lgo/c-code-chart-data', [ImportRepController::class, 'rep_lgo_getCCodeChartData'])->name('import.rep_lgo.c-code-chart-data');
+Route::get('import/rep_lgo/fail-details', [ImportRepController::class, 'rep_lgo_getFailDetails'])->name('import.rep_lgo.fail-details');
+Route::match(['get', 'post'], 'import/rep_lgo_detail', [ImportRepController::class, 'rep_lgo_detail'])->name('rep_lgo_detail');
+Route::match(['get', 'post'], 'import/rep_lgo_detail_opd', [ImportRepController::class, 'rep_lgo_detail_opd'])->name('rep_lgo_detail_opd');
+Route::match(['get', 'post'], 'import/rep_lgo_detail_ipd', [ImportRepController::class, 'rep_lgo_detail_ipd'])->name('rep_lgo_detail_ipd');
 
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');

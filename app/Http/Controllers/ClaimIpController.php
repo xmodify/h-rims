@@ -60,8 +60,11 @@ class ClaimIpController extends Controller
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN fdh_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL OR stm_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -80,11 +83,16 @@ class ClaimIpController extends Controller
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL
-                         THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
-                         ELSE 0 
-                    END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    fdh.an AS fdh_an,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -96,14 +104,6 @@ class ClaimIpController extends Controller
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an           
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_ucs 
@@ -128,23 +128,23 @@ class ClaimIpController extends Controller
             GROUP BY y, m
             ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (Wait for claim - Optimized)
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
+        // 3. Search Data (Wait for claim - Optimized)
+        $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
                 fdh.status_message_th AS fdh_status
@@ -160,14 +160,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -200,8 +192,13 @@ $search = DB::connection('hosxp')->select('
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status
@@ -217,14 +214,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -258,6 +247,13 @@ $search = DB::connection('hosxp')->select('
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
             AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
 
         
         $table_html = view('claim_ip.ucs_incup_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -318,8 +314,11 @@ $search = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN fdh_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL OR stm_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -338,11 +337,16 @@ $search = DB::connection('hosxp')->select('
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL
-                         THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
-                         ELSE 0 
-                    END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    fdh.an AS fdh_an,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -354,14 +358,6 @@ $search = DB::connection('hosxp')->select('
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an           
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_ucs 
@@ -386,23 +382,23 @@ $search = DB::connection('hosxp')->select('
             GROUP BY y, m
             ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (Out-CUP)
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
+        // 3. Search Data (Out-CUP)
+        $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
                 fdh.status_message_th AS fdh_status
@@ -418,14 +414,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -458,8 +446,13 @@ $search = DB::connection('hosxp')->select('
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status
@@ -475,14 +468,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -516,6 +501,13 @@ $search = DB::connection('hosxp')->select('
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
             AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
 
         
         $table_html = view('claim_ip.ucs_outcup_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -576,8 +568,11 @@ $search = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN fdh_an IS NOT NULL OR ec_an IS NOT NULL OR stm_an IS NOT NULL OR fdh_date IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -596,8 +591,16 @@ $search = DB::connection('hosxp')->select('
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    fdh.an AS fdh_an,
+                    i.data_exp_date AS fdh_date,
+                    ec.an AS ec_an,
+                    stm.an AS stm_an,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -609,14 +612,6 @@ $search = DB::connection('hosxp')->select('
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
@@ -633,23 +628,22 @@ $search = DB::connection('hosxp')->select('
             GROUP BY y, m
             ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Visits Data (STP Combined)
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$visits = DB::connection('hosxp')->select('
+        $visits = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
                 ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
@@ -667,14 +661,6 @@ $visits = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -694,7 +680,10 @@ $visits = DB::connection('hosxp')->select('
             AND p.hipdata_code = "STP" 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        
+        foreach ($visits as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+
         $table_html = view('claim_ip.stp_table', compact('budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'))->render();
 
         $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $visits);
@@ -710,6 +699,7 @@ $visits = DB::connection('hosxp')->select('
                 'receive_total' => $receive_total ?? []
             ]
         ]);
+
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
@@ -751,8 +741,11 @@ $visits = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN ec_an IS NOT NULL OR stm_an IS NOT NULL OR cipn_an IS NOT NULL OR csop_an IS NOT NULL OR rep_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -771,11 +764,17 @@ $visits = DB::connection('hosxp')->select('
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL OR rep.an IS NOT NULL
-                         THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
-                         ELSE 0 
-                    END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
+                    cipn.an AS cipn_an,
+                    csop.an AS csop_an,
                     (IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -787,14 +786,6 @@ $visits = DB::connection('hosxp')->select('
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_ofc 
@@ -831,26 +822,26 @@ $visits = DB::connection('hosxp')->select('
             GROUP BY y, m
             ORDER BY y, m',
             [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
-        );
+            );
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (OFC)
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select(
+        // 3. Search Data (OFC - Optimized)
+        $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -866,14 +857,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -914,13 +897,18 @@ $search = DB::connection('hosxp')->select(
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        // 4. Claimed Data (OFC)
+        // 4. Claimed Data (OFC - Optimized)
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
@@ -940,14 +928,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -996,6 +976,16 @@ $search = DB::connection('hosxp')->select(
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            if (!empty($row->repno)) {
+                $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
+            }
+        }
 
         
         $table_html = view('claim_ip.ofc_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -1056,8 +1046,11 @@ $search = DB::connection('hosxp')->select(
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN (ic_an IS NOT NULL AND ict_id IN ("4","5")) OR stm_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1076,8 +1069,17 @@ $search = DB::connection('hosxp')->select(
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1089,16 +1091,12 @@ $search = DB::connection('hosxp')->select(
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an FROM hrims.rep_lgo WHERE rep_type = "IP" GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(compensate_treatment) AS receive_total 
                     FROM hrims.stm_lgo 
@@ -1113,18 +1111,23 @@ $search = DB::connection('hosxp')->select(
             GROUP BY y, m
             ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        // 3. Search Data (LGO)
+        // 3. Search Data (Wait for claim - Optimized)
         $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -1140,14 +1143,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1156,6 +1151,9 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT an FROM hrims.rep_lgo WHERE rep_type = "IP" GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
                 SELECT an FROM hrims.stm_lgo 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
@@ -1163,18 +1161,23 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "LGO" 
-            AND stm.an IS NULL AND ec.an IS NULL
+            AND stm.an IS NULL AND ec.an IS NULL AND rep.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
- 
-        // 4. Claimed Data (LGO)
+  
+        // 4. Claimed Data (LGO - Optimized)
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 stm.case_iplg AS receive_treatment,stm.compensate_treatment AS receive_total,stm.repno,
-                ec.check_detail AS rep_error,
+                rep.error_code AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1188,14 +1191,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1203,6 +1198,19 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_lgo
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an, SUM(case_iplg) AS case_iplg, SUM(compensate_treatment) AS compensate_treatment,
                 GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
@@ -1212,8 +1220,15 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "LGO" 
-            AND (stm.an IS NOT NULL OR ec.an IS NOT NULL)
+            AND (stm.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
 
         
         $table_html = view('claim_ip.lgo_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -1270,13 +1285,15 @@ $search = DB::connection('hosxp')->select(
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select(
-            '
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN (ic_an IS NOT NULL AND ict_id IN ("4","5")) OR stm_an IS NOT NULL OR kidney_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1295,8 +1312,18 @@ $search = DB::connection('hosxp')->select(
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
+                    kidney.an AS kidney_an,
                     (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1308,16 +1335,12 @@ $search = DB::connection('hosxp')->select(
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an FROM hrims.rep_bkk WHERE rep_type = "IP" GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_bkk 
@@ -1325,7 +1348,7 @@ $search = DB::connection('hosxp')->select(
                     GROUP BY an
                 ) stm ON stm.an = i.an
                 LEFT JOIN (
-                    SELECT i2.an, SUM(c.receive_total) AS receive_total 
+                    SELECT i2.an, SUM(c.receive_total) AS receive_total, GROUP_CONCAT(c.repno) AS repno 
                     FROM hrims.stm_bkk_kidney c
                     INNER JOIN ipt i2 ON i2.hn = c.hn AND c.datetimeadm BETWEEN i2.regdate AND i2.dchdate
                     WHERE i2.confirm_discharge = "Y"
@@ -1340,26 +1363,26 @@ $search = DB::connection('hosxp')->select(
             GROUP BY y, m
             ORDER BY y, m',
             [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
-        );
+            );
 
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (BKK)
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select(
+        // 3. Search Data (Wait for claim - Optimized)
+        $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -1375,14 +1398,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1390,6 +1405,9 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT an FROM hrims.rep_bkk WHERE rep_type = "IP" GROUP BY an
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an FROM hrims.stm_bkk 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
@@ -1406,23 +1424,28 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "BKK" 
-            AND stm.an IS NULL AND kidney.an IS NULL AND ec.an IS NULL
+            AND stm.an IS NULL AND kidney.an IS NULL AND ec.an IS NULL AND rep.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        // 4. Claimed Data (BKK)
+        // 4. Claimed Data (BKK - Optimized)
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
-                ec.check_detail AS rep_error,
+                rep.error_code AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1436,14 +1459,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1451,6 +1466,19 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_bkk
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno 
                 FROM hrims.stm_bkk 
@@ -1469,10 +1497,20 @@ $search = DB::connection('hosxp')->select(
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "BKK" 
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
-                OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL)
+                OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            if (!empty($row->repno)) {
+                $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
+            }
+        }
 
         
         $table_html = view('claim_ip.bkk_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -1534,8 +1572,11 @@ $search = DB::connection('hosxp')->select(
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN (ic_an IS NOT NULL AND ict_id IN ("4","5")) OR stm_an IS NOT NULL OR kidney_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1554,8 +1595,18 @@ $search = DB::connection('hosxp')->select(
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
+                    kidney.an AS kidney_an,
                     (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1567,17 +1618,12 @@ $search = DB::connection('hosxp')->select(
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an FROM hrims.rep_bmt WHERE rep_type = "IP" GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_bmt 
@@ -1606,20 +1652,20 @@ $search = DB::connection('hosxp')->select(
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (BMT)
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select(
+        // 3. Search Data (Wait for claim - Optimized)
+        $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -1635,14 +1681,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1650,6 +1688,9 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT an FROM hrims.rep_bmt WHERE rep_type = "IP" GROUP BY an
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an FROM hrims.stm_bmt 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
@@ -1666,23 +1707,28 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "BMT" 
-            AND stm.an IS NULL AND kidney.an IS NULL AND ec.an IS NULL
+            AND stm.an IS NULL AND kidney.an IS NULL AND ec.an IS NULL AND rep.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        // 4. Claimed Data (BMT)
+        // 4. Claimed Data (BMT - Optimized)
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
-                ec.check_detail AS rep_error,
+                rep.error_code AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1696,14 +1742,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1711,6 +1749,19 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_bmt
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno 
                 FROM hrims.stm_bmt 
@@ -1729,10 +1780,20 @@ $search = DB::connection('hosxp')->select(
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "BMT" 
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
-                OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL)
+                OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            if (!empty($row->repno)) {
+                $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
+            }
+        }
 
         
         $table_html = view('claim_ip.bmt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -1794,8 +1855,11 @@ $search = DB::connection('hosxp')->select(
             SELECT 
                 month,
                 COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(claim_sent_price) AS claim_sent_price,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN (ic_an IS NOT NULL AND ict_id IN ("4","5")) OR stm_an IS NOT NULL OR ec_an IS NOT NULL OR rep_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1814,8 +1878,17 @@ $search = DB::connection('hosxp')->select(
                         WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                     END AS month,
                     i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    ec.an AS ec_an,
+                    rep.an AS rep_an,
+                    stm.an AS stm_an,
                     IFNULL(stm.receive_total,0) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1827,17 +1900,12 @@ $search = DB::connection('hosxp')->select(
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
                 LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN (
+                    SELECT an FROM hrims.rep_srt WHERE rep_type = "IP" GROUP BY an
+                ) rep ON rep.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_srt 
@@ -1858,20 +1926,20 @@ $search = DB::connection('hosxp')->select(
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (SRT)
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select(
+        // 3. Search Data (Wait for claim - Optimized)
+        $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -1887,14 +1955,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1903,6 +1963,9 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
+                SELECT an FROM hrims.rep_srt WHERE rep_type = "IP" GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
                 SELECT an FROM hrims.stm_srt 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
@@ -1910,23 +1973,28 @@ $search = DB::connection('hosxp')->select(
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "SRT" 
-            AND stm.an IS NULL AND ec.an IS NULL
+            AND stm.an IS NULL AND ec.an IS NULL AND rep.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        // 4. Claimed Data (SRT)
+        // 4. Claimed Data (SRT - Optimized)
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) AS receive_total,
                 stm.repno AS repno,
-                ec.check_detail AS rep_error,
+                rep.error_code AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1940,14 +2008,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -1955,6 +2015,19 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_srt
+                    WHERE rep_type = "IP"
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
             LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno 
                 FROM hrims.stm_srt 
@@ -1965,10 +2038,17 @@ $search = DB::connection('hosxp')->select(
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "SRT" 
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
-                OR stm.an IS NOT NULL OR ec.an IS NOT NULL)
+                OR stm.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
 
         
         $table_html = view('claim_ip.srt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -2028,8 +2108,8 @@ $search = DB::connection('hosxp')->select(
         SELECT 
             month,
             COUNT(an) AS an,
-            SUM(claim_price) AS claim_price,
-            SUM(claim_sent_price) AS claim_sent_price,
+            SUM(income - rcpt_money) AS claim_price,
+            SUM(CASE WHEN rep_an IS NOT NULL OR stm_an IS NOT NULL THEN (income - rcpt_money) ELSE 0 END) AS claim_sent_price,
             SUM(receive_total) AS receive_total
         FROM (
             SELECT 
@@ -2048,8 +2128,14 @@ $search = DB::connection('hosxp')->select(
                     WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
                 END AS month,
                 i.an,
-                (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                CASE WHEN rep.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                IFNULL(inc.income,0) AS income,
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                rep.an AS rep_an,
+                stm.an AS stm_an,
                 (IFNULL(d.receive,0) + IFNULL(d1.receive,0) + IFNULL(d2.receive,0)) AS receive_total,
                 YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
             FROM ipt i            
@@ -2061,14 +2147,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN hrims.rep_sss_aipn rep ON rep.an = i.an
             LEFT JOIN hrims.stm_sss_aipn stm ON stm.an = i.an
             LEFT JOIN hrims.debtor_1102050101_302 d ON d.an = i.an
@@ -2090,8 +2168,13 @@ $search = DB::connection('hosxp')->select(
         $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(COALESCE(NULLIF(ip.auth_code, \'\'), NULLIF(vp.auth_code, \'\')) <> "", "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
@@ -2108,14 +2191,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2136,12 +2211,17 @@ $search = DB::connection('hosxp')->select(
             AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
  
-        // 4. Claimed Data (SSS)
+        // 4. Claimed Data (SSS - Optimized)
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(COALESCE(NULLIF(ip.auth_code, \'\'), NULLIF(vp.auth_code, \'\')) <> "", "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
@@ -2150,7 +2230,7 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
             LEFT JOIN visit_pttype vp ON vp.vn = i.vn
-            LEFT JOIN ward w ON w.ward=i.ward
+            LEFT JOIN ward w ON w.ward=i.vn
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (
                 SELECT o.an,o.pttype,SUM(o.sum_price) AS income
@@ -2158,14 +2238,6 @@ $search = DB::connection('hosxp')->select(
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2187,6 +2259,7 @@ $search = DB::connection('hosxp')->select(
 
         // Process rep error codes and warnings for already submitted claims
         foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
             $row->rep_error = null;
             $row->rep_warning = null;
             if (!empty($row->rep_error_codes)) {
@@ -2216,6 +2289,7 @@ $search = DB::connection('hosxp')->select(
         $validator = new \App\Services\ClaimValidator();
 
         foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
             $row->rep_error = null;
             $row->rep_warning = null;
             $errors = [];
@@ -2623,19 +2697,21 @@ $search = DB::connection('hosxp')->select(
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+        $claim_sent_price = array_fill(0, count($month), 0);
         $receive_total = array_column($sum_month, 'receive_total');
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
+        // 3. Search Data (SSS_HC - Optimized)
+        $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             a.age_y, p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
-            IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                        hc_items.claim_list,COALESCE(hc_items.claim_price, 0) AS claim_price
+            IFNULL(inc.income,0) AS income, 
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = i.an AND a.rcpno IS NULL
+            ) AS rcpt_money,
+            hc_items.claim_list,COALESCE(hc_items.claim_price, 0) AS claim_price
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -2648,14 +2724,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
 			LEFT JOIN iptdiag id ON id.an=a.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an 
             INNER JOIN (
@@ -2729,56 +2797,81 @@ $search = DB::connection('hosxp')->select('
 
         if (!$request->input('skip_chart')) {
             $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT i.dchdate,i.hn,i.an,(IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,d.receive AS receive_total
-            FROM ipt i            
-            LEFT JOIN ipt_pttype ip ON ip.an = i.an
-            LEFT JOIN pttype p ON p.pttype = ip.pttype           
-            LEFT JOIN (
-                SELECT o.an,o.pttype,SUM(o.sum_price) AS income
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype
-            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
-            LEFT JOIN hrims.debtor_1102050102_109 d ON d.an = i.an
-            WHERE i.confirm_discharge = "Y" 
-            AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("BFC","GOF","WVO")         
-            GROUP BY i.an ) AS a
+            SELECT 
+                month,
+                COUNT(an) AS an,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN (ic_an IS NOT NULL AND ict_id IN ("4","5")) OR ec_an IS NOT NULL
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
+                SUM(receive_total) AS receive_total
+            FROM (
+                SELECT 
+                    CASE 
+                        WHEN MONTH(i.dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    END AS month,
+                    i.dchdate,
+                    i.an,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    ec.an AS ec_an,
+                    IFNULL(d.receive,0) AS receive_total
+                FROM ipt i            
+                LEFT JOIN ipt_pttype ip ON ip.an = i.an
+                LEFT JOIN pttype p ON p.pttype = ip.pttype           
+                LEFT JOIN (
+                    SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                    FROM opitemrece o
+                    INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                    GROUP BY o.an, o.pttype
+                ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+                LEFT JOIN hrims.debtor_1102050102_109 d ON d.an = i.an
+                WHERE i.confirm_discharge = "Y" 
+                AND i.dchdate BETWEEN ? AND ?
+                AND p.hipdata_code IN ("BFC","GOF","WVO")         
+                GROUP BY i.an
+            ) AS a
             GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-        // 3. Search Data (GOF)
+        // 3. Search Data (GOF - Optimized)
         $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
@@ -2794,14 +2887,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2815,12 +2900,17 @@ $search = DB::connection('hosxp')->select('
             AND ec.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        // 4. Claimed Data (GOF)
+        // 4. Claimed Data (GOF - Optimized)
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 ec.check_detail AS rep_error,
                 ec.status AS ec_status
@@ -2836,14 +2926,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
             LEFT JOIN referout r ON r.vn=i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2856,7 +2938,13 @@ $search = DB::connection('hosxp')->select('
             AND (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5") OR ec.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+
         $table_html = view('claim_ip.gof_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
 
         $patient_items = array_merge(
@@ -2931,16 +3019,14 @@ $search = DB::connection('hosxp')->select('
                 SUM(CASE WHEN rcpt_money <> paid_money THEN (paid_money - rcpt_money) ELSE 0 END) AS claim_price,
                 SUM(CASE WHEN rcpt_money = paid_money THEN rcpt_money ELSE 0 END) AS receive_total
             FROM (
-                SELECT i.dchdate, i.an, IFNULL(a.paid_money,0) AS paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money
+                SELECT i.dchdate, i.an, IFNULL(a.paid_money,0) AS paid_money, 
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money
                 FROM ipt i                                 
                 LEFT JOIN an_stat a ON a.an=i.an           
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
                 WHERE i.confirm_discharge = "Y" 
                 AND i.dchdate BETWEEN ? AND ?
                 AND a.paid_money <> "0"
@@ -2955,12 +3041,22 @@ $search = DB::connection('hosxp')->select('
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
-                IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                a.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.total_amount AS paid_arrear,
+                IFNULL(inc.income,0) AS income, a.paid_money, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                (SELECT GROUP_CONCAT(r.rcpno ORDER BY r.rcpno)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpno,
+                p2.arrear_date,p2.amount AS arrear_amount, r1.total_amount AS paid_arrear,
                 r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -2974,14 +3070,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
@@ -2991,15 +3079,30 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = i.an
             LEFT JOIN rcpt_print r1 ON r1.vn = p2.an AND r1.`status` ="OK" AND r1.department="IPD"
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND a.paid_money <> "0" AND IFNULL(rc.rcpt_money,0) <> a.paid_money 
+            AND a.paid_money <> "0" 
+            AND (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) <> a.paid_money 
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype', [$start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
-                IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                a.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.total_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
+                IFNULL(inc.income,0) AS income, a.paid_money, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                (SELECT GROUP_CONCAT(r.rcpno ORDER BY r.rcpno)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpno,
+                p2.arrear_date,p2.amount AS arrear_amount, r1.total_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
                 fd.deposit_amount,fd1.debit_amount,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -3013,14 +3116,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
@@ -3030,7 +3125,12 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = i.an
             LEFT JOIN rcpt_print r1 ON r1.vn = p2.an AND r1.`status` ="OK"
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND a.paid_money <> "0" AND IFNULL(rc.rcpt_money,0) = a.paid_money 
+            AND a.paid_money <> "0" 
+            AND (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) = a.paid_money 
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype', [$start_date, $end_date, $start_date, $end_date]);
 
         
@@ -3057,7 +3157,7 @@ $search = DB::connection('hosxp')->select('
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function act(Request $request)
     {
-        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0);
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3092,61 +3192,78 @@ $search = DB::connection('hosxp')->select('
 
         if (!$request->input('skip_chart')) {
             $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT i.dchdate,i.hn,i.an,
-                (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                d.receive AS receive_total
-            FROM ipt i            
-            LEFT JOIN ipt_pttype ip ON ip.an = i.an
-            LEFT JOIN pttype p ON p.pttype = ip.pttype           
-            LEFT JOIN (
-                SELECT o.an,o.pttype,SUM(o.sum_price) AS income
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype
-            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
-            LEFT JOIN hrims.debtor_1102050102_602 d ON d.an = i.an
-            WHERE i.confirm_discharge = "Y" 
-            AND i.dchdate BETWEEN ? AND ?
-            AND p.pttype IN (' . $pttype_act . ')   
-            GROUP BY i.an ) AS a
-			GROUP BY YEAR(dchdate), MONTH(dchdate)
+            SELECT 
+                month,
+                COUNT(an) AS an,
+                SUM(income - rcpt_money) AS claim_price,
+                SUM(CASE WHEN ic_an IS NOT NULL AND ict_id IN ("4","5")
+                         THEN (income - rcpt_money)
+                         ELSE 0 
+                    END) AS claim_sent_price,
+                SUM(receive_total) AS receive_total
+            FROM (
+                SELECT 
+                    CASE 
+                        WHEN MONTH(i.dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                        WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    END AS month,
+                    i.dchdate,
+                    i.an,
+                    IFNULL(inc.income,0) AS income,
+                    (SELECT IFNULL(SUM(r.total_amount), 0)
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = i.an AND a.rcpno IS NULL
+                    ) AS rcpt_money,
+                    ic.an AS ic_an,
+                    ict.ipt_coll_status_type_id AS ict_id,
+                    IFNULL(d.receive,0) AS receive_total
+                FROM ipt i            
+                LEFT JOIN ipt_pttype ip ON ip.an = i.an
+                LEFT JOIN pttype p ON p.pttype = ip.pttype           
+                LEFT JOIN (
+                    SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                    FROM opitemrece o
+                    INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                    GROUP BY o.an, o.pttype
+                ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.debtor_1102050102_602 d ON d.an = i.an
+                WHERE i.confirm_discharge = "Y" 
+                AND i.dchdate BETWEEN ? AND ?
+                AND p.pttype IN (' . $pttype_act . ')   
+                GROUP BY i.an 
+            ) AS a
+            GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
             $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
                 i.adjrw,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -3160,14 +3277,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
@@ -3181,8 +3290,18 @@ $search = DB::connection('hosxp')->select('
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                (SELECT GROUP_CONCAT(r.rcpno ORDER BY r.rcpno)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpno,
                 i.adjrw,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -3196,14 +3315,6 @@ $search = DB::connection('hosxp')->select('
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
@@ -3214,7 +3325,13 @@ $search = DB::connection('hosxp')->select('
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+        }
+
         $table_html = view('claim_ip.act_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
 
         $patient_items = array_merge(

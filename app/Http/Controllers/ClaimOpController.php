@@ -156,7 +156,13 @@ class ClaimOpController extends Controller
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,claim_items.claim_list,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,
+            v.income,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,
+            COALESCE(claim_items.claim_price, 0) AS claim_price,
             claim_items.project,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             pt.sex, v.age_y
@@ -166,13 +172,6 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -218,7 +217,12 @@ class ClaimOpController extends Controller
             ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,
             o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            o.vn AS seq,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            o.vn AS seq,v.income,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
@@ -233,13 +237,6 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -571,7 +568,13 @@ class ClaimOpController extends Controller
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,claim_items.claim_list,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,
+            v.income,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,
+            COALESCE(claim_items.claim_price, 0) AS claim_price,
             claim_items.project,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y
@@ -581,13 +584,6 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -631,7 +627,12 @@ class ClaimOpController extends Controller
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             vp.confirm_and_locked,vp.request_funds,
             o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            o.vn AS seq,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            o.vn AS seq,v.income,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
@@ -648,13 +649,6 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -1946,7 +1940,6 @@ class ClaimOpController extends Controller
     public function ofc(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
-
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
@@ -1992,36 +1985,45 @@ class ClaimOpController extends Controller
 
         if (!$request->input('skip_chart')) {
             $sum_month = DB::connection('hosxp')->select('
-                SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                    WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                SELECT 
+                    CASE 
+                        WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                        WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
                     SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
                     SUM(IFNULL(receive_total,0)) AS receive_total
-                FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+                FROM (SELECT o.vn,o.vstdate,
+                IFNULL(v.income - IFNULL((
+                    SELECT SUM(r.total_amount) 
+                    FROM rcpt_print r 
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE r.vn = o.vn AND a.rcpno IS NULL
+                ), 0), 0) AS claim_price,
                 IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
-                CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL OR rep.vstdate IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
+                CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL OR rep.vstdate IS NOT NULL 
+                     THEN IFNULL(v.income - IFNULL((
+                         SELECT SUM(r.total_amount) 
+                         FROM rcpt_print r 
+                         LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                         WHERE r.vn = o.vn AND a.rcpno IS NULL
+                     ), 0), 0) 
+                     ELSE 0 
+                END AS claim_sent_price
                 FROM ovst o        
                 LEFT JOIN patient pt ON pt.hn=o.hn				
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn
                 LEFT JOIN pttype p ON p.pttype=vp.pttype 
                 LEFT JOIN vn_stat v ON v.vn = o.vn 	
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.vn = o.vn
                 LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
                 LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
                 LEFT JOIN (
@@ -2066,9 +2068,13 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             COALESCE(op_data.ems_price, 0) AS ems_price,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
+            0 AS debtor,
             ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
             FROM ovst o
@@ -2078,13 +2084,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2109,11 +2108,11 @@ class ClaimOpController extends Controller
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount, MAX(rid) AS rid
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
                 FROM hrims.stm_ofc_csop 
                 WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)      
+            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)       
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5
                 FROM hrims.rep_ofc 
@@ -2148,9 +2147,14 @@ class ClaimOpController extends Controller
             o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,IFNULL(v.paid_money, 0) AS paid_money,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             COALESCE(op_data.ems_price, 0) AS ems_price,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
+            0 AS debtor,
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
             rep_eclaim.error_code AS rep_error_code, rep_eclaim.repno AS rep_repno,
@@ -2162,13 +2166,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2258,6 +2255,7 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money) - floatval($row->ems_price);
             $result = $validator->validateOfc($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -2606,7 +2604,7 @@ class ClaimOpController extends Controller
         return view('claim_op.ofc_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function lgo(Request $request)
+            public function lgo(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -2667,27 +2665,41 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
-            IFNULL(stm.compensate_treatment,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+            IFNULL(v.income - IFNULL((
+                SELECT SUM(r.total_amount) 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ), 0), 0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL 
+                 THEN IFNULL(v.income - IFNULL((
+                     SELECT SUM(r.total_amount) 
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = o.vn AND a.rcpno IS NULL
+                 ), 0), 0) 
+                 ELSE 0 
+            END AS claim_sent_price,
+            IFNULL(COALESCE(rep.net_compensate_nhso, stm.compensate_treatment),0)+IFNULL(COALESCE(rep.net_compensate_employer, stm_uc.receive_pp),0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
-                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer
+                FROM hrims.rep_lgo
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment, GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
@@ -2704,7 +2716,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
@@ -2720,8 +2732,12 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             0 AS ems_price
             FROM ovst o
@@ -2731,13 +2747,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2755,8 +2764,13 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
+                FROM hrims.rep_lgo
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment, GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
@@ -2777,7 +2791,8 @@ class ClaimOpController extends Controller
             AND oe.upload_datetime IS NULL 
             AND stm.cid IS NULL
             AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND rep.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -2788,8 +2803,16 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
             oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,
+            COALESCE(rep.net_compensate_nhso, stm.compensate_treatment) AS receive_total,
+            COALESCE(rep.net_compensate_employer, stm_uc.receive_pp) AS receive_pp,
+            COALESCE(rep.repno, stm.repno) AS repno,
+            COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             0 AS ems_price
             FROM ovst o
@@ -2799,13 +2822,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2823,8 +2839,17 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer,
+                       MAX(error_code) AS error_code,
+                       MAX(repno) AS repno
+                FROM hrims.rep_lgo
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment, GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
@@ -2848,8 +2873,8 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL)
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
@@ -2875,14 +2900,16 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLGO($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLGO($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
@@ -2902,16 +2929,16 @@ class ClaimOpController extends Controller
             'success' => true,
             'table_html' => $table_html,
             'patient_items' => $patient_items,
-            'chart_data' => !empty($month) ? [
-                'month' => $month,
-                'claim_price' => $claim_price,
+            'chart_data' => [
+                'month'            => $month,
+                'claim_price'      => $claim_price,
                 'claim_sent_price' => $claim_sent_price,
-                'receive_total' => $receive_total
-            ] : null
+                'receive_total'    => $receive_total
+            ]
         ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function lgo_kidney(Request $request)
+public function lgo_kidney(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3106,7 +3133,7 @@ class ClaimOpController extends Controller
         ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function bkk(Request $request)
+            public function bkk(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3167,44 +3194,58 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
-            IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+            IFNULL(v.income - IFNULL((
+                SELECT SUM(r.total_amount) 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ), 0), 0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL 
+                 THEN IFNULL(v.income - IFNULL((
+                     SELECT SUM(r.total_amount) 
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = o.vn AND a.rcpno IS NULL
+                 ), 0), 0) 
+                 ELSE 0 
+            END AS claim_sent_price,
+            IFNULL(COALESCE(rep.net_compensate_nhso, stm.receive_total),0)+IFNULL(COALESCE(rep.net_compensate_employer, stm_uc.receive_pp),0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bkk 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer
+                FROM hrims.rep_bkk
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bkk 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code IN ("BKK","PTY")
+            AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
@@ -3212,13 +3253,22 @@ class ClaimOpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3226,13 +3276,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -3250,32 +3293,57 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bkk 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
+                FROM hrims.rep_bkk
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bkk 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5) 
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
-            AND stm.hn IS NULL 
+            AND stm.hn IS NULL
             AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND rep.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,
+            COALESCE(rep.net_compensate_nhso, stm.receive_total) AS receive_total,
+            COALESCE(rep.net_compensate_employer, stm_uc.receive_pp) AS receive_pp,
+            COALESCE(rep.repno, stm.repno) AS repno,
+            COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3283,13 +3351,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -3307,26 +3368,42 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bkk 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer,
+                       MAX(error_code) AS error_code,
+                       MAX(repno) AS repno
+                FROM hrims.rep_bkk
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bkk 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL)
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
@@ -3352,48 +3429,45 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateBkk($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateBkk($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
 
-        if ($request->ajax()) {
-            $table_html = view('claim_op.bkk_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search', 'claim'
-            ))->render();
+        $table_html = view('claim_op.bkk_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
 
-            $patient_items = array_merge(
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
-            );
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('claim_op.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month'            => $month,
+                'claim_price'      => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total'    => $receive_total
+            ]
+        ]);
     }
-
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function bkk_kidney(Request $request)
+public function bkk_kidney(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3587,7 +3661,7 @@ class ClaimOpController extends Controller
         return view('claim_op.bkk_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function bmt(Request $request)
+            public function bmt(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -3648,36 +3722,50 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
-            IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+            IFNULL(v.income - IFNULL((
+                SELECT SUM(r.total_amount) 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ), 0), 0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL 
+                 THEN IFNULL(v.income - IFNULL((
+                     SELECT SUM(r.total_amount) 
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = o.vn AND a.rcpno IS NULL
+                 ), 0), 0) 
+                 ELSE 0 
+            END AS claim_sent_price,
+            IFNULL(COALESCE(rep.net_compensate_nhso, stm.receive_total),0)+IFNULL(COALESCE(rep.net_compensate_employer, stm_uc.receive_pp),0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bmt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer
+                FROM hrims.rep_bmt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bmt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "BMT" 
             AND o.vstdate BETWEEN ? AND ?
@@ -3685,7 +3773,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
@@ -3693,13 +3781,22 @@ class ClaimOpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3707,13 +3804,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -3731,32 +3821,57 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bmt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
+                FROM hrims.rep_bmt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bmt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "BMT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
-            AND stm.hn IS NULL 
+            AND stm.hn IS NULL
             AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND rep.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,
+            COALESCE(rep.net_compensate_nhso, stm.receive_total) AS receive_total,
+            COALESCE(rep.net_compensate_employer, stm_uc.receive_pp) AS receive_pp,
+            COALESCE(rep.repno, stm.repno) AS repno,
+            COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3764,13 +3879,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -3788,26 +3896,42 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_bmt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer,
+                       MAX(error_code) AS error_code,
+                       MAX(repno) AS repno
+                FROM hrims.rep_bmt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_bmt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "BMT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL)
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
@@ -3833,48 +3957,45 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
 
-        if ($request->ajax()) {
-            $table_html = view('claim_op.bmt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search', 'claim'
-            ))->render();
+        $table_html = view('claim_op.bmt_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
 
-            $patient_items = array_merge(
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
-            );
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('claim_op.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month'            => $month,
+                'claim_price'      => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total'    => $receive_total
+            ]
+        ]);
     }
-
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function bmt_kidney(Request $request)
+public function bmt_kidney(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -4066,7 +4187,7 @@ class ClaimOpController extends Controller
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
-    public function srt(Request $request)
+            public function srt(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -4127,44 +4248,58 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
-            IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+            IFNULL(v.income - IFNULL((
+                SELECT SUM(r.total_amount) 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ), 0), 0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL 
+                 THEN IFNULL(v.income - IFNULL((
+                     SELECT SUM(r.total_amount) 
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = o.vn AND a.rcpno IS NULL
+                 ), 0), 0) 
+                 ELSE 0 
+            END AS claim_sent_price,
+            IFNULL(COALESCE(rep.net_compensate_nhso, stm.receive_total),0)+IFNULL(COALESCE(rep.net_compensate_employer, stm_uc.receive_pp),0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_srt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer
+                FROM hrims.rep_srt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "SRT"
+            AND p.hipdata_code = "SRT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
@@ -4172,13 +4307,22 @@ class ClaimOpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4186,13 +4330,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -4210,32 +4347,57 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_srt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
+                FROM hrims.rep_srt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "SRT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
-            AND stm.hn IS NULL 
+            AND stm.hn IS NULL
             AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND rep.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,
+            COALESCE(rep.net_compensate_nhso, stm.receive_total) AS receive_total,
+            COALESCE(rep.net_compensate_employer, stm_uc.receive_pp) AS receive_pp,
+            COALESCE(rep.repno, stm.repno) AS repno,
+            COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4267,26 +4429,42 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_srt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer,
+                       MAX(error_code) AS error_code,
+                       MAX(repno) AS repno
+                FROM hrims.rep_srt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "SRT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL)
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
@@ -4312,46 +4490,43 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
 
-        if ($request->ajax()) {
-            $table_html = view('claim_op.srt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search', 'claim'
-            ))->render();
+        $table_html = view('claim_op.srt_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
 
-            $patient_items = array_merge(
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
-            );
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('claim_op.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month'            => $month,
+                'claim_price'      => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total'    => $receive_total
+            ]
+        ]);
     }
-
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function pvt(Request $request)
     {
@@ -4414,44 +4589,58 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
-            IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+            IFNULL(v.income - IFNULL((
+                SELECT SUM(r.total_amount) 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ), 0), 0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL 
+                 THEN IFNULL(v.income - IFNULL((
+                     SELECT SUM(r.total_amount) 
+                     FROM rcpt_print r 
+                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                     WHERE r.vn = o.vn AND a.rcpno IS NULL
+                 ), 0), 0) 
+                 ELSE 0 
+            END AS claim_sent_price,
+            IFNULL(COALESCE(rep.net_compensate_nhso, stm.receive_total),0)+IFNULL(COALESCE(rep.net_compensate_employer, stm_uc.receive_pp),0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_pvt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer
+                FROM hrims.rep_pvt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_pvt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "PVT"
+            AND p.hipdata_code = "PVT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
             $month = array_column($sum_month, 'month');
             $claim_price = array_column($sum_month, 'claim_price');
             $claim_sent_price = array_column($sum_month, 'claim_sent_price');
@@ -4459,13 +4648,22 @@ class ClaimOpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4473,13 +4671,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -4497,32 +4688,57 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_pvt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
+                FROM hrims.rep_pvt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_pvt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "PVT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
-            AND stm.hn IS NULL 
+            AND stm.hn IS NULL
             AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND rep.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            (SELECT IFNULL(SUM(r.total_amount), 0)
+             FROM rcpt_print r 
+             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+             WHERE r.vn = o.vn AND a.rcpno IS NULL
+            ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            0 AS debtor,
+            COALESCE(rep.net_compensate_nhso, stm.receive_total) AS receive_total,
+            COALESCE(rep.net_compensate_employer, stm_uc.receive_pp) AS receive_pp,
+            COALESCE(rep.repno, stm.repno) AS repno,
+            COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4554,26 +4770,42 @@ class ClaimOpController extends Controller
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_pvt 
+                SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
+                       SUM(net_compensate_nhso) AS net_compensate_nhso,
+                       SUM(net_compensate_employer) AS net_compensate_employer,
+                       MAX(error_code) AS error_code,
+                       MAX(repno) AS repno
+                FROM hrims.rep_pvt
+                WHERE rep_type = "OP" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime, 5)
+            ) rep ON rep.hn = o.hn AND rep.vstdate = o.vstdate AND rep.vsttime5 = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno FROM hrims.stm_pvt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
-            ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "PVT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL OR rep.hn IS NOT NULL)
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
@@ -4599,48 +4831,45 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
 
-        if ($request->ajax()) {
-            $table_html = view('claim_op.pvt_table', compact(
-                'budget_year', 'start_date', 'end_date', 'search', 'claim'
-            ))->render();
+        $table_html = view('claim_op.pvt_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
 
-            $patient_items = array_merge(
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
-                array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
-            );
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
 
-            return response()->json([
-                'success' => true,
-                'table_html' => $table_html,
-                'patient_items' => $patient_items,
-                'chart_data' => !$request->input('skip_chart') ? [
-                    'months' => $month,
-                    'claim_price' => $claim_price,
-                    'claim_sent_price' => $claim_sent_price,
-                    'receive_total' => $receive_total
-                ] : null
-            ]);
-        }
-
-        return view('claim_op.pvt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month'            => $month,
+                'claim_price'      => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total'    => $receive_total
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
-
-    public function sss_ppfs(Request $request)
+public function sss_ppfs(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 

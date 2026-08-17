@@ -147,6 +147,46 @@ Route::match(['get', 'post'], 'import/rep_lgo_detail', [ImportRepController::cla
 Route::match(['get', 'post'], 'import/rep_lgo_detail_opd', [ImportRepController::class, 'rep_lgo_detail_opd'])->name('rep_lgo_detail_opd');
 Route::match(['get', 'post'], 'import/rep_lgo_detail_ipd', [ImportRepController::class, 'rep_lgo_detail_ipd'])->name('rep_lgo_detail_ipd');
 
+// BKK
+Route::match(['get', 'post'], 'import/rep_bkk', [ImportRepController::class, 'rep_bkk'])->name('rep_bkk');
+Route::post('import/rep_bkk_save', [ImportRepController::class, 'rep_bkk_save']);
+Route::get('import/rep_bkk/chart-data', [ImportRepController::class, 'rep_bkk_getChartData'])->name('import.rep_bkk.chart-data');
+Route::get('import/rep_bkk/c-code-chart-data', [ImportRepController::class, 'rep_bkk_getCCodeChartData'])->name('import.rep_bkk.c-code-chart-data');
+Route::get('import/rep_bkk/fail-details', [ImportRepController::class, 'rep_bkk_getFailDetails'])->name('import.rep_bkk.fail-details');
+Route::match(['get', 'post'], 'import/rep_bkk_detail', [ImportRepController::class, 'rep_bkk_detail'])->name('rep_bkk_detail');
+Route::match(['get', 'post'], 'import/rep_bkk_detail_opd', [ImportRepController::class, 'rep_bkk_detail_opd'])->name('rep_bkk_detail_opd');
+Route::match(['get', 'post'], 'import/rep_bkk_detail_ipd', [ImportRepController::class, 'rep_bkk_detail_ipd'])->name('rep_bkk_detail_ipd');
+
+// BMT
+Route::match(['get', 'post'], 'import/rep_bmt', [ImportRepController::class, 'rep_bmt'])->name('rep_bmt');
+Route::post('import/rep_bmt_save', [ImportRepController::class, 'rep_bmt_save']);
+Route::get('import/rep_bmt/chart-data', [ImportRepController::class, 'rep_bmt_getChartData'])->name('import.rep_bmt.chart-data');
+Route::get('import/rep_bmt/c-code-chart-data', [ImportRepController::class, 'rep_bmt_getCCodeChartData'])->name('import.rep_bmt.c-code-chart-data');
+Route::get('import/rep_bmt/fail-details', [ImportRepController::class, 'rep_bmt_getFailDetails'])->name('import.rep_bmt.fail-details');
+Route::match(['get', 'post'], 'import/rep_bmt_detail', [ImportRepController::class, 'rep_bmt_detail'])->name('rep_bmt_detail');
+Route::match(['get', 'post'], 'import/rep_bmt_detail_opd', [ImportRepController::class, 'rep_bmt_detail_opd'])->name('rep_bmt_detail_opd');
+Route::match(['get', 'post'], 'import/rep_bmt_detail_ipd', [ImportRepController::class, 'rep_bmt_detail_ipd'])->name('rep_bmt_detail_ipd');
+
+// SRT
+Route::match(['get', 'post'], 'import/rep_srt', [ImportRepController::class, 'rep_srt'])->name('rep_srt');
+Route::post('import/rep_srt_save', [ImportRepController::class, 'rep_srt_save']);
+Route::get('import/rep_srt/chart-data', [ImportRepController::class, 'rep_srt_getChartData'])->name('import.rep_srt.chart-data');
+Route::get('import/rep_srt/c-code-chart-data', [ImportRepController::class, 'rep_srt_getCCodeChartData'])->name('import.rep_srt.c-code-chart-data');
+Route::get('import/rep_srt/fail-details', [ImportRepController::class, 'rep_srt_getFailDetails'])->name('import.rep_srt.fail-details');
+Route::match(['get', 'post'], 'import/rep_srt_detail', [ImportRepController::class, 'rep_srt_detail'])->name('rep_srt_detail');
+Route::match(['get', 'post'], 'import/rep_srt_detail_opd', [ImportRepController::class, 'rep_srt_detail_opd'])->name('rep_srt_detail_opd');
+Route::match(['get', 'post'], 'import/rep_srt_detail_ipd', [ImportRepController::class, 'rep_srt_detail_ipd'])->name('rep_srt_detail_ipd');
+
+// PVT
+Route::match(['get', 'post'], 'import/rep_pvt', [ImportRepController::class, 'rep_pvt'])->name('rep_pvt');
+Route::post('import/rep_pvt_save', [ImportRepController::class, 'rep_pvt_save']);
+Route::get('import/rep_pvt/chart-data', [ImportRepController::class, 'rep_pvt_getChartData'])->name('import.rep_pvt.chart-data');
+Route::get('import/rep_pvt/c-code-chart-data', [ImportRepController::class, 'rep_pvt_getCCodeChartData'])->name('import.rep_pvt.c-code-chart-data');
+Route::get('import/rep_pvt/fail-details', [ImportRepController::class, 'rep_pvt_getFailDetails'])->name('import.rep_pvt.fail-details');
+Route::match(['get', 'post'], 'import/rep_pvt_detail', [ImportRepController::class, 'rep_pvt_detail'])->name('rep_pvt_detail');
+Route::match(['get', 'post'], 'import/rep_pvt_detail_opd', [ImportRepController::class, 'rep_pvt_detail_opd'])->name('rep_pvt_detail_opd');
+Route::match(['get', 'post'], 'import/rep_pvt_detail_ipd', [ImportRepController::class, 'rep_pvt_detail_ipd'])->name('rep_pvt_detail_ipd');
+
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');
 Route::match(['get', 'post'], 'import/dmis', [ImportDmisController::class, 'index'])->name('import.dmis');

@@ -605,12 +605,16 @@
                                     return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
                                 }
                                 return drugsList.map(d => {
+                                    let type = '';
+                                    if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                    if (d.ems === 'Y') type += '<span class="badge-type me-1" style="background:#cfe2ff;color:#084298;">EMS</span>';
+
                                     let tmtDisplay = d.tmt_code 
                                         ? `<span class="badge bg-success fw-bold">${d.tmt_code}</span>`
                                         : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
                                     return `<tr>
                                       <td>
-                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="fw-bold text-dark">${d.name} ${type}</div>
                                         <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
                                       </td>
                                       <td class="text-center fw-bold">${parseFloat(d.qty).toFixed(0)}</td>

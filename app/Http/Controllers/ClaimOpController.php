@@ -417,14 +417,13 @@ class ClaimOpController extends Controller
                    op.pttype, ptt.name AS pttype_name,
                    COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
-            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
             LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN paidst pst ON pst.paidst = op.paidst
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
-            WHERE op.vn = ?
-            AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
+            WHERE op.vn = ?', [$vn]);
 
         // แนบ ins_ucs flag จาก lookup_nhso_adp_code เพื่อตรวจสอบว่าอยู่ในประกาศ UCS หรือเปล่า
         $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
@@ -621,7 +620,7 @@ class ClaimOpController extends Controller
             AND ec.hn IS NULL
             AND rep.hn IS NULL
             AND stm.cid IS NULL 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn HAVING claim_price > 0 ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -1063,7 +1062,7 @@ class ClaimOpController extends Controller
             AND ec.hn IS NULL
             AND rep.hn IS NULL
             AND stm.cid IS NULL 
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn HAVING claim_price > 0 ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -1271,14 +1270,13 @@ class ClaimOpController extends Controller
                    op.pttype, ptt.name AS pttype_name,
                    COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
-            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
             LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN paidst pst ON pst.paidst = op.paidst
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
-            WHERE op.vn = ?
-            AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
+            WHERE op.vn = ?', [$vn]);
 
         // แนบ ins_ucs flag จาก lookup_nhso_adp_code เพื่อตรวจสอบว่าอยู่ในประกาศ UCS หรือเปล่า
         $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
@@ -2254,14 +2252,19 @@ class ClaimOpController extends Controller
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money) - floatval($row->ems_price);
-            $result = $validator->validateOfc($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateOfc($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $result = $validator->validateOfc($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
@@ -2899,14 +2902,19 @@ class ClaimOpController extends Controller
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLGO($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateLGO($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             $result = $validator->validateLGO($row, $itemsByVn[$row->seq] ?? []);
@@ -3428,14 +3436,19 @@ public function lgo_kidney(Request $request)
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateBkk($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateBkk($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             $result = $validator->validateBkk($row, $itemsByVn[$row->seq] ?? []);
@@ -3956,14 +3969,19 @@ public function bkk_kidney(Request $request)
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
@@ -4489,14 +4507,19 @@ public function bmt_kidney(Request $request)
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
@@ -4830,14 +4853,19 @@ public function bmt_kidney(Request $request)
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
+        $filtered_search = [];
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
+            if ($row->debtor > 0) {
+                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $row->is_valid           = $result['is_valid'];
+                $row->endpoint_valid     = $result['endpoint_valid'];
+                $row->validation_errors  = $result['errors'];
+                $row->validation_warnings = $result['warnings'];
+                $filtered_search[] = $row;
+            }
         }
+        $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
@@ -5212,15 +5240,16 @@ public function sss_ppfs(Request $request)
                    op.qty, op.unitprice, op.sum_price,
                    li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
                    op.paidst AS paids, ps.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, NULL AS tmt_code
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmt_code
             FROM opitemrece op
-            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
+            LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN paidst ps ON ps.paidst = op.paidst
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
-            WHERE op.vn = ?
-            AND op.paidst = "02"', [$vn]);
+            WHERE op.vn = ?', [$vn]);
 
         // Validate
         $validator = new \App\Services\ClaimValidator();

@@ -45,10 +45,6 @@
                     </form>
                 </div>
             </div>
-        </div>
-
-        <!-- Tab list matching ucs_kidney -->
-        <div class="px-4 mb-2">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">

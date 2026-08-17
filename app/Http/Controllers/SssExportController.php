@@ -1228,6 +1228,7 @@ class SssExportController extends Controller
                 $billgrcs = $billgr;
                 $stdcode = '';
                 $claimcat = 'D';
+                $daterev = null;
 
                 // If claimcat is T (income category 10/02), check lookup_sss_equipdev_aipn
                 if ($billgr === '02') {
@@ -1237,6 +1238,7 @@ class SssExportController extends Controller
                     $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $std_adp_code)->first();
                     if ($equip) {
                         $stdcode = $equip->code;
+                        $daterev = $equip->daterev;
                         if ($unitprice > $equip->rate) {
                             $audit_results[] = [
                                 'an' => $an,
@@ -1360,9 +1362,10 @@ class SssExportController extends Controller
                     'claimsys' => 'SS',
                     'billgrcs' => $billgrcs,
                     'cscode' => ($billgr === '02' && !empty($stdcode)) ? $stdcode : $item->icode,
-                    'codesys' => (!empty($stdcode)) ? (($billgr === '02') ? '0' : (in_array($billgr, ['06', '07']) ? 'TMLT' : 'TMT')) : '',
-                    'stdcode' => $stdcode,
+                    'codesys' => (!empty($stdcode) && $billgr !== '02') ? (in_array($billgr, ['06', '07']) ? 'TMLT' : 'TMT') : '',
+                    'stdcode' => ($billgr === '02') ? '' : $stdcode,
                     'claimcat' => $claimcat,
+                    'daterev' => !empty($daterev) ? $daterev : $item->vstdate,
                     'claimup' => ($claimcat === 'D') ? '0.00' : number_format($unitprice, 2, '.', ''),
                     'claimamt' => ($claimcat === 'D') ? '0.00' : number_format($charge_amt - $discount, 2, '.', '')
                 ];
@@ -1509,7 +1512,7 @@ class SssExportController extends Controller
                     $row['codesys'],
                     $row['stdcode'],
                     $row['claimcat'],
-                    $row['servdate'], // DateRev
+                    $row['daterev'], // DateRev
                     $row['claimup'],
                     $row['claimamt']
                 ];

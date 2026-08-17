@@ -25,7 +25,8 @@ class CheckLicense
             'admin/main_setting',
             'admin/main_setting/*',
             'admin/license/request',
-            'admin/license/verify'
+            'admin/license/verify',
+            'check/sss_equipdev_aipn*'
         ];
 
         foreach ($whitelist as $pattern) {

@@ -264,6 +264,9 @@ Route::post('import/stm_ofc_csop_save', [ImportController::class, 'stm_ofc_csop_
 Route::post('import/stm_ofc_csop_updateReceipt', [ImportController::class, 'stm_ofc_csop_updateReceipt']);
 Route::get('import/stm_ofc_csop/chart-data', [ImportController::class, 'stm_ofc_csop_getChartData'])->name('import.stm_ofc_csop.chart-data');
 Route::match(['get', 'post'], 'import/stm_ofc_csopdetail', [ImportController::class, 'stm_ofc_csopdetail'])->name('import.stm_ofc_csopdetail');
+Route::post('import/stm_ofc_csop/save_mapping', [ImportController::class, 'stm_ofc_csop_save_mapping']);
+Route::post('import/stm_ofc_csop/resync', [ImportController::class, 'stm_ofc_csop_resync']);
+Route::post('import/stm_ofc_csop/search_patient', [ImportController::class, 'stm_ofc_csop_search_patient']);
 
 Route::match(['get', 'post'], 'import/stm_ofc_cipn', [ImportController::class, 'stm_ofc_cipn'])->name('stm_ofc_cipn');
 Route::post('import/stm_ofc_cipn_save', [ImportController::class, 'stm_ofc_cipn_save']);

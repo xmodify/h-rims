@@ -32232,5 +32232,53 @@
         }
       ]
     }
+  },
+  "lookup_hn_mappings": {
+    "columns": {
+      "hn_hosxp": {
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "hn_ofc_kidney": {
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "pt_name": {
+        "type": "varchar(190)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "created_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "updated_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      }
+    },
+    "indexes": {
+      "PRIMARY": [
+        {
+          "column": "hn_hosxp",
+          "unique": true
+        }
+      ],
+      "lookup_hn_mappings_hn_ofc_kidney_unique": [
+        {
+          "column": "hn_ofc_kidney",
+          "unique": true
+        }
+      ]
+    }
   }
 }

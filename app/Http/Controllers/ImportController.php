@@ -5922,6 +5922,17 @@ class ImportController extends Controller
                             $stmType = 'UNKNOWNSTM';
                         }
 
+                        $sys = (string) ($bill->sys ?? '');
+                        $hn = (string) $bill->hn;
+                        if ($sys === 'HD') {
+                            $mappedHn = DB::table('lookup_hn_mappings')
+                                ->where('hn_ofc_kidney', $hn)
+                                ->value('hn_hosxp');
+                            if ($mappedHn) {
+                                $hn = $mappedHn;
+                            }
+                        }
+
                         try {
                             DB::table('stm_ofc_csop')->updateOrInsert(
                                 [
@@ -5930,7 +5941,7 @@ class ImportController extends Controller
                                 [
                                     'round_no' => $STMdoc,
                                     'station' => (string) ($bill->station ?? '01'),
-                                    'sys' => (string) ($bill->sys ?? ''),
+                                    'sys' => $sys,
                                     'hdflag' => (string) ($bill->HDflag ?? $bill->hdflag ?? ''),
                                     'stm_type' => $stmType,
                                     'stm_filename' => $innerName,
@@ -5938,7 +5949,7 @@ class ImportController extends Controller
                                     'hname' => (string) ($xml->hname ?? $xml->stmdat->hname ?? $xml->Hname ?? ''),
                                     'acc_period' => (string) ($xml->AccPeriod ?? $xml->acc_period ?? ''),
                                     'hreg' => (string) $bill->hreg,
-                                    'hn' => (string) $bill->hn,
+                                    'hn' => $hn,
                                     'pt_name' => (string) ($bill->namepat ?? $bill->pt_name ?? ''),
                                     'vstdate' => $vstdate,
                                     'vsttime' => $vsttime,
@@ -6015,6 +6026,101 @@ class ImportController extends Controller
             'receipt_date' => $request->receipt_date,
         ]);
     }
+
+    public function stm_ofc_csop_save_mapping(Request $request)
+    {
+        $request->validate([
+            'incorrect_hn' => 'required',
+            'correct_hn' => 'required',
+            'pt_name' => 'nullable|string',
+        ]);
+
+        $incorrect_hn = $request->incorrect_hn;
+        $correct_hn = $request->correct_hn;
+        $pt_name = $request->pt_name;
+
+        DB::beginTransaction();
+        try {
+            // Save to mapping table using upsert logic
+            DB::table('lookup_hn_mappings')->updateOrInsert(
+                ['hn_hosxp' => $correct_hn],
+                [
+                    'hn_ofc_kidney' => $incorrect_hn,
+                    'pt_name' => $pt_name,
+                    'updated_at' => now(),
+                    'created_at' => now()
+                ]
+            );
+
+            // Update all corresponding records in stm_ofc_csop where sys = 'HD'
+            $updated = DB::table('stm_ofc_csop')
+                ->where('sys', 'HD')
+                ->where('hn', $incorrect_hn)
+                ->update([
+                    'hn' => $correct_hn,
+                    'updated_at' => now()
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "จับคู่ HN เรียบร้อยแล้ว (HN $incorrect_hn -> $correct_hn) อัปเดตข้อมูลแล้ว $updated รายการ"
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => "ไม่สามารถบันทึกการจับคู่ได้: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function stm_ofc_csop_resync(Request $request)
+    {
+        try {
+            $updated = DB::update("
+                UPDATE stm_ofc_csop c
+                INNER JOIN hrims.lookup_hn_mappings m ON m.hn_ofc_kidney = c.hn
+                SET c.hn = m.hn_hosxp,
+                    c.updated_at = NOW()
+                WHERE c.sys = 'HD'
+            ");
+
+            return response()->json([
+                'success' => true,
+                'message' => "อัปเดตข้อมูล HN สำเร็จทั้งหมด $updated รายการ"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "ไม่สามารถอัปเดตข้อมูลได้: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function stm_ofc_csop_search_patient(Request $request)
+    {
+        $q = trim($request->q);
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $patients = DB::connection('hosxp')->table('patient')
+            ->select('hn', 'fname', 'lname', 'pname', 'cid')
+            ->where(function($query) use ($q) {
+                $query->where('hn', 'like', "%$q%")
+                      ->orWhere('fname', 'like', "%$q%")
+                      ->orWhere('lname', 'like', "%$q%")
+                      ->orWhere('cid', 'like', "%$q%")
+                      ->orWhere(DB::raw("CONCAT(fname, ' ', lname)"), 'like', "%$q%");
+            })
+            ->limit(20)
+            ->get();
+
+        return response()->json($patients);
+    }
+
     //stm_ofc_csopdetail-------------------------------------------------------------------------------------------------------------------
     public function stm_ofc_csopdetail(Request $request)
     {
@@ -6023,76 +6129,125 @@ class ImportController extends Controller
         $sys_type = $request->sys_type ?: 'all';
 
         if ($request->ajax()) {
-            $query = DB::table('stm_ofc_csop')
-                ->select(
-                    'stm_filename',
-                    'hcode',
-                    'hname',
-                    'round_no',
-                    'station',
-                    'sys',
-                    'hreg',
-                    'hn',
-                    'pt_name',
-                    'invno',
-                    'vstdate',
-                    'vsttime',
-                    'paid',
-                    'rid',
-                    'amount',
-                    'receive_no',
-                    'receipt_date',
-                    'receipt_by'
-                )
-                ->whereBetween('vstdate', [$start_date, $end_date]);
+            if ($sys_type == 'unmapped') {
+                $query = DB::connection('hosxp')->table('hrims.stm_ofc_csop')
+                    ->select(
+                        'hn',
+                        'pt_name',
+                        DB::raw('COUNT(*) AS count_no'),
+                        DB::raw('SUM(amount) AS amount')
+                    )
+                    ->where('sys', '=', 'HD')
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                          ->from('patient')
+                          ->whereColumn('patient.hn', 'hrims.stm_ofc_csop.hn');
+                    })
+                    ->groupBy('hn', 'pt_name');
+            } else {
+                $query = DB::table('stm_ofc_csop')
+                    ->select(
+                        'stm_filename',
+                        'hcode',
+                        'hname',
+                        'round_no',
+                        'station',
+                        'sys',
+                        'hreg',
+                        'hn',
+                        'pt_name',
+                        'invno',
+                        'vstdate',
+                        'vsttime',
+                        'paid',
+                        'rid',
+                        'amount',
+                        'receive_no',
+                        'receipt_date',
+                        'receipt_by'
+                    )
+                    ->whereBetween('vstdate', [$start_date, $end_date]);
 
-            if ($sys_type == 'csop') {
-                $query->where('sys', '<>', 'HD');
-            } elseif ($sys_type == 'kidney') {
-                $query->where('sys', '=', 'HD');
+                if ($sys_type == 'csop') {
+                    $query->where('sys', '<>', 'HD');
+                } elseif ($sys_type == 'kidney') {
+                    $query->where('sys', '=', 'HD');
+                }
             }
 
             // 1. Searching
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
-                $query->where(function ($q) use ($search) {
+                $query->where(function ($q) use ($search, $sys_type) {
                     $q->where('hn', 'like', "%$search%")
-                        ->orWhere('pt_name', 'like', "%$search%")
-                        ->orWhere('invno', 'like', "%$search%")
-                        ->orWhere('stm_filename', 'like', "%$search%")
-                        ->orWhere('station', 'like', "%$search%");
+                        ->orWhere('pt_name', 'like', "%$search%");
+                    if ($sys_type !== 'unmapped') {
+                        $q->orWhere('invno', 'like', "%$search%")
+                          ->orWhere('stm_filename', 'like', "%$search%")
+                          ->orWhere('station', 'like', "%$search%");
+                    }
                 });
             }
 
             // Total Filtered count
-            $recordsFiltered = $query->count();
-
-            $queryTotal = DB::table('stm_ofc_csop')
-                ->whereBetween('vstdate', [$start_date, $end_date]);
-
-            if ($sys_type == 'csop') {
-                $queryTotal->where('sys', '<>', 'HD');
-            } elseif ($sys_type == 'kidney') {
-                $queryTotal->where('sys', '=', 'HD');
+            if ($sys_type == 'unmapped') {
+                $recordsFiltered = DB::connection('hosxp')->table(DB::raw("({$query->toSql()}) as sub"))
+                    ->mergeBindings($query)
+                    ->count();
+            } else {
+                $recordsFiltered = $query->count();
             }
 
-            $recordsTotal = $queryTotal->count();
+            // Total Records count
+            if ($sys_type == 'unmapped') {
+                $queryTotal = DB::connection('hosxp')->table('hrims.stm_ofc_csop')
+                     ->where('sys', '=', 'HD')
+                     ->whereNotExists(function ($q) {
+                         $q->select(DB::raw(1))
+                           ->from('patient')
+                           ->whereColumn('patient.hn', 'hrims.stm_ofc_csop.hn');
+                     })
+                     ->groupBy('hn', 'pt_name');
+
+                $recordsTotal = DB::connection('hosxp')->table(DB::raw("({$queryTotal->toSql()}) as sub"))
+                    ->mergeBindings($queryTotal)
+                    ->count();
+            } else {
+                $queryTotal = DB::table('stm_ofc_csop')
+                    ->whereBetween('vstdate', [$start_date, $end_date]);
+
+                if ($sys_type == 'csop') {
+                    $queryTotal->where('sys', '<>', 'HD');
+                } elseif ($sys_type == 'kidney') {
+                    $queryTotal->where('sys', '=', 'HD');
+                }
+                $recordsTotal = $queryTotal->count();
+            }
 
             // 2. Ordering
             if ($request->has('order')) {
-                $columns = [
-                    0 => 'stm_filename',
-                    1 => 'station',
-                    2 => 'sys',
-                    3 => 'hn',
-                    4 => 'hreg',
-                    5 => 'pt_name',
-                    6 => 'invno',
-                    7 => 'vstdate',
-                    8 => 'amount',
-                    9 => 'rid',
-                    10 => 'receive_no'
-                ];
+                if ($sys_type == 'unmapped') {
+                    $columns = [
+                        0 => 'hn',
+                        1 => 'pt_name',
+                        2 => DB::raw('COUNT(*)'),
+                        3 => DB::raw('SUM(amount)')
+                    ];
+                } else {
+                    $columns = [
+                        0 => 'stm_filename',
+                        1 => 'station',
+                        2 => 'sys',
+                        3 => 'hn',
+                        4 => 'hreg',
+                        5 => 'pt_name',
+                        6 => 'invno',
+                        7 => 'vstdate',
+                        8 => 'amount',
+                        9 => 'rid',
+                        10 => 'receive_no'
+                    ];
+                }
 
                 foreach ($request->order as $order) {
                     $colIndex = $order['column'];
@@ -6102,7 +6257,11 @@ class ImportController extends Controller
                     }
                 }
             } else {
-                $query->orderBy('station')->orderBy('round_no');
+                if ($sys_type == 'unmapped') {
+                    $query->orderBy('hn');
+                } else {
+                    $query->orderBy('station')->orderBy('round_no');
+                }
             }
 
             // 3. Pagination
@@ -6113,23 +6272,32 @@ class ImportController extends Controller
             // Format data for DataTables
             $formattedData = [];
             foreach ($data as $row) {
-                $receiptHtml = 'REC: ' . $row->receive_no;
+                if ($sys_type == 'unmapped') {
+                    $formattedData[] = [
+                        'hn' => $row->hn,
+                        'pt_name' => $row->pt_name,
+                        'count_no' => $row->count_no,
+                        'amount' => number_format($row->amount, 2)
+                    ];
+                } else {
+                    $receiptHtml = 'REC: ' . $row->receive_no;
 
-                $formattedData[] = [
-                    'stm_filename' => $row->stm_filename,
-                    'station' => $row->station,
-                    'sys' => $row->sys,
-                    'hn' => $row->hn,
-                    'hreg' => $row->hreg,
-                    'pt_name' => $row->pt_name,
-                    'invno' => $row->invno,
-                    'vstdate' => $row->vstdate . ' ' . $row->vsttime,
-                    'amount' => number_format($row->amount, 2),
-                    'rid' => 'REP: ' . $row->rid,
-                    'receive_no' => $receiptHtml,
-                    'receipt_date' => $row->receipt_date,
-                    'receipt_by' => $row->receipt_by
-                ];
+                    $formattedData[] = [
+                        'stm_filename' => $row->stm_filename,
+                        'station' => $row->station,
+                        'sys' => $row->sys,
+                        'hn' => $row->hn,
+                        'hreg' => $row->hreg,
+                        'pt_name' => $row->pt_name,
+                        'invno' => $row->invno,
+                        'vstdate' => $row->vstdate . ' ' . $row->vsttime,
+                        'amount' => number_format($row->amount, 2),
+                        'rid' => 'REP: ' . $row->rid,
+                        'receive_no' => $receiptHtml,
+                        'receipt_date' => $row->receipt_date,
+                        'receipt_by' => $row->receipt_by
+                    ];
+                }
             }
 
             return response()->json([

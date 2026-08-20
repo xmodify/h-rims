@@ -51,14 +51,6 @@
     padding-bottom: 6px;
     margin-bottom: 14px;
   }
-  .card-icon-bg {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
   .badge-custom {
     font-size: 0.72rem;
     padding: 3px 8px;
@@ -111,28 +103,30 @@
                 
                 <!-- ROW 1: Liquidity & Cash Balance -->
                 <div class="section-title-custom">
-                    <i class="bi bi-shield-check text-success me-1"></i> แถวที่ 1: การวิเคราะห์วิกฤตทางการเงินและสภาพคล่องหมุนเวียน (Liquidity & Cash Balance)
-                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายเดือน)</span>
+                    <i class="bi bi-shield-check text-success me-1"></i> 1. การวิเคราะห์วิกฤตทางการเงินและสภาพคล่องหมุนเวียน (Liquidity & Cash Balance)
+                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี)</span>
                 </div>
                 <div class="row g-3 mb-4">
                     <!-- 1. Net Cash Balance (105) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['105']['class'] }}" data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (หักหนี้แล้ว)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['105']['class'] }}" data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (หักหนี้แล้ว)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">เงินบำรุงคงเหลือสุทธิ</span>
-                                    <div class="card-icon-bg bg-success bg-opacity-10 text-success">
-                                        <i class="bi bi-piggy-bank" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value text-nowrap">{{ number_format($latestMetrics['105'], 2) }}</div>
-                                    <span class="metric-unit">บาท</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['105']['bg'] }} {{ $statusMap['105']['class'] }} badge-custom">
                                         {{ $statusMap['105']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value text-nowrap">{{ number_format($latestMetrics['105'], 2) }}</span>
+                                        <span class="metric-unit ms-1">บาท</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-piggy-bank" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -140,22 +134,24 @@
 
                     <!-- 2. Current Ratio (100) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['100']['class'] }}" data-code="100" data-name="Current Ratio (อัตราส่วนสภาพคล่องภาพรวม)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['100']['class'] }}" data-code="100" data-name="Current Ratio (อัตราส่วนสภาพคล่องภาพรวม)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">Current Ratio</span>
-                                    <div class="card-icon-bg bg-primary bg-opacity-10 text-primary">
-                                        <i class="bi bi-arrow-left-right" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['100'], 2) }}</div>
-                                    <span class="metric-unit">เท่า</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['100']['bg'] }} {{ $statusMap['100']['class'] }} badge-custom">
                                         {{ $statusMap['100']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['100'], 2) }}</span>
+                                        <span class="metric-unit ms-1">เท่า</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-arrow-left-right" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -163,22 +159,24 @@
 
                     <!-- 3. Quick Ratio (101) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['101']['class'] }}" data-code="101" data-name="Quick Ratio (อัตราส่วนสภาพคล่องเร่งด่วน)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['101']['class'] }}" data-code="101" data-name="Quick Ratio (อัตราส่วนสภาพคล่องเร่งด่วน)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">Quick Ratio</span>
-                                    <div class="card-icon-bg bg-info bg-opacity-10 text-info">
-                                        <i class="bi bi-lightning-charge" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['101'], 2) }}</div>
-                                    <span class="metric-unit">เท่า</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['101']['bg'] }} {{ $statusMap['101']['class'] }} badge-custom">
                                         {{ $statusMap['101']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['101'], 2) }}</span>
+                                        <span class="metric-unit ms-1">เท่า</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-lightning-charge" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -186,22 +184,24 @@
 
                     <!-- 4. Cash Ratio (102) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['102']['class'] }}" data-code="102" data-name="Cash Ratio (อัตราส่วนเงินสดพร้อมจ่ายทันที)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['102']['class'] }}" data-code="102" data-name="Cash Ratio (อัตราส่วนเงินสดพร้อมจ่ายทันที)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">Cash Ratio</span>
-                                    <div class="card-icon-bg bg-warning bg-opacity-10 text-warning">
-                                        <i class="bi bi-cash-stack" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['102'], 2) }}</div>
-                                    <span class="metric-unit">เท่า</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['102']['bg'] }} {{ $statusMap['102']['class'] }} badge-custom">
                                         {{ $statusMap['102']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['102'], 2) }}</span>
+                                        <span class="metric-unit ms-1">เท่า</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-cash-stack" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -210,28 +210,30 @@
 
                 <!-- ROW 2: Operational Efficiency -->
                 <div class="section-title-custom">
-                    <i class="bi bi-speedometer2 text-primary me-1"></i> แถวที่ 2: ประสิทธิภาพการบริหารคลัง ยา และลูกหนี้ชดเชย (Operational Efficiency)
-                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายเดือน)</span>
+                    <i class="bi bi-speedometer2 text-primary me-1"></i> 2. ประสิทธิภาพการบริหารคลัง ยา และลูกหนี้ชดเชย (Operational Efficiency)
+                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี)</span>
                 </div>
                 <div class="row g-3 mb-4">
                     <!-- 5. Inventory Days (264) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['264']['class'] }}" data-code="264" data-name="ระยะเวลาระบายคลังยาและเวชภัณฑ์ (Inventory Days)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['264']['class'] }}" data-code="264" data-name="ระยะเวลาระบายคลังยาและเวชภัณฑ์ (Inventory Days)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">ระยะเวลาสต็อกคลังยา</span>
-                                    <div class="card-icon-bg bg-success bg-opacity-10 text-success">
-                                        <i class="bi bi-prescription2" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['264'], 2) }}</div>
-                                    <span class="metric-unit">วัน</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['264']['bg'] }} {{ $statusMap['264']['class'] }} badge-custom">
                                         {{ $statusMap['264']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['264'], 2) }}</span>
+                                        <span class="metric-unit ms-1">วัน</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-prescription2" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -239,22 +241,24 @@
 
                     <!-- 6. Collection Period - UC (261) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['261']['class'] }}" data-code="261" data-name="ระยะเวลาเก็บเงินสิทธิบัตรทอง (Collection Period - UC)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['261']['class'] }}" data-code="261" data-name="ระยะเวลาเก็บเงินสิทธิบัตรทอง (Collection Period - UC)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">เก็บหนี้สิทธิบัตรทอง (UC)</span>
-                                    <div class="card-icon-bg bg-info bg-opacity-10 text-info">
-                                        <i class="bi bi-wallet2" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['261'], 2) }}</div>
-                                    <span class="metric-unit">วัน</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['261']['bg'] }} {{ $statusMap['261']['class'] }} badge-custom">
                                         {{ $statusMap['261']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['261'], 2) }}</span>
+                                        <span class="metric-unit ms-1">วัน</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-wallet2" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -262,22 +266,24 @@
 
                     <!-- 7. Collection Period - CSMBS (262) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['262']['class'] }}" data-code="262" data-name="ระยะเวลาเก็บหนี้สิทธิข้าราชการ (Collection Period - CSMBS)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['262']['class'] }}" data-code="262" data-name="ระยะเวลาเก็บหนี้สิทธิข้าราชการ (Collection Period - CSMBS)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">เก็บหนี้สิทธิข้าราชการ (CS)</span>
-                                    <div class="card-icon-bg bg-primary bg-opacity-10 text-primary">
-                                        <i class="bi bi-person-check-fill" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['262'], 2) }}</div>
-                                    <span class="metric-unit">วัน</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['262']['bg'] }} {{ $statusMap['262']['class'] }} badge-custom">
                                         {{ $statusMap['262']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['262'], 2) }}</span>
+                                        <span class="metric-unit ms-1">วัน</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-person-check-fill" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -285,22 +291,24 @@
 
                     <!-- 8. Average Payment Period (260) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['260']['class'] }}" data-code="260" data-name="ระยะเวลาจ่ายชำระหนี้ค่ายาและคู่ค้า (Average Payment Period)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['260']['class'] }}" data-code="260" data-name="ระยะเวลาจ่ายชำระหนี้ค่ายาและคู่ค้า (Average Payment Period)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">ระยะเวลาค้างจ่ายค่ายา</span>
-                                    <div class="card-icon-bg bg-danger bg-opacity-10 text-danger">
-                                        <i class="bi bi-clock-history" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['260'], 2) }}</div>
-                                    <span class="metric-unit">วัน</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['260']['bg'] }} {{ $statusMap['260']['class'] }} badge-custom">
                                         {{ $statusMap['260']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['260'], 2) }}</span>
+                                        <span class="metric-unit ms-1">วัน</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-clock-history" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -309,28 +317,30 @@
 
                 <!-- ROW 3: Profitability & Cost Control -->
                 <div class="section-title-custom">
-                    <i class="bi bi-percent text-danger me-1"></i> แถวที่ 3: ความสามารถในการคุมรายจ่ายและทำกำไร (Profitability & Cost Control)
-                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายเดือน)</span>
+                    <i class="bi bi-percent text-danger me-1"></i> 3. ความสามารถในการคุมรายจ่ายและทำกำไร (Profitability & Cost Control)
+                    <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี)</span>
                 </div>
                 <div class="row g-3 mb-4">
                     <!-- 9. Operating Margin % (320) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['320']['class'] }}" data-code="320" data-name="Operating Margin % (กำไรจากการดำเนินงาน EBITDA)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['320']['class'] }}" data-code="320" data-name="Operating Margin % (กำไรจากการดำเนินงาน EBITDA)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">Operating Margin (EBITDA)</span>
-                                    <div class="card-icon-bg bg-success bg-opacity-10 text-success">
-                                        <i class="bi bi-graph-up-arrow" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['320'], 2) }}</div>
-                                    <span class="metric-unit">%</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['320']['bg'] }} {{ $statusMap['320']['class'] }} badge-custom">
                                         {{ $statusMap['320']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['320'], 2) }}</span>
+                                        <span class="metric-unit ms-1">%</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-graph-up-arrow" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -338,22 +348,24 @@
 
                     <!-- 10. ROA % (321) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['321']['class'] }}" data-code="321" data-name="Return on Assets % (ROA - อัตราผลตอบแทนต่อสินทรัพย์รวม)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['321']['class'] }}" data-code="321" data-name="Return on Assets % (ROA - อัตราผลตอบแทนต่อสินทรัพย์รวม)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="metric-title">ROA % (ผลตอบแทนทรัพย์สิน)</span>
-                                    <div class="card-icon-bg bg-primary bg-opacity-10 text-primary">
-                                        <i class="bi bi-briefcase" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['321'], 2) }}</div>
-                                    <span class="metric-unit">%</span>
-                                </div>
-                                <div>
                                     <span class="badge {{ $statusMap['321']['bg'] }} {{ $statusMap['321']['class'] }} badge-custom">
                                         {{ $statusMap['321']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['321'], 2) }}</span>
+                                        <span class="metric-unit ms-1">%</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-briefcase" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -361,22 +373,24 @@
 
                     <!-- 11. Net Profit Margin % (307) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['307']['class'] }}" data-code="307" data-name="Net Profit Margin % (อัตรากำไรสุทธิแบบรวมค่าเสื่อมราคา)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="metric-title">Net Margin (กำไรสุทธิมีค่าเสื่อม)</span>
-                                    <div class="card-icon-bg bg-info bg-opacity-10 text-info">
-                                        <i class="bi bi-file-earmark-bar-graph" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value">{{ number_format($latestMetrics['307'], 2) }}</div>
-                                    <span class="metric-unit">%</span>
-                                </div>
-                                <div>
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['307']['class'] }}" data-code="307" data-name="Net Profit Margin % (อัตรากำไรสุทธิแบบรวมค่าเสื่อมราคา)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="metric-title">Net Margin (กำไรมีค่าเสื่อม)</span>
                                     <span class="badge {{ $statusMap['307']['bg'] }} {{ $statusMap['307']['class'] }} badge-custom">
                                         {{ $statusMap['307']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value">{{ number_format($latestMetrics['307'], 2) }}</span>
+                                        <span class="metric-unit ms-1">%</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-file-earmark-bar-graph" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -384,22 +398,24 @@
 
                     <!-- 12. Net Working Capital (104) -->
                     <div class="col-xl-3 col-md-6">
-                        <div class="card metric-card border-start shadow-sm h-100 border-{{ $statusMap['104']['class'] }}" data-code="104" data-name="Networking Capital (เงินทุนหมุนเวียนสุทธิ)">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="metric-title">Networking Capital (ทุนหมุนเวียน)</span>
-                                    <div class="card-icon-bg bg-warning bg-opacity-10 text-warning">
-                                        <i class="bi bi-wallet" style="font-size: 1.1rem;"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="metric-value text-nowrap">{{ number_format($latestMetrics['104'], 2) }}</div>
-                                    <span class="metric-unit">บาท</span>
-                                </div>
-                                <div>
+                        <div class="card metric-card border-start shadow-sm border-{{ $statusMap['104']['class'] }}" data-code="104" data-name="Networking Capital (เงินทุนหมุนเวียนสุทธิ)">
+                            <div class="card-body p-3">
+                                <!-- Row 1: Title & Status -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="metric-title">Networking Capital</span>
                                     <span class="badge {{ $statusMap['104']['bg'] }} {{ $statusMap['104']['class'] }} badge-custom">
                                         {{ $statusMap['104']['label'] }}
                                     </span>
+                                </div>
+                                <!-- Row 2: Value & Unit & Icon -->
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <div>
+                                        <span class="metric-value text-nowrap">{{ number_format($latestMetrics['104'], 2) }}</span>
+                                        <span class="metric-unit ms-1">บาท</span>
+                                    </div>
+                                    <div class="text-secondary opacity-50">
+                                        <i class="bi bi-wallet" style="font-size: 1.15rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -568,9 +584,8 @@
             document.getElementById('modalGuideDescription').innerHTML = guide.desc;
             document.getElementById('modalGuideAction').innerHTML = guide.guide;
 
-            // Open Modal
-            const myModal = new bootstrap.Modal(document.getElementById('trendModal'));
-            myModal.show();
+            // Open Modal via jQuery (Standard for project)
+            $('#trendModal').modal('show');
 
             // Render Chart inside modal
             setTimeout(() => {

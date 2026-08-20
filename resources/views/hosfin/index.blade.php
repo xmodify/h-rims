@@ -119,8 +119,8 @@
                             'icon' => 'bi-speedometer2 text-primary',
                             'codes' => [
                                 ['code' => '260', 'icon' => 'bi-clock-history', 'name' => 'ระยะเวลาชำระหนี้ค่ายา'],
-                                ['code' => '261', 'icon' => 'bi-wallet2', 'name' => 'ระยะเวลาเรียกเก็บสิทธิ UC'],
-                                ['code' => '262', 'icon' => 'bi-person-check-fill', 'name' => 'ระยะเวลาเรียกเก็บสิทธิ CS'],
+                                ['code' => '261', 'icon' => 'bi-wallet2', 'name' => 'ระยะเวลาเรียกเก็บลูกหนี้สิทธิ UC'],
+                                ['code' => '262', 'icon' => 'bi-person-check-fill', 'name' => 'ระยะเวลาเรียกเก็บลูกหนี้สิทธิ CS'],
                                 ['code' => '264', 'icon' => 'bi-prescription2', 'name' => 'ระยะเวลาสต็อกคลังยา']
                             ]
                         ],

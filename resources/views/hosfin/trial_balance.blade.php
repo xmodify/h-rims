@@ -73,7 +73,7 @@
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important;">
                 <div>
                     <h5 class="text-primary mb-0 fw-bold">
-                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> บัญชีหน่วยงาน (Trial Balance)
+                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (Trial Balance)
                     </h5>
                     <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
                 </div>

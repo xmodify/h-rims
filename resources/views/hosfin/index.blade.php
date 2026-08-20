@@ -42,7 +42,7 @@
                             <i class="bi bi-file-earmark-spreadsheet" style="font-size: 2rem;"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-0 text-dark">บัญชีหน่วยงาน</h5>
+                            <h5 class="fw-bold mb-0 text-dark">ข้อมูลบัญชีหน่วยงาน</h5>
                             <small class="text-muted">Trial Balance Manager</small>
                         </div>
                     </div>

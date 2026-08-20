@@ -606,15 +606,40 @@ class MainSettingController extends Controller
                     // --- 2.7: Auto-Install Python dependencies (access-parser) ---
                     $pythonInstallMsg = '';
                     try {
-                        $cmd = 'python -c "import access_parser" 2>&1';
-                        exec($cmd, $outputCheck, $return_var);
+                        $return_var = 1;
+                        $outputCheck = [];
+                        @exec('python -c "import access_parser" 2>&1', $outputCheck, $return_var);
                         if ($return_var !== 0) {
-                            $installCmd = 'pip install access-parser 2>&1';
-                            exec($installCmd, $outputInstall, $returnInstall);
-                            if ($returnInstall === 0) {
+                            @exec('python3 -c "import access_parser" 2>&1', $outputCheck, $return_var);
+                        }
+
+                        if ($return_var !== 0) {
+                            $installCommands = [
+                                'pip install access-parser 2>&1',
+                                'pip3 install access-parser 2>&1',
+                                'python3 -m pip install access-parser 2>&1',
+                                'python -m pip install access-parser 2>&1'
+                            ];
+                            $installed = false;
+                            $lastError = 'no pip commands found';
+                            foreach ($installCommands as $installCmd) {
+                                $outputInstall = [];
+                                $returnInstall = 1;
+                                @exec($installCmd, $outputInstall, $returnInstall);
+                                if ($returnInstall === 0) {
+                                    $installed = true;
+                                    break;
+                                } else {
+                                    if (!empty($outputInstall)) {
+                                        $lastError = implode('; ', array_slice($outputInstall, -2));
+                                    }
+                                }
+                            }
+
+                            if ($installed) {
                                 $pythonInstallMsg = ' + python access-parser (ติดตั้งสำเร็จ)';
                             } else {
-                                $pythonInstallMsg = ' + python access-parser (ติดตั้งล้มเหลว: ' . implode('; ', array_slice($outputInstall, -2)) . ')';
+                                $pythonInstallMsg = ' + python access-parser (ติดตั้งล้มเหลว: ' . $lastError . ')';
                             }
                         } else {
                             $pythonInstallMsg = ' + python access-parser (พร้อมใช้งาน)';

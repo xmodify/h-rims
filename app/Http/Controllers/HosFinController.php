@@ -410,15 +410,35 @@ class HosFinController extends Controller
      */
     private function checkPythonDependencies()
     {
-        $cmd = 'python -c "import access_parser" 2>&1';
-        exec($cmd, $output, $return_var);
+        $return_var = 1;
+        $outputCheck = [];
+        @exec('python -c "import access_parser" 2>&1', $outputCheck, $return_var);
+        if ($return_var !== 0) {
+            @exec('python3 -c "import access_parser" 2>&1', $outputCheck, $return_var);
+        }
         
         if ($return_var !== 0) {
             \Log::info("access-parser is missing. Programmatically installing via pip...");
-            $installCmd = 'pip install access-parser 2>&1';
-            exec($installCmd, $installOutput, $installReturnVar);
-            if ($installReturnVar !== 0) {
-                \Log::error("Failed to install access-parser: " . implode("\n", $installOutput));
+            
+            $installCommands = [
+                'pip install access-parser 2>&1',
+                'pip3 install access-parser 2>&1',
+                'python3 -m pip install access-parser 2>&1',
+                'python -m pip install access-parser 2>&1'
+            ];
+            $installed = false;
+            foreach ($installCommands as $installCmd) {
+                $outputInstall = [];
+                $returnInstall = 1;
+                @exec($installCmd, $outputInstall, $returnInstall);
+                if ($returnInstall === 0) {
+                    $installed = true;
+                    break;
+                }
+            }
+            
+            if (!$installed) {
+                \Log::error("Failed to install access-parser across all pip commands.");
                 return false;
             }
             \Log::info("access-parser successfully installed.");

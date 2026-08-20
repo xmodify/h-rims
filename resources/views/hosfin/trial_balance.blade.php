@@ -92,7 +92,7 @@
 
                     <!-- Import MDB Button -->
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importMdbModal">
-                        <i class="bi bi-database-fill-up"></i> นำเข้าข้อมูลบัญชี hfo (.zip)
+                        <i class="bi bi-database-fill-up"></i> นำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
                     </button>
                 </div>
             </div>
@@ -388,7 +388,7 @@
         <div class="modal-content rounded-3 border-0 shadow-lg">
             <div class="modal-header bg-primary text-white py-2">
                 <h6 class="modal-title fw-bold" id="importMdbModalLabel" style="font-size: 0.95rem;">
-                    <i class="bi bi-database-fill-up me-1"></i> นำเข้าข้อมูลบัญชี hfo (.zip)
+                    <i class="bi bi-database-fill-up me-1"></i> นำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -397,7 +397,7 @@
                 <div class="alert alert-info py-2 px-3 small border-0 d-flex gap-2 align-items-center mb-3">
                     <i class="bi bi-info-circle-fill text-info" style="font-size: 1.1rem;"></i>
                     <div style="font-size: 0.8rem;">
-                        ระบบจะทำการวิเคราะห์ช่วงเวลาที่มีอยู่ในไฟล์งบกระทรวง และแสดงตารางเลือกรายเดือนเพื่อเขียนทับฐานข้อมูล
+                        ระบบจะทำการวิเคราะห์ช่วงเวลาที่มีอยู่ในไฟล์งบกองเศรษฐกิจสุขภาพและหลักประกันสุขภาพ และแสดงตารางเลือกรายเดือนเพื่อเขียนทับฐานข้อมูล
                     </div>
                 </div>
 
@@ -406,7 +406,7 @@
                     @csrf
                     <div class="row align-items-end mb-3">
                         <div class="col-md-9 col-sm-12">
-                            <label for="mdb_file" class="form-label fw-bold text-secondary mb-1" style="font-size: 0.8rem;">ไฟล์ฐานข้อมูลกระทรวง (zip)</label>
+                            <label for="mdb_file" class="form-label fw-bold text-secondary mb-1" style="font-size: 0.8rem;">ไฟล์ฐานข้อมูลกองเศรษฐกิจสุขภาพและหลักประกันสุขภาพ (zip)</label>
                             <input type="file" class="form-control form-control-sm" id="mdb_file" name="file" accept=".zip" required>
                         </div>
                         <div class="col-md-3 col-sm-12 mt-2 mt-md-0">
@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         Swal.fire({
             title: 'ยืนยันการนำเข้าข้อมูล?',
-            text: 'ระบบจะนำข้อมูลของเดือน ' + label + ' จากไฟล์งบกระทรวงไปเขียนทับและบันทึกในฐานข้อมูลหลัก ต้องการดำเนินการต่อหรือไม่?',
+            text: 'ระบบจะนำข้อมูลของเดือน ' + label + ' จากไฟล์งบกองเศรษฐกิจสุขภาพและหลักประกันสุขภาพไปเขียนทับและบันทึกในฐานข้อมูลหลัก ต้องการดำเนินการต่อหรือไม่?',
             icon: 'info',
             showCancelButton: true,
             confirmButtonColor: '#10b981',

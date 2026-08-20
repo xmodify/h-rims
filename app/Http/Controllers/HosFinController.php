@@ -338,11 +338,11 @@ class HosFinController extends Controller
                 } else {
                     $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
-            } elseif ($code === '102') {
-                if ($val >= 0.2) {
+            } elseif ($code === '102') { // Cash Ratio
+                if ($val >= 0.8) {
                     $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
                 } else {
-                    $statusLabel = 'เฝ้าระวัง'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
             } elseif ($code === '105' || $code === '104') {
                 if ($val >= 0) {

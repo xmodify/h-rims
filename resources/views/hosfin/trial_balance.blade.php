@@ -92,7 +92,7 @@
 
                     <!-- Import MDB Button -->
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importMdbModal">
-                        <i class="bi bi-database-fill-up"></i> นำเข้าจากฐานข้อมูลกระทรวง (.mdb/.zip)
+                        <i class="bi bi-database-fill-up"></i> นำเข้าข้อมูลบัญชี hfo (.zip)
                     </button>
                 </div>
             </div>
@@ -388,7 +388,7 @@
         <div class="modal-content rounded-3 border-0 shadow-lg">
             <div class="modal-header bg-primary text-white py-2">
                 <h6 class="modal-title fw-bold" id="importMdbModalLabel" style="font-size: 0.95rem;">
-                    <i class="bi bi-database-fill-up me-1"></i> นำเข้าข้อมูลจากฐานข้อมูลกระทรวง (zip)
+                    <i class="bi bi-database-fill-up me-1"></i> นำเข้าข้อมูลบัญชี hfo (.zip)
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>

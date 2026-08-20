@@ -88,6 +88,8 @@ class HosFinController extends Controller
         }
 
         $validPeriods = array_column($periods, 'period');
+        $prevFyEndPeriod = sprintf('%04d-09', $budgetYear - 1);
+        $queryPeriods = array_merge($validPeriods, [$prevFyEndPeriod]);
 
         // Check which periods actually have data imported in DB
         $importedPeriods = DB::table('hosfin_trial_balance')
@@ -109,7 +111,7 @@ class HosFinController extends Controller
 
         // 2. Fetch all trial balance rows
         $trial_balance = DB::table('hosfin_trial_balance')
-            ->whereIn('acc_period', $validPeriods)
+            ->whereIn('acc_period', $queryPeriods)
             ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month']);
 
         // 3. Prefix matching in PHP memory
@@ -151,12 +153,69 @@ class HosFinController extends Controller
                     'credit_month' => $credit_month
                 ];
             }
+
+            // Override/add totals directly from raw trial balance for 100% accuracy
+            $periodTb = $trial_balance->where('acc_period', $period);
+            
+            $assetsDebitNet = 0;
+            $revDebitNet = 0;
+            $expDebitNet = 0;
+            
+            foreach ($periodTb as $tb) {
+                $firstDigit = substr($tb->account_code, 0, 1);
+                if ($firstDigit === '1') {
+                    $assetsDebitNet += floatval($tb->debit_net) - floatval($tb->credit_net);
+                } elseif ($firstDigit === '4') {
+                    $revDebitNet += floatval($tb->credit_net) - floatval($tb->debit_net);
+                } elseif ($firstDigit === '5') {
+                    $expDebitNet += floatval($tb->debit_net) - floatval($tb->credit_net);
+                }
+            }
+            
+            $allPeriodsData[$period]['3014Y'] = [
+                'debit_net' => $assetsDebitNet, 'credit_net' => 0, 'debit_bf' => 0, 'credit_bf' => 0, 'debit_month' => 0, 'credit_month' => 0
+            ];
+            $allPeriodsData[$period]['3006Y'] = [
+                'debit_net' => 0, 'credit_net' => $revDebitNet, 'debit_bf' => 0, 'credit_bf' => 0, 'debit_month' => 0, 'credit_month' => 0
+            ];
+            $allPeriodsData[$period]['3010X'] = [
+                'debit_net' => $expDebitNet, 'credit_net' => 0, 'debit_bf' => 0, 'credit_bf' => 0, 'debit_month' => 0, 'credit_month' => 0
+            ];
+
+            // Cumulative credit monthly activity summing for 2600Y
+            $getFiscalPeriodsUpTo = function($targetPeriod) use ($periods) {
+                $list = [];
+                foreach ($periods as $p) {
+                    $list[] = $p['period'];
+                    if ($p['period'] === $targetPeriod) {
+                        break;
+                    }
+                }
+                return $list;
+            };
+            
+            $periodsUpTo = $getFiscalPeriodsUpTo($period);
+            $cumCredit = 0;
+            foreach ($periodsUpTo as $p) {
+                $rows = $grouped[$p]['2600Y'] ?? [];
+                foreach ($rows as $r) {
+                    $cumCredit += floatval($r->credit_month);
+                }
+            }
+            
+            $allPeriodsData[$period]['2600Y'] = [
+                'debit_net' => 0, 'credit_net' => $cumCredit, 'debit_bf' => 0, 'credit_bf' => 0, 'debit_month' => 0, 'credit_month' => $cumCredit
+            ];
         }
 
         // Helper to retrieve values
         $getGroupValForPeriod = function($period, $groupCode) use (&$allPeriodsData) {
             $row = $allPeriodsData[$period][$groupCode] ?? null;
             if (!$row) return 0;
+
+            if (in_array($groupCode, ['3014Y', '3006Y', '3010X'])) {
+                return $row['debit_net'] ?: $row['credit_net'];
+            }
 
             static $isDebitMap = [];
             if (!isset($isDebitMap[$groupCode])) {
@@ -169,6 +228,18 @@ class HosFinController extends Controller
 
             $isDebit = $isDebitMap[$groupCode];
             return $isDebit ? ($row['debit_net'] - $row['credit_net']) : ($row['credit_net'] - $row['debit_net']);
+        };
+
+        // Helper to get average value for days-based indicator numerators
+        $getAverageGroupVal = function($period, $groupCode) use ($getGroupValForPeriod, $prevFyEndPeriod) {
+            $currentVal = $getGroupValForPeriod($period, $groupCode);
+            if (in_array($groupCode, ['2640X', '2600X', '2610X', '2620X', '2630X'])) {
+                $prevVal = $getGroupValForPeriod($prevFyEndPeriod, $groupCode);
+                if ($prevVal != 0) {
+                    return ($currentVal + $prevVal) / 2;
+                }
+            }
+            return $currentVal;
         };
 
         $targetCodes = ['105', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', '104'];
@@ -188,8 +259,8 @@ class HosFinController extends Controller
                 if (!isset($ratioDefs[$code])) continue;
                 $def = $ratioDefs[$code];
 
-                $num = $getGroupValForPeriod($period, $def['num_group']);
-                $den = $getGroupValForPeriod($period, $def['den_group']);
+                $num = $getAverageGroupVal($period, $def['num_group']);
+                $den = $getAverageGroupVal($period, $def['den_group']);
 
                 $val = 0;
                 if ($def['type'] === 'subtract') {

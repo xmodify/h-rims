@@ -20,7 +20,7 @@
   .metric-card {
     transition: all 0.25s ease-in-out;
     cursor: pointer;
-    border-width: 0 0 0 4px !important;
+    border: 1px solid #e2e8f0 !important;
   }
   .metric-card:hover {
     transform: translateY(-4px);
@@ -135,6 +135,13 @@
                             ]
                         ]
                     ];
+
+                    $themes = [
+                        ['border' => '#0d9488', 'text' => '#0d9488'], // Teal 600
+                        ['border' => '#2563eb', 'text' => '#2563eb'], // Blue 600
+                        ['border' => '#7c3aed', 'text' => '#7c3aed'], // Violet 600
+                        ['border' => '#db2777', 'text' => '#db2777']  // Pink 600
+                    ];
                 @endphp
 
                 @foreach($rows as $rowKey => $rowInfo)
@@ -150,6 +157,7 @@
                                 $icon = $c['icon'];
                                 $status = $statusMap[$code];
                                 $metricsData = $latestMetrics[$code];
+                                $theme = $themes[$loop->index % 4];
                                 
                                 $colorClass = 'text-dark';
                                 if (strpos($status['class'], 'text-success') !== false) {
@@ -161,11 +169,11 @@
                                 }
                             @endphp
                             <div class="col-xl-3 col-md-6">
-                                <div class="card metric-card border-start shadow-sm border-{{ $status['class'] }}" data-code="{{ $code }}" data-name="{{ $def['name'] }}">
+                                <div class="card metric-card shadow-sm" style="border-left: 5.5px solid {{ $theme['border'] }} !important;" data-code="{{ $code }}" data-name="{{ $def['name'] }}">
                                     <div class="card-body p-3">
                                         <!-- Row 1: Title & Status -->
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="metric-title text-wrap" title="{{ $def['name'] }}">{{ $c['name'] }}</span>
+                                            <span class="metric-title text-wrap" title="{{ $def['name'] }}">{{ $code }} - {{ $c['name'] }}</span>
                                             <span class="badge {{ $status['bg'] }} {{ $status['class'] }} badge-custom text-nowrap ms-1">
                                                 {{ $status['label'] }}
                                             </span>
@@ -200,7 +208,7 @@
                                                     ({{ $numLabelShort }}: {{ $formatVal($numVal) }} | {{ $denLabelShort }}: {{ $formatVal($denVal) }})
                                                 </div>
                                             </div>
-                                            <div class="text-secondary opacity-50 pb-1">
+                                            <div class="pb-1" style="color: {{ $theme['text'] }}; opacity: 0.85;">
                                                 <i class="bi {{ $icon }}" style="font-size: 1.15rem;"></i>
                                             </div>
                                         </div>
@@ -350,7 +358,7 @@
         },
         '261': {
             desc: '<strong>Average Collection Period - UC (วันเก็บหนี้สิทธิบัตรทอง)</strong>: ลูกหนี้ UC เฉลี่ย ÷ รายได้ UC สุทธิ (คูณ 300 วัน เพื่อดูความเร็วการตามเงินจาก สปสช.)',
-            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ควบคุมให้ต่ำกว่า <strong>30 วัน</strong> หากตัวเลขพุ่งสูง 60-90 วันขึ้นไป สะท้อนว่าหน่วยประกันสุขภาพของ รพ. ส่งเบิกเคลมช้า หรือมีการติดปัญหารหัสสิทธิการรักษาพยาบาลค้างเบิก ผู้บริหารควรสั่งการให้หน่วยเบิกเคลมประกันเร่งส่งข้อมูลและเคลียร์เคสที่ติดขัดโดยด่วน'
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ควบคุมให้ต่ำกว่า <strong>30 วัน</strong> หากตัวเลขพุ่งสูง 60-90 วันขึ้นไป สะท้อนว่าหน่วยประกันสุขภาพของ รพ. ส่งเบิกเคลมช้า หรือมีการติดปัญหัสิทธิการรักษาพยาบาลค้างเบิก ผู้บริหารควรสั่งการให้หน่วยเบิกเคลมประกันเร่งส่งข้อมูลและเคลียร์เคสที่ติดขัดโดยด่วน'
         },
         '262': {
             desc: '<strong>Average Collection Period - CSMBS (วันเก็บหนี้สิทธิข้าราชการ)</strong>: ลูกหนี้ CS เฉลี่ย ÷ รายได้ CS สุทธิ (คูณ 300 วัน เพื่อดูความเร็วการตามเงินจ่ายตรงกรมบัญชีกลาง)',

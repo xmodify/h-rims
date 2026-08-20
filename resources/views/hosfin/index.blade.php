@@ -350,7 +350,7 @@
         },
         '102': {
             desc: '<strong>Cash Ratio (อัตราส่วนเงินสดพร้อมจ่าย)</strong>: เงินสดและเงินฝากธนาคาร ÷ หนี้สินหมุนเวียน (วัดความพร้อมจ่ายทันทีถ้าโดนทวงหนี้)',
-            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ตัวเลขควรอยู่ในระดับ <strong>0.2 - 0.5 เท่า</strong> หากต่ำกว่า 0.2 เท่า แสดงว่าเงินสดในมือของ รพ. มีน้อยมาก หากเกิดเหตุฉุกเฉินหรือคู่ค้ามาเรียกชำระพร้อมกัน อาจทำให้ รพ. ขาดสภาพคล่องกะทันหัน ควรเพิ่มวินัยการสำรองสัดส่วนเงินสดฝากธนาคารให้อยู่ในเกณฑ์มาตรฐาน'
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ตัวเลขควรอยู่ในระดับ <strong>0.8 เท่าขึ้นไป</strong> หากต่ำกว่า 0.8 เท่า แสดงว่าเงินสดในมือของ รพ. มีน้อยมาก หากเกิดเหตุฉุกเฉินหรือคู่ค้ามาเรียกชำระพร้อมกัน อาจทำให้ รพ. ขาดสภาพคล่องกะทันหัน ควรเพิ่มวินัยการสำรองสัดส่วนเงินสดฝากธนาคารให้อยู่ในเกณฑ์มาตรฐาน'
         },
         '264': {
             desc: '<strong>Inventory Management (ระยะเวลาถือครองสินค้าคงคลังยา)</strong>: วัสดุคงคลังเฉลี่ย ÷ วัสดุใช้ไป (คูณ 300 วัน เพื่อดูระยะเวลาเป็นวัน)',
@@ -410,12 +410,33 @@
             document.getElementById('modalDenLabel').textContent = definition.denominator_name;
             document.getElementById('modalDenValue').textContent = denVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
-            document.getElementById('modalResultValue').textContent = resVal.toLocaleString(undefined, {minimumFractionDigits: definition.precision, maximumFractionDigits: definition.precision}) + ' ' + definition.unit;
+            // Dynamic color evaluation based on statusMap
+            const status = statusMap[code] || { class: 'text-dark border-secondary' };
+            let colorClass = 'text-dark';
+            let borderColor = '#cbd5e1'; // gray fallback
+            
+            if (status.class.includes('text-success')) {
+                colorClass = 'text-success-custom';
+                borderColor = '#16a34a';
+            } else if (status.class.includes('text-danger')) {
+                colorClass = 'text-danger-custom';
+                borderColor = '#b91c1c';
+            } else if (status.class.includes('text-warning')) {
+                colorClass = 'text-warning-custom';
+                borderColor = '#b45309';
+            }
+
+            const resultValEl = document.getElementById('modalResultValue');
+            resultValEl.className = `fs-5 fw-bold ${colorClass}`;
+            resultValEl.textContent = resVal.toLocaleString(undefined, {minimumFractionDigits: definition.precision, maximumFractionDigits: definition.precision}) + ' ' + definition.unit;
 
             // Set guide descriptions
             const guide = analysisGuides[code] || { desc: 'ไม่มีคำอธิบายสำหรับรหัสนี้', guide: 'ไม่มีคำแนะนำเพิ่มเติม' };
             document.getElementById('modalGuideDescription').innerHTML = guide.desc;
-            document.getElementById('modalGuideAction').innerHTML = guide.guide;
+            
+            const guideActionEl = document.getElementById('modalGuideAction');
+            guideActionEl.style.borderLeft = `4px solid ${borderColor}`;
+            guideActionEl.innerHTML = guide.guide;
 
             // Open Modal via jQuery (Standard for project)
             $('#trendModal').modal('show');

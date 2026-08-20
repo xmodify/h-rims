@@ -35,9 +35,11 @@
   .metric-value {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #0f172a;
     line-height: 1.2;
   }
+  .text-success-custom { color: #15803d !important; }
+  .text-danger-custom { color: #b91c1c !important; }
+  .text-warning-custom { color: #b45309 !important; }
   .metric-unit {
     font-size: 0.78rem;
     color: #64748b;
@@ -106,30 +108,30 @@
                             'title' => 'การวิเคราะห์วิกฤตทางการเงินและสภาพคล่องหมุนเวียน (Liquidity & Cash Balance)',
                             'icon' => 'bi-shield-check text-success',
                             'codes' => [
-                                ['code' => '105', 'icon' => 'bi-piggy-bank', 'text_class' => 'text-success'],
-                                ['code' => '100', 'icon' => 'bi-arrow-left-right', 'text_class' => 'text-primary'],
-                                ['code' => '101', 'icon' => 'bi-lightning-charge', 'text_class' => 'text-info'],
-                                ['code' => '102', 'icon' => 'bi-cash-stack', 'text_class' => 'text-warning']
+                                ['code' => '105', 'icon' => 'bi-piggy-bank', 'name' => 'เงินบำรุงคงเหลือสุทธิ'],
+                                ['code' => '100', 'icon' => 'bi-arrow-left-right', 'name' => 'Current Ratio'],
+                                ['code' => '101', 'icon' => 'bi-lightning-charge', 'name' => 'Quick Ratio'],
+                                ['code' => '102', 'icon' => 'bi-cash-stack', 'name' => 'Cash Ratio']
                             ]
                         ],
                         'efficiency' => [
                             'title' => 'ประสิทธิภาพการบริหารคลัง ยา และลูกหนี้ชดเชย (Operational Efficiency)',
                             'icon' => 'bi-speedometer2 text-primary',
                             'codes' => [
-                                ['code' => '264', 'icon' => 'bi-prescription2', 'text_class' => 'text-success'],
-                                ['code' => '261', 'icon' => 'bi-wallet2', 'text_class' => 'text-info'],
-                                ['code' => '262', 'icon' => 'bi-person-check-fill', 'text_class' => 'text-primary'],
-                                ['code' => '260', 'icon' => 'bi-clock-history', 'text_class' => 'text-danger']
+                                ['code' => '264', 'icon' => 'bi-prescription2', 'name' => 'ระยะเวลาสต็อกคลังยา'],
+                                ['code' => '261', 'icon' => 'bi-wallet2', 'name' => 'วันเก็บหนี้สิทธิ UC'],
+                                ['code' => '262', 'icon' => 'bi-person-check-fill', 'name' => 'วันเก็บหนี้สิทธิ CS'],
+                                ['code' => '260', 'icon' => 'bi-clock-history', 'name' => 'ระยะเวลาชำระหนี้ค่ายา']
                             ]
                         ],
                         'profitability' => [
                             'title' => 'ความสามารถในการคุมรายจ่ายและทำกำไร (Profitability & Cost Control)',
                             'icon' => 'bi-percent text-danger',
                             'codes' => [
-                                ['code' => '320', 'icon' => 'bi-graph-up-arrow', 'text_class' => 'text-success'],
-                                ['code' => '321', 'icon' => 'bi-briefcase', 'text_class' => 'text-primary'],
-                                ['code' => '307', 'icon' => 'bi-file-earmark-bar-graph', 'text_class' => 'text-info'],
-                                ['code' => '104', 'icon' => 'bi-wallet', 'text_class' => 'text-warning']
+                                ['code' => '320', 'icon' => 'bi-graph-up-arrow', 'name' => 'Operating Margin %'],
+                                ['code' => '321', 'icon' => 'bi-briefcase', 'name' => 'Return on Asset % (ROA)'],
+                                ['code' => '307', 'icon' => 'bi-file-earmark-bar-graph', 'name' => 'Net Margin (มีค่าเสื่อม)'],
+                                ['code' => '104', 'icon' => 'bi-wallet', 'name' => 'Networking Capital']
                             ]
                         ]
                     ];
@@ -146,17 +148,25 @@
                                 $code = $c['code'];
                                 $def = $ratioDefs[$code];
                                 $icon = $c['icon'];
-                                $txtClass = $c['text_class'];
                                 $status = $statusMap[$code];
                                 $metricsData = $latestMetrics[$code];
+                                
+                                $colorClass = 'text-dark';
+                                if (strpos($status['class'], 'text-success') !== false) {
+                                    $colorClass = 'text-success-custom';
+                                } elseif (strpos($status['class'], 'text-danger') !== false) {
+                                    $colorClass = 'text-danger-custom';
+                                } elseif (strpos($status['class'], 'text-warning') !== false) {
+                                    $colorClass = 'text-warning-custom';
+                                }
                             @endphp
                             <div class="col-xl-3 col-md-6">
                                 <div class="card metric-card border-start shadow-sm border-{{ $status['class'] }}" data-code="{{ $code }}" data-name="{{ $def['name'] }}">
                                     <div class="card-body p-3">
                                         <!-- Row 1: Title & Status -->
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="metric-title text-truncate" style="max-width: 160px;" title="{{ $def['name'] }}">{{ $def['name'] }}</span>
-                                            <span class="badge {{ $status['bg'] }} {{ $status['class'] }} badge-custom text-nowrap">
+                                            <span class="metric-title text-wrap" title="{{ $def['name'] }}">{{ $c['name'] }}</span>
+                                            <span class="badge {{ $status['bg'] }} {{ $status['class'] }} badge-custom text-nowrap ms-1">
                                                 {{ $status['label'] }}
                                             </span>
                                         </div>
@@ -164,7 +174,7 @@
                                         <div class="d-flex justify-content-between align-items-end">
                                             <div>
                                                 <div class="d-flex align-items-baseline">
-                                                    <span class="metric-value">{{ number_format($metricsData['val'], $def['precision']) }}</span>
+                                                    <span class="metric-value {{ $colorClass }}">{{ number_format($metricsData['val'], $def['precision']) }}</span>
                                                     <span class="metric-unit ms-1">{{ $def['unit'] }}</span>
                                                 </div>
                                                 <div class="text-muted mt-1 text-nowrap" style="font-size: 0.72rem; font-weight: 500;">

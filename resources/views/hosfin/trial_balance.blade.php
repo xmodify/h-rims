@@ -61,19 +61,21 @@
 
 <div class="container-fluid py-4 px-lg-5" style="background-color: #f8fafc;">
     <div class="row">
+        <!-- Back Button -->
+        <div class="col-12 px-3 mb-2">
+            <a href="{{ url('hosfin') }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;">
+                <i class="bi bi-arrow-left"></i> ย้อนกลับไปยัง Statement Portal
+            </a>
+        </div>
+
         <!-- Header -->
         <div class="col-12 px-3 mb-3">
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important;">
-                <div class="d-flex align-items-center gap-3">
-                    <a href="{{ url('hosfin') }}" class="btn btn-outline-secondary btn-sm rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="ย้อนกลับ">
-                        <i class="bi bi-arrow-left" style="font-size: 1.1rem; line-height: 1;"></i>
-                    </a>
-                    <div>
-                        <h5 class="text-primary mb-0 fw-bold">
-                            <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ระบบจัดการงบทดลอง (Trial Balance)
-                        </h5>
-                        <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
-                    </div>
+                <div>
+                    <h5 class="text-primary mb-0 fw-bold">
+                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ระบบจัดการงบทดลอง (Trial Balance)
+                    </h5>
+                    <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
                 </div>
                 
                 <div class="d-flex align-items-center gap-2">

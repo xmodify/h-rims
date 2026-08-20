@@ -242,7 +242,7 @@ class HosFinController extends Controller
             return $currentVal;
         };
 
-        $targetCodes = ['105', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', '104'];
+        $targetCodes = ['105', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', '334'];
         $ratioDefs = self::getRatioDefinitions();
         $history = [];
 

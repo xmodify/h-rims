@@ -64,36 +64,51 @@
         <!-- Header -->
         <div class="col-12 px-3 mb-3">
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h5 class="text-primary mb-0 fw-bold">
-                            <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ระบบจัดการงบทดลอง (Trial Balance)
-                        </h5>
-                        <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
+                <div>
+                    <h5 class="text-primary mb-0 fw-bold">
+                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ระบบจัดการงบทดลอง (Trial Balance)
+                    </h5>
+                    <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
+                </div>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Budget Year Dropdown -->
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted" style="font-size: 0.9rem;">ปีงบประมาณ</span>
+                        <select id="select_budget_year" class="form-select" style="min-width: 100px; font-size: 0.9rem;">
+                            @foreach($yearChoices as $yr)
+                                <option value="{{ $yr }}" {{ $budgetYear == $yr ? 'selected' : '' }}>{{ $yr }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    
-                    <div class="d-flex align-items-center gap-2">
-                        <!-- Budget Year Dropdown -->
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-muted" style="font-size: 0.9rem;">ปีงบประมาณ</span>
-                            <select id="select_budget_year" class="form-select" style="min-width: 100px; font-size: 0.9rem;">
-                                @foreach($yearChoices as $yr)
-                                    <option value="{{ $yr }}" {{ $budgetYear == $yr ? 'selected' : '' }}>{{ $yr }}</option>
-                                @endforeach
-                            </select>
-                        </div>
 
-                        <!-- Hidden input for category selection to keep JS functionality working -->
-                        <input type="hidden" id="select_category" value="all">
-                        
-                        <!-- Import Button -->
-                        <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#importModal">
-                            <i class="bi bi-file-earmark-arrow-up"></i> นำเข้างบทดลอง
-                        </button>
-                    </div>
+                    <!-- Hidden input for category selection to keep JS functionality working -->
+                    <input type="hidden" id="select_category" value="all">
+                    
+                    <!-- Import Button -->
+                    <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="bi bi-file-earmark-arrow-up"></i> นำเข้างบทดลอง
+                    </button>
                 </div>
             </div>
         </div>
+
+        @if(count($importedPeriods) > 0)
+            <!-- Dynamic Trend Chart Section -->
+            <div class="col-12 px-3 mb-3">
+                <div class="card card-trend border-0 shadow-sm rounded-3 bg-white">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-primary me-1"></i> กราฟเปรียบเทียบแนวโน้มรายรับ - รายจ่ายประจำแต่ละเดือน</h6>
+                                <small class="text-muted">เปรียบเทียบยอดคงเหลือสะสมรายเดือน หมวดรายได้ (Revenue) และหมวดค่าใช้จ่าย (Expenses) ปีงบประมาณ {{ $budgetYear }}</small>
+                            </div>
+                        </div>
+                        <div id="categoryTrendChart" style="min-height: 280px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <!-- Period Tabs -->
         <div class="col-12 mb-4">
@@ -670,5 +685,127 @@ function deletePeriod(period, label) {
         }
     });
 }
+</script>
+
+<script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
+<script>
+    @if(count($importedPeriods) > 0)
+        const chartDataMap = @json($chartData);
+        const chartLabels = Object.keys(chartDataMap); // Monthly period labels
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            const revenuesData = chartLabels.map(label => chartDataMap[label][4] || 0.0);
+            const expensesData = chartLabels.map(label => chartDataMap[label][5] || 0.0);
+
+            const chartOptions = {
+                series: [
+                    {
+                        name: 'รายได้',
+                        data: revenuesData
+                    },
+                    {
+                        name: 'ค่าใช้จ่าย',
+                        data: expensesData
+                    }
+                ],
+                chart: {
+                    height: 280,
+                    type: 'area',
+                    toolbar: { show: false }
+                },
+                colors: ['#10b981', '#ef4444'], // Green for Revenue, Red for Expenses
+                stroke: {
+                    curve: 'smooth',
+                    width: 3
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.3, // Soft faint shadow, more visible
+                        opacityTo: 0.05,
+                        stops: [0, 90, 100]
+                    }
+                },
+                markers: {
+                    size: 4,
+                    hover: {
+                        size: 6
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function (val) {
+                        if (val === 0) return '';
+                        return val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    },
+                    style: {
+                        fontSize: '9px',
+                        fontWeight: 'bold'
+                    },
+                    background: {
+                        enabled: true,
+                        foreColor: '#fff',
+                        padding: 4,
+                        borderRadius: 4,
+                        borderWidth: 1,
+                        borderColor: '#cbd5e1',
+                        opacity: 0.95
+                    }
+                },
+                xaxis: {
+                    categories: chartLabels,
+                    tooltip: {
+                        enabled: true // Highlights X-axis label on hover
+                    },
+                    crosshairs: {
+                        show: true,
+                        width: 1,
+                        position: 'back',
+                        stroke: {
+                            color: '#cbd5e1',
+                            width: 1,
+                            dashArray: 3
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (val) {
+                            if (Math.abs(val) >= 1000000) {
+                                return (val / 1000000).toFixed(1) + 'M';
+                            }
+                            if (Math.abs(val) >= 1000) {
+                                return (val / 1000).toFixed(0) + 'K';
+                            }
+                            return val.toLocaleString();
+                        }
+                    }
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: {
+                        formatter: function (val) {
+                            return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " บาท";
+                        }
+                    }
+                },
+                legend: {
+                    show: true,
+                    position: 'top',
+                    horizontalAlign: 'center',
+                    fontFamily: 'inherit',
+                    fontWeight: 'bold',
+                    labels: {
+                        colors: '#334155'
+                    }
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#categoryTrendChart"), chartOptions);
+            chart.render();
+        });
+    @endif
 </script>
 @endsection

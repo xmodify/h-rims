@@ -32404,5 +32404,75 @@
         }
       ]
     }
+  },
+  "hosfin_dtl_mappings": {
+    "columns": {
+      "id": {
+        "type": "bigint(20) unsigned",
+        "nullable": false,
+        "default": null,
+        "extra": "auto_increment"
+      },
+      "group_code": {
+        "type": "varchar(30)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "group_name": {
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "account_code": {
+        "type": "varchar(30)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "created_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "updated_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      }
+    },
+    "indexes": {
+      "PRIMARY": [
+        {
+          "column": "id",
+          "unique": true
+        }
+      ],
+      "group_code": [
+        {
+          "column": "group_code",
+          "unique": false
+        }
+      ],
+      "account_code": [
+        {
+          "column": "account_code",
+          "unique": false
+        }
+      ],
+      "composite_group_acc": [
+        {
+          "column": "group_code",
+          "unique": true
+        },
+        {
+          "column": "account_code",
+          "unique": true
+        }
+      ]
+    }
   }
 }

@@ -34,7 +34,7 @@
         </div>
         
         <!-- Cards Grid -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-6 mb-4">
             <div class="card hosfin-card accent-teal h-100 shadow-sm">
                 <div class="card-body d-flex flex-column p-4">
                     <div class="d-flex align-items-center mb-3">
@@ -56,46 +56,24 @@
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
-            <div class="card hosfin-card accent-blue h-100 shadow-sm opacity-75">
+        <div class="col-md-6 mb-4">
+            <div class="card hosfin-card accent-blue h-100 shadow-sm">
                 <div class="card-body d-flex flex-column p-4">
                     <div class="d-flex align-items-center mb-3">
                         <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary me-3">
                             <i class="bi bi-graph-up-arrow" style="font-size: 2rem;"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-0 text-dark">รายงานรายได้</h5>
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Coming Soon</span>
+                            <h5 class="fw-bold mb-0 text-dark">วิเคราะห์อัตราส่วนการเงิน</h5>
+                            <small class="text-muted">Financial Ratio Analysis</small>
                         </div>
                     </div>
                     <p class="text-muted mb-4 flex-grow-1" style="font-size: 0.9rem; line-height: 1.6;">
-                        ระบบวิเคราะห์โครงสร้างรายได้โรงพยาบาล แยกตามสิทธิการรักษาพยาบาลและหมวดค่าบริการทางการแพทย์รายเดือนและรายปีงบประมาณ
+                        ระบบวิเคราะห์และคำนวณอัตราส่วนทางการเงินรายเดือนและรายปีงบประมาณตามเกณฑ์กระทรวงสาธารณสุข พร้อมกราฟวิเคราะห์แนวโน้มรายเดือนและระบบตั้งค่าจับคู่ผังบัญชี
                     </p>
-                    <button class="btn btn-outline-secondary rounded-pill px-4 align-self-start mt-auto" disabled>
-                        ยังไม่เปิดบริการ
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 mb-4">
-            <div class="card hosfin-card accent-red h-100 shadow-sm opacity-75">
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-danger bg-opacity-10 p-3 rounded-3 text-danger me-3">
-                            <i class="bi bi-graph-down-arrow" style="font-size: 2rem;"></i>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold mb-0 text-dark">รายงานรายจ่าย</h5>
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Coming Soon</span>
-                        </div>
-                    </div>
-                    <p class="text-muted mb-4 flex-grow-1" style="font-size: 0.9rem; line-height: 1.6;">
-                        ระบบควบคุมและตรวจสอบยอดค่าใช้จ่ายในการดำเนินงาน ต้นทุนบุคลากร และต้นทุนการรักษาพยาบาลจำแนกตามโครงสร้างแผนก
-                    </p>
-                    <button class="btn btn-outline-secondary rounded-pill px-4 align-self-start mt-auto" disabled>
-                        ยังไม่เปิดบริการ
-                    </button>
+                    <a href="{{ url('hosfin/ratio_report') }}" class="btn btn-primary rounded-pill px-4 align-self-start shadow-sm mt-auto">
+                        เข้าใช้งานระบบ <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>

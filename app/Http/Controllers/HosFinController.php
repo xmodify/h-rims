@@ -577,11 +577,11 @@ class HosFinController extends Controller
                     }
                     if ($pLabel && isset($chartData[$pLabel])) {
                         if ($catId === 4) {
-                            // Revenue: Monthly Credit Transactions
-                            $chartData[$pLabel][4] += floatval($tb->credit_month);
+                            // Net Revenue: Monthly Credit minus Debit Transactions
+                            $chartData[$pLabel][4] += (floatval($tb->credit_month) - floatval($tb->debit_month));
                         } elseif ($catId === 5) {
-                            // Expense: Monthly Debit Transactions
-                            $chartData[$pLabel][5] += floatval($tb->debit_month);
+                            // Net Expense: Monthly Debit minus Credit Transactions
+                            $chartData[$pLabel][5] += (floatval($tb->debit_month) - floatval($tb->credit_month));
                         } else {
                             $db_n = floatval($tb->debit_net);
                             $cr_n = floatval($tb->credit_net);

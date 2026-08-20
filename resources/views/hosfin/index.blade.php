@@ -108,30 +108,30 @@
                             'title' => 'การวิเคราะห์วิกฤตทางการเงินและสภาพคล่องหมุนเวียน (Liquidity & Cash Balance)',
                             'icon' => 'bi-shield-check text-success',
                             'codes' => [
-                                ['code' => '105', 'icon' => 'bi-piggy-bank', 'name' => 'เงินบำรุงคงเหลือสุทธิ'],
                                 ['code' => '100', 'icon' => 'bi-arrow-left-right', 'name' => 'Current Ratio'],
                                 ['code' => '101', 'icon' => 'bi-lightning-charge', 'name' => 'Quick Ratio'],
-                                ['code' => '102', 'icon' => 'bi-cash-stack', 'name' => 'Cash Ratio']
+                                ['code' => '102', 'icon' => 'bi-cash-stack', 'name' => 'Cash Ratio'],
+                                ['code' => '104', 'icon' => 'bi-wallet', 'name' => 'Networking Capital']
                             ]
                         ],
                         'efficiency' => [
                             'title' => 'ประสิทธิภาพการบริหารคลัง ยา และลูกหนี้ชดเชย (Operational Efficiency)',
                             'icon' => 'bi-speedometer2 text-primary',
                             'codes' => [
-                                ['code' => '264', 'icon' => 'bi-prescription2', 'name' => 'ระยะเวลาสต็อกคลังยา'],
+                                ['code' => '260', 'icon' => 'bi-clock-history', 'name' => 'ระยะเวลาชำระหนี้ค่ายา'],
                                 ['code' => '261', 'icon' => 'bi-wallet2', 'name' => 'วันเก็บหนี้สิทธิ UC'],
                                 ['code' => '262', 'icon' => 'bi-person-check-fill', 'name' => 'วันเก็บหนี้สิทธิ CS'],
-                                ['code' => '260', 'icon' => 'bi-clock-history', 'name' => 'ระยะเวลาชำระหนี้ค่ายา']
+                                ['code' => '264', 'icon' => 'bi-prescription2', 'name' => 'ระยะเวลาสต็อกคลังยา']
                             ]
                         ],
                         'profitability' => [
                             'title' => 'ความสามารถในการคุมรายจ่ายและทำกำไร (Profitability & Cost Control)',
                             'icon' => 'bi-percent text-danger',
                             'codes' => [
-                                ['code' => '320', 'icon' => 'bi-graph-up-arrow', 'name' => 'Operating Margin %'],
-                                ['code' => '321', 'icon' => 'bi-briefcase', 'name' => 'Return on Asset % (ROA)'],
+                                ['code' => '105', 'icon' => 'bi-piggy-bank', 'name' => 'เงินบำรุงคงเหลือสุทธิ'],
                                 ['code' => '307', 'icon' => 'bi-file-earmark-bar-graph', 'name' => 'Net Margin (มีค่าเสื่อม)'],
-                                ['code' => '104', 'icon' => 'bi-wallet', 'name' => 'Networking Capital']
+                                ['code' => '320', 'icon' => 'bi-graph-up-arrow', 'name' => 'Operating Margin %'],
+                                ['code' => '321', 'icon' => 'bi-briefcase', 'name' => 'Return on Asset % (ROA)']
                             ]
                         ]
                     ];
@@ -173,7 +173,7 @@
                                     <div class="card-body p-3">
                                         <!-- Row 1: Title & Status -->
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="metric-title text-wrap" title="{{ $def['name'] }}">{{ $code }} - {{ $c['name'] }}</span>
+                                            <span class="metric-title text-wrap" title="{{ $def['name'] }}">{{ $code }} {{ $c['name'] }}</span>
                                             <span class="badge {{ $status['bg'] }} {{ $status['class'] }} badge-custom text-nowrap ms-1">
                                                 {{ $status['label'] }}
                                             </span>
@@ -350,7 +350,7 @@
         },
         '102': {
             desc: '<strong>Cash Ratio (อัตราส่วนเงินสดพร้อมจ่าย)</strong>: เงินสดและเงินฝากธนาคาร ÷ หนี้สินหมุนเวียน (วัดความพร้อมจ่ายทันทีถ้าโดนทวงหนี้)',
-            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ตัวเลขควรอยู่ในระดับ <strong>0.2 - 0.5 เท่า</strong> หากต่ำกว่า 0.2 เท่า แสดงว่าเงินสดในมือของ รพ. มีน้อยมาก หากเกิดเหตุฉุกเฉินหรือคู่ค้ามาเรียกชำระพร้อมกัน อาจทำให้ รพ. ขาดสภาพคล่องกะทันหัน ควรเพิ่มวินัยการสำรองสัดส่วนเงินสดฝากธนาคารให้อยู่ในเกณฑ์มาตรฐาน'
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ตัวเลขควรอยู่ในระดับ <strong>0.2 - 0.5 เท่า</strong> หากต่ำกว่า 0.2 เท่า แสดงว่าเงินสดในมือของ รพ. มีน้อยมาก หากเกิดเหตุฉันหรือคู่ค้ามาเรียกชำระพร้อมกัน อาจทำให้ รพ. ขาดสภาพคล่องกะทันหัน ควรเพิ่มวินัยการสำรองสัดส่วนเงินสดฝากธนาคารให้อยู่ในเกณฑ์มาตรฐาน'
         },
         '264': {
             desc: '<strong>Inventory Management (ระยะเวลาถือครองสินค้าคงคลังยา)</strong>: วัสดุคงคลังเฉลี่ย ÷ วัสดุใช้ไป (คูณ 300 วัน เพื่อดูระยะเวลาเป็นวัน)',
@@ -358,7 +358,7 @@
         },
         '261': {
             desc: '<strong>Average Collection Period - UC (วันเก็บหนี้สิทธิบัตรทอง)</strong>: ลูกหนี้ UC เฉลี่ย ÷ รายได้ UC สุทธิ (คูณ 300 วัน เพื่อดูความเร็วการตามเงินจาก สปสช.)',
-            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ควบคุมให้ต่ำกว่า <strong>30 วัน</strong> หากตัวเลขพุ่งสูง 60-90 วันขึ้นไป สะท้อนว่าหน่วยประกันสุขภาพของ รพ. ส่งเบิกเคลมช้า หรือมีการติดปัญหัสิทธิการรักษาพยาบาลค้างเบิก ผู้บริหารควรสั่งการให้หน่วยเบิกเคลมประกันเร่งส่งข้อมูลและเคลียร์เคสที่ติดขัดโดยด่วน'
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ควบคุมให้ต่ำกว่า <strong>30 วัน</strong> หากตัวเลขพุ่งสูง 60-90 วันขึ้นไป สะท้อนว่าหน่วยประกันสุขภาพของ รพ. ส่งเบิกเคลมช้า หรือมีปัญหาเคลมล่าช้า ผู้บริหารควรสั่งการให้หน่วยเบิกเคลมประกันเร่งส่งข้อมูลและเคลียร์เคสที่ติดขัดโดยด่วน'
         },
         '262': {
             desc: '<strong>Average Collection Period - CSMBS (วันเก็บหนี้สิทธิข้าราชการ)</strong>: ลูกหนี้ CS เฉลี่ย ÷ รายได้ CS สุทธิ (คูณ 300 วัน เพื่อดูความเร็วการตามเงินจ่ายตรงกรมบัญชีกลาง)',

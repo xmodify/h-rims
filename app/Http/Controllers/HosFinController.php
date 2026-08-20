@@ -205,14 +205,18 @@ class HosFinController extends Controller
                         }
                     }
                 }
-                $history[$code][$period] = round($val, $def['precision']);
+                $history[$code][$period] = [
+                    'val' => round($val, $def['precision']),
+                    'num' => $num,
+                    'den' => $den
+                ];
             }
         }
 
         // Latest period metrics and label
         $latestMetrics = [];
         foreach ($targetCodes as $code) {
-            $latestMetrics[$code] = $history[$code][$latestPeriod] ?? 0;
+            $latestMetrics[$code] = $history[$code][$latestPeriod] ?? ['val' => 0, 'num' => 0, 'den' => 0];
         }
 
         $latestPeriodLabel = '';
@@ -236,7 +240,7 @@ class HosFinController extends Controller
             $chartData[$code] = [];
             foreach ($periods as $p) {
                 if (in_array($p['period'], $importedPeriods)) {
-                    $chartData[$code][] = $history[$code][$p['period']] ?? 0;
+                    $chartData[$code][] = $history[$code][$p['period']]['val'] ?? 0;
                 }
             }
         }
@@ -244,7 +248,7 @@ class HosFinController extends Controller
         // Evaluate statuses
         $statusMap = [];
         foreach ($targetCodes as $code) {
-            $val = $latestMetrics[$code];
+            $val = $latestMetrics[$code]['val'];
             $statusLabel = 'ปกติ';
             $statusClass = 'text-success border-success';
             $bgClass = 'bg-success bg-opacity-10';

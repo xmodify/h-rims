@@ -50,6 +50,8 @@ class CheckLicense
                 str_starts_with($path, 'debtor/acc_ledger')
             ) {
                 $module = 'debtor_control';
+            } elseif (str_starts_with($path, 'hosfin')) {
+                $module = 'hosfin';
             }
         }
 
@@ -73,6 +75,7 @@ class CheckLicense
                 'export_csop' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CSOP',
                 'export_cipn' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CIPN',
                 'debtor_control' => 'ระบบทะเบียนคุมลูกหนี้ (DebtorControl)',
+                'hosfin' => 'ระบบรายงานสถานะการเงินการคลัง (HosFin)',
             ];
 
             $moduleName = $moduleMetaNames[$module] ?? $module;

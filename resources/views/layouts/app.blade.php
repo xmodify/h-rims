@@ -1169,6 +1169,13 @@
                                     </a>
                                 </li>
                             @endif
+                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('hosfin'))
+                                <li class="nav-item">
+                                    <a class="nav-link nav-link-modern" href="{{ url('hosfin') }}">
+                                        <i class="bi bi-bank me-1" style="color: #10b981;"></i> HosFin
+                                    </a>
+                                </li>
+                            @endif
                         @endguest
                     </ul>
 

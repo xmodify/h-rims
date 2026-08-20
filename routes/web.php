@@ -501,6 +501,14 @@ Route::match(['get', 'post'], 'mishos/ucs_ppfs_postnatal', [MishosController::cl
 Route::match(['get', 'post'], 'mishos/ucs_ppfs_fittest', [MishosController::class, 'ucs_ppfs_fittest']);
 Route::match(['get', 'post'], 'mishos/ucs_ppfs_scr', [MishosController::class, 'ucs_ppfs_scr']);
 
+// HosFin System Routes
+Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
+    Route::get('hosfin', [App\Http\Controllers\HosFinController::class, 'index'])->name('hosfin.index');
+    Route::get('hosfin/trial_balance', [App\Http\Controllers\HosFinController::class, 'trial_balance'])->name('hosfin.trial_balance');
+    Route::post('hosfin/trial_balance/import', [App\Http\Controllers\HosFinController::class, 'import'])->name('hosfin.trial_balance.import');
+    Route::delete('hosfin/trial_balance/delete', [App\Http\Controllers\HosFinController::class, 'delete_period'])->name('hosfin.trial_balance.delete');
+});
+
 // Debtor -------------------------------------------------------------------------------------------------------------------------
 Route::get('debtor', [DebtorController::class, 'index']);
 Route::match(['get', 'post'], 'debtor/check_income', [DebtorController::class, '_check_income']);

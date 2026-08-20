@@ -32280,5 +32280,129 @@
         }
       ]
     }
+  },
+  "hosfin_trial_balance": {
+    "columns": {
+      "id": {
+        "type": "bigint(20) unsigned",
+        "nullable": false,
+        "default": null,
+        "extra": "auto_increment"
+      },
+      "acc_year": {
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "acc_month": {
+        "type": "tinyint(4)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "acc_period": {
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "main_account_code": {
+        "type": "varchar(30)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "account_code": {
+        "type": "varchar(30)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "account_name": {
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "debit_bf": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "credit_bf": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "debit_month": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "credit_month": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "debit_net": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "credit_net": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "import_filename": {
+        "type": "varchar(150)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "created_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "updated_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      }
+    },
+    "indexes": {
+      "acc_period": [
+        {
+          "column": "acc_period",
+          "unique": false
+        }
+      ],
+      "account_code": [
+        {
+          "column": "account_code",
+          "unique": false
+        }
+      ],
+      "composite_period_code": [
+        {
+          "column": "acc_period",
+          "unique": false
+        },
+        {
+          "column": "account_code",
+          "unique": false
+        }
+      ]
+    }
   }
 }

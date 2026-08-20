@@ -78,7 +78,7 @@ class HomeController extends Controller
             SUM(CASE WHEN auth_code_flag = "Y" THEN 1 ELSE 0 END) AS opd_auth,
             SUM(CASE WHEN endpoint IS NOT NULL THEN 1 ELSE 0 END) AS endpoint,
             SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END) AS ofc,
-            SUM(CASE WHEN hipdata_code = "OFC" AND has_rcpt_debt = "Y" THEN 1 ELSE 0 END) AS ofc_edc,
+            SUM(CASE WHEN hipdata_code = "OFC" AND (has_rcpt_debt = "Y" OR edc_approve_list_text IS NOT NULL) THEN 1 ELSE 0 END) AS ofc_edc,
             SUM(CASE WHEN hipdata_code = "OFC" AND endpoint = "Y" THEN 1 ELSE 0 END) AS ofc_endpoint,
             SUM(CASE WHEN (auth_code = "" OR auth_code IS NULL) AND cid NOT LIKE "0%" THEN 1 ELSE 0 END) AS non_authen,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL","SSS","STP") AND (hospmain = "" OR hospmain IS NULL) THEN 1 ELSE 0 END) AS non_hmain,
@@ -95,7 +95,8 @@ class HomeController extends Controller
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" THEN 1 ELSE 0 END) AS uc_kidney,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS uc_kidney_endpoint
         FROM (
-            SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, COALESCE(os.edc_approve_list_text, eal.approve_code) as edc_approve_list_text,
+            SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, 
+                MAX(COALESCE(os.edc_approve_list_text, eal.approve_code)) as edc_approve_list_text,
                 lh.in_province,
                 IFNULL(li.ppfs_flag, "N") as ppfs_flag,
                 IFNULL(li.uc_cr_flag, "N") as uc_cr_flag,
@@ -105,7 +106,7 @@ class HomeController extends Controller
                 IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""), "Y", "N") as auth_code_flag,
                 (SELECT "Y" FROM rcpt_debt WHERE vn = o.vn AND LENGTH(sss_approval_code) > 0 AND (status <> "ABORT" OR status IS NULL) LIMIT 1) AS has_rcpt_debt,
                 MAX(CASE WHEN (vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "") OR (eal.approve_code IS NOT NULL AND eal.approve_code <> "") THEN "Y" ELSE "N" END) as claim_code_flag,
-                IF((ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint
+                MAX(IF((ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%"),"Y",NULL)) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
@@ -166,18 +167,17 @@ class HomeController extends Controller
             SUM(CASE WHEN confirm_discharge = "N" AND ward_vip = "Y" THEN 1 ELSE 0 END) as ward_vip,
             SUM(CASE WHEN confirm_discharge = "N" AND ward_lr = "Y" THEN 1 ELSE 0 END) as ward_lr,
             SUM(CASE WHEN confirm_discharge = "N" AND ward_homeward = "Y" THEN 1 ELSE 0 END) as ward_homeward,
-            COUNT(DISTINCT CASE WHEN vstdate = DATE(NOW()) AND ward_homeward = "Y" THEN an END) as admit_homeward,
-            COUNT(DISTINCT CASE WHEN vstdate = DATE(NOW()) AND ward_homeward = "Y" AND has_endpoint = "Y" THEN an END) as admit_homeward_endpoint
+            COUNT(DISTINCT CASE WHEN regdate = DATE(NOW()) AND ward_homeward = "Y" THEN an END) as admit_homeward,
+            COUNT(DISTINCT CASE WHEN regdate = DATE(NOW()) AND ward_homeward = "Y" AND has_endpoint = "Y" THEN an END) as admit_homeward_endpoint
         FROM (
-            SELECT i.an, i.ward, i.confirm_discharge, o.vstdate,
+            SELECT i.an, i.ward, i.confirm_discharge, i.regdate,
                 lw.ward_m, lw.ward_f, lw.ward_vip, lw.ward_lr, lw.ward_homeward,
                 IF(ep.claimCode IS NOT NULL, "Y", "N") as has_endpoint
             FROM ipt i
-            LEFT JOIN ovst o ON o.an = i.an
-            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN hrims.lookup_ward lw ON lw.ward = i.ward
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
-            WHERE i.confirm_discharge = "N" OR o.vstdate = DATE(NOW())
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = i.regdate
+            WHERE i.confirm_discharge = "N" OR i.regdate = DATE(NOW())
         ) AS a')[0];
 
         $admit_now = $ipd_stats->admit_now;

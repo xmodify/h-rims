@@ -567,38 +567,32 @@ class MainSettingController extends Controller
                         $jsonData = json_decode(file_get_contents($filePathHosfinMappings), true);
                         if (json_last_error() === JSON_ERROR_NONE) {
                             $insertedMappings = 0;
-                            // Seed if empty or if names are missing (self-healing)
-                            $needsSeed = (DB::table('hosfin_dtl_mappings')->count() === 0) || 
-                                         DB::table('hosfin_dtl_mappings')->whereNull('group_name')->orWhere('group_name', '')->exists();
+                            DB::beginTransaction();
+                            try {
+                                DB::table('hosfin_dtl_mappings')->delete();
 
-                            if ($needsSeed) {
-                                DB::beginTransaction();
-                                try {
-                                    DB::table('hosfin_dtl_mappings')->delete();
-
-                                    $batchMappings = [];
-                                    foreach ($jsonData as $row) {
-                                        $batchMappings[] = [
-                                            'group_code' => trim($row['group_code']),
-                                            'group_name' => trim($row['group_name'] ?? ''),
-                                            'account_code' => trim($row['account_code']),
-                                            'created_at' => now(),
-                                            'updated_at' => now()
-                                        ];
-                                        if (count($batchMappings) >= 1000) {
-                                            DB::table('hosfin_dtl_mappings')->insert($batchMappings);
-                                            $batchMappings = [];
-                                        }
-                                    }
-                                    if (!empty($batchMappings)) {
+                                $batchMappings = [];
+                                foreach ($jsonData as $row) {
+                                    $batchMappings[] = [
+                                        'group_code' => trim($row['group_code']),
+                                        'group_name' => trim($row['group_name'] ?? ''),
+                                        'account_code' => trim($row['account_code']),
+                                        'created_at' => now(),
+                                        'updated_at' => now()
+                                    ];
+                                    if (count($batchMappings) >= 1000) {
                                         DB::table('hosfin_dtl_mappings')->insert($batchMappings);
+                                        $batchMappings = [];
                                     }
-                                    DB::commit();
-                                    $insertedMappings = count($jsonData);
-                                } catch (\Throwable $e) {
-                                    DB::rollBack();
-                                    throw $e;
                                 }
+                                if (!empty($batchMappings)) {
+                                    DB::table('hosfin_dtl_mappings')->insert($batchMappings);
+                                }
+                                DB::commit();
+                                $insertedMappings = count($jsonData);
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
                             }
                             $report[] = "hosfin_dtl_mappings ($insertedMappings รายการ)";
                         } else {

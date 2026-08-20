@@ -75,7 +75,7 @@
         <!-- Back Button -->
         <div class="col-12 px-3 mb-1">
             <a href="{{ url('hosfin') }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;">
-                <i class="bi bi-arrow-left"></i> ย้อนกลับ
+                <i class="bi bi-arrow-left"></i> ย้อนกลับไปยัง ข้อมูลบัญชีหน่วยงาน
             </a>
         </div>
 

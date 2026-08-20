@@ -86,8 +86,13 @@
                     <input type="hidden" id="select_category" value="all">
                     
                     <!-- Import Button -->
-                    <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#importModal">
-                        <i class="bi bi-file-earmark-arrow-up"></i> นำเข้างบทดลอง
+                    <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="bi bi-file-earmark-excel"></i> นำเข้างบทดลอง (Excel)
+                    </button>
+
+                    <!-- Import MDB Button -->
+                    <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importMdbModal">
+                        <i class="bi bi-database-fill-up"></i> นำเข้าจากฐานข้อมูลกระทรวง (.mdb/.zip)
                     </button>
                 </div>
             </div>
@@ -377,6 +382,72 @@
     </div>
 </div>
 
+<!-- Import MDB Modal -->
+<div class="modal fade" id="importMdbModal" tabindex="-1" aria-labelledby="importMdbModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title fw-bold" id="importMdbModalLabel" style="font-size: 0.95rem;">
+                    <i class="bi bi-database-fill-up me-1"></i> นำเข้าข้อมูลจากฐานข้อมูลกระทรวง (zip)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <!-- Info Alert -->
+                <div class="alert alert-info py-2 px-3 small border-0 d-flex gap-2 align-items-center mb-3">
+                    <i class="bi bi-info-circle-fill text-info" style="font-size: 1.1rem;"></i>
+                    <div style="font-size: 0.8rem;">
+                        ระบบจะทำการวิเคราะห์ช่วงเวลาที่มีอยู่ในไฟล์งบกระทรวง และแสดงตารางเลือกรายเดือนเพื่อเขียนทับฐานข้อมูล
+                    </div>
+                </div>
+
+                <!-- File input -->
+                <form id="mdbAnalyzeForm" enctype="multipart/form-data">
+                    @csrf
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-9 col-sm-12">
+                            <label for="mdb_file" class="form-label fw-bold text-secondary mb-1" style="font-size: 0.8rem;">ไฟล์ฐานข้อมูลกระทรวง (zip)</label>
+                            <input type="file" class="form-control form-control-sm" id="mdb_file" name="file" accept=".zip" required>
+                        </div>
+                        <div class="col-md-3 col-sm-12 mt-2 mt-md-0">
+                            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-1 py-15">
+                                <span class="spinner-border spinner-border-sm d-none" id="analyzeSpinner" role="status" aria-hidden="true"></span>
+                                วิเคราะห์ไฟล์
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Analysis Container -->
+                <div id="mdbAnalysisContainer" class="d-none mt-2">
+                    <hr class="text-muted opacity-25 my-3">
+                    <h6 class="fw-bold mb-2 text-secondary" style="font-size: 0.85rem;">
+                        <i class="bi bi-calendar3 me-1"></i> ตรวจพบงวดงบประมาณที่มีอยู่ดังนี้:
+                    </h6>
+                    
+                    <div class="table-responsive rounded-3 border" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-hover table-striped mb-0 table-custom table-sm" id="mdbPeriodsTable" style="font-size: 0.82rem;">
+                            <thead class="sticky-top bg-light" style="z-index: 5;">
+                                <tr>
+                                    <th class="py-2">รอบเวลา (พ.ศ.)</th>
+                                    <th class="text-end py-2">จำนวนแถวข้อมูล</th>
+                                    <th class="text-center py-2" style="width: 150px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be filled by AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize DataTable
@@ -612,7 +683,192 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Handle MDB File Analysis Form Submission
+    $('#mdbAnalyzeForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        var fileInput = $('#mdb_file')[0];
+        if (fileInput.files.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาเลือกไฟล์ก่อนทำการวิเคราะห์' });
+            return;
+        }
+        
+        var file = fileInput.files[0];
+        var filename = file.name;
+        var ext = filename.split('.').pop().toLowerCase();
+        
+        if (ext !== 'zip') {
+            Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'กรุณาอัปโหลดไฟล์บีบอัด .zip เท่านั้น' });
+            return;
+        }
+        
+        if (!filename.toUpperCase().startsWith('D')) {
+            Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ชื่อไฟล์ zip ต้องขึ้นต้นด้วยตัวอักษร D เท่านั้น (เช่น D1625_xxx.zip)' });
+            return;
+        }
+        
+        var formData = new FormData(this);
+        $('#analyzeSpinner').removeClass('d-none');
+        $('#mdbAnalyzeForm button[type="submit"]').prop('disabled', true);
+        $('#mdbAnalysisContainer').addClass('d-none');
+        $('#mdbPeriodsTable tbody').empty();
+
+        $.ajax({
+            url: "{{ route('hosfin.trial_balance.analyze_mdb') }}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                $('#analyzeSpinner').addClass('d-none');
+                $('#mdbAnalyzeForm button[type="submit"]').prop('disabled', false);
+
+                if (res.success) {
+                    currentMdbToken = res.temp_token;
+                    
+                    res.periods.forEach(function(p) {
+                        var tr = `
+                            <tr>
+                                <td class="fw-semibold text-dark py-1 align-middle" style="font-size: 0.8rem;">${p.label}</td>
+                                <td class="text-end fw-semibold text-secondary py-1 align-middle" style="font-size: 0.8rem;">${p.count.toLocaleString()} รายการ</td>
+                                <td class="text-center py-1 align-middle">
+                                    <button type="button" class="btn btn-success btn-sm rounded-pill px-2 py-1 btn-import-mdb-period" 
+                                            data-pdate="${p.pdate}" data-period="${p.period}" data-label="${p.label}"
+                                            style="font-size: 0.72rem; padding: 2px 8px !important; line-height: 1;">
+                                        <i class="bi bi-file-earmark-arrow-up"></i> นำเข้า/เขียนทับ
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        $('#mdbPeriodsTable tbody').append(tr);
+                    });
+                    
+                    $('#mdbAnalysisContainer').removeClass('d-none');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ล้มเหลว', text: res.message });
+                }
+            },
+            error: function(xhr) {
+                $('#analyzeSpinner').addClass('d-none');
+                $('#mdbAnalyzeForm button[type="submit"]').prop('disabled', false);
+                var msg = 'เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: msg });
+            }
+        });
+    });
+
+    // Flag to track if we need to reload the page when the modal is closed
+    window.shouldRefreshTrialBalance = false;
+
+    // Handle individual MDB Period Import
+    $(document).on('click', '.btn-import-mdb-period', function() {
+        var $btn = $(this);
+        var pdate = $btn.data('pdate');
+        var period = $btn.data('period');
+        var label = $btn.data('label');
+        
+        Swal.fire({
+            title: 'ยืนยันการนำเข้าข้อมูล?',
+            text: 'ระบบจะนำข้อมูลของเดือน ' + label + ' จากไฟล์งบกระทรวงไปเขียนทับและบันทึกในฐานข้อมูลหลัก ต้องการดำเนินการต่อหรือไม่?',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'ใช่, ต้องการนำเข้า!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Disable all import buttons to prevent duplicate imports
+                $('.btn-import-mdb-period').prop('disabled', true);
+                
+                // Show inline loading state on the button
+                var originalHtml = $btn.html();
+                $btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> กำลังนำเข้า...');
+                $btn.removeClass('btn-success').addClass('btn-secondary');
+                
+                $.ajax({
+                    url: "{{ route('hosfin.trial_balance.import_mdb_period') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        temp_token: currentMdbToken,
+                        pdate: pdate,
+                        period: period
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            // Mark as successfully imported
+                            $btn.html('<i class="bi bi-check-lg"></i> นำเข้าแล้ว');
+                            $btn.removeClass('btn-secondary').addClass('btn-outline-secondary');
+                            $btn.prop('disabled', true);
+                            
+                            // Success Toast (non-blocking)
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'นำเข้าข้อมูล ' + label + ' สำเร็จ',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                            
+                            window.shouldRefreshTrialBalance = true;
+                        } else {
+                            // Restore button
+                            $btn.html(originalHtml);
+                            $btn.removeClass('btn-secondary').addClass('btn-success');
+                            $btn.prop('disabled', false);
+                            Swal.fire({ icon: 'error', title: 'ล้มเหลว', text: res.message });
+                        }
+                        
+                        // Re-enable other non-imported buttons
+                        $('.btn-import-mdb-period').each(function() {
+                            var $otherBtn = $(this);
+                            if (!$otherBtn.hasClass('btn-outline-secondary')) {
+                                $otherBtn.prop('disabled', false);
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        // Restore button
+                        $btn.html(originalHtml);
+                        $btn.removeClass('btn-secondary').addClass('btn-success');
+                        $btn.prop('disabled', false);
+                        
+                        // Re-enable other non-imported buttons
+                        $('.btn-import-mdb-period').each(function() {
+                            var $otherBtn = $(this);
+                            if (!$otherBtn.hasClass('btn-outline-secondary')) {
+                                $otherBtn.prop('disabled', false);
+                            }
+                        });
+                        
+                        var msg = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: msg });
+                    }
+                });
+            }
+        });
+    });
+
+    // Reload page when closing the modal if at least one import succeeded
+    $('#importMdbModal').on('hidden.bs.modal', function () {
+        if (window.shouldRefreshTrialBalance) {
+            window.location.reload();
+        }
+    });
 });
+
+// Variable to store temp token of analyzed MDB file
+var currentMdbToken = '';
 
 // Helper: Open import modal with prefilled period
 function openImportModalWithPeriod(period) {

@@ -506,12 +506,15 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::get('hosfin', [App\Http\Controllers\HosFinController::class, 'index'])->name('hosfin.index');
     Route::get('hosfin/trial_balance', [App\Http\Controllers\HosFinController::class, 'trial_balance'])->name('hosfin.trial_balance');
     Route::post('hosfin/trial_balance/import', [App\Http\Controllers\HosFinController::class, 'import'])->name('hosfin.trial_balance.import');
+    Route::post('hosfin/trial_balance/analyze_mdb', [App\Http\Controllers\HosFinController::class, 'analyzeMdb'])->name('hosfin.trial_balance.analyze_mdb');
+    Route::post('hosfin/trial_balance/import_mdb_period', [App\Http\Controllers\HosFinController::class, 'importMdbPeriod'])->name('hosfin.trial_balance.import_mdb_period');
     Route::delete('hosfin/trial_balance/delete', [App\Http\Controllers\HosFinController::class, 'delete_period'])->name('hosfin.trial_balance.delete');
 
     // Mappings and Ratio Reports
     Route::get('hosfin/mappings', [App\Http\Controllers\HosFinController::class, 'mappings_search'])->name('hosfin.mappings.search');
     Route::post('hosfin/mappings/store', [App\Http\Controllers\HosFinController::class, 'mappings_store'])->name('hosfin.mappings.store');
     Route::delete('hosfin/mappings/delete', [App\Http\Controllers\HosFinController::class, 'mappings_delete'])->name('hosfin.mappings.delete');
+    Route::get('hosfin/unmapped_accounts', [App\Http\Controllers\HosFinController::class, 'get_unmapped_accounts'])->name('hosfin.unmapped_accounts');
     Route::get('hosfin/ratio_report', [App\Http\Controllers\HosFinController::class, 'ratio_report'])->name('hosfin.ratio_report');
     Route::get('hosfin/ratio_report/export', [App\Http\Controllers\HosFinController::class, 'ratio_report_export'])->name('hosfin.ratio_report.export');
 });

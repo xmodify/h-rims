@@ -100,7 +100,7 @@
                     
                     <!-- Settings button -->
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm text-nowrap" onclick="openMappingsModal()">
-                        <i class="bi bi-gear"></i> ตั้งค่าจับคู่ผังบัญชี
+                        <i class="bi bi-list-ul"></i> ตรวจสอบการจับคู่ผังบัญชี
                     </button>
                 </div>
             </div>
@@ -296,78 +296,60 @@
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title fw-bold" id="mappingsModalLabel">
-                    <i class="bi bi-gear me-2 text-warning"></i> ตั้งค่าจับคู่ผังบัญชีรายละเอียดประกอบงบ (Account Mappings Setup)
+                    <i class="bi bi-list-ul me-2 text-warning"></i> รายงานการจับคู่ผังบัญชี (Account Mappings Report)
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background-color: #f8fafc;">
-                <div class="row g-4">
-                    <!-- Left pane: Add Mapping Form -->
-                    <div class="col-lg-4 col-12">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body p-4">
-                                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-plus-circle text-success me-1"></i> เพิ่มการจับคู่รหัสผังบัญชีใหม่</h6>
-                                <form id="addMappingForm">
-                                    @csrf
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold text-secondary">กลุ่มรายละเอียดประกอบงบ</label>
-                                        <select id="add_group_code" class="form-select" required style="font-size: 0.9rem;">
-                                            <!-- Loaded via AJAX -->
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold text-secondary">รหัสผังบัญชี (เช่น 1101030102.106)</label>
-                                        <input type="text" id="add_account_code" class="form-control" placeholder="ระบุรหัสผังบัญชีในงบทดลอง" required style="font-size: 0.9rem;">
-                                        <small class="text-muted" style="font-size: 0.75rem;">ระบุเป็นรหัสบัญชีหลักหรือรหัสย่อยก็ได้ ระบบจะเทียบตามรหัสที่ขึ้นต้น</small>
-                                    </div>
-                                    <button type="submit" class="btn btn-success w-100 rounded-pill py-2 fw-semibold mt-2 shadow-sm">
-                                        <i class="bi bi-plus-circle me-1"></i> บันทึกการจับคู่
-                                    </button>
-                                </form>
+                <!-- Header Filters and Actions -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-3 bg-white rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <!-- Group Category Filter -->
+                        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 500px;">
+                            <label class="fw-bold text-dark mb-0 text-nowrap" style="font-size: 0.9rem;"><i class="bi bi-funnel-fill text-primary me-1"></i> กรองตามหมวด/กลุ่มบัญชี:</label>
+                            <select id="filter_group_code" class="form-select fw-semibold" style="font-size: 0.9rem;">
+                                <!-- Loaded via AJAX -->
+                            </select>
+                        </div>
+                        
+                        <!-- Search and Action -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm" style="max-width: 250px;">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="searchMappingQuery" class="form-control border-start-0" placeholder="ค้นหาโดยกลุ่ม รหัสบัญชี...">
                             </div>
+                            <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1 shadow-sm" onclick="printMappings()">
+                                <i class="bi bi-printer"></i> พิมพ์รายงาน
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Right pane: Search and List mappings -->
-                    <div class="col-lg-8 col-12">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-list-ul text-primary me-1"></i> รายการจับคู่ผังบัญชีที่บันทึกแล้ว</h6>
-                                    <div style="min-width: 250px;">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                                            <input type="text" id="searchMappingQuery" class="form-control" placeholder="ค้นหาโดยกลุ่ม รหัสบัญชี...">
-                                        </div>
-                                    </div>
-                                </div>
+                <!-- Table Container -->
+                <div class="table-responsive" style="max-height: 440px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #fff;">
+                    <table class="table table-striped table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 120px; padding: 12px 16px;">รหัสกลุ่ม</th>
+                                <th style="padding: 12px 16px;">ชื่อกลุ่มรายละเอียดประกอบงบ</th>
+                                <th style="width: 180px; padding: 12px 16px;">รหัสผังบัญชี</th>
+                                <th style="padding: 12px 16px;">ชื่อผังบัญชี</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappingsTableBody">
+                            <!-- Loaded via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
 
-                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                    <table class="table table-sm table-hover align-middle" style="font-size: 0.85rem;">
-                                        <thead class="table-light sticky-top">
-                                            <tr>
-                                                <th style="width: 100px;">รหัสกลุ่ม</th>
-                                                <th>ชื่อกลุ่มรายละเอียดประกอบงบ</th>
-                                                <th>รหัสผังบัญชี</th>
-                                                <th class="text-center" style="width: 60px;">ลบ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="mappingsTableBody">
-                                            <!-- Loaded via AJAX -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Pagination info and controls -->
-                                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-                                    <small class="text-muted" id="mappingPaginationInfo">กำลังโหลด...</small>
-                                    <div class="d-flex gap-1" id="mappingPaginationButtons">
-                                        <!-- Buttons -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Pagination controls -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <small class="text-muted fw-semibold" id="mappingPaginationInfo">กำลังโหลด...</small>
+                    <nav aria-label="Mapping Pagination">
+                        <ul class="pagination pagination-sm mb-0 gap-1" id="mappingPaginationButtons">
+                            <!-- Page items loaded via AJAX -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -665,161 +647,209 @@
         }
     @endif
 
-    // Account Mappings Setup AJAX CRUD Logic
+    // Mappings Viewer AJAX pagination and print
     let currentMappingPage = 1;
     let searchMappingTimeout = null;
 
     function openMappingsModal() {
         $('#mappingsModal').modal('show');
-        loadMappings(1);
+        loadGroupDropdownAndMappings(1);
     }
 
-    function loadMappings(page = 1) {
+    function loadGroupDropdownAndMappings(page = 1) {
         currentMappingPage = page;
-        const q = document.getElementById('searchMappingQuery').value;
+        const groupSelect = document.getElementById('filter_group_code');
+        const selectedGroup = groupSelect ? groupSelect.value : '';
+        const q = document.getElementById('searchMappingQuery').value.trim();
         
-        fetch(`{{ url('hosfin/mappings') }}?page=${page}&q=${encodeURIComponent(q)}`)
+        const tbody = document.getElementById('mappingsTableBody');
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูล...</td></tr>`;
+
+        fetch(`{{ url('hosfin/mappings') }}?page=${page}&group_code=${selectedGroup}&q=${encodeURIComponent(q)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     // Populate Group dropdown if empty
-                    const selectGroup = document.getElementById('add_group_code');
-                    if (selectGroup.children.length === 0) {
-                        let optionsHtml = '';
+                    if (groupSelect.children.length === 0) {
+                        let optionsHtml = '<option value="">-- แสดงทั้งหมด (Show All) --</option>';
                         data.groups.forEach(g => {
                             optionsHtml += `<option value="${g.group_code}">${g.group_code} - ${g.group_name}</option>`;
                         });
-                        selectGroup.innerHTML = optionsHtml;
+                        groupSelect.innerHTML = optionsHtml;
                     }
-
-                    // Populate mappings list table
-                    const tbody = document.getElementById('mappingsTableBody');
+                    
+                    // Render mappings
                     if (data.mappings.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">ไม่พบข้อมูลความสัมพันธ์การจับคู่</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">ไม่พบข้อมูลการจับคู่ผังบัญชี</td></tr>`;
                     } else {
                         let rowsHtml = '';
                         data.mappings.forEach(row => {
+                            const accName = row.account_name ? row.account_name : '-';
                             rowsHtml += `
                                 <tr>
-                                    <td class="fw-semibold text-secondary">${row.group_code}</td>
-                                    <td class="text-dark">${row.group_name}</td>
-                                    <td class="fw-bold text-dark">${row.account_code}</td>
-                                    <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="deleteMapping('${row.group_code}', '${row.account_code}')">
-                                            <i class="bi bi-trash-fill" style="font-size: 1.1rem;"></i>
-                                        </button>
-                                    </td>
+                                    <td class="fw-semibold text-secondary" style="padding: 10px 16px;">${row.group_code}</td>
+                                    <td class="text-dark" style="padding: 10px 16px;">${row.group_name}</td>
+                                    <td class="fw-bold text-dark" style="padding: 10px 16px;">${row.account_code}</td>
+                                    <td class="text-secondary" style="padding: 10px 16px;">${accName}</td>
                                 </tr>
                             `;
                         });
                         tbody.innerHTML = rowsHtml;
                     }
 
-                    // Pagination controls
-                    document.getElementById('mappingPaginationInfo').innerText = `แสดงหน้า ${data.current_page} จากทั้งหมด ${data.last_page} หน้า (ทั้งหมด ${data.total} รายการ)`;
-                    
-                    let paginationButtonsHtml = '';
-                    if (data.current_page > 1) {
-                        paginationButtonsHtml += `<button type="button" class="btn btn-xs btn-outline-secondary" onclick="loadMappings(${data.current_page - 1})">ก่อนหน้า</button>`;
-                    }
-                    if (data.current_page < data.last_page) {
-                        paginationButtonsHtml += `<button type="button" class="btn btn-xs btn-outline-secondary" onclick="loadMappings(${data.current_page + 1})">ถัดไป</button>`;
-                    }
-                    document.getElementById('mappingPaginationButtons').innerHTML = paginationButtonsHtml;
+                    // Render pagination stats
+                    document.getElementById('mappingPaginationInfo').innerText = `แสดงรายการที่ ${data.mappings.length > 0 ? (data.current_page - 1) * 25 + 1 : 0} ถึง ${(data.current_page - 1) * 25 + data.mappings.length} จากทั้งหมด ${data.total} รายการ`;
+
+                    // Render page numbers like a real datatable
+                    renderPaginationButtons(data.current_page, data.last_page);
                 }
             });
     }
 
-    // Debounce search mapping inputs
+    function renderPaginationButtons(currentPage, lastPage) {
+        const container = document.getElementById('mappingPaginationButtons');
+        let html = '';
+
+        if (lastPage <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // Previous page button
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <button type="button" class="page-link" onclick="loadGroupDropdownAndMappings(${currentPage - 1})" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </button>
+            </li>
+        `;
+
+        // Page number buttons
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(lastPage, currentPage + 2);
+
+        if (startPage > 1) {
+            html += `<li class="page-item"><button type="button" class="page-link" onclick="loadGroupDropdownAndMappings(1)">1</button></li>`;
+            if (startPage > 2) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <button type="button" class="page-link" onclick="loadGroupDropdownAndMappings(${i})">${i}</button>
+                </li>
+            `;
+        }
+
+        if (endPage < lastPage) {
+            if (endPage < lastPage - 1) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            html += `<li class="page-item"><button type="button" class="page-link" onclick="loadGroupDropdownAndMappings(${lastPage})">${lastPage}</button></li>`;
+        }
+
+        // Next page button
+        html += `
+            <li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
+                <button type="button" class="page-link" onclick="loadGroupDropdownAndMappings(${currentPage + 1})" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </button>
+            </li>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function printMappings() {
+        const groupSelect = document.getElementById('filter_group_code');
+        const selectedGroup = groupSelect.value;
+        const groupText = selectedGroup ? groupSelect.options[groupSelect.selectedIndex].text : 'ทั้งหมด';
+        const q = document.getElementById('searchMappingQuery').value.trim();
+
+        // Load all matching items (without pagination) using print=1 parameter
+        fetch(`{{ url('hosfin/mappings') }}?print=1&group_code=${selectedGroup}&q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    let printWindow = window.open('', '_blank');
+                    let html = `
+                        <html>
+                        <head>
+                            <title>รายงานการจับคู่ผังบัญชี - กลุ่ม: ${groupText}</title>
+                            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+                            <style>
+                                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+                                body { font-family: 'Sarabun', sans-serif; padding: 40px; background-color: #fff; }
+                                th, td { padding: 10px 14px; font-size: 0.95rem; }
+                                h3 { font-weight: 700; color: #0d6efd; }
+                                @media print {
+                                    .no-print { display: none !important; }
+                                    body { padding: 0; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3>รายงานการจับคู่ผังบัญชี (Account Mappings Report)</h3>
+                                <button class="btn btn-primary no-print" onclick="window.print()"><i class="bi bi-printer"></i> พิมพ์ (Print)</button>
+                            </div>
+                            <div class="mb-4">
+                                <p class="mb-1 text-muted"><strong>ตัวกรองกลุ่มบัญชี:</strong> ${groupText}</p>
+                                ${q ? `<p class="mb-1 text-muted"><strong>คำค้นหา:</strong> ${q}</p>` : ''}
+                                <p class="mb-0 text-muted">พิมพ์ ณ วันที่: ${new Date().toLocaleDateString('th-TH')} เวลา ${new Date().toLocaleTimeString('th-TH')} | จำนวนทั้งหมด: ${data.mappings.length} รายการ</p>
+                            </div>
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 120px;">รหัสกลุ่ม</th>
+                                        <th>ชื่อกลุ่มรายละเอียดประกอบงบ</th>
+                                        <th style="width: 200px;">รหัสผังบัญชี</th>
+                                        <th>ชื่อผังบัญชี</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    if (data.mappings.length === 0) {
+                        html += `<tr><td colspan="4" class="text-center py-4">ไม่พบข้อมูลการจับคู่ผังบัญชี</td></tr>`;
+                    } else {
+                        data.mappings.forEach(row => {
+                            const accName = row.account_name ? row.account_name : '-';
+                            html += `
+                                <tr>
+                                    <td class="fw-semibold">${row.group_code}</td>
+                                    <td>${row.group_name}</td>
+                                    <td class="fw-bold">${row.account_code}</td>
+                                    <td>${accName}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </body>
+                        </html>
+                    `;
+                    printWindow.document.write(html);
+                    printWindow.document.close();
+                }
+            });
+    }
+
+    // Bind event listeners
+    document.getElementById('filter_group_code').addEventListener('change', function() {
+        loadGroupDropdownAndMappings(1);
+    });
+
     document.getElementById('searchMappingQuery').addEventListener('input', function() {
         clearTimeout(searchMappingTimeout);
         searchMappingTimeout = setTimeout(() => {
-            loadMappings(1);
+            loadGroupDropdownAndMappings(1);
         }, 300);
     });
-
-    // Add mapping override submission
-    document.getElementById('addMappingForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const group_code = document.getElementById('add_group_code').value;
-        const account_code = document.getElementById('add_account_code').value.trim();
-
-        fetch('{{ url("hosfin/mappings/store") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ group_code, account_code })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    title: 'บันทึกสำเร็จ',
-                    text: data.message,
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                document.getElementById('add_account_code').value = '';
-                loadMappings(1);
-                
-                // Reload ratio calculations on background
-                // We reload page when modal closes or immediately
-                // Let's reload page when they exit modal to reflect new calculations
-                document.getElementById('mappingsModal').addEventListener('hidden.bs.modal', function () {
-                    window.location.reload();
-                }, { once: true });
-            } else {
-                Swal.fire('เกิดข้อผิดพลาด', data.message, 'error');
-            }
-        });
-    });
-
-    // Delete mapping override
-    function deleteMapping(group_code, account_code) {
-        Swal.fire({
-            title: 'ยืนยันการลบการจับคู่?',
-            text: `ต้องการยกเลิกรหัสผังบัญชี ${account_code} ออกจากกลุ่ม ${group_code} ใช่หรือไม่?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'ยืนยัน ลบข้อมูล',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('{{ url("hosfin/mappings/delete") }}', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ group_code, account_code })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'ลบสำเร็จ',
-                            text: data.message,
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                        loadMappings(currentMappingPage);
-                        
-                        document.getElementById('mappingsModal').addEventListener('hidden.bs.modal', function () {
-                            window.location.reload();
-                        }, { once: true });
-                    } else {
-                        Swal.fire('เกิดข้อผิดพลาด', data.message, 'error');
-                    }
-                });
-            }
-        });
-    }
 </script>
 @endsection

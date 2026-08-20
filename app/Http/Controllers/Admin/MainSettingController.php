@@ -577,6 +577,7 @@ class MainSettingController extends Controller
                                         'group_code' => trim($row['group_code']),
                                         'group_name' => trim($row['group_name'] ?? ''),
                                         'account_code' => trim($row['account_code']),
+                                        'account_name' => isset($row['account_name']) ? trim($row['account_name']) : null,
                                         'created_at' => now(),
                                         'updated_at' => now()
                                     ];
@@ -602,9 +603,29 @@ class MainSettingController extends Controller
                         $report[] = "hosfin_dtl_mappings (ไม่พบไฟล์)";
                     }
 
+                    // --- 2.7: Auto-Install Python dependencies (access-parser) ---
+                    $pythonInstallMsg = '';
+                    try {
+                        $cmd = 'python -c "import access_parser" 2>&1';
+                        exec($cmd, $outputCheck, $return_var);
+                        if ($return_var !== 0) {
+                            $installCmd = 'pip install access-parser 2>&1';
+                            exec($installCmd, $outputInstall, $returnInstall);
+                            if ($returnInstall === 0) {
+                                $pythonInstallMsg = ' + python access-parser (ติดตั้งสำเร็จ)';
+                            } else {
+                                $pythonInstallMsg = ' + python access-parser (ติดตั้งล้มเหลว: ' . implode('; ', array_slice($outputInstall, -2)) . ')';
+                            }
+                        } else {
+                            $pythonInstallMsg = ' + python access-parser (พร้อมใช้งาน)';
+                        }
+                    } catch (\Throwable $ex) {
+                        $pythonInstallMsg = ' + python access-parser (ขัดข้อง: ' . $ex->getMessage() . ')';
+                    }
+
                     return response()->json([
                         'success' => true,
-                        'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report)
+                        'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report) . $pythonInstallMsg
                     ]);
 
                 case 3:

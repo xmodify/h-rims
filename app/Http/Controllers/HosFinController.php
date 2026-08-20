@@ -316,6 +316,8 @@ class HosFinController extends Controller
                 } else {
                     $name = trim((string)$nameVal);
                 }
+                $name = preg_replace('/\s*\((Yes|No)\)\s*$/iu', '', $name);
+                $name = trim($name);
 
                 if ($mainCodeVal instanceof \PhpOffice\PhpSpreadsheet\RichText\RichText) {
                     $main_account_code = trim($mainCodeVal->getPlainText());
@@ -404,29 +406,316 @@ class HosFinController extends Controller
     }
 
     /**
+     * Check if access-parser python package is installed, and try to auto-install if missing.
+     */
+    private function checkPythonDependencies()
+    {
+        $cmd = 'python -c "import access_parser" 2>&1';
+        exec($cmd, $output, $return_var);
+        
+        if ($return_var !== 0) {
+            \Log::info("access-parser is missing. Programmatically installing via pip...");
+            $installCmd = 'pip install access-parser 2>&1';
+            exec($installCmd, $installOutput, $installReturnVar);
+            if ($installReturnVar !== 0) {
+                \Log::error("Failed to install access-parser: " . implode("\n", $installOutput));
+                return false;
+            }
+            \Log::info("access-parser successfully installed.");
+        }
+        return true;
+    }
+
+    /**
+     * Upload and analyze an MDB/ZIP file, returning available periods and counts.
+     */
+    public function analyzeMdb(Request $request)
+    {
+        if (!$this->checkPythonDependencies()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ระบบต้องการไลบรารี Python access-parser แต่ไม่สามารถติดตั้งอัตโนมัติได้ กรุณาติดต่อผู้ดูแลระบบเพื่อรันคำสั่ง "pip install access-parser" บนเซิร์ฟเวอร์'
+            ], 500);
+        }
+
+        if (!$request->hasFile('file')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบไฟล์ที่อัปโหลด'
+            ], 400);
+        }
+
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $ext = strtolower($file->getClientOriginalExtension());
+        
+        if ($ext !== 'zip') {
+            return response()->json([
+                'success' => false,
+                'message' => 'รองรับเฉพาะไฟล์บีบอัด .zip เท่านั้น'
+            ], 400);
+        }
+
+        if (strncasecmp($originalName, 'D', 1) !== 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ชื่อไฟล์ต้องขึ้นต้นด้วยตัวอักษร D เท่านั้น (เช่น D1625_xxxx.zip)'
+            ], 400);
+        }
+
+        try {
+            $tempDir = storage_path('app/temp_mdb_' . uniqid());
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0777, true);
+            }
+
+            $mdbPath = '';
+            if ($ext === 'zip') {
+                $zip = new \ZipArchive;
+                if ($zip->open($file->getRealPath()) === true) {
+                    for ($i = 0; $i < $zip->numFiles; $i++) {
+                        $filename = $zip->getNameIndex($i);
+                        if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'mdb') {
+                            $zip->extractTo($tempDir, $filename);
+                            $mdbPath = $tempDir . '/' . $filename;
+                            break;
+                        }
+                    }
+                    $zip->close();
+                }
+                if (empty($mdbPath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ไม่พบไฟล์ .mdb ภายในไฟล์ .zip'
+                    ], 422);
+                }
+            } else {
+                $filename = 'extracted_' . uniqid() . '.mdb';
+                $file->move($tempDir, $filename);
+                $mdbPath = $tempDir . '/' . $filename;
+            }
+
+            $pythonScript = base_path('app/Helpers/Python/analyze_mdb.py');
+            $command = 'python "' . $pythonScript . '" "' . $mdbPath . '" 2>&1';
+            exec($command, $output, $returnVar);
+
+            $outputStr = implode("\n", $output);
+            if (!mb_check_encoding($outputStr, 'UTF-8')) {
+                $outputStr = iconv('TIS-620', 'UTF-8//IGNORE', $outputStr);
+            }
+            if ($returnVar !== 0) {
+                $this->deleteDir($tempDir);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถวิเคราะห์ไฟล์ได้: ' . $outputStr
+                ], 500);
+            }
+
+            $data = json_decode($outputStr, true);
+            if (!is_array($data) || isset($data['error'])) {
+                $this->deleteDir($tempDir);
+                $errorMsg = isset($data['error']) ? $data['error'] : 'ไฟล์งบกระทรวงรูปแบบไม่ถูกต้องหรือไม่พบข้อมูลในตาราง DataIn';
+                if (!is_array($data)) {
+                    $errorMsg = 'ผลการวิเคราะห์ไฟล์ไม่ถูกต้อง: ' . $outputStr;
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => 'วิเคราะห์ไฟล์ล้มเหลว: ' . $errorMsg
+                ], 422);
+            }
+
+            $tempToken = uniqid('mdb_');
+            session([$tempToken => [
+                'dir' => $tempDir,
+                'path' => $mdbPath
+            ]]);
+
+            return response()->json([
+                'success' => true,
+                'temp_token' => $tempToken,
+                'periods' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Import a specific period from the uploaded MDB file.
+     */
+    public function importMdbPeriod(Request $request)
+    {
+        $tempToken = $request->input('temp_token');
+        $pdate = $request->input('pdate');
+        $period = $request->input('period');
+
+        if (empty($tempToken) || empty($pdate) || empty($period)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ข้อมูลคำขอไม่ครบถ้วน'
+            ], 400);
+        }
+
+        $sessionData = session($tempToken);
+        if (!$sessionData || !file_exists($sessionData['path'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไฟล์เซสชันหมดอายุหรือไม่มีอยู่จริง กรุณาอัปโหลดไฟล์ใหม่อีกครั้ง'
+            ], 422);
+        }
+
+        try {
+            $mdbPath = $sessionData['path'];
+            $pythonScript = base_path('app/Helpers/Python/import_mdb_period.py');
+            $command = 'python "' . $pythonScript . '" "' . $mdbPath . '" "' . $pdate . '" 2>&1';
+            exec($command, $output, $returnVar);
+
+            $outputStr = implode("\n", $output);
+            if (!mb_check_encoding($outputStr, 'UTF-8')) {
+                $outputStr = iconv('TIS-620', 'UTF-8//IGNORE', $outputStr);
+            }
+            if ($returnVar !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถประมวลผลข้อมูลในเดือนที่เลือกได้: ' . $outputStr
+                ], 500);
+            }
+
+            $rows = json_decode($outputStr, true);
+            if (!is_array($rows) || isset($rows['error'])) {
+                $errorMsg = isset($rows['error']) ? $rows['error'] : 'ไฟล์งบกระทรวงรูปแบบไม่ถูกต้องหรือไม่พบข้อมูลในตาราง DataIn';
+                if (!is_array($rows)) {
+                    $errorMsg = 'ผลการดึงข้อมูลไม่ถูกต้อง: ' . $outputStr;
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ดึงข้อมูลล้มเหลว: ' . $errorMsg
+                ], 422);
+            }
+
+            $nameMap = DB::table('hosfin_dtl_mappings')
+                ->select('account_code', 'account_name')
+                ->distinct()
+                ->pluck('account_name', 'account_code')
+                ->toArray();
+
+            $insertRows = [];
+            foreach ($rows as $row) {
+                $code = $row['account_code'];
+                $cleanName = isset($nameMap[$code]) ? $nameMap[$code] : $row['account_name'];
+                
+                $insertRows[] = [
+                    'acc_year' => $row['acc_year'],
+                    'acc_month' => $row['acc_month'],
+                    'acc_period' => $row['acc_period'],
+                    'main_account_code' => $row['main_account_code'],
+                    'account_code' => $code,
+                    'account_name' => $cleanName,
+                    'debit_bf' => $row['debit_bf'],
+                    'credit_bf' => $row['credit_bf'],
+                    'debit_month' => $row['debit_month'],
+                    'credit_month' => $row['credit_month'],
+                    'debit_net' => $row['debit_net'],
+                    'credit_net' => $row['credit_net'],
+                    'import_filename' => $row['import_filename'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            DB::transaction(function () use ($period, $insertRows) {
+                DB::table('hosfin_trial_balance')->where('acc_period', $period)->delete();
+                foreach (array_chunk($insertRows, 100) as $chunk) {
+                    DB::table('hosfin_trial_balance')->insert($chunk);
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "นำเข้าข้อมูลรอบบัญชีกระทรวง $period สำเร็จ ทั้งหมด " . count($insertRows) . " รายการ"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper to recursively delete a directory
+     */
+    private function deleteDir($dirPath) {
+        if (!is_dir($dirPath)) {
+            return;
+        }
+        if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+            $dirPath .= '/';
+        }
+        $files = glob($dirPath . '*', GLOB_MARK);
+        foreach ($files as $file) {
+            if (is_dir($file)) {
+                $this->deleteDir($file);
+            } else {
+                unlink($file);
+            }
+        }
+        rmdir($dirPath);
+    }
+
+    /**
      * Search account mappings in JSON/DB
      */
     public function mappings_search(Request $request)
     {
         $q = $request->input('q');
-        $query = DB::table('hosfin_dtl_mappings');
+        $groupCode = $request->input('group_code');
+        $isPrint = $request->input('print') == 1;
+        
+        $query = DB::table('hosfin_dtl_mappings')
+            ->select(
+                'group_code',
+                'group_name',
+                'account_code',
+                'account_name'
+            );
 
-        if (!empty($q)) {
-            $query->where(function($sub) use ($q) {
-                $sub->where('group_code', 'like', "%$q%")
-                    ->orWhere('group_name', 'like', "%$q%")
-                    ->orWhere('account_code', 'like', "%$q%");
-            });
-        }
-
-        $mappings = $query->orderBy('group_code')->orderBy('account_code')->paginate(20);
-
-        // Distinct groups for dropdown selection
+        // Fetch distinct groups for dropdown selection
         $groups = DB::table('hosfin_dtl_mappings')
             ->select('group_code', 'group_name')
             ->distinct()
             ->orderBy('group_code')
             ->get();
+
+        if (!empty($groupCode)) {
+            $query->where('group_code', $groupCode);
+        }
+
+        if (!empty($q)) {
+            $query->where(function($sub) use ($q) {
+                $sub->where('group_code', 'like', "%$q%")
+                    ->orWhere('group_name', 'like', "%$q%")
+                    ->orWhere('account_code', 'like', "%$q%")
+                    ->orWhere('account_name', 'like', "%$q%");
+            });
+        }
+
+        // Bypassing pagination if print request
+        if ($isPrint) {
+            $mappings = $query->orderBy('hosfin_dtl_mappings.group_code')->orderBy('hosfin_dtl_mappings.account_code')->get();
+            return response()->json([
+                'success' => true,
+                'mappings' => $mappings,
+                'groups' => $groups
+            ]);
+        }
+
+        $mappings = $query->orderBy('hosfin_dtl_mappings.group_code')->orderBy('hosfin_dtl_mappings.account_code')->paginate(25);
 
         return response()->json([
             'success' => true,
@@ -488,6 +777,81 @@ class HosFinController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'ล้มเหลวในการลบ: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get list of unmapped accounts from trial balance for selected budget year
+     */
+    public function get_unmapped_accounts(Request $request)
+    {
+        $period = $request->input('period', 'all');
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        
+        // Define periods of interest
+        if ($period === 'all') {
+            $periods = [];
+            for ($m = 10; $m <= 12; $m++) {
+                $periods[] = sprintf('%04d-%02d', $budgetYear - 1, $m);
+            }
+            for ($m = 1; $m <= 9; $m++) {
+                $periods[] = sprintf('%04d-%02d', $budgetYear, $m);
+            }
+        } else {
+            $periods = [$period];
+        }
+
+        // Get trial balance rows for selected period(s)
+        $tbAccounts = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $periods)
+            ->get(['account_code', 'account_name', 'debit_net', 'credit_net']);
+
+        // Aggregate net values
+        $accountSums = [];
+        foreach ($tbAccounts as $tb) {
+            $code = $tb->account_code;
+            if (!isset($accountSums[$code])) {
+                $accountSums[$code] = [
+                    'account_code' => $code,
+                    'account_name' => $tb->account_name,
+                    'net_val' => 0.0
+                ];
+            }
+            $firstDigit = substr($code, 0, 1);
+            $isDebit = in_array($firstDigit, ['1', '5']);
+            $val = $isDebit ? (floatval($tb->debit_net) - floatval($tb->credit_net)) : (floatval($tb->credit_net) - floatval($tb->debit_net));
+            $accountSums[$code]['net_val'] += $val;
+        }
+
+        // Get all mapped prefixes
+        $mappings = DB::table('hosfin_dtl_mappings')->pluck('account_code')->toArray();
+
+        // Filter out mapped accounts
+        $unmapped = [];
+        foreach ($accountSums as $code => $acc) {
+            $matched = false;
+            foreach ($mappings as $prefix) {
+                if (strpos($code, $prefix) === 0) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                // Skip if net value is exactly 0.00 to make the report cleaner
+                if (round($acc['net_val'], 2) != 0.00) {
+                    $unmapped[] = $acc;
+                }
+            }
+        }
+
+        // Sort by account code
+        usort($unmapped, function($a, $b) {
+            return strcmp($a['account_code'], $b['account_code']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'unmapped' => $unmapped
+        ]);
     }
 
     /**

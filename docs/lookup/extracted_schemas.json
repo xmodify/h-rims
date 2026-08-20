@@ -32431,6 +32431,12 @@
         "default": null,
         "extra": ""
       },
+      "account_name": {
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
       "created_at": {
         "type": "timestamp",
         "nullable": true,

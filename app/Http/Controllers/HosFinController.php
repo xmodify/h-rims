@@ -350,27 +350,27 @@ class HosFinController extends Controller
                 } else {
                     $statusLabel = 'วิกฤต (ติดลบ)'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
-            } elseif ($code === '264') {
-                if ($val <= 45) {
+            } elseif ($code === '264') { // สินค้าคงคลัง
+                if ($val <= 60) {
                     $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
                 } else {
                     $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
-            } elseif ($code === '261' || $code === '262') {
-                if ($val <= 30) {
+            } elseif ($code === '261' || $code === '262') { // สิทธิ UC / ข้าราชการ
+                if ($val <= 60) {
                     $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
-                } elseif ($val <= 60) {
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '260') { // เจ้าหนี้ค่ายา
+                if ($val <= 90) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } elseif ($val <= 180) {
                     $statusLabel = 'เฝ้าระวัง'; $statusClass = 'text-warning border-warning'; $bgClass = 'bg-warning bg-opacity-10';
                 } else {
                     $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
-            } elseif ($code === '260') {
-                if ($val <= 120) {
-                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
-                } else {
-                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
-                }
-            } elseif ($code === '320' || $code === '321' || $code === '307') {
+            } elseif ($code === '320' || $code === '321' || $code === '307' || $code === '334') {
                 if ($val >= 0) {
                     $statusLabel = 'ปกติ (กำไร)'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
                 } else {

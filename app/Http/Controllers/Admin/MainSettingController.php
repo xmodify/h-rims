@@ -606,11 +606,12 @@ class MainSettingController extends Controller
                     // --- 2.7: Auto-Install Python dependencies (access-parser) ---
                     $pythonInstallMsg = '';
                     try {
+                        $libsPath = base_path('app/Helpers/Python/libs');
                         $return_var = 1;
                         $outputCheck = [];
-                        @exec('python -c "import access_parser" 2>&1', $outputCheck, $return_var);
+                        @exec('python -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
                         if ($return_var !== 0) {
-                            @exec('python3 -c "import access_parser" 2>&1', $outputCheck, $return_var);
+                            @exec('python3 -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
                         }
 
                         if ($return_var !== 0) {

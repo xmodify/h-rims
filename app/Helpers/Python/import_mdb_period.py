@@ -5,6 +5,11 @@ import re
 import io
 import logging
 
+# Add local bundled library path to sys.path
+libs_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libs')
+if os.path.exists(libs_path):
+    sys.path.insert(0, libs_path)
+
 # Silence all logging
 logging.basicConfig(level=logging.ERROR)
 logging.getLogger().setLevel(logging.ERROR)

@@ -307,6 +307,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
     // Injected variables
     const chartLabels = @json($chartLabels);
@@ -414,6 +415,7 @@
                 
                 activeChart = new Chart(ctx, {
                     type: 'line',
+                    plugins: [ChartDataLabels],
                     data: {
                         labels: chartLabels,
                         datasets: [{
@@ -435,6 +437,22 @@
                         plugins: {
                             legend: {
                                 display: false
+                            },
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'top',
+                                formatter: function(value) {
+                                    return value.toLocaleString(undefined, {
+                                        minimumFractionDigits: definition.precision, 
+                                        maximumFractionDigits: definition.precision
+                                    }) + ' ' + definition.unit;
+                                },
+                                font: {
+                                    weight: 'bold',
+                                    size: 10
+                                },
+                                color: '#475569',
+                                offset: 4
                             }
                         },
                         scales: {

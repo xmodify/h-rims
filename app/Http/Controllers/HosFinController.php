@@ -45,7 +45,288 @@ class HosFinController extends Controller
      */
     public function index()
     {
-        return view('hosfin.index');
+        $latestPeriod = DB::table('hosfin_trial_balance')
+            ->orderBy('acc_period', 'desc')
+            ->value('acc_period');
+
+        if (!$latestPeriod) {
+            return view('hosfin.index', [
+                'hasData' => false,
+                'latestPeriodLabel' => '',
+                'budgetYear' => self::getCurrentBudgetYear(),
+                'latestMetrics' => [],
+                'chartLabels' => [],
+                'chartData' => [],
+                'statusMap' => [],
+                'ratioDefs' => []
+            ]);
+        }
+
+        // Parse budget year from latest period
+        list($calYear, $calMonth) = explode('-', $latestPeriod);
+        $calYear = intval($calYear);
+        $calMonth = intval($calMonth);
+        $budgetYear = ($calMonth >= 10) ? ($calYear + 1) : $calYear;
+
+        // Build fiscal periods list
+        $periods = [];
+        for ($m = 10; $m <= 12; $m++) {
+            $periods[] = [
+                'month' => $m,
+                'year' => $budgetYear - 1,
+                'period' => sprintf('%04d-%02d', $budgetYear - 1, $m),
+                'label' => self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2)
+            ];
+        }
+        for ($m = 1; $m <= 9; $m++) {
+            $periods[] = [
+                'month' => $m,
+                'year' => $budgetYear,
+                'period' => sprintf('%04d-%02d', $budgetYear, $m),
+                'label' => self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2)
+            ];
+        }
+
+        $validPeriods = array_column($periods, 'period');
+
+        // Check which periods actually have data imported in DB
+        $importedPeriods = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $validPeriods)
+            ->distinct()
+            ->pluck('acc_period')
+            ->toArray();
+
+        // 1. Fetch all mappings to PHP memory
+        $mappings = DB::table('hosfin_dtl_mappings')->get(['group_code', 'account_code']);
+        $mappingsLookup = [];
+        $prefixLengths = [];
+        foreach ($mappings as $m) {
+            $mappingsLookup[$m->account_code][] = $m->group_code;
+            $prefixLengths[strlen($m->account_code)] = true;
+        }
+        $lengths = array_keys($prefixLengths);
+        rsort($lengths);
+
+        // 2. Fetch all trial balance rows
+        $trial_balance = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $validPeriods)
+            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month']);
+
+        // 3. Prefix matching in PHP memory
+        $grouped = [];
+        foreach ($trial_balance as $tb) {
+            $tbCode = $tb->account_code;
+            foreach ($lengths as $len) {
+                if (strlen($tbCode) < $len) continue;
+                $prefix = substr($tbCode, 0, $len);
+                if (isset($mappingsLookup[$prefix])) {
+                    foreach ($mappingsLookup[$prefix] as $gCode) {
+                        $grouped[$tb->acc_period][$gCode][] = $tb;
+                    }
+                }
+            }
+        }
+
+        // 4. Summarize sums in memory
+        $allPeriodsData = [];
+        foreach ($grouped as $period => $groups) {
+            foreach ($groups as $gCode => $rows) {
+                $debit_net = 0; $credit_net = 0;
+                $debit_bf = 0; $credit_bf = 0;
+                $debit_month = 0; $credit_month = 0;
+                foreach ($rows as $r) {
+                    $debit_net += floatval($r->debit_net);
+                    $credit_net += floatval($r->credit_net);
+                    $debit_bf += floatval($r->debit_bf);
+                    $credit_bf += floatval($r->credit_bf);
+                    $debit_month += floatval($r->debit_month);
+                    $credit_month += floatval($r->credit_month);
+                }
+                $allPeriodsData[$period][$gCode] = [
+                    'debit_net' => $debit_net,
+                    'credit_net' => $credit_net,
+                    'debit_bf' => $debit_bf,
+                    'credit_bf' => $credit_bf,
+                    'debit_month' => $debit_month,
+                    'credit_month' => $credit_month
+                ];
+            }
+        }
+
+        // Helper to retrieve values
+        $getGroupValForPeriod = function($period, $groupCode) use (&$allPeriodsData) {
+            $row = $allPeriodsData[$period][$groupCode] ?? null;
+            if (!$row) return 0;
+
+            static $isDebitMap = [];
+            if (!isset($isDebitMap[$groupCode])) {
+                $firstAcc = DB::table('hosfin_dtl_mappings')
+                    ->where('group_code', $groupCode)
+                    ->value('account_code');
+                $firstDigit = $firstAcc ? substr($firstAcc, 0, 1) : '1';
+                $isDebitMap[$groupCode] = in_array($firstDigit, ['1', '5']);
+            }
+
+            $isDebit = $isDebitMap[$groupCode];
+            return $isDebit ? ($row['debit_net'] - $row['credit_net']) : ($row['credit_net'] - $row['debit_net']);
+        };
+
+        $targetCodes = ['105', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', '104'];
+        $ratioDefs = self::getRatioDefinitions();
+        $history = [];
+
+        foreach ($targetCodes as $code) {
+            $history[$code] = [];
+        }
+
+        foreach ($validPeriods as $period) {
+            if (!in_array($period, $importedPeriods)) {
+                continue;
+            }
+
+            foreach ($targetCodes as $code) {
+                if (!isset($ratioDefs[$code])) continue;
+                $def = $ratioDefs[$code];
+
+                $num = $getGroupValForPeriod($period, $def['num_group']);
+                $den = $getGroupValForPeriod($period, $def['den_group']);
+
+                $val = 0;
+                if ($def['type'] === 'subtract') {
+                    $val = $num - $den;
+                } else {
+                    if ($den != 0) {
+                        if ($def['type'] === 'percent') {
+                            $val = ($num / $den) * 100;
+                        } elseif ($def['type'] === 'days') {
+                            $val = ($num / $den) * 300;
+                        } else {
+                            $val = $num / $den;
+                        }
+                    }
+                }
+                $history[$code][$period] = round($val, $def['precision']);
+            }
+        }
+
+        // Latest period metrics and label
+        $latestMetrics = [];
+        foreach ($targetCodes as $code) {
+            $latestMetrics[$code] = $history[$code][$latestPeriod] ?? 0;
+        }
+
+        $latestPeriodLabel = '';
+        foreach ($periods as $p) {
+            if ($p['period'] === $latestPeriod) {
+                $latestPeriodLabel = $p['label'];
+                break;
+            }
+        }
+
+        // Chart.js structures
+        $chartLabels = [];
+        foreach ($periods as $p) {
+            if (in_array($p['period'], $importedPeriods)) {
+                $chartLabels[] = $p['label'];
+            }
+        }
+
+        $chartData = [];
+        foreach ($targetCodes as $code) {
+            $chartData[$code] = [];
+            foreach ($periods as $p) {
+                if (in_array($p['period'], $importedPeriods)) {
+                    $chartData[$code][] = $history[$code][$p['period']] ?? 0;
+                }
+            }
+        }
+
+        // Evaluate statuses
+        $statusMap = [];
+        foreach ($targetCodes as $code) {
+            $val = $latestMetrics[$code];
+            $statusLabel = 'ปกติ';
+            $statusClass = 'text-success border-success';
+            $bgClass = 'bg-success bg-opacity-10';
+
+            if ($code === '100') {
+                if ($val >= 1.5) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } elseif ($val >= 1.0) {
+                    $statusLabel = 'เฝ้าระวัง'; $statusClass = 'text-warning border-warning'; $bgClass = 'bg-warning bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '101') {
+                if ($val >= 1.0) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '102') {
+                if ($val >= 0.2) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'เฝ้าระวัง'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '105' || $code === '104') {
+                if ($val >= 0) {
+                    $statusLabel = 'ปกติ (บวก)'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต (ติดลบ)'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '264') {
+                if ($val <= 45) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '261' || $code === '262') {
+                if ($val <= 30) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } elseif ($val <= 60) {
+                    $statusLabel = 'เฝ้าระวัง'; $statusClass = 'text-warning border-warning'; $bgClass = 'bg-warning bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '260') {
+                if ($val <= 120) {
+                    $statusLabel = 'ปกติ'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            } elseif ($code === '320' || $code === '321' || $code === '307') {
+                if ($val >= 0) {
+                    $statusLabel = 'ปกติ (กำไร)'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
+                } else {
+                    $statusLabel = 'วิกฤต (ขาดทุน)'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
+                }
+            }
+
+            $statusMap[$code] = [
+                'label' => $statusLabel,
+                'class' => $statusClass,
+                'bg' => $bgClass
+            ];
+        }
+
+        $selectedDefs = [];
+        foreach ($targetCodes as $code) {
+            if (isset($ratioDefs[$code])) {
+                $selectedDefs[$code] = $ratioDefs[$code];
+            }
+        }
+
+        return view('hosfin.index', [
+            'hasData' => true,
+            'latestPeriodLabel' => $latestPeriodLabel,
+            'budgetYear' => $budgetYear,
+            'latestMetrics' => $latestMetrics,
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
+            'statusMap' => $statusMap,
+            'ratioDefs' => $selectedDefs
+        ]);
     }
 
     /**

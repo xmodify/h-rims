@@ -561,6 +561,47 @@ class MainSettingController extends Controller
                         $report[] = "lookup_icd10_chi (ไม่พบไฟล์)";
                     }
 
+                    // --- 2.6: Import/Sync HosFin Detail Mappings (hosfin_dtl_mappings.json) ---
+                    $filePathHosfinMappings = base_path('docs/lookup/hosfin_dtl_mappings.json');
+                    if (file_exists($filePathHosfinMappings)) {
+                        $jsonData = json_decode(file_get_contents($filePathHosfinMappings), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $insertedMappings = 0;
+                            // Only seed if empty to prevent overhead
+                            if (DB::table('hosfin_dtl_mappings')->count() === 0) {
+                                DB::beginTransaction();
+                                try {
+                                    $batchMappings = [];
+                                    foreach ($jsonData as $row) {
+                                        $batchMappings[] = [
+                                            'group_code' => trim($row['group_code']),
+                                            'account_code' => trim($row['account_code']),
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                        if (count($batchMappings) >= 1000) {
+                                            DB::table('hosfin_dtl_mappings')->insert($batchMappings);
+                                            $batchMappings = [];
+                                        }
+                                    }
+                                    if (!empty($batchMappings)) {
+                                        DB::table('hosfin_dtl_mappings')->insert($batchMappings);
+                                    }
+                                    DB::commit();
+                                    $insertedMappings = count($jsonData);
+                                } catch (\Throwable $e) {
+                                    DB::rollBack();
+                                    throw $e;
+                                }
+                            }
+                            $report[] = "hosfin_dtl_mappings ($insertedMappings รายการ)";
+                        } else {
+                            $report[] = "hosfin_dtl_mappings (ไฟล์ JSON รูปแบบไม่ถูกต้อง)";
+                        }
+                    } else {
+                        $report[] = "hosfin_dtl_mappings (ไม่พบไฟล์)";
+                    }
+
                     return response()->json([
                         'success' => true,
                         'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report)

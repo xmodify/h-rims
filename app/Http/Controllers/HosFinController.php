@@ -1074,8 +1074,8 @@ class HosFinController extends Controller
                     if (json_last_error() === JSON_ERROR_NONE && !empty($jsonData)) {
                         DB::beginTransaction();
                         try {
-                            // Truncate to ensure clean slate if we are self-healing empty names
-                            DB::table('hosfin_dtl_mappings')->truncate();
+                            // Delete to ensure clean slate if we are self-healing empty names
+                            DB::table('hosfin_dtl_mappings')->delete();
 
                             $batch = [];
                             foreach ($jsonData as $row) {

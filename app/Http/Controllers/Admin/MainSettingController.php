@@ -574,7 +574,7 @@ class MainSettingController extends Controller
                             if ($needsSeed) {
                                 DB::beginTransaction();
                                 try {
-                                    DB::table('hosfin_dtl_mappings')->truncate();
+                                    DB::table('hosfin_dtl_mappings')->delete();
 
                                     $batchMappings = [];
                                     foreach ($jsonData as $row) {

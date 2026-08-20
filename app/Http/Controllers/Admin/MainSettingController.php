@@ -567,14 +567,20 @@ class MainSettingController extends Controller
                         $jsonData = json_decode(file_get_contents($filePathHosfinMappings), true);
                         if (json_last_error() === JSON_ERROR_NONE) {
                             $insertedMappings = 0;
-                            // Only seed if empty to prevent overhead
-                            if (DB::table('hosfin_dtl_mappings')->count() === 0) {
+                            // Seed if empty or if names are missing (self-healing)
+                            $needsSeed = (DB::table('hosfin_dtl_mappings')->count() === 0) || 
+                                         DB::table('hosfin_dtl_mappings')->whereNull('group_name')->orWhere('group_name', '')->exists();
+
+                            if ($needsSeed) {
                                 DB::beginTransaction();
                                 try {
+                                    DB::table('hosfin_dtl_mappings')->truncate();
+
                                     $batchMappings = [];
                                     foreach ($jsonData as $row) {
                                         $batchMappings[] = [
                                             'group_code' => trim($row['group_code']),
+                                            'group_name' => trim($row['group_name'] ?? ''),
                                             'account_code' => trim($row['account_code']),
                                             'created_at' => now(),
                                             'updated_at' => now()

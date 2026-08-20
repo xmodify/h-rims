@@ -1059,17 +1059,29 @@ class HosFinController extends Controller
     private static function checkAndSeedMappings()
     {
         try {
-            if (DB::table('hosfin_dtl_mappings')->count() === 0) {
+            $hasTable = \Illuminate\Support\Facades\Schema::hasTable('hosfin_dtl_mappings');
+            if (!$hasTable) {
+                return;
+            }
+
+            $needsSeed = (DB::table('hosfin_dtl_mappings')->count() === 0) || 
+                         DB::table('hosfin_dtl_mappings')->whereNull('group_name')->orWhere('group_name', '')->exists();
+
+            if ($needsSeed) {
                 $filePath = base_path('docs/lookup/hosfin_dtl_mappings.json');
                 if (file_exists($filePath)) {
                     $jsonData = json_decode(file_get_contents($filePath), true);
                     if (json_last_error() === JSON_ERROR_NONE && !empty($jsonData)) {
                         DB::beginTransaction();
                         try {
+                            // Truncate to ensure clean slate if we are self-healing empty names
+                            DB::table('hosfin_dtl_mappings')->truncate();
+
                             $batch = [];
                             foreach ($jsonData as $row) {
                                 $batch[] = [
                                     'group_code' => trim($row['group_code']),
+                                    'group_name' => trim($row['group_name'] ?? ''),
                                     'account_code' => trim($row['account_code']),
                                     'created_at' => now(),
                                     'updated_at' => now()

@@ -53,7 +53,6 @@ class HosFinController extends Controller
      */
     public function trial_balance(Request $request)
     {
-        self::checkAndSeedMappings();
         $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
 
         // Build fiscal periods list
@@ -496,7 +495,6 @@ class HosFinController extends Controller
      */
     public function ratio_report(Request $request)
     {
-        self::checkAndSeedMappings();
         $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
 
         // Build fiscal periods list
@@ -1051,59 +1049,5 @@ class HosFinController extends Controller
                 'precision' => 2
             ],
         ];
-    }
-
-    /**
-     * Auto-seed mappings table from JSON file if it is empty
-     */
-    private static function checkAndSeedMappings()
-    {
-        try {
-            $hasTable = \Illuminate\Support\Facades\Schema::hasTable('hosfin_dtl_mappings');
-            if (!$hasTable) {
-                return;
-            }
-
-            $needsSeed = (DB::table('hosfin_dtl_mappings')->count() === 0) || 
-                         DB::table('hosfin_dtl_mappings')->whereNull('group_name')->orWhere('group_name', '')->exists();
-
-            if ($needsSeed) {
-                $filePath = base_path('docs/lookup/hosfin_dtl_mappings.json');
-                if (file_exists($filePath)) {
-                    $jsonData = json_decode(file_get_contents($filePath), true);
-                    if (json_last_error() === JSON_ERROR_NONE && !empty($jsonData)) {
-                        DB::beginTransaction();
-                        try {
-                            // Delete to ensure clean slate if we are self-healing empty names
-                            DB::table('hosfin_dtl_mappings')->delete();
-
-                            $batch = [];
-                            foreach ($jsonData as $row) {
-                                $batch[] = [
-                                    'group_code' => trim($row['group_code']),
-                                    'group_name' => trim($row['group_name'] ?? ''),
-                                    'account_code' => trim($row['account_code']),
-                                    'created_at' => now(),
-                                    'updated_at' => now()
-                                ];
-                                if (count($batch) >= 1000) {
-                                    DB::table('hosfin_dtl_mappings')->insert($batch);
-                                    $batch = [];
-                                }
-                            }
-                            if (!empty($batch)) {
-                                DB::table('hosfin_dtl_mappings')->insert($batch);
-                            }
-                            DB::commit();
-                        } catch (\Throwable $e) {
-                            DB::rollBack();
-                            Log::error("HosFin Auto-Seed Error: " . $e->getMessage());
-                        }
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error("HosFin checkAndSeedMappings Error: " . $e->getMessage());
-        }
     }
 }

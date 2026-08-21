@@ -86,6 +86,7 @@
                        name="otp_code" 
                        id="otp_code" 
                        class="form-control otp-input-field shadow-sm text-uppercase @error('otp_code') is-invalid @enderror" 
+                       value="{{ old('otp_code') }}"
                        maxlength="6" 
                        placeholder="XXXXXX" 
                        pattern="[a-zA-Z0-9]{6}" 

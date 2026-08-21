@@ -54,7 +54,9 @@ class MophAlert2FAController extends Controller
         $expiresAt = session('moph_alert_otp_expires');
 
         if (!$cachedOtp || !$expiresAt || time() > $expiresAt) {
-            return redirect()->back()->withErrors(['otp_code' => 'รหัส OTP หมดอายุแล้ว กรุณากดส่งรหัสใหม่อีกครั้ง']);
+            return redirect()->back()
+                ->withErrors(['otp_code' => 'รหัส OTP หมดอายุแล้ว กรุณากดส่งรหัสใหม่อีกครั้ง'])
+                ->withInput($request->only('otp_code'));
         }
 
         if ($enteredOtp === $cachedOtp) {
@@ -67,7 +69,9 @@ class MophAlert2FAController extends Controller
             return redirect()->route('home')->with('success', 'เข้าสู่ระบบเสร็จสิ้น');
         }
 
-        return redirect()->back()->withErrors(['otp_code' => 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง']);
+        return redirect()->back()
+            ->withErrors(['otp_code' => 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'])
+            ->withInput($request->only('otp_code'));
     }
 
     /**

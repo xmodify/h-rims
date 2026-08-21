@@ -59,6 +59,26 @@
     border-radius: 12px;
     font-weight: 600;
   }
+  .btn-nav-custom {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .btn-nav-custom:hover {
+    transform: translateY(-2.5px) scale(1.025);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1) !important;
+  }
+  .btn-nav-custom:active {
+    transform: translateY(0) scale(0.98);
+  }
+  .btn-tb-custom:hover {
+    background-color: #f0fdf4 !important;
+    border-color: #059669 !important;
+    color: #047857 !important;
+  }
+  .btn-rr-custom:hover {
+    background-color: #eff6ff !important;
+    border-color: #2563eb !important;
+    color: #1d4ed8 !important;
+  }
 </style>
 
 <div class="container-fluid py-4 px-lg-5" style="background-color: #f8fafc;">
@@ -66,7 +86,7 @@
         <!-- Header banner -->
         <div class="col-12 px-3 mb-4">
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 18px 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 w-100">
                     <div>
                         <h5 class="text-primary mb-1 fw-bold">
                             <i class="bi bi-bank me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (HosFin Dashboard)
@@ -76,9 +96,51 @@
                         </small>
                     </div>
                     @if($hasData)
-                        <div class="bg-white border rounded-pill px-3 py-1 text-secondary shadow-sm d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                            <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
-                            ข้อมูลล่าสุด ณ งวดบัญชี: <strong class="text-dark">{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
+                        <div class="d-flex align-items-center flex-wrap gap-3">
+                            <div class="bg-white border rounded-pill px-3 py-2 text-secondary shadow-sm d-flex align-items-center gap-2" style="font-size: 0.85rem; height: 48px;">
+                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                                ข้อมูลล่าสุด ณ งวดบัญชี: <strong class="text-dark">{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
+                            </div>
+                            
+                            @php
+                                $val105 = $latestMetrics['105']['val'];
+                                $isPositive105 = $val105 >= 0;
+                                $bgClass105 = $isPositive105 ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10';
+                                $borderClass105 = $isPositive105 ? 'border-success-subtle' : 'border-danger-subtle';
+                                $textClass105 = $isPositive105 ? 'text-success-custom' : 'text-danger';
+                                $label105 = $isPositive105 ? 'ปกติ (บวก)' : 'วิกฤต (ติดลบ)';
+                            @endphp
+                            <!-- Net Cash Balance Display (105) -->
+                            <div class="d-flex align-items-center gap-3 px-3 py-1 rounded-3 shadow-sm border metric-card {{ $bgClass105 }} {{ $borderClass105 }}" 
+                                 style="border-width: 1px !important; height: 48px; cursor: pointer;"
+                                 data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (105)">
+                                <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">เงินบำรุงคงเหลือสุทธิ:</span>
+                                <div class="fw-bold rounded {{ $textClass105 }}" style="font-size: 1.15rem; font-family: monospace; line-height: 1.1; padding: 2px 10px; font-weight: 800;">
+                                    {{ number_format($val105, 2) }} บาท
+                                </div>
+                            </div>
+                            
+                            <!-- Risk Score Display -->
+                            <div class="d-flex align-items-center gap-3 px-3 py-1 rounded-3 shadow-sm border metric-card {{ $riskScoreBgClass }}" 
+                                 style="border-width: 1px !important; height: 48px; cursor: pointer;"
+                                 data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)">
+                                <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">RISK SCORE:</span>
+                                <div class="fw-bold rounded {{ $riskScoreNumBgClass }} {{ $riskScoreTextClass }}" style="font-size: 1.6rem; font-family: monospace; line-height: 1.1; padding: 2px 10px; font-weight: 900;">
+                                    {{ $riskScore }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons (Pushed to far right) -->
+                        <div class="d-flex align-items-center gap-2 ms-lg-auto">
+                            <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-tb-custom" 
+                               style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;">
+                                <i class="bi bi-file-earmark-spreadsheet text-success" style="font-size: 1.1rem;"></i> งบทดลอง
+                            </a>
+                            <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-rr-custom" 
+                               style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;">
+                                <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.1rem;"></i> อัตราส่วนการเงิน
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -111,7 +173,7 @@
                                 ['code' => '100', 'icon' => 'bi-arrow-left-right', 'name' => 'Current Ratio'],
                                 ['code' => '101', 'icon' => 'bi-lightning-charge', 'name' => 'Quick Ratio'],
                                 ['code' => '102', 'icon' => 'bi-cash-stack', 'name' => 'Cash Ratio'],
-                                ['code' => '105', 'icon' => 'bi-piggy-bank', 'name' => 'เงินบำรุงคงเหลือสุทธิ']
+                                ['code' => '104', 'icon' => 'bi-wallet-fill', 'name' => 'Net Working Capital (NWC)']
                             ]
                         ],
                         'efficiency' => [
@@ -131,7 +193,7 @@
                                 ['code' => '307', 'icon' => 'bi-file-earmark-bar-graph', 'name' => 'Net Margin (มีค่าเสื่อม)'],
                                 ['code' => '320', 'icon' => 'bi-graph-up-arrow', 'name' => 'Operating Margin %'],
                                 ['code' => '321', 'icon' => 'bi-briefcase', 'name' => 'Return on Asset % (ROA)'],
-                                ['code' => '334', 'icon' => 'bi-calculator', 'name' => 'NI+Depreciation']
+                                ['code' => 'NI', 'icon' => 'bi-calculator', 'name' => 'Net Income (กำไรสุทธิ)']
                             ]
                         ]
                     ];
@@ -140,7 +202,8 @@
                         ['border' => '#0d9488', 'text' => '#0d9488'], // Teal 600
                         ['border' => '#2563eb', 'text' => '#2563eb'], // Blue 600
                         ['border' => '#7c3aed', 'text' => '#7c3aed'], // Violet 600
-                        ['border' => '#db2777', 'text' => '#db2777']  // Pink 600
+                        ['border' => '#db2777', 'text' => '#db2777'], // Pink 600
+                        ['border' => '#e11d48', 'text' => '#e11d48']  // Rose 600
                     ];
                 @endphp
 
@@ -149,7 +212,7 @@
                         <i class="bi {{ $rowInfo['icon'] }} me-1"></i> {{ $rowInfo['title'] }}
                         <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี)</span>
                     </div>
-                    <div class="row g-3 mb-4">
+                    <div class="row g-3 mb-4 row-cols-1 row-cols-md-2 row-cols-xl-4">
                         @foreach($rowInfo['codes'] as $c)
                             @php
                                 $code = $c['code'];
@@ -157,7 +220,7 @@
                                 $icon = $c['icon'];
                                 $status = $statusMap[$code];
                                 $metricsData = $latestMetrics[$code];
-                                $theme = $themes[$loop->index % 4];
+                                $theme = $themes[$loop->index % 5];
                                 
                                 $colorClass = 'text-dark';
                                 if (strpos($status['class'], 'text-success') !== false) {
@@ -168,7 +231,7 @@
                                     $colorClass = 'text-warning-custom';
                                 }
                             @endphp
-                            <div class="col-xl-3 col-md-6">
+                            <div class="col">
                                 <div class="card metric-card shadow-sm" style="border-left: 5.5px solid {{ $theme['border'] }} !important;" data-code="{{ $code }}" data-name="{{ $def['name'] }}">
                                     <div class="card-body p-3">
                                         <!-- Row 1: Title & Status -->
@@ -221,55 +284,7 @@
             </div>
         @endif
 
-        <!-- Card menus (Original entry buttons) -->
-        <div class="col-12 px-3 mb-2 mt-2">
-            <div class="section-title-custom"><i class="bi bi-menu-button-wide text-secondary me-1"></i> เข้าถึงระบบบริหารจัดการหลัก</div>
-        </div>
-        
-        <!-- Cards Grid -->
-        <div class="col-md-6 mb-4 px-3">
-            <div class="card hosfin-card accent-teal h-100 shadow-sm">
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success me-3">
-                            <i class="bi bi-file-earmark-spreadsheet" style="font-size: 2rem;"></i>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold mb-0 text-dark">ข้อมูลบัญชีหน่วยงาน</h5>
-                            <small class="text-muted">Trial Balance Manager</small>
-                        </div>
-                    </div>
-                    <p class="text-muted mb-4 flex-grow-1" style="font-size: 0.9rem; line-height: 1.6;">
-                        ระบบนำเข้า ตรวจสอบ และวิเคราะห์ยอดเงินงบทดลองประจำแต่ละเดือน แยกรายปีงบประมาณอย่างเป็นระบบ พร้อมฟังก์ชันเปรียบเทียบความถูกต้องของยอดเงิน
-                    </p>
-                    <a href="{{ url('hosfin/trial_balance') }}" class="btn btn-success rounded-pill px-4 align-self-start shadow-sm mt-auto">
-                        เข้าใช้งานระบบ <i class="bi bi-arrow-right ms-1"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-md-6 mb-4 px-3">
-            <div class="card hosfin-card accent-blue h-100 shadow-sm">
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary me-3">
-                            <i class="bi bi-graph-up-arrow" style="font-size: 2rem;"></i>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold mb-0 text-dark">วิเคราะห์อัตราส่วนการเงิน</h5>
-                            <small class="text-muted">Financial Ratio Analysis</small>
-                        </div>
-                    </div>
-                    <p class="text-muted mb-4 flex-grow-1" style="font-size: 0.9rem; line-height: 1.6;">
-                        ระบบวิเคราะห์และคำนวณอัตราส่วนทางการเงินรายเดือนและรายปีงบประมาณตามเกณฑ์กระทรวงสาธารณสุข พร้อมกราฟวิเคราะห์แนวโน้มรายเดือนและระบบตั้งค่าจับคู่ผังบัญชี
-                    </p>
-                    <a href="{{ url('hosfin/ratio_report') }}" class="btn btn-primary rounded-pill px-4 align-self-start shadow-sm mt-auto">
-                        เข้าใช้งานระบบ <i class="bi bi-arrow-right ms-1"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -383,6 +398,14 @@
         '334': {
             desc: '<strong>NI+Depreciation (กำไรสุทธิบวกค่าเสื่อมราคา)</strong>: รายได้สูง(ต่ำ)กว่าค่าใช้จ่ายสุทธิสะสม ชี้วัดกระแสเงินสดสุทธิจากการดำเนินงาน',
             guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> บ่งบอกศักยภาพการทำกำไรที่แท้จริงบวกกระแสเงินสดค่าเสื่อมที่สำรองไว้ในระบบ หากค่าตัวนี้เป็นบวกในอัตราที่สูง แสดงว่า รพ. มีศักยภาพและความพร้อมในการขยายงานหรือจัดซื้อทดแทนเครื่องมือแพทย์ดั้งเดิม'
+        },
+        '105': {
+            desc: '<strong>เงินบำรุงคงเหลือสุทธิ (Net Cash Balance)</strong>: ยอดเงินบำรุงคงเหลือในบัญชีเงินฝากและเงินสดลบภาระผูกพันทางการเงิน',
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> ยอดเงินควรเป็นบวกและเพียงพอต่อการรองรับค่าใช้จ่ายดำเนินงานของโรงพยาบาล หากติดลบแปลว่าสภาพคล่องเงินสดจริงกำลังตึงตัวอย่างรุนแรง'
+        },
+        'RISK_SCORE': {
+            desc: '<strong>RISK SCORE (ระดับความเสี่ยงทางการเงิน)</strong>: คะแนนประเมินความเสี่ยงทางการเงินโดยรวมจาก 0 ถึง 7 คะแนน ตามเกณฑ์ของกระทรวงสาธารณสุข',
+            guide: '💡 <strong>แนวทางสั่งการสำหรับผู้บริหาร:</strong> คะแนนยิ่งน้อยยิ่งดี (เป้าหมายคือ 0-2 คะแนน) หากคะแนนสูงเกิน 5 คะแนนขึ้นไป ถือว่าเป็นสถานะวิกฤตทางการเงินที่ต้องกำหนดแผนเผชิญเหตุและควบคุมรายจ่ายอย่างเคร่งครัด'
         }
     };
 
@@ -452,6 +475,21 @@
 
                 const datasetValues = chartData[code] || [];
                 
+                let yScaleOpts = {
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' ' + definition.unit;
+                        }
+                    }
+                };
+
+                if (code === 'RISK_SCORE') {
+                    yScaleOpts.min = 0;
+                    yScaleOpts.max = 8;
+                } else {
+                    yScaleOpts.grace = '15%';
+                }
+
                 activeChart = new Chart(ctx, {
                     type: 'line',
                     plugins: [ChartDataLabels],
@@ -495,13 +533,7 @@
                             }
                         },
                         scales: {
-                            y: {
-                                ticks: {
-                                    callback: function(value) {
-                                        return value.toLocaleString() + ' ' + definition.unit;
-                                    }
-                                }
-                            }
+                            y: yScaleOpts
                         }
                     }
                 });

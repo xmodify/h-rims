@@ -251,7 +251,7 @@ class HosFinController extends Controller
             return $currentVal;
         };
 
-        $targetCodes = ['105', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', '334'];
+        $targetCodes = ['105', '104', '100', '101', '102', '264', '261', '262', '260', '320', '321', '307', 'NI', 'RISK_SCORE'];
         $ratioDefs = self::getRatioDefinitions();
         $history = [];
 
@@ -291,6 +291,60 @@ class HosFinController extends Controller
                     'den' => $den
                 ];
             }
+
+            // Calculate Risk Score for this period
+            $crVal = $history['100'][$period]['val'] ?? 0;
+            $qrVal = $history['101'][$period]['val'] ?? 0;
+            $cashVal = $history['102'][$period]['val'] ?? 0;
+            $nwcVal = $history['104'][$period]['val'] ?? 0;
+            $niVal = $getGroupValForPeriod($period, '3007X'); // Net Income from group 3007X
+
+            $pRiskScore = 0;
+            if ($crVal < 1.5) $pRiskScore += 1;
+            if ($qrVal < 1.0) $pRiskScore += 1;
+            if ($cashVal < 0.8) $pRiskScore += 1;
+            if ($nwcVal < 0) $pRiskScore += 1;
+            if ($niVal < 0) $pRiskScore += 1;
+
+            $pCalMonth = intval(substr($period, 5, 2));
+            $pMonthsPassed = 1;
+            if ($pCalMonth >= 10) {
+                $pMonthsPassed = $pCalMonth - 9;
+            } else {
+                $pMonthsPassed = $pCalMonth + 3;
+            }
+
+            if ($nwcVal >= 0 && $niVal < 0) {
+                $pMonthlyLoss = abs($niVal) / $pMonthsPassed;
+                if ($pMonthlyLoss > 0) {
+                    $pMonthsToDeplete = $nwcVal / $pMonthlyLoss;
+                    if ($pMonthsToDeplete <= 3) {
+                        $pRiskScore += 2;
+                    } elseif ($pMonthsToDeplete <= 6) {
+                        $pRiskScore += 1;
+                    }
+                }
+            } elseif ($nwcVal < 0 && $niVal >= 0) {
+                $pMonthlyGain = $niVal / $pMonthsPassed;
+                if ($pMonthlyGain > 0) {
+                    $pMonthsToRecover = abs($nwcVal) / $pMonthlyGain;
+                    if ($pMonthsToRecover > 6) {
+                        $pRiskScore += 2;
+                    } elseif ($pMonthsToRecover > 3) {
+                        $pRiskScore += 1;
+                    }
+                } else {
+                    $pRiskScore += 2;
+                }
+            } elseif ($nwcVal < 0 && $niVal < 0) {
+                $pRiskScore += 2;
+            }
+
+            $history['RISK_SCORE'][$period] = [
+                'val' => $pRiskScore,
+                'num' => $pRiskScore,
+                'den' => 7
+            ];
         }
 
         // Latest period metrics and label
@@ -305,6 +359,81 @@ class HosFinController extends Controller
                 $latestPeriodLabel = $p['label'];
                 break;
             }
+        }
+
+        // Calculate Risk Score for the latest period
+        $crVal = $latestMetrics['100']['val'];
+        $qrVal = $latestMetrics['101']['val'];
+        $cashVal = $latestMetrics['102']['val'];
+        $nwcVal = $latestMetrics['104']['val'];
+        $niVal = $getGroupValForPeriod($latestPeriod, '3007X'); // Net Income from group 3007X
+
+        $riskScore = 0;
+
+        // 1. Asset Liquidity Group
+        if ($crVal < 1.5) $riskScore += 1;
+        if ($qrVal < 1.0) $riskScore += 1;
+        if ($cashVal < 0.8) $riskScore += 1;
+
+        // 2. Financial Stability Group
+        if ($nwcVal < 0) $riskScore += 1;
+        if ($niVal < 0) $riskScore += 1;
+
+        // 3. Severe Financial Distress Group
+        $monthsPassed = 1;
+        if ($calMonth >= 10) {
+            $monthsPassed = $calMonth - 9;
+        } else {
+            $monthsPassed = $calMonth + 3;
+        }
+
+        if ($nwcVal >= 0 && $niVal < 0) {
+            $monthlyLoss = abs($niVal) / $monthsPassed;
+            if ($monthlyLoss > 0) {
+                $monthsToDeplete = $nwcVal / $monthlyLoss;
+                if ($monthsToDeplete <= 3) {
+                    $riskScore += 2;
+                } elseif ($monthsToDeplete <= 6) {
+                    $riskScore += 1;
+                }
+            }
+        } elseif ($nwcVal < 0 && $niVal >= 0) {
+            $monthlyGain = $niVal / $monthsPassed;
+            if ($monthlyGain > 0) {
+                $monthsToRecover = abs($nwcVal) / $monthlyGain;
+                if ($monthsToRecover > 6) {
+                    $riskScore += 2;
+                } elseif ($monthsToRecover > 3) {
+                    $riskScore += 1;
+                }
+            } else {
+                $riskScore += 2;
+            }
+        } elseif ($nwcVal < 0 && $niVal < 0) {
+            $riskScore += 2;
+        }
+
+        // Determine classes based on score
+        if ($riskScore >= 6) {
+            $riskScoreBgClass = 'bg-danger bg-opacity-10 border-danger-subtle';
+            $riskScoreTextClass = 'text-danger fw-bold';
+            $riskScoreNumBgClass = 'bg-danger bg-opacity-25';
+            $riskScoreLevelLabel = 'วิกฤตทางการเงิน';
+        } elseif ($riskScore >= 5) {
+            $riskScoreBgClass = 'bg-warning bg-opacity-10 border-warning-subtle';
+            $riskScoreTextClass = 'text-warning-custom fw-bold';
+            $riskScoreNumBgClass = 'bg-warning bg-opacity-25';
+            $riskScoreLevelLabel = 'เฝ้าระวังสูง';
+        } elseif ($riskScore >= 3) {
+            $riskScoreBgClass = 'bg-warning bg-opacity-10 border-warning-subtle';
+            $riskScoreTextClass = 'text-warning-custom';
+            $riskScoreNumBgClass = 'bg-warning bg-opacity-10';
+            $riskScoreLevelLabel = 'เฝ้าระวังปานกลาง';
+        } else {
+            $riskScoreBgClass = 'bg-success bg-opacity-10 border-success-subtle';
+            $riskScoreTextClass = 'text-success-custom';
+            $riskScoreNumBgClass = 'bg-success bg-opacity-25';
+            $riskScoreLevelLabel = 'ปกติ / เฝ้าระวังต่ำ';
         }
 
         // Chart.js structures
@@ -379,7 +508,7 @@ class HosFinController extends Controller
                 } else {
                     $statusLabel = 'วิกฤต'; $statusClass = 'text-danger border-danger'; $bgClass = 'bg-danger bg-opacity-10';
                 }
-            } elseif ($code === '320' || $code === '321' || $code === '307' || $code === '334') {
+            } elseif ($code === '320' || $code === '321' || $code === '307' || $code === 'NI') {
                 if ($val >= 0) {
                     $statusLabel = 'ปกติ (กำไร)'; $statusClass = 'text-success border-success'; $bgClass = 'bg-success bg-opacity-10';
                 } else {
@@ -409,7 +538,12 @@ class HosFinController extends Controller
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
             'statusMap' => $statusMap,
-            'ratioDefs' => $selectedDefs
+            'ratioDefs' => $selectedDefs,
+            'riskScore' => $riskScore,
+            'riskScoreBgClass' => $riskScoreBgClass,
+            'riskScoreTextClass' => $riskScoreTextClass,
+            'riskScoreNumBgClass' => $riskScoreNumBgClass,
+            'riskScoreLevelLabel' => $riskScoreLevelLabel
         ]);
     }
 
@@ -1921,6 +2055,26 @@ class HosFinController extends Controller
                 'type' => 'subtract',
                 'unit' => 'บาท',
                 'precision' => 2
+            ],
+            'NI' => [
+                'name' => 'Net Income (กำไรสุทธิ)',
+                'numerator_name' => 'กำไรสุทธิ',
+                'denominator_name' => '',
+                'num_group' => '3007X',
+                'den_group' => '',
+                'type' => 'subtract',
+                'unit' => 'บาท',
+                'precision' => 2
+            ],
+            'RISK_SCORE' => [
+                'name' => 'RISK SCORE (คะแนนความเสี่ยงทางการเงิน)',
+                'numerator_name' => 'คะแนนสะสม',
+                'denominator_name' => 'คะแนนเต็ม',
+                'num_group' => '',
+                'den_group' => '',
+                'type' => 'value',
+                'unit' => 'คะแนน',
+                'precision' => 0
             ],
         ];
     }

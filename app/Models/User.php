@@ -38,6 +38,7 @@ class User extends Authenticatable
         'allow_nhso_endpoint',
         'allow_aopod_death',
         'allow_check_right',
+        'allow_hosfin',
     ];
 
     /**

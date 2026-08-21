@@ -244,12 +244,28 @@
                                                     } elseif ($code === '101') {
                                                         if ($r['value'] >= 1.0) { $statusLabel = '🟢 ปกติ'; $statusBadge = 'badge-success'; }
                                                         else { $statusLabel = '🔴 วิกฤต'; $statusBadge = 'badge-danger'; }
+                                                    } elseif ($code === '102') {
+                                                        if ($r['value'] >= 0.8) { $statusLabel = '🟢 ปกติ'; $statusBadge = 'badge-success'; }
+                                                        else { $statusLabel = '🔴 วิกฤต'; $statusBadge = 'badge-danger'; }
                                                     } elseif ($code === '104' || $code === '105') {
                                                         if ($r['value'] >= 0) { $statusLabel = '🟢 ปกติ (บวก)'; $statusBadge = 'badge-success'; }
                                                         else { $statusLabel = '🔴 วิกฤต (ติดลบ)'; $statusBadge = 'badge-danger'; }
+                                                    } elseif ($code === '260') {
+                                                        if ($r['value'] <= 90) { $statusLabel = '🟢 ปกติ'; $statusBadge = 'badge-success'; }
+                                                        elseif ($r['value'] <= 180) { $statusLabel = '🟡 เฝ้าระวัง'; $statusBadge = 'badge-warning'; }
+                                                        else { $statusLabel = '🔴 วิกฤต'; $statusBadge = 'badge-danger'; }
+                                                    } elseif ($code === '261' || $code === '262' || $code === '263') {
+                                                        if ($r['value'] <= 60) { $statusLabel = '🟢 ปกติ'; $statusBadge = 'badge-success'; }
+                                                        else { $statusLabel = '🔴 วิกฤต'; $statusBadge = 'badge-danger'; }
+                                                    } elseif ($code === '264') {
+                                                        if ($r['value'] <= 60) { $statusLabel = '🟢 ปกติ'; $statusBadge = 'badge-success'; }
+                                                        else { $statusLabel = '🔴 วิกฤต'; $statusBadge = 'badge-danger'; }
                                                     } elseif ($code === '307' || $code === '320' || $code === '321') {
                                                         if ($r['value'] >= 0) { $statusLabel = '🟢 มีกำไร'; $statusBadge = 'badge-success'; }
                                                         else { $statusLabel = '🔴 วิกฤต (ขาดทุน)'; $statusBadge = 'badge-danger'; }
+                                                    } elseif ($code === '333' || $code === '334') {
+                                                        if ($r['value'] >= 0) { $statusLabel = '🟢 ปกติ (บวก)'; $statusBadge = 'badge-success'; }
+                                                        else { $statusLabel = '🔴 วิกฤต (ติดลบ)'; $statusBadge = 'badge-danger'; }
                                                     }
                                                 @endphp
                                                 <tr>

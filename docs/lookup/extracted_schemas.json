@@ -20770,6 +20770,12 @@
         "nullable": false,
         "default": "N",
         "extra": ""
+      },
+      "allow_hosfin": {
+        "type": "varchar(1)",
+        "nullable": false,
+        "default": "N",
+        "extra": ""
       }
     },
     "indexes": {

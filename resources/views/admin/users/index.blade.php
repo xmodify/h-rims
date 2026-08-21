@@ -96,6 +96,7 @@
                                                     @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
+                                                    @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -122,6 +123,7 @@
                                                     data-cid="{{ $user->cid }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
+                                                    data-allow_hosfin="{{ $user->allow_hosfin }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -207,6 +209,7 @@
                                                     @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
+                                                    @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -233,6 +236,7 @@
                                                     data-cid="{{ $user->cid }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
+                                                    data-allow_hosfin="{{ $user->allow_hosfin }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -381,6 +385,12 @@
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="allow_nhso_endpoint" id="add_allow_nhso_endpoint" value="Y">
                                 <label class="form-check-label small text-primary fw-bold" for="add_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_hosfin" id="add_allow_hosfin" value="Y">
+                                <label class="form-check-label small text-success fw-bold" for="add_allow_hosfin">HosFin</label>
                             </div>
                         </div>
                         @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
@@ -532,6 +542,12 @@
                                 <label class="form-check-label small text-primary fw-bold" for="edit_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
                             </div>
                         </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_hosfin" id="edit_allow_hosfin" value="Y">
+                                <label class="form-check-label small text-success fw-bold" for="edit_allow_hosfin">HosFin</label>
+                            </div>
+                        </div>
                         @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
                             <div class="col">
                                 <div class="form-check form-switch">
@@ -633,6 +649,7 @@
             $('#edit_allow_receipt').prop('checked', data.allow_receipt === 'Y');
             $('#edit_allow_nhso_endpoint').prop('checked', data.allow_nhso_endpoint === 'Y');
             $('#edit_allow_aopod_death').prop('checked', data.allow_aopod_death === 'Y');
+            $('#edit_allow_hosfin').prop('checked', data.allow_hosfin === 'Y');
             $('#editCid').val(data.cid);
 
             updateActiveLabel(data.active === 'Y');

@@ -17,12 +17,17 @@ class MophAlert2FAMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        // 1. If user is not logged in, let standard auth middleware handle it
+        // 1. Exclude AJAX, JSON, and static asset requests to prevent duplicate redirects on missing assets
+        if ($request->ajax() || $request->wantsJson() || preg_match('/\.(ico|png|jpg|jpeg|gif|css|js|svg|map|woff|woff2|ttf|eot)$/i', $request->path())) {
+            return $next($request);
+        }
+
+        // 2. If user is not logged in, let standard auth middleware handle it
         if (!auth()->check()) {
             return $next($request);
         }
 
-        // 2. Exclude authentication and 2FA verification pages from redirection
+        // 3. Exclude authentication and 2FA verification pages from redirection
         if ($request->routeIs('auth.2fa.*') || $request->is('login/verify-2fa*') || $request->is('logout') || $request->is('login')) {
             return $next($request);
         }

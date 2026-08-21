@@ -29,6 +29,12 @@ class MophAlert2FAController extends Controller
             return redirect()->route('home');
         }
 
+        // Concurrency guard: if an OTP was generated less than 5 seconds ago, do not generate again
+        $lastSent = session('moph_alert_last_sent');
+        if ($lastSent && (time() - $lastSent) < 5) {
+            return view('auth.verify-2fa');
+        }
+
         // If no OTP has been generated, generate and send one first
         if (!session()->has('moph_alert_otp') || time() > session('moph_alert_otp_expires')) {
             $this->generateAndSendOTP();

@@ -150,7 +150,10 @@ class MophAlert2FAController extends Controller
                     'message_type' => "HPT"
                 ]);
 
-            if ($response->status() === 401) {
+            $data = $response->json();
+            $msgCode = $data['message_code'] ?? ($data['code'] ?? null);
+
+            if ($msgCode == 401 || $response->status() === 401) {
                 Log::warning("Moph Alert returned 401 (Keys wrong). Retrying using central server licensing keys directly.");
                 
                 $info = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
@@ -177,14 +180,17 @@ class MophAlert2FAController extends Controller
                             'message_text' => "รหัส OTP ของท่านคือ $otp",
                             'message_type' => "HPT"
                         ]);
+                    
+                    $data = $response->json();
+                    $msgCode = $data['message_code'] ?? ($data['code'] ?? null);
                 }
             }
 
-            if ($response->successful()) {
+            if ($response->successful() && ($msgCode == 200 || is_null($msgCode))) {
                 Log::info("Moph Alert OTP sent successfully for CID: $cid");
                 return true;
             } else {
-                Log::error("Failed to send Moph Alert OTP. Status: " . $response->status() . " Body: " . $response->body());
+                Log::error("Failed to send Moph Alert OTP. HTTP Status: " . $response->status() . " Body: " . $response->body());
                 return false;
             }
         } catch (\Exception $e) {

@@ -25,7 +25,7 @@
             background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: start;
             font-family: 'Nunito', 'Inter', sans-serif;
         }
         .login-card {
@@ -126,7 +126,7 @@
 </head>
 <body>
 
-<div class="container py-5 my-auto">
+<div class="container" style="padding-top: 8vh; padding-bottom: 5vh;">
     <div class="row justify-content-center align-items-center">
         <div class="col-lg-10 col-xl-9">
             <div class="card login-card">
@@ -235,6 +235,19 @@ Swal.fire({
     icon: 'error',
     title: 'เกิดข้อผิดพลาด',
     text: '{{ session('error') }}',
+    confirmButtonText: 'ตกลง',
+    confirmButtonColor: '#d33',
+    borderRadius: '15px'
+});
+</script>
+@endif
+
+@if ($errors->any())
+<script>
+Swal.fire({
+    icon: 'error',
+    title: 'เกิดข้อผิดพลาด',
+    text: '{{ $errors->first() }}',
     confirmButtonText: 'ตกลง',
     confirmButtonColor: '#d33',
     borderRadius: '15px'

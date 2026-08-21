@@ -38,6 +38,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\CheckLicense::class,
+            \App\Http\Middleware\MophAlert2FAMiddleware::class,
         ],
 
         'api' => [

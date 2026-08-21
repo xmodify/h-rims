@@ -93,6 +93,11 @@ Route::get('/', function () {
 
 Auth::routes();
 
+// Moph Alert 2FA Routes
+Route::get('login/verify-2fa', [App\Http\Controllers\Auth\MophAlert2FAController::class, 'showVerifyForm'])->name('auth.2fa.index');
+Route::post('login/verify-2fa/verify', [App\Http\Controllers\Auth\MophAlert2FAController::class, 'verifyOTP'])->name('auth.2fa.verify');
+Route::post('login/verify-2fa/resend', [App\Http\Controllers\Auth\MophAlert2FAController::class, 'resendOTP'])->name('auth.2fa.resend');
+
 //home-----------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], '/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::match(['get', 'post'], 'opd_ofc', [HomeController::class, 'opd_ofc']);

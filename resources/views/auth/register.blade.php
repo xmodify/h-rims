@@ -25,7 +25,7 @@
             background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: start;
             font-family: 'Nunito', 'Inter', sans-serif;
         }
         .register-card {
@@ -108,7 +108,7 @@
 </head>
 <body>
 
-<div class="container py-5 my-auto">
+<div class="container" style="padding-top: 8vh; padding-bottom: 5vh;">
     <div class="row justify-content-center align-items-center">
         <div class="col-lg-10 col-xl-9">
             <div class="card register-card">

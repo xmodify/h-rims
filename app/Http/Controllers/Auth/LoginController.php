@@ -79,6 +79,12 @@ class LoginController extends Controller
                 
                 if ($adminUser) {
                     auth()->login($adminUser);
+                    
+                    $mophAlertActive = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'moph_alert_active')->value('value');
+                    if ($mophAlertActive === 'Y') {
+                        session(['moph_alert_2fa_verified' => false]);
+                    }
+                    
                     return redirect()->route('home');
                 }
             }
@@ -86,9 +92,16 @@ class LoginController extends Controller
 
         if(auth()->attempt(array('email' => $input['email'], 'password' => $input['password'],'active'=>'Y'))) 
             {     
+            $mophAlertActive = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'moph_alert_active')->value('value');
+            if ($mophAlertActive === 'Y') {
+                session(['moph_alert_2fa_verified' => false]);
+            }
+            
             return redirect()->route('home');
         }else{
-            return redirect()->route('login');
+            return redirect()->back()
+                ->withErrors(['email' => 'อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชีผู้ใช้ยังไม่เปิดใช้งาน'])
+                ->withInput($request->only('email'));
         }  
     }
 }

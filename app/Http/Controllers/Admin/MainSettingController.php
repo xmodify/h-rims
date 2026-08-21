@@ -76,6 +76,11 @@ class MainSettingController extends Controller
                 'provider_id_client_id',
                 'provider_id_secret_key'
             ],
+            'Moph Alert 2FA' => [
+                'moph_alert_active',
+                'moph_alert_client_id',
+                'moph_alert_client_secret'
+            ],
             'License Setting' => ['rims_license_key'],
         ];
 
@@ -720,6 +725,9 @@ class MainSettingController extends Controller
                         ['name' => 'provider_id_client_id', 'name_th' => 'Provider ID Client ID', 'value' => ''],
                         ['name' => 'provider_id_secret_key', 'name_th' => 'Provider ID Secret Key', 'value' => ''],
                         ['name' => 'provider_id_active', 'name_th' => 'เปิดใช้งานล็อกอิน Provider ID (Y/N)', 'value' => 'N'],
+                        ['name' => 'moph_alert_active', 'name_th' => 'เปิดใช้งานยืนยันตัวตน 2FA Moph Alert (Y/N)', 'value' => 'N'],
+                        ['name' => 'moph_alert_client_id', 'name_th' => 'Moph Alert Client ID', 'value' => ''],
+                        ['name' => 'moph_alert_client_secret', 'name_th' => 'Moph Alert Client Secret', 'value' => ''],
                     ];
 
                     // Clean up obsolete settings dynamically

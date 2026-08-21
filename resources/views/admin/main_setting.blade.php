@@ -122,7 +122,8 @@
                                                 'fdh_pass', 'fdh_secretKey', 'telegram_token', 'aopod_token', 
                                                 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary',
                                                 'health_id_client_id', 'health_id_client_secret',
-                                                'provider_id_client_id', 'provider_id_secret_key'
+                                                'provider_id_client_id', 'provider_id_secret_key',
+                                                'moph_alert_client_id', 'moph_alert_client_secret'
                                             ]);
                                         @endphp
                                         <tr>
@@ -131,7 +132,7 @@
                                                 <small class="text-muted">{{ $row->name }}</small>
                                             </td>
                                             <td class="border-0">
-                                                @if($row->name === 'provider_id_active')
+                                                @if(in_array($row->name, ['provider_id_active', 'moph_alert_active']))
                                                     <span class="badge bg-{{ $row->value === 'Y' ? 'success' : 'secondary' }} rounded-pill text-white fw-bold px-3 py-2">
                                                         {{ $row->value === 'Y' ? 'เปิดใช้งาน (ON)' : 'ปิดใช้งาน (OFF)' }}
                                                     </span>
@@ -617,7 +618,7 @@
             document.getElementById('editLabelNameTh').innerHTML = `<i class="bi bi-tag-fill me-2"></i> ${nameTh} (<code>${name}</code>)`;
             
             const valueContainer = document.getElementById('editValueContainer');
-            if (name === 'provider_id_active') {
+            if (name === 'provider_id_active' || name === 'moph_alert_active') {
                 valueContainer.innerHTML = `
                     <select class="form-select shadow-sm fw-bold text-success" id="editValue" name="value" required style="height: 58px; padding-top: 1.625rem;">
                         <option value="Y" ${value === 'Y' ? 'selected' : ''}>Y - เปิดใช้งาน (ON)</option>

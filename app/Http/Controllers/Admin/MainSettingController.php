@@ -1347,7 +1347,7 @@ class MainSettingController extends Controller
                 $sendUrl = "https://api.telegram.org/bot$token/sendMessage";
                 $sendRes = \Illuminate\Support\Facades\Http::timeout(10)->post($sendUrl, [
                     'chat_id' => $chat_id,
-                    'text' => '🔔 ทดสอบการเชื่อมต่อ Telegram จากระบบ H-RiMS สำเร็จ ณ วันที่ ' . now()->toDateTimeString()
+                    'text' => '🔔 ทดสอบการเชื่อมต่อ Telegram จากระบบ RiMS สำเร็จ ณ วันที่ ' . now()->toDateTimeString()
                 ]);
                 if ($sendRes->successful()) {
                     $success_count++;

@@ -136,7 +136,7 @@ class ProviderIdAuthController extends Controller
                 ->first();
 
             if (!$user) {
-                return redirect()->route('login')->with('error', 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ H-RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
+                return redirect()->route('login')->with('error', 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
             }
 
             // 7. Log in the user into Laravel session

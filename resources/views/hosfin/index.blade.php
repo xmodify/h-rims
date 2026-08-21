@@ -141,11 +141,27 @@
                                style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;">
                                 <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.1rem;"></i> อัตราส่วนการเงิน
                             </a>
-                        </div>
                     @endif
                 </div>
             </div>
         </div>
+
+        @if($hasData)
+            <!-- Dynamic Trend Chart Section -->
+            <div class="col-12 px-3 mb-3">
+                <div class="card card-trend border-0 shadow-sm rounded-3 bg-white">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-primary me-1"></i> กราฟเปรียบเทียบแนวโน้มรายรับ - รายจ่ายประจำแต่ละเดือน</h6>
+                                <small class="text-muted">เปรียบเทียบยอดคงเหลือสะสมรายเดือน หมวดรายได้ (Revenue) และหมวดค่าใช้จ่าย (Expenses) ปีงบประมาณ {{ $budgetYear }}</small>
+                            </div>
+                        </div>
+                        <div id="categoryTrendChart" style="min-height: 280px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         @if(!$hasData)
             <!-- Placeholder when no data imported -->
@@ -341,6 +357,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
 <script>
     // Injected variables
     const chartLabels = @json($chartLabels);
@@ -348,6 +365,125 @@
     const ratioDefs = @json($ratioDefs);
     const statusMap = @json($statusMap);
     const latestMetrics = @json($latestMetrics);
+
+    // Revenue/Expense trend chart setup
+    @if(isset($monthlyRevenueExpenseTrend) && count($monthlyRevenueExpenseTrend) > 0)
+    document.addEventListener("DOMContentLoaded", () => {
+        const trendMap = @json($monthlyRevenueExpenseTrend);
+        const trendLabels = Object.keys(trendMap);
+        const revenuesData = trendLabels.map(label => trendMap[label].revenue || 0.0);
+        const expensesData = trendLabels.map(label => trendMap[label].expense || 0.0);
+
+        const trendChartOptions = {
+            series: [
+                {
+                    name: 'รายได้',
+                    data: revenuesData
+                },
+                {
+                    name: 'ค่าใช้จ่าย',
+                    data: expensesData
+                }
+            ],
+            chart: {
+                height: 280,
+                type: 'area',
+                toolbar: { show: false }
+            },
+            colors: ['#10b981', '#ef4444'], // Green for Revenue, Red for Expenses
+            stroke: {
+                curve: 'smooth',
+                width: 3
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.3,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            markers: {
+                size: 4,
+                hover: {
+                    size: 6
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    if (val === 0) return '';
+                    return val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                },
+                style: {
+                    fontSize: '9px',
+                    fontWeight: 'bold'
+                },
+                background: {
+                    enabled: true,
+                    foreColor: '#fff',
+                    padding: 4,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: '#cbd5e1',
+                    opacity: 0.95
+                }
+            },
+            xaxis: {
+                categories: trendLabels,
+                tooltip: {
+                    enabled: true
+                },
+                crosshairs: {
+                    show: true,
+                    width: 1,
+                    position: 'back',
+                    stroke: {
+                        color: '#cbd5e1',
+                        width: 1,
+                        dashArray: 3
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function (val) {
+                        if (Math.abs(val) >= 1000000) {
+                            return (val / 1000000).toFixed(1) + 'M';
+                        }
+                        if (Math.abs(val) >= 1000) {
+                            return (val / 1000).toFixed(0) + 'K';
+                        }
+                        return val.toLocaleString();
+                    }
+                }
+            },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: function (val) {
+                        return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " บาท";
+                    }
+                }
+            },
+            legend: {
+                show: true,
+                position: 'top',
+                horizontalAlign: 'center',
+                fontFamily: 'inherit',
+                fontWeight: 'bold',
+                labels: {
+                    colors: '#334155'
+                }
+            }
+        };
+
+        const trendChart = new ApexCharts(document.querySelector("#categoryTrendChart"), trendChartOptions);
+        trendChart.render();
+    });
+    @endif
     
     // Executive Guides Lookup
     const analysisGuides = {

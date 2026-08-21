@@ -523,6 +523,40 @@ class HosFinController extends Controller
             ];
         }
 
+        // Calculate Monthly Revenue vs Expense trend
+        $monthlyRevenueExpenseTrend = [];
+        foreach ($periods as $p) {
+            if (in_array($p['period'], $importedPeriods)) {
+                $monthlyRevenueExpenseTrend[$p['label']] = [
+                    'revenue' => 0.0,
+                    'expense' => 0.0
+                ];
+            }
+        }
+
+        foreach ($trial_balance as $tb) {
+            if (!in_array($tb->acc_period, $importedPeriods)) {
+                continue;
+            }
+            $firstDigit = substr($tb->account_code, 0, 1);
+            if ($firstDigit === '4' || $firstDigit === '5') {
+                $pLabel = null;
+                foreach ($periods as $p) {
+                    if ($p['period'] === $tb->acc_period) {
+                        $pLabel = $p['label'];
+                        break;
+                    }
+                }
+                if ($pLabel && isset($monthlyRevenueExpenseTrend[$pLabel])) {
+                    if ($firstDigit === '4') {
+                        $monthlyRevenueExpenseTrend[$pLabel]['revenue'] += (floatval($tb->credit_month) - floatval($tb->debit_month));
+                    } else {
+                        $monthlyRevenueExpenseTrend[$pLabel]['expense'] += (floatval($tb->debit_month) - floatval($tb->credit_month));
+                    }
+                }
+            }
+        }
+
         $selectedDefs = [];
         foreach ($targetCodes as $code) {
             if (isset($ratioDefs[$code])) {
@@ -543,7 +577,8 @@ class HosFinController extends Controller
             'riskScoreBgClass' => $riskScoreBgClass,
             'riskScoreTextClass' => $riskScoreTextClass,
             'riskScoreNumBgClass' => $riskScoreNumBgClass,
-            'riskScoreLevelLabel' => $riskScoreLevelLabel
+            'riskScoreLevelLabel' => $riskScoreLevelLabel,
+            'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend
         ]);
     }
 

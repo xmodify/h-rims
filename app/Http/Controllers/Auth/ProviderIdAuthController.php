@@ -31,7 +31,7 @@ class ProviderIdAuthController extends Controller
         $clientId = trim($clientId, '"\'');
 
         if (!$isActive || empty($clientId)) {
-            return redirect('/login')->with('error', 'ระบบเข้าสู่ระบบด้วย Provider ID ยังไม่เปิดใช้งานหรือตั้งค่าไม่สมบูรณ์');
+            return redirect()->route('login')->with('error', 'ระบบเข้าสู่ระบบด้วย Provider ID ยังไม่เปิดใช้งานหรือตั้งค่าไม่สมบูรณ์');
         }
 
         // Generate redirect URI dynamically or read from settings
@@ -62,12 +62,12 @@ class ProviderIdAuthController extends Controller
         // 1. Verify CSRF State
         $state = $request->session()->pull('oauth_state');
         if (empty($state) || $state !== $request->state) {
-            return redirect('/login')->with('error', 'การยืนยันตัวตนหมดอายุ หรือข้อมูลตรวจสอบความปลอดภัยไม่ถูกต้อง (Invalid State)');
+            return redirect()->route('login')->with('error', 'การยืนยันตัวตนหมดอายุ หรือข้อมูลตรวจสอบความปลอดภัยไม่ถูกต้อง (Invalid State)');
         }
 
         $code = $request->code;
         if (!$code) {
-            return redirect('/login')->with('error', 'ไม่ได้รับข้อมูลรหัสยืนยันจากทางกระทรวงฯ');
+            return redirect()->route('login')->with('error', 'ไม่ได้รับข้อมูลรหัสยืนยันจากทางกระทรวงฯ');
         }
 
         try {
@@ -81,7 +81,7 @@ class ProviderIdAuthController extends Controller
             $redirectUri = $redirectUriSetting ? trim($redirectUriSetting, '"\'') : route('auth.health-id.callback');
 
             if (empty($healthIdClientId) || empty($healthIdClientSecret) || empty($providerIdClientId) || empty($providerIdSecretKey)) {
-                return redirect('/login')->with('error', 'ระบบตั้งค่าการเชื่อมต่อในส่วนของผู้ดูแลระบบไม่สมบูรณ์');
+                return redirect()->route('login')->with('error', 'ระบบตั้งค่าการเชื่อมต่อในส่วนของผู้ดูแลระบบไม่สมบูรณ์');
             }
 
             // 3. Trade authorization code for Health ID access token
@@ -95,7 +95,7 @@ class ProviderIdAuthController extends Controller
 
             if ($healthIdResponse->failed()) {
                 Log::error('Health ID Exchange Token Failed: ' . $healthIdResponse->body());
-                return redirect('/login')->with('error', 'ไม่สามารถขอสิทธิ์เข้าใช้งาน Health ID ได้: ' . ($healthIdResponse->json('message') ?? 'Unknown error'));
+                return redirect()->route('login')->with('error', 'ไม่สามารถขอสิทธิ์เข้าใช้งาน Health ID ได้: ' . ($healthIdResponse->json('message') ?? 'Unknown error'));
             }
 
             $healthIdToken = $healthIdResponse->json('data.access_token');
@@ -109,12 +109,12 @@ class ProviderIdAuthController extends Controller
             ]);
 
             if ($providerResponse->status() === 400) {
-                return redirect('/login')->with('error', 'บัญชีนี้ยังไม่ได้รับสิทธิ์หรือไม่มีข้อมูลเลขผู้ให้บริการ (Provider ID) ในระบบกระทรวงสาธารณสุข');
+                return redirect()->route('login')->with('error', 'บัญชีนี้ยังไม่ได้รับสิทธิ์หรือไม่มีข้อมูลเลขผู้ให้บริการ (Provider ID) ในระบบกระทรวงสาธารณสุข');
             }
 
             if ($providerResponse->failed()) {
                 Log::error('Provider ID Exchange Token Failed: ' . $providerResponse->body());
-                return redirect('/login')->with('error', 'ไม่สามารถตรวจสอบสิทธิ์ผู้ให้บริการกับทางกระทรวงฯ ได้');
+                return redirect()->route('login')->with('error', 'ไม่สามารถตรวจสอบสิทธิ์ผู้ให้บริการกับทางกระทรวงฯ ได้');
             }
 
             $providerToken = $providerResponse->json('data.access_token');
@@ -130,14 +130,14 @@ class ProviderIdAuthController extends Controller
 
             if ($profileResponse->failed()) {
                 Log::error('Get Provider Profile Failed: ' . $profileResponse->body());
-                return redirect('/login')->with('error', 'ไม่สามารถเชื่อมต่อเพื่อดึงประวัติผู้ให้บริการได้');
+                return redirect()->route('login')->with('error', 'ไม่สามารถเชื่อมต่อเพื่อดึงประวัติผู้ให้บริการได้');
             }
 
             $profileData = $profileResponse->json('data');
             $hashCid = $profileData['hash_cid'] ?? null;
 
             if (empty($hashCid)) {
-                return redirect('/login')->with('error', 'ข้อมูลเลขบัตรประชาชนที่เข้ารหัสไม่ถูกต้อง');
+                return redirect()->route('login')->with('error', 'ข้อมูลเลขบัตรประชาชนที่เข้ารหัสไม่ถูกต้อง');
             }
 
             // 6. Match user via SHA2(cid, 256) in H-RiMS users database
@@ -147,7 +147,7 @@ class ProviderIdAuthController extends Controller
                 ->first();
 
             if (!$user) {
-                return redirect('/login')->with('error', 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ H-RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
+                return redirect()->route('login')->with('error', 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ H-RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
             }
 
             // 7. Log in the user into Laravel session
@@ -162,11 +162,11 @@ class ProviderIdAuthController extends Controller
                 }
             }
 
-            return redirect()->intended('/home')->with('provider_login_success', 'ยินดีต้อนรับคุณ ' . $user->name);
+            return redirect()->intended(route('home'))->with('provider_login_success', 'ยินดีต้อนรับคุณ ' . $user->name);
 
         } catch (\Exception $e) {
             Log::error('Provider ID Authentication Exception: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return redirect('/login')->with('error', 'ระบบขัดข้องชั่วคราวในการยืนยันตัวตนกับทางกระทรวงฯ');
+            return redirect()->route('login')->with('error', 'ระบบขัดข้องชั่วคราวในการยืนยันตัวตนกับทางกระทรวงฯ');
         }
     }
 }

@@ -628,7 +628,7 @@
                 `;
             } else {
                 valueContainer.innerHTML = `
-                    <input class="form-control shadow-sm" id="editValue" name="value" type="text" value="${value}" placeholder="Value" required>
+                    <input class="form-control shadow-sm" id="editValue" name="value" type="text" value="${value}" placeholder="Value">
                     <label for="editValue" class="fw-bold text-muted">ค่าที่ต้องการตั้ง (Value)</label>
                 `;
             }

@@ -29,6 +29,21 @@ class MophAlert2FAController extends Controller
             return redirect()->route('home');
         }
 
+        $user = auth()->user();
+        $cid = $user->cid ?? '';
+        $cidError = null;
+
+        if (empty($cid)) {
+            $cidError = 'บัญชีผู้ใช้งานของคุณไม่มีข้อมูลเลขบัตรประชาชน (CID) ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อทำการแก้ไขข้อมูล';
+        } elseif (strlen($cid) !== 13 || !ctype_digit($cid)) {
+            $cidError = 'เลขบัตรประชาชน (CID) ในระบบของคุณไม่ถูกต้อง (ต้องเป็นตัวเลข 13 หลัก) กรุณาติดต่อผู้ดูแลระบบเพื่อทำการแก้ไขข้อมูล';
+        }
+
+        // If CID is invalid/missing, do not generate OTP
+        if ($cidError) {
+            return view('auth.verify-2fa', compact('cidError'));
+        }
+
         // Concurrency guard: if an OTP was generated less than 5 seconds ago, do not generate again
         $lastSent = session('moph_alert_last_sent');
         if ($lastSent && (time() - $lastSent) < 5) {

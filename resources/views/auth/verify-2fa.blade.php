@@ -45,6 +45,11 @@
             border-color: #198754;
             box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
         }
+        .otp-input-field:disabled {
+            background-color: #e9ecef;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .otp-input-field::placeholder {
             color: #adb5bd;
             opacity: 0.6;
@@ -57,6 +62,12 @@
         .btn-verify:hover {
             background-color: #157347;
             border-color: #146c43;
+        }
+        .btn-verify:disabled {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            opacity: 0.65;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -77,6 +88,14 @@
             กรุณากรอกรหัส OTP ที่ได้รับทาง <strong>หมอพร้อม LineOA</strong>
         </p>
 
+        <!-- CID Error Alert Banner -->
+        @isset($cidError)
+            <div class="alert alert-danger text-start small mb-4 shadow-sm" role="alert" style="border-radius: 10px;">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5 align-middle"></i>
+                <strong>ผิดพลาด:</strong> {{ $cidError }}
+            </div>
+        @endisset
+
         <!-- Form for Verification -->
         <form action="{{ route('auth.2fa.verify') }}" method="POST" class="mb-3">
             @csrf
@@ -92,7 +111,7 @@
                        pattern="[a-zA-Z0-9]{6}" 
                        required 
                        autocomplete="one-time-code"
-                       autofocus>
+                       @isset($cidError) disabled @else autofocus @endisset>
                 @error('otp_code')
                     <div class="text-danger text-start mt-1 small" style="font-size: 0.85rem; font-weight: bold; padding-left: 5px;">
                         {{ $message }}
@@ -100,7 +119,7 @@
                 @enderror
             </div>
 
-            <button type="submit" class="btn btn-verify btn-lg w-100 text-white fw-bold rounded-3 shadow-sm py-2.5 d-flex align-items-center justify-content-center gap-2">
+            <button type="submit" class="btn btn-verify btn-lg w-100 text-white fw-bold rounded-3 shadow-sm py-2.5 d-flex align-items-center justify-content-center gap-2" @isset($cidError) disabled @endisset>
                 <i class="bi bi-lock-fill"></i> ยืนยันรหัส OTP
             </button>
         </form>
@@ -113,26 +132,43 @@
             </button>
         </form>
 
-        <!-- Timer / Resend Links -->
-        <div class="text-muted small">
-            <div class="mt-2" id="resend-container">
-                <form action="{{ route('auth.2fa.resend') }}" method="POST" id="resend-form" class="d-none">
-                    @csrf
-                    ไม่ได้รับรหัสใช่ไหม? 
-                    <button type="submit" class="btn btn-link btn-sm p-0 text-success text-decoration-none fw-bold">
-                        ส่งรหัสใหม่อีกครั้ง
-                    </button>
-                </form>
-                <span id="countdown-text" class="text-muted">
-                    หมดเวลาใน <strong id="timer-seconds">120</strong> วินาที
-                </span>
+        @empty($cidError)
+            <!-- Timer / Resend Links -->
+            <div class="text-muted small">
+                <div class="mt-2" id="resend-container">
+                    <form action="{{ route('auth.2fa.resend') }}" method="POST" id="resend-form" class="d-none">
+                        @csrf
+                        ไม่ได้รับรหัสใช่ไหม? 
+                        <button type="submit" class="btn btn-link btn-sm p-0 text-success text-decoration-none fw-bold">
+                            ส่งรหัสใหม่อีกครั้ง
+                        </button>
+                    </form>
+                    <span id="countdown-text" class="text-muted">
+                        หมดเวลาใน <strong id="timer-seconds">120</strong> วินาที
+                    </span>
+                </div>
             </div>
-        </div>
+        @endempty
     </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const otpInput = document.getElementById('otp_code');
+
+        // Auto submit form once user enters exactly 6 digits
+        if (otpInput) {
+            otpInput.addEventListener('input', function() {
+                // Remove non-alphanumeric chars
+                this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
+                
+                if (this.value.length === 6) {
+                    this.closest('form').submit();
+                }
+            });
+        }
+
+        @empty($cidError)
         const timerSeconds = document.getElementById('timer-seconds');
         const countdownText = document.getElementById('countdown-text');
         const resendForm = document.getElementById('resend-form');
@@ -147,34 +183,24 @@
         
         let timeLeft = {{ $remaining }};
 
-        if (timeLeft <= 0) {
-            countdownText.classList.add('d-none');
-            resendForm.classList.remove('d-none');
-        } else {
-            const timerInterval = setInterval(function () {
-                timeLeft--;
-                timerSeconds.innerText = Math.ceil(timeLeft);
+        if (timerSeconds && countdownText && resendForm) {
+            if (timeLeft <= 0) {
+                countdownText.classList.add('d-none');
+                resendForm.classList.remove('d-none');
+            } else {
+                const timerInterval = setInterval(function () {
+                    timeLeft--;
+                    timerSeconds.innerText = Math.ceil(timeLeft);
 
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    countdownText.classList.add('d-none');
-                    resendForm.classList.remove('d-none');
-                }
-            }, 1000);
-        }
-
-        // Auto submit form once user enters exactly 6 digits
-        const otpInput = document.getElementById('otp_code');
-        otpInput.addEventListener('input', function() {
-            // Remove non-alphanumeric chars
-            this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
-            
-            if (this.value.length === 6) {
-                this.closest('form').submit();
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        countdownText.classList.add('d-none');
+                        resendForm.classList.remove('d-none');
+                    }
+                }, 1000);
             }
-        });
-
-
+        }
+        @endempty
 
         // Trigger SweetAlert for resend success
         @if (session('success_resend'))
@@ -185,7 +211,7 @@
                 confirmButtonText: 'ตกลง',
                 confirmButtonColor: '#198754'
             }).then(() => {
-                otpInput.focus();
+                if (otpInput) otpInput.focus();
             });
         @endif
     });

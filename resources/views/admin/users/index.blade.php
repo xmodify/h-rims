@@ -49,6 +49,7 @@
                                 <tr>
                                     <th class="ps-4">ชื่อ - นามสกุล</th>
                                     <th>อีเมล (Email)</th>
+                                    <th class="text-center">เลขบัตรประชาชน (CID)</th>
                                     <th class="text-center">สถานะใช้งาน</th>
                                     <th class="text-center">ประเภทผู้ใช้</th>
                                     <th class="text-center">สิทธิ์การเข้าถึง</th>
@@ -67,6 +68,17 @@
                                             </div>
                                         </td>
                                         <td>{{ $user->email }}</td>
+                                        <td class="text-center">
+                                            @if(!empty($user->cid))
+                                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-shield-check-fill me-1"></i> {{ $user->cid }}
+                                                </span>
+                                            @else
+                                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-bold" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> ไม่มี CID
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">
                                             <span class="badge rounded-pill bg-success-subtle text-success px-3">
                                                 <i class="bi bi-check-circle-fill me-1"></i> Active
@@ -162,6 +174,7 @@
                                 <tr>
                                     <th class="ps-4">ชื่อ - นามสกุล</th>
                                     <th>อีเมล (Email)</th>
+                                    <th class="text-center">เลขบัตรประชาชน (CID)</th>
                                     <th class="text-center">สถานะใช้งาน</th>
                                     <th class="text-center">ประเภทผู้ใช้</th>
                                     <th class="text-center">สิทธิ์การเข้าถึง</th>
@@ -180,6 +193,17 @@
                                             </div>
                                         </td>
                                         <td>{{ $user->email }}</td>
+                                        <td class="text-center">
+                                            @if(!empty($user->cid))
+                                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-shield-check-fill me-1"></i> {{ $user->cid }}
+                                                </span>
+                                            @else
+                                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-bold" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> ไม่มี CID
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">
                                             <span class="badge rounded-pill bg-danger-subtle text-danger px-3">
                                                 <i class="bi bi-x-circle-fill me-1"></i> Inactive

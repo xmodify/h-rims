@@ -57,6 +57,17 @@ class RegisterController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],            
+            'cid' => ['nullable', 'string', 'digits:13', 'unique:users'],
+        ], [
+            'name.required' => 'โปรดกรอกชื่อ - นามสกุลจริง',
+            'email.required' => 'โปรดกรอกที่อยู่อีเมล',
+            'email.email' => 'รูปแบบอีเมลไม่ถูกต้อง',
+            'email.unique' => 'อีเมลนี้ถูกใช้งานในระบบแล้ว',
+            'password.required' => 'โปรดกรอกรหัสผ่าน',
+            'password.min' => 'รหัสผ่านต้องมีความยาวอย่างน้อย :min ตัวอักษร',
+            'password.confirmed' => 'การยืนยันรหัสผ่านไม่ตรงกัน',
+            'cid.digits' => 'เลขบัตรประชาชนต้องมีจำนวน 13 หลัก',
+            'cid.unique' => 'เลขบัตรประชาชนนี้ถูกใช้งานในระบบแล้ว',
         ]);
     }
 
@@ -74,6 +85,7 @@ class RegisterController extends Controller
             'active' => $data['active'] ?? 'N',
             'status' => $data['status'] ?? 'user',
             'password' => Hash::make($data['password']),
+            'cid' => $data['cid'] ?? null,
         ]);               
     }
 

@@ -69,6 +69,13 @@ class MainSettingController extends Controller
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Integration Tokens' => $integrationTokens,
             'AOPOD Setting' => ['aopod_token', 'aopod_url_api_death'],
+            'Provider ID (Health ID)' => [
+                'provider_id_active',
+                'health_id_client_id',
+                'health_id_client_secret',
+                'provider_id_client_id',
+                'provider_id_secret_key'
+            ],
             'License Setting' => ['rims_license_key'],
         ];
 
@@ -708,6 +715,11 @@ class MainSettingController extends Controller
                         ['name' => 'moph_notify_secret', 'name_th' => 'Moph Notify SecretKEY', 'value' => ''],
                         ['name' => 'moph_notify_client_id', 'name_th' => 'Moph Notify ClientID', 'value' => ''],
                         ['name' => 'rims_license_key', 'name_th' => 'รหัสคีย์ลิขสิทธิ์ (License Key)', 'value' => ''],
+                        ['name' => 'health_id_client_id', 'name_th' => 'Health ID Client ID', 'value' => ''],
+                        ['name' => 'health_id_client_secret', 'name_th' => 'Health ID Client Secret', 'value' => ''],
+                        ['name' => 'provider_id_client_id', 'name_th' => 'Provider ID Client ID', 'value' => ''],
+                        ['name' => 'provider_id_secret_key', 'name_th' => 'Provider ID Secret Key', 'value' => ''],
+                        ['name' => 'provider_id_active', 'name_th' => 'เปิดใช้งานล็อกอิน Provider ID (Y/N)', 'value' => 'N'],
                     ];
 
                     // Clean up obsolete settings dynamically

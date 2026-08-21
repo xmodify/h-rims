@@ -118,7 +118,12 @@
                                 <tbody>
                                     @foreach ($settings as $row)
                                         @php 
-                                            $isSensitive = in_array($row->name, ['fdh_pass', 'fdh_secretKey', 'telegram_token', 'aopod_token', 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary']);
+                                            $isSensitive = in_array($row->name, [
+                                                'fdh_pass', 'fdh_secretKey', 'telegram_token', 'aopod_token', 
+                                                'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary',
+                                                'health_id_client_id', 'health_id_client_secret',
+                                                'provider_id_client_id', 'provider_id_secret_key'
+                                            ]);
                                         @endphp
                                         <tr>
                                             <td class="ps-3 border-0">
@@ -126,7 +131,11 @@
                                                 <small class="text-muted">{{ $row->name }}</small>
                                             </td>
                                             <td class="border-0">
-                                                @if($isSensitive)
+                                                @if($row->name === 'provider_id_active')
+                                                    <span class="badge bg-{{ $row->value === 'Y' ? 'success' : 'secondary' }} rounded-pill text-white fw-bold px-3 py-2">
+                                                        {{ $row->value === 'Y' ? 'เปิดใช้งาน (ON)' : 'ปิดใช้งาน (OFF)' }}
+                                                    </span>
+                                                @elseif($isSensitive)
                                                     <div class="input-group input-group-sm" style="max-width: 250px;">
                                                         <input type="password" class="form-control border-0 bg-light fw-bold sensitive-input" value="{{ $row->value }}" readonly>
                                                         <button class="btn btn-outline-secondary border-0 btn-peek" type="button">
@@ -173,7 +182,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-muted mb-3" id="editLabelNameTh"></p>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3" id="editValueContainer">
                         <input class="form-control shadow-sm" id="editValue" name="value" type="text" placeholder="Value" required>
                         <label for="editValue" class="fw-bold text-muted">ค่าที่ต้องการตั้ง (Value)</label>
                     </div>
@@ -606,7 +615,23 @@
             let value = this.dataset.value;    
             
             document.getElementById('editLabelNameTh').innerHTML = `<i class="bi bi-tag-fill me-2"></i> ${nameTh} (<code>${name}</code>)`;
-            document.getElementById('editValue').value = value;
+            
+            const valueContainer = document.getElementById('editValueContainer');
+            if (name === 'provider_id_active') {
+                valueContainer.innerHTML = `
+                    <select class="form-select shadow-sm fw-bold text-success" id="editValue" name="value" required style="height: 58px; padding-top: 1.625rem;">
+                        <option value="Y" ${value === 'Y' ? 'selected' : ''}>Y - เปิดใช้งาน (ON)</option>
+                        <option value="N" ${value === 'N' ? 'selected' : ''}>N - ปิดใช้งาน (OFF)</option>
+                    </select>
+                    <label for="editValue" class="fw-bold text-muted">สถานะการเปิดใช้งาน</label>
+                `;
+            } else {
+                valueContainer.innerHTML = `
+                    <input class="form-control shadow-sm" id="editValue" name="value" type="text" value="${value}" placeholder="Value" required>
+                    <label for="editValue" class="fw-bold text-muted">ค่าที่ต้องการตั้ง (Value)</label>
+                `;
+            }
+            
             document.getElementById('editForm').action = "{{ url('admin/main_setting') }}/" + name;
         });
     });

@@ -905,6 +905,10 @@ Route::get('debtor/adjust_log/1102050102_804', [\App\Http\Controllers\DebtorAdjC
 //Notify
 Route::get('notify_summary', [NotifyController::class, 'notify_summary'])->name('notify_summary');
 
+// Provider ID (Health ID) OAuth Login
+Route::get('auth/health-id/redirect', [\App\Http\Controllers\Auth\ProviderIdAuthController::class, 'redirectToProvider'])->name('auth.health-id.redirect');
+Route::get('auth/health-id/callback', [\App\Http\Controllers\Auth\ProviderIdAuthController::class, 'handleProviderCallback'])->name('auth.health-id.callback');
+
 // Clear-cache
 Route::get('/clear-cache', function () {
     $exitCode = Artisan::call('config:clear');

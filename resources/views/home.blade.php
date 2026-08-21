@@ -227,6 +227,15 @@
 @push('scripts')
 <script>
   // No home scripts needed
+  @if(session('provider_login_success'))
+      Swal.fire({
+          icon: 'success',
+          title: 'เข้าสู่ระบบด้วย Provider ID สำเร็จ',
+          text: '{{ session('provider_login_success') }}',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#198754'
+      });
+  @endif
 </script>
 @endpush
 

@@ -162,7 +162,7 @@ class ProviderIdAuthController extends Controller
                 }
             }
 
-            return redirect()->intended(route('home'))->with('provider_login_success', 'ยินดีต้อนรับคุณ ' . $user->name);
+            return redirect()->route('home')->with('provider_login_success', 'ยินดีต้อนรับคุณ ' . $user->name);
 
         } catch (\Exception $e) {
             Log::error('Provider ID Authentication Exception: ' . $e->getMessage() . "\n" . $e->getTraceAsString());

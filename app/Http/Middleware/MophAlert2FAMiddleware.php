@@ -27,8 +27,8 @@ class MophAlert2FAMiddleware
             return $next($request);
         }
 
-        // 3. Check if Moph Alert 2FA is active in system settings
-        $mophAlertActive = DB::table('main_setting')->where('name', 'moph_alert_active')->value('value');
+        // 3. Check if Moph Alert 2FA is active in system settings or central license server
+        $mophAlertActive = \App\Services\LicenseVerificationService::getConfig('moph_alert_active', 'moph_alert_active');
         if ($mophAlertActive !== 'Y') {
             return $next($request);
         }

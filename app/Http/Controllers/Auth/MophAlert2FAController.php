@@ -30,7 +30,7 @@ class MophAlert2FAController extends Controller
         }
 
         // If no OTP has been generated, generate and send one first
-        if (!session()->has('moph_alert_otp') || Carbon::parse(session('moph_alert_otp_expires'))->isPast()) {
+        if (!session()->has('moph_alert_otp') || time() > session('moph_alert_otp_expires')) {
             $this->generateAndSendOTP();
         }
 
@@ -117,8 +117,8 @@ class MophAlert2FAController extends Controller
             return false;
         }
 
-        $clientId = DB::table('main_setting')->where('name', 'moph_alert_client_id')->value('value');
-        $clientSecret = DB::table('main_setting')->where('name', 'moph_alert_client_secret')->value('value');
+        $clientId = \App\Services\LicenseVerificationService::getConfig('moph_alert_client_id', 'moph_alert_client_id');
+        $clientSecret = \App\Services\LicenseVerificationService::getConfig('moph_alert_client_secret', 'moph_alert_client_secret');
 
         // Moph Alert official endpoint from documentation
         $url = 'https://morpromt2c.moph.go.th/alert/v3.1/messages';

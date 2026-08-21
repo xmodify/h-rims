@@ -20,26 +20,16 @@ class ProviderIdAuthController extends Controller
      */
     public function redirectToProvider(Request $request)
     {
-        // 1. Fetch credentials from main_setting
-        $clientIdSetting = DB::table('main_setting')->where('name', 'health_id_client_id')->first();
-        $activeSetting = DB::table('main_setting')->where('name', 'provider_id_active')->first();
-        
-        $clientId = $clientIdSetting ? trim($clientIdSetting->value) : '';
-        $isActive = $activeSetting ? trim($activeSetting->value) === 'Y' : false;
-
-        // Strip quotes if they were entered with double quotes (e.g. "client_id")
-        $clientId = trim($clientId, '"\'');
+        // 1. Fetch credentials from main_setting or central license server
+        $clientId = \App\Services\LicenseVerificationService::getConfig('health_id_client_id', 'health_id_client_id');
+        $isActive = \App\Services\LicenseVerificationService::getConfig('provider_id_active', 'provider_id_active') === 'Y';
 
         if (!$isActive || empty($clientId)) {
             return redirect()->route('login')->with('error', 'ระบบเข้าสู่ระบบด้วย Provider ID ยังไม่เปิดใช้งานหรือตั้งค่าไม่สมบูรณ์');
         }
 
-        // Generate redirect URI dynamically or read from settings
-        $redirectUriSetting = DB::table('main_setting')->where('name', 'health_id_redirect_uri')->value('value');
-        $redirectUri = $redirectUriSetting ? trim($redirectUriSetting, '"\'') : route('auth.health-id.callback');
-        if (empty($redirectUri)) {
-            $redirectUri = route('auth.health-id.callback');
-        }
+        // Generate redirect URI dynamically or read from settings/license server
+        $redirectUri = \App\Services\LicenseVerificationService::getConfig('health_id_redirect_uri', 'health_id_redirect_uri') ?: route('auth.health-id.callback');
 
         $state = Str::random(40);
         $request->session()->put('oauth_state', $state);
@@ -71,14 +61,13 @@ class ProviderIdAuthController extends Controller
         }
 
         try {
-            // 2. Load configurations from database
-            $healthIdClientId = trim(DB::table('main_setting')->where('name', 'health_id_client_id')->value('value') ?? '', '"\'');
-            $healthIdClientSecret = trim(DB::table('main_setting')->where('name', 'health_id_client_secret')->value('value') ?? '', '"\'');
-            $providerIdClientId = trim(DB::table('main_setting')->where('name', 'provider_id_client_id')->value('value') ?? '', '"\'');
-            $providerIdSecretKey = trim(DB::table('main_setting')->where('name', 'provider_id_secret_key')->value('value') ?? '', '"\'');
+            // 2. Load configurations from database or central license server
+            $healthIdClientId = \App\Services\LicenseVerificationService::getConfig('health_id_client_id', 'health_id_client_id');
+            $healthIdClientSecret = \App\Services\LicenseVerificationService::getConfig('health_id_client_secret', 'health_id_client_secret');
+            $providerIdClientId = \App\Services\LicenseVerificationService::getConfig('provider_id_client_id', 'provider_id_client_id');
+            $providerIdSecretKey = \App\Services\LicenseVerificationService::getConfig('provider_id_secret_key', 'provider_id_secret_key');
             
-            $redirectUriSetting = DB::table('main_setting')->where('name', 'health_id_redirect_uri')->value('value');
-            $redirectUri = $redirectUriSetting ? trim($redirectUriSetting, '"\'') : route('auth.health-id.callback');
+            $redirectUri = \App\Services\LicenseVerificationService::getConfig('health_id_redirect_uri', 'health_id_redirect_uri') ?: route('auth.health-id.callback');
 
             if (empty($healthIdClientId) || empty($healthIdClientSecret) || empty($providerIdClientId) || empty($providerIdSecretKey)) {
                 return redirect()->route('login')->with('error', 'ระบบตั้งค่าการเชื่อมต่อในส่วนของผู้ดูแลระบบไม่สมบูรณ์');

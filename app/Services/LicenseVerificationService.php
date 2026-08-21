@@ -132,7 +132,8 @@ class LicenseVerificationService
                     'message' => $resData['message'] ?? '',
                     'license_type' => $resData['license_type'] ?? 'standard',
                     'modules' => $resData['modules'] ?? [],
-                    'module_details' => $resData['module_details'] ?? []
+                    'module_details' => $resData['module_details'] ?? [],
+                    'configs' => $resData['configs'] ?? []
                 ];
 
                 Cache::put(self::CACHE_KEY, $info, 30 * 86400); // Store up to 30 days but logic checks 7 days TTL
@@ -216,5 +217,31 @@ class LicenseVerificationService
         // Check fallback modules array list if module_details is not populated
         $modules = $info['modules'] ?? [];
         return in_array($moduleCode, $modules);
+    }
+
+    /**
+     * Get a configuration value from the central license server with local DB fallback.
+     */
+    public static function getConfig($keyName, $localSettingName = null)
+    {
+        // 1. Try reading the local DB setting first
+        if ($localSettingName) {
+            try {
+                $localVal = DB::table('main_setting')->where('name', $localSettingName)->value('value');
+                if (!is_null($localVal) && $localVal !== '') {
+                    return trim($localVal, '" ');
+                }
+            } catch (\Throwable $e) {
+                // Fail silently (e.g. table or setting not found)
+            }
+        }
+
+        // 2. Fallback to cached license status configs from central server
+        $info = self::getLicenseStatusInfo();
+        if (isset($info['configs']) && is_array($info['configs']) && isset($info['configs'][$keyName])) {
+            return trim($info['configs'][$keyName], '" ');
+        }
+
+        return '';
     }
 }

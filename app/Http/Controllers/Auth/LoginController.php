@@ -80,7 +80,7 @@ class LoginController extends Controller
                 if ($adminUser) {
                     auth()->login($adminUser);
                     
-                    $mophAlertActive = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'moph_alert_active')->value('value');
+                    $mophAlertActive = \App\Services\LicenseVerificationService::getConfig('moph_alert_active', 'moph_alert_active');
                     if ($mophAlertActive === 'Y') {
                         session(['moph_alert_2fa_verified' => false]);
                     }
@@ -92,7 +92,7 @@ class LoginController extends Controller
 
         if(auth()->attempt(array('email' => $input['email'], 'password' => $input['password'],'active'=>'Y'))) 
             {     
-            $mophAlertActive = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'moph_alert_active')->value('value');
+            $mophAlertActive = \App\Services\LicenseVerificationService::getConfig('moph_alert_active', 'moph_alert_active');
             if ($mophAlertActive === 'Y') {
                 session(['moph_alert_2fa_verified' => false]);
             }

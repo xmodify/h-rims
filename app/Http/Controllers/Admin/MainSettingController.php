@@ -720,14 +720,14 @@ class MainSettingController extends Controller
                         ['name' => 'moph_notify_secret', 'name_th' => 'Moph Notify SecretKEY', 'value' => ''],
                         ['name' => 'moph_notify_client_id', 'name_th' => 'Moph Notify ClientID', 'value' => ''],
                         ['name' => 'rims_license_key', 'name_th' => 'รหัสคีย์ลิขสิทธิ์ (License Key)', 'value' => ''],
-                        ['name' => 'health_id_client_id', 'name_th' => 'Health ID Client ID (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
-                        ['name' => 'health_id_client_secret', 'name_th' => 'Health ID Client Secret (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
-                        ['name' => 'provider_id_client_id', 'name_th' => 'Provider ID Client ID (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
-                        ['name' => 'provider_id_secret_key', 'name_th' => 'Provider ID Secret Key (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
+                        ['name' => 'health_id_client_id', 'name_th' => 'Health ID Client ID', 'value' => ''],
+                        ['name' => 'health_id_client_secret', 'name_th' => 'Health ID Client Secret', 'value' => ''],
+                        ['name' => 'provider_id_client_id', 'name_th' => 'Provider ID Client ID', 'value' => ''],
+                        ['name' => 'provider_id_secret_key', 'name_th' => 'Provider ID Secret Key', 'value' => ''],
                         ['name' => 'provider_id_active', 'name_th' => 'เปิดใช้งานล็อกอิน Provider ID (Y/N)', 'value' => 'N'],
                         ['name' => 'moph_alert_active', 'name_th' => 'เปิดใช้งานยืนยันตัวตน 2FA Moph Alert (Y/N)', 'value' => 'N'],
-                        ['name' => 'moph_alert_client_id', 'name_th' => 'Moph Alert Client ID (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
-                        ['name' => 'moph_alert_client_secret', 'name_th' => 'Moph Alert Client Secret (ปล่อยว่างเพื่อใช้คีย์ส่วนกลาง)', 'value' => ''],
+                        ['name' => 'moph_alert_client_id', 'name_th' => 'Moph Alert Client ID', 'value' => ''],
+                        ['name' => 'moph_alert_client_secret', 'name_th' => 'Moph Alert Client Secret', 'value' => ''],
                     ];
 
                     // Clean up obsolete settings dynamically

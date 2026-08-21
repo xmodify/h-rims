@@ -146,6 +146,36 @@ class MophAlert2FAController extends Controller
                     'message_type' => "HPT"
                 ]);
 
+            if ($response->status() === 401) {
+                Log::warning("Moph Alert returned 401 (Keys wrong). Retrying using central server licensing keys directly.");
+                
+                $info = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
+                $centralClientId = $info['configs']['moph_alert_client_id'] ?? '';
+                $centralClientSecret = $info['configs']['moph_alert_client_secret'] ?? '';
+
+                if (!empty($centralClientId) && $centralClientId !== $clientId) {
+                    $response = Http::withoutVerifying()
+                        ->withHeaders([
+                            'Content-Type' => 'application/json',
+                            'client-key' => $centralClientId,
+                            'secret-key' => $centralClientSecret,
+                        ])
+                        ->post($url, [
+                            'cid' => [(string)$cid],
+                            'messages' => [
+                                [
+                                    'text' => "รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ $otp",
+                                    'type' => 'text'
+                                ]
+                            ],
+                            'message_title' => "รหัส OTP เข้าสู่ระบบ RiMS",
+                            'message_html' => "<div>รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ <strong>$otp</strong></div>",
+                            'message_text' => "รหัส OTP ของท่านคือ $otp",
+                            'message_type' => "HPT"
+                        ]);
+                }
+            }
+
             if ($response->successful()) {
                 Log::info("Moph Alert OTP sent successfully for CID: $cid");
                 return true;

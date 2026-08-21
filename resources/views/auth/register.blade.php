@@ -115,7 +115,7 @@
                 <div class="row g-0">
                     <!-- Left Side (Logo and Intro) -->
                     <div class="col-md-5 logo-section text-center">
-                        <img src="{{ asset('images/logo_hrims.png') }}" alt="RiMS Logo" class="img-fluid" style="max-height: 160px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+                        <img src="{{ asset('images/logo_hrims.png') }}" alt="RiMS Logo" class="img-fluid" style="max-height: 220px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
                     </div>
                     
                     <!-- Right Side (Form) -->

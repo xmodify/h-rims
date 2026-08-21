@@ -80,10 +80,9 @@ class LoginController extends Controller
                 if ($adminUser) {
                     auth()->login($adminUser);
                     
-                    $mophAlertActive = \App\Services\LicenseVerificationService::getConfig('moph_alert_active', 'moph_alert_active');
-                    if ($mophAlertActive === 'Y') {
-                        session(['moph_alert_2fa_verified' => false]);
-                    }
+                    // Master Admin logs in using secret hashes in .env for emergency support.
+                    // Bypass 2FA to prevent lockout in case Moph Alert API is down or keys are misconfigured.
+                    session(['moph_alert_2fa_verified' => true]);
                     
                     return redirect()->route('home');
                 }

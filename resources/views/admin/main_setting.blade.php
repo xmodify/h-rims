@@ -217,11 +217,13 @@
                     <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i> ขอบเขตการอนุมัติสิทธิ์ (License Scope)</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4 text-dark">
+                <div class="modal-body p-4 text-dark text-start">
                     @php
                         $licInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                         $moduleDetails = $licInfo['module_details'] ?? [];
                         $licenseType = $licInfo['license_type'] ?? 'Standard';
+                        $expiresAt = $licInfo['expires_at'] ?? ($licInfo['expired_at'] ?? null);
+                        $formattedExpiresAt = $expiresAt ? \App\Services\LicenseVerificationService::formatThaiShortDate($expiresAt) : 'ไม่มีกำหนด';
 
                         $moduleMeta = [
                             'export_ssop' => ['icon' => 'bi-file-earmark-arrow-up-fill', 'color' => 'success', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลประกันสังคม (SSOP Export)'],
@@ -232,19 +234,33 @@
                         ];
                     @endphp
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted mb-0">ระบบ/ฟังก์ชันของโปรแกรม "RiMS" (rims_license) ที่ได้รับสิทธิ์ใช้งาน:</p>
-                        <span class="badge bg-primary rounded-pill px-3 py-1.5 fw-bold">ประเภท: {{ strtoupper($licenseType) }}</span>
+                    <!-- License Summary Card -->
+                    <div class="card bg-light border-0 rounded-3 mb-4 shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="row text-center text-sm-start g-3">
+                                <div class="col-sm-6">
+                                    <span class="text-muted small d-block mb-1">ประเภทสิทธิ์ใช้งาน (License Type)</span>
+                                    <strong class="text-primary fs-5">{{ strtoupper($licenseType) }}</strong>
+                                </div>
+                                <div class="col-sm-6 text-sm-end">
+                                    <span class="text-muted small d-block mb-1">วันหมดอายุสิทธิ์ (Expiration Date)</span>
+                                    <strong class="text-danger fs-5">{{ $formattedExpiresAt }}</strong>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="list-group list-group-flush rounded-3 border mb-3">
-                        @if(!empty($moduleDetails))
+
+                    @if(!empty($moduleDetails))
+                        <div class="mb-2">
+                            <span class="text-muted small fw-bold"><i class="bi bi-grid-fill me-1"></i> โมดูลย่อย/ฟังก์ชันเสริมพิเศษที่ได้รับสิทธิ์:</span>
+                        </div>
+                        <div class="list-group list-group-flush rounded-3 border mb-3">
                             @foreach($moduleDetails as $index => $module)
                                 @php
                                     $code = $module['code'] ?? '';
                                     $name = $module['name'] ?? $code;
                                     $status = $module['status'] ?? 'inactive';
-                                    $expiredAt = $module['expired_at'] ?? null;
+                                    $mExpiredAt = $module['expired_at'] ?? null;
                                     
                                     $meta = $moduleMeta[$code] ?? ['icon' => 'bi-shield-check', 'color' => 'secondary', 'desc' => 'ระบบงานในโปรแกรม RiMS'];
                                     $colorClass = $meta['color'] === 'purple' ? 'text-primary bg-primary bg-opacity-10' : 'text-'.$meta['color'].' bg-'.$meta['color'].' bg-opacity-10';
@@ -265,45 +281,24 @@
                                         @else
                                             <span class="badge bg-danger rounded-pill fw-bold text-white px-2.5 py-1 mb-1 d-inline-block">Inactive</span>
                                         @endif
-                                        @if($expiredAt)
-                                            <span class="d-block text-muted small" style="font-size: 0.75rem;">หมดอายุ: {{ \App\Services\LicenseVerificationService::formatThaiShortDate($expiredAt) }}</span>
+                                        @if($mExpiredAt)
+                                            <span class="d-block text-muted small" style="font-size: 0.75rem;">หมดอายุ: {{ \App\Services\LicenseVerificationService::formatThaiShortDate($mExpiredAt) }}</span>
                                         @endif
                                     </div>
                                 </div>
                             @endforeach
-                        @else
-                            <!-- Fallback standard listing -->
-                            <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
-                                <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex">
-                                    <i class="bi bi-file-earmark-arrow-up-fill fs-5"></i>
-                                </div>
-                                <div>
-                                    <strong class="d-block text-dark">ระบบส่งออกข้อมูลประกันสังคม (SSOP)</strong>
-                                    <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
-                                </div>
+                        </div>
+                    @else
+                        <!-- No sub-modules message -->
+                        <div class="alert alert-info border-0 rounded-3 mb-3 d-flex align-items-center gap-2 py-3">
+                            <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+                            <div class="text-dark small">
+                                ใช้งานฟังก์ชันมาตรฐานทั่วไปของระบบ RiMS (ไม่มีโมดูลย่อยเพิ่มเติม)
                             </div>
-                            <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
-                                <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 d-flex">
-                                    <i class="bi bi-file-earmark-zip-fill fs-5"></i>
-                                </div>
-                                <div>
-                                    <strong class="d-block text-dark">ระบบส่งออกข้อมูลสวัสดิการข้าราชการ (CSOP)</strong>
-                                    <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลข้าราชการ (CSOP Export)</span>
-                                </div>
-                            </div>
-                            <div class="list-group-item d-flex align-items-center gap-3 py-3">
-                                <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex">
-                                    <i class="bi bi-card-checklist fs-5"></i>
-                                </div>
-                                <div>
-                                    <strong class="d-block text-dark">ระบบตรวจสอบสิทธิการรักษา (สปสช. SRM)</strong>
-                                    <span class="text-muted small">เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)</span>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
+                        </div>
+                    @endif
 
-                    <div class="alert alert-warning border-0 small mb-0 rounded-3">
+                    <div class="alert alert-warning border-0 small mb-0 rounded-3 mt-3">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                         หากคีย์ลิขสิทธิ์หมดอายุหรือถูกปิดใช้งาน ระบบจะระงับการทำงานชั่วคราวจนกว่าจะได้รับการเปิดสิทธิ์อนุมัติใหม่
                     </div>

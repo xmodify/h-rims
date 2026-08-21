@@ -162,7 +162,11 @@ class CheckController extends Controller
             LEFT JOIN paidst p1 ON p1.paidst=p.paidst
             LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id=p.pttype_price_group_id
             LEFT JOIN provis_instype pi ON pi.`code`=p.nhso_code
-            LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype=p.pttype
+            LEFT JOIN (
+                SELECT pttype, GROUP_CONCAT(nhso_subinscl ORDER BY nhso_subinscl SEPARATOR ", ") AS nhso_subinscl
+                FROM pttype_nhso_subinscl
+                GROUP BY pttype
+            ) inscl ON inscl.pttype=p.pttype
             WHERE p.isuse = "Y" ORDER BY p.hipdata_code,p.pttype');
 
         $pttype_close =  DB::connection('hosxp')->select('
@@ -172,7 +176,11 @@ class CheckController extends Controller
             LEFT JOIN paidst p1 ON p1.paidst=p.paidst
             LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id=p.pttype_price_group_id
             LEFT JOIN provis_instype pi ON pi.`code`=p.nhso_code
-            LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype=p.pttype
+            LEFT JOIN (
+                SELECT pttype, GROUP_CONCAT(nhso_subinscl ORDER BY nhso_subinscl SEPARATOR ", ") AS nhso_subinscl
+                FROM pttype_nhso_subinscl
+                GROUP BY pttype
+            ) inscl ON inscl.pttype=p.pttype
             WHERE p.isuse <> "Y" ORDER BY p.hipdata_code,p.pttype');
 
         return view('check.pttype', compact('pttype', 'pttype_close'));

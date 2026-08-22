@@ -16,8 +16,11 @@
                         
                         <div class="input-group mb-3">
                             <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
-                                <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
+                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0;">
+                                <i class="bi bi-cloud-upload me-1.5"></i> นำเข้าข้อมูล
+                            </button>
+                            <button type="button" class="btn btn-primary px-3.5 shadow-sm text-nowrap fw-bold" data-bs-toggle="modal" data-bs-target="#eclaimStmBmtBotModal" style="border-radius: 0 10px 10px 0; background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">
+                                <i class="bi bi-cloud-arrow-down-fill me-1.5"></i> ดึงจาก e-Claim
                             </button>
                         </div>
 
@@ -271,6 +274,150 @@
         });
     </script>
 @endif
+
+
+<!-- Modal: e-Claim Statement BMT (ขสมก.) Bot Automation -->
+<div class="modal fade" id="eclaimStmBmtBotModal" tabindex="-1" aria-labelledby="eclaimStmBmtBotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-gradient text-white p-4" style="background: linear-gradient(135deg, #0284c7, #0369a1);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2.5 d-flex align-items-center justify-content-center shadow-sm" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px;">
+                        <i class="bi bi-robot fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="eclaimStmBmtBotModalLabel">ดึงข้อมูล Statement ขสมก. (BMT) อัตโนมัติจาก e-Claim</h5>
+                        <div class="text-white-50 small mt-0.5">เชื่อมต่อระบบ e-Claim สปสช. (ระบบรายงานสิทธิเจ้าหน้าที่ ขสมก.) เพื่อค้นหาและนำเข้า Statement อัตโนมัติ</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light">
+                <!-- Section 1: e-Claim Session Connection (Cookie / Token) -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="eclaimStmBmtAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" id="eclaimStmBmtAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ e-Claim</div>
+                                    <div class="text-muted small" id="eclaimStmBmtAuthStatusSub">เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเชื่อมต่อ</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="bi bi-download me-1"></i> ส่วนเสริม Chrome
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimStmBmtLogout">
+                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Filter & Search in e-Claim -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-dark mb-1">ปี (พ.ศ.)</label>
+                                <select id="botStmBmtBudgetYear" class="form-select form-select-sm rounded-3">
+                                    @php
+                                        $currentYear = date('Y') + 543;
+                                    @endphp
+                                    @for($y = $currentYear + 1; $y >= $currentYear - 4; $y--)
+                                        <option value="{{ $y }}" {{ $y == $budget_year ? 'selected' : '' }}>ปีงบประมาณ {{ $y }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-dark mb-1">งวดเดือน</label>
+                                <select id="botStmBmtMonth" class="form-select form-select-sm rounded-3">
+                                    <option value="">ทุกเดือน</option>
+                                    @php
+                                        $months = [
+                                            1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+                                            5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+                                            9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
+                                        ];
+                                        $currM = (int)date('m');
+                                    @endphp
+                                    @foreach($months as $num => $mname)
+                                        <option value="{{ $num }}" {{ $num == $currM ? 'selected' : '' }}>{{ $mname }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-dark mb-1">ประเภทผู้ป่วย</label>
+                                <select id="botStmBmtPersonType" class="form-select form-select-sm rounded-3">
+                                    <option value="1">ผู้ป่วยนอก (OPD)</option>
+                                    <option value="2">ผู้ป่วยใน (IPD)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" id="btnBotStmBmtSearch" class="btn btn-primary btn-sm w-100 rounded-3 fw-bold py-2 shadow-sm" disabled>
+                                    <i class="bi bi-search me-1"></i> ค้นหาใน e-Claim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: List of Statements found in e-Claim -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i> รายการ Statement ขสมก. ที่พบบนระบบ e-Claim
+                        </h6>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2" id="botStmBmtFoundBadge">0 รายการ</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 380px;">
+                        <table class="table table-hover align-middle mb-0" id="botStmBmtTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th width="40" class="text-center">
+                                        <input class="form-check-input" type="checkbox" id="checkAllBotStmBmt">
+                                    </th>
+                                    <th>statement no</th>
+                                    <th>งวดเดือน</th>
+                                    <th>ปีงบ</th>
+                                    <th>รอบ</th>
+                                    <th>ประเภท</th>
+                                    <th>วันที่ส่ง ขสมก.</th>
+                                    <th class="text-center">สถานะในระบบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="botStmBmtTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>
+                                        กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement ขสมก.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-top px-4 py-3 justify-content-between">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i> เลือกรายการที่ต้องการแล้วกด "นำเข้า Statement ที่เลือก"
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="btnImportSelectedBotStmBmt" disabled>
+                        <i class="bi bi-cloud-arrow-down me-1.5"></i> นำเข้า Statement ที่เลือก (<span id="selectedBotStmBmtCount">0</span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -629,6 +776,223 @@
                                 confirmButtonText: 'ปิด',
                                 confirmButtonColor: '#d33'
                             });
+                        }
+                    });
+                }
+            });
+        });
+    
+        // ==========================================
+        // e-Claim Statement BMT Automation (stm_bmt)
+        // ==========================================
+        function checkEclaimStmBmtStatus() {
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.status') }}",
+                method: "POST",
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.connected) {
+                        $('#eclaimStmBmtAuthStatusIcon').removeClass('bg-warning-subtle text-warning').addClass('bg-success-subtle text-success')
+                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
+                        $('#eclaimStmBmtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
+                        $('#eclaimStmBmtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
+                        $('#btnEclaimStmBmtLogout').removeClass('d-none');
+                        $('#btnBotStmBmtSearch').prop('disabled', false);
+                    } else {
+                        $('#eclaimStmBmtAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
+                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                        $('#eclaimStmBmtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
+                        $('#eclaimStmBmtAuthStatusSub').text('เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#btnEclaimStmBmtLogout').addClass('d-none');
+                        $('#btnBotStmBmtSearch').prop('disabled', true);
+                    }
+                }
+            });
+        }
+
+        $('#eclaimStmBmtBotModal').on('show.bs.modal', function () {
+            checkEclaimStmBmtStatus();
+        });
+
+        $('#btnEclaimStmBmtLogout').on('click', function () {
+            Swal.fire({
+                title: 'ยืนยันตัดการเชื่อมต่อ?',
+                text: 'ระบบจะล้าง Session e-Claim ออกจากระบบทุกหน้าจอ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('eclaim_session_token');
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.logout') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function () {
+                            checkEclaimStmBmtStatus();
+                            $('#botStmBmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement ขสมก.</td></tr>');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตัดการเชื่อมต่อแล้ว',
+                                text: 'ตัดการเชื่อมต่อกับ e-Claim เรียบร้อย',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        var currentBotStmBmtData = [];
+
+        $('#btnBotStmBmtSearch').on('click', function () {
+            var budgetYear = $('#botStmBmtBudgetYear').val();
+            var month = $('#botStmBmtMonth').val();
+            var personType = $('#botStmBmtPersonType').val();
+
+            $('#botStmBmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="spinner-border text-primary mb-2" role="status"></div><div>กำลังค้นหา Statement ขสมก. จาก e-Claim...</div></td></tr>');
+            $('#btnBotStmBmtSearch').prop('disabled', true);
+            $('#btnImportSelectedBotStmBmt').prop('disabled', true);
+            $('#selectedBotStmBmtCount').text(0);
+            $('#checkAllBotStmBmt').prop('checked', false);
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.stm-bmt-search') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    budget_year: budgetYear,
+                    month: month,
+                    person_type: personType
+                },
+                success: function (res) {
+                    $('#btnBotStmBmtSearch').prop('disabled', false);
+
+                    if (res.status === 'success') {
+                        currentBotStmBmtData = res.data;
+                        $('#botStmBmtFoundBadge').text(res.count + ' รายการ');
+
+                        if (res.data.length === 0) {
+                            $('#botStmBmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-folder-x fs-2 d-block mb-2 text-warning"></i>ไม่พบ Statement ขสมก. ในช่วงเวลาที่เลือก</td></tr>');
+                            return;
+                        }
+
+                        var html = '';
+                        $.each(res.data, function (idx, item) {
+                            var statusBadge = item.is_imported 
+                                ? '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check2-circle me-1"></i> นำเข้าแล้ว (' + item.imported_count + ' รายการ)</span>'
+                                : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1"><i class="bi bi-clock me-1"></i> ยังไม่นำเข้า</span>';
+
+                            var isChecked = !item.is_imported ? 'checked' : '';
+
+                            html += '<tr>';
+                            html += '<td class="text-center"><input type="checkbox" class="form-check-input bot-stm-bmt-item-check" data-index="' + idx + '" ' + isChecked + '></td>';
+                            html += '<td class="fw-bold text-dark font-monospace">' + item.statement_no + '</td>';
+                            html += '<td>' + item.month + '</td>';
+                            html += '<td>' + item.year + '</td>';
+                            html += '<td><span class="badge bg-info-subtle text-info">' + item.round + '</span></td>';
+                            html += '<td><span class="badge bg-primary-subtle text-primary">' + item.person_type + '</span></td>';
+                            html += '<td class="small text-muted">' + (item.send_date || '-') + '</td>';
+                            html += '<td class="text-center">' + statusBadge + '</td>';
+                            html += '</tr>';
+                        });
+
+                        $('#botStmBmtTableBody').html(html);
+                        updateSelectedBotStmBmtCount();
+                    } else {
+                        $('#botStmBmtTableBody').html('<tr><td colspan="8" class="text-center py-4 text-danger">' + (res.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล') + '</td></tr>');
+                        Swal.fire('ผิดพลาด', res.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    $('#btnBotStmBmtSearch').prop('disabled', false);
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'ไม่สามารถเชื่อมต่อ e-Claim ได้';
+                    $('#botStmBmtTableBody').html('<tr><td colspan="8" class="text-center py-4 text-danger">' + msg + '</td></tr>');
+                    Swal.fire('ข้อผิดพลาด', msg, 'error');
+                }
+            });
+        });
+
+        $(document).on('change', '#checkAllBotStmBmt', function () {
+            var isChecked = $(this).is(':checked');
+            $('.bot-stm-bmt-item-check').prop('checked', isChecked);
+            updateSelectedBotStmBmtCount();
+        });
+
+        $(document).on('change', '.bot-stm-bmt-item-check', function () {
+            updateSelectedBotStmBmtCount();
+        });
+
+        function updateSelectedBotStmBmtCount() {
+            var count = $('.bot-stm-bmt-item-check:checked').length;
+            $('#selectedBotStmBmtCount').text(count);
+            $('#btnImportSelectedBotStmBmt').prop('disabled', count === 0);
+        }
+
+        $('#btnImportSelectedBotStmBmt').on('click', function () {
+            var selectedItems = [];
+            $('.bot-stm-bmt-item-check:checked').each(function () {
+                var idx = $(this).data('index');
+                if (currentBotStmBmtData[idx]) {
+                    selectedItems.push(currentBotStmBmtData[idx]);
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกอย่างน้อย 1 รายการเพื่อนำเข้า', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการนำเข้า?',
+                html: 'ระบบจะดาวน์โหลด Statement ขสมก. จาก e-Claim จำนวน <b>' + selectedItems.length + '</b> ไฟล์ และประมวลผลเข้าฐานข้อมูล RiMS อัตโนมัติ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-cloud-arrow-down-fill me-1"></i> เริ่มดาวน์โหลดและนำเข้า',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังดึงและนำเข้าข้อมูล...',
+                        html: '<div class="mb-2">กำลังดาวน์โหลดและประมวลผล Statement ขสมก. จาก e-Claim (' + selectedItems.length + ' ไฟล์)</div><div class="small text-muted">ขั้นตอนนี้อาจใช้เวลาสักครู่ กรุณาอย่าปิดหน้าต่างนี้</div>',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.stm-bmt-import') }}",
+                        method: "POST",
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            items: selectedItems
+                        },
+                        success: function (res) {
+                            if (res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'นำเข้าสำเร็จ!',
+                                    text: res.message,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#10b981'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('ผิดพลาด', res.message || 'เกิดข้อผิดพลาดในการนำเข้า', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
+                            Swal.fire('ข้อผิดพลาด', msg, 'error');
                         }
                     });
                 }

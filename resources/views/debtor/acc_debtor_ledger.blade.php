@@ -94,28 +94,40 @@
                                 <div id="status-{{ $m['no'] }}" class="small text-muted ms-2"></div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-modern table-hover mb-0 sticky-header" id="table-{{ $m['no'] }}">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center" style="width: 120px;">รหัสบัญชี</th>
-                                        <th class="text-start">ชื่อผังบัญชี</th>
-                                        <th class="text-end" style="width: 110px;">ยอดยกมา</th>
-                                        <th class="text-end" style="width: 110px;">ตั้งหนี้</th>
-                                        <th class="text-end" style="width: 110px;">ล้างหนี้/รับ</th>
-                                        <th class="text-end" style="width: 110px;">ยอดปรับลด</th>
-                                        <th class="text-end" style="width: 110px;">ยอดปรับเพิ่ม</th>
-                                        <th class="text-end text-primary fw-bold" style="width: 130px;">คงเหลือยกไป</th>
-                                        <th class="text-end text-success" style="width: 110px;">≤ 90 วัน</th>
-                                        <th class="text-end text-warning" style="width: 110px;">91-365 วัน</th>
-                                        <th class="text-end text-danger" style="width: 110px;">> 365 วัน</th>
-                                        <th class="text-center" style="width: 60px;">#</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-{{ $m['no'] }}">
-                                    <!-- AJAX Data -->
-                                </tbody>
-                            </table>
+                        <div class="p-4 bg-white">
+                            <div class="table-responsive">
+                                <table class="table table-modern table-hover mb-0 sticky-header" id="table-{{ $m['no'] }}">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" class="text-center align-middle" style="width: 110px;">รหัสบัญชี</th>
+                                            <th rowspan="2" class="text-start align-middle" style="min-width: 250px;">ชื่อผังบัญชี</th>
+                                            <th colspan="2" class="text-center border-bottom pb-1">ยอดยกมา</th>
+                                            <th colspan="4" class="text-center border-bottom pb-1">รับจ่ายในรอบเดือน</th>
+                                            <th colspan="2" class="text-center border-bottom pb-1">ยอดคงเหลือยกไป</th>
+                                            <th rowspan="2" class="text-end text-success align-middle" style="width: 100px;">≤ 90 วัน</th>
+                                            <th rowspan="2" class="text-end text-warning align-middle" style="width: 100px;">91-365 วัน</th>
+                                            <th rowspan="2" class="text-end text-danger align-middle" style="width: 100px;">> 365 วัน</th>
+                                            <th rowspan="2" class="text-center align-middle" style="width: 50px;">#</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-end text-muted small py-1" style="width: 100px; font-size: 0.65rem;">เดบิต</th>
+                                            <th class="text-end text-muted small py-1" style="width: 100px; font-size: 0.65rem;">เครดิต</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">ตั้งหนี้ (เดบิต)</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">รับชำระ (เครดิต)</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">ปรับเพิ่ม (เดบิต)</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">ปรับลด (เครดิต)</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">เดบิต</th>
+                                            <th class="text-end text-muted small py-1" style="width: 110px; font-size: 0.65rem;">เครดิต</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-{{ $m['no'] }}">
+                                        <!-- AJAX Data -->
+                                    </tbody>
+                                    <tfoot id="tfoot-{{ $m['no'] }}">
+                                         <!-- Footer sums -->
+                                    </tfoot>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -265,7 +277,7 @@
             let year = $('#budget_year_select').val();
             let tbody = $('#tbody-' + monthNo);
             
-            tbody.html('<tr><td colspan="12" class="text-center py-5"><div class="spinner-border text-primary"></div><div class="mt-2 text-muted">กำลังดึงข้อมูล...</div></td></tr>');
+            tbody.html('<tr><td colspan="14" class="text-center py-5"><div class="spinner-border text-primary"></div><div class="mt-2 text-muted">กำลังดึงข้อมูล...</div></td></tr>');
 
             $.get(`{{ url('debtor/acc_ledger_data') }}`, {
                 budget_year: year,
@@ -275,40 +287,201 @@
             });
         }
 
+        function formatCell(ledgerVal, tbAssetVal, tbRevVal, hasTbData, hasRevData, tooltipMsg, type) {
+            let formattedLedger = formatNum(ledgerVal);
+            
+            if (type === 'ledger_only') {
+                return `
+                    <div style="color: #1e293b !important; font-weight: 500;">${formattedLedger}</div>
+                    <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                    <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                `;
+            }
+            
+            let formattedTbAsset = hasTbData ? formatNum(tbAssetVal) : '-';
+            let formattedTbRev = hasRevData ? formatNum(tbRevVal) : '-';
+            
+            let diffAsset = hasTbData ? Math.abs(parseFloat(ledgerVal || 0) - parseFloat(tbAssetVal || 0)) : 0;
+            let diffRev = hasRevData ? Math.abs(parseFloat(ledgerVal || 0) - parseFloat(tbRevVal || 0)) : 0;
+            
+            let assetClass = (diffAsset > 0.01) ? 'text-danger fw-bold' : '';
+            let assetStyle = (diffAsset > 0.01) ? '' : 'color: #0d6efd !important; font-weight: 500;';
+            let assetIcon = (diffAsset > 0.01) ? ' <i class="bi bi-exclamation-triangle-fill"></i>' : '';
+            let assetTooltip = (diffAsset > 0.01) ? `${tooltipMsg} (ลูกหนี้งบ ต่างกัน: ${formatNum(diffAsset)} บ.)` : '';
+
+            let revClass = (diffRev > 0.01) ? 'text-danger fw-bold' : '';
+            let revStyle = (diffRev > 0.01) ? '' : 'color: #198754 !important; font-weight: 500;';
+            let revIcon = (diffRev > 0.01) ? ' <i class="bi bi-exclamation-triangle-fill"></i>' : '';
+            let revTooltip = (diffRev > 0.01) ? `${tooltipMsg} (รายได้งบ ต่างกัน: ${formatNum(diffRev)} บ.)` : '';
+
+            let row2Html = hasTbData ? `
+                <div class="${assetClass}" style="font-size: 0.65rem; margin-top: 1px; ${assetStyle}" title="${assetTooltip}">
+                    ${formattedTbAsset}${assetIcon}
+                </div>
+            ` : `
+                <div style="font-size: 0.65rem; margin-top: 1px; color: #0d6efd !important;">-</div>
+            `;
+
+            let row3Html = (type === 'both' && hasRevData) ? `
+                <div class="${revClass}" style="font-size: 0.65rem; margin-top: 1px; ${revStyle}" title="${revTooltip}">
+                    ${formattedTbRev}${revIcon}
+                </div>
+            ` : `
+                <div style="font-size: 0.65rem; margin-top: 1px; color: #198754 !important;">-</div>
+            `;
+
+            return `
+                <div style="color: #1e293b !important; font-weight: 500;">${formattedLedger}</div>
+                ${row2Html}
+                ${row3Html}
+            `;
+        }
+
+        function formatCellSum(ledgerVal, tbAssetVal, tbRevVal, hasTbData, hasRevData, type) {
+            let formattedLedger = formatNum(ledgerVal);
+            
+            if (type === 'ledger_only') {
+                return `
+                    <div class="fw-bold" style="color: #1e293b !important;">${formattedLedger}</div>
+                    <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                    <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                `;
+            }
+            
+            let formattedTbAsset = hasTbData ? formatNum(tbAssetVal) : '-';
+            let formattedTbRev = hasRevData ? formatNum(tbRevVal) : '-';
+            
+            let diffAsset = hasTbData ? Math.abs(parseFloat(ledgerVal || 0) - parseFloat(tbAssetVal || 0)) : 0;
+            let diffRev = hasRevData ? Math.abs(parseFloat(ledgerVal || 0) - parseFloat(tbRevVal || 0)) : 0;
+            
+            let assetClass = (diffAsset > 0.01) ? 'text-danger fw-bold' : '';
+            let assetStyle = (diffAsset > 0.01) ? '' : 'color: #0d6efd !important;';
+            let assetIcon = (diffAsset > 0.01) ? ' <i class="bi bi-exclamation-triangle-fill"></i>' : '';
+
+            let revClass = (diffRev > 0.01) ? 'text-danger fw-bold' : '';
+            let revStyle = (diffRev > 0.01) ? '' : 'color: #198754 !important;';
+            let revIcon = (diffRev > 0.01) ? ' <i class="bi bi-exclamation-triangle-fill"></i>' : '';
+
+            let row2Html = hasTbData ? `
+                <div class="fw-bold ${assetClass}" style="font-size: 0.65rem; margin-top: 1px; ${assetStyle}">
+                    ${formattedTbAsset}${assetIcon}
+                </div>
+            ` : `
+                <div style="font-size: 0.65rem; margin-top: 1px; color: #0d6efd !important;">-</div>
+            `;
+
+            let row3Html = (type === 'both' && hasRevData) ? `
+                <div class="fw-bold ${revClass}" style="font-size: 0.65rem; margin-top: 1px; ${revStyle}">
+                    ${formattedTbRev}${revIcon}
+                </div>
+            ` : `
+                <div style="font-size: 0.65rem; margin-top: 1px; color: #198754 !important;">-</div>
+            `;
+
+            return `
+                <div class="fw-bold" style="color: #1e293b !important;">${formattedLedger}</div>
+                ${row2Html}
+                ${row3Html}
+            `;
+        }
+
+        function formatLedgerOnly(val) {
+            return `
+                <div style="color: #1e293b !important; font-weight: 500;">${formatNum(val)}</div>
+                <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+            `;
+        }
+
+        function formatLedgerOnlySum(val) {
+            return `
+                <div class="fw-bold" style="color: #1e293b !important;">${formatNum(val)}</div>
+                <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+                <div style="font-size: 0.65rem; margin-top: 1px; visibility: hidden;">-</div>
+            `;
+        }
+
         function renderTable(monthNo, data) {
             let tbody = $('#tbody-' + monthNo);
+            let tfoot = $('#tfoot-' + monthNo);
             let html = '';
+
+            // Destroy existing DataTable instance to reload fresh data
+            if ($.fn.DataTable.isDataTable('#table-' + monthNo)) {
+                $('#table-' + monthNo).DataTable().destroy();
+            }
 
             // จัดการยอดรวมท้ายตาราง
             let sums = {
-                old: 0, new: 0, receive: 0, dec: 0, inc: 0, total: 0, a90: 0, a365: 0, aover: 0
+                old_debit: 0, old_credit: 0,
+                new_debit: 0, receive_credit: 0,
+                adj_inc: 0, adj_dec: 0,
+                total_debit: 0, total_credit: 0,
+                a90: 0, a365: 0, aover: 0,
+                
+                tb_debit_bf: 0, tb_credit_bf: 0,
+                tb_debit_month: 0, tb_credit_month: 0,
+                tb_debit_net: 0, tb_credit_net: 0,
+                
+                tb_rev_debit_bf: 0, tb_rev_credit_bf: 0,
+                tb_rev_credit_month: 0,
+                tb_rev_debit_net: 0, tb_rev_credit_net: 0
             };
 
+            let hasAnyTb = data.some(r => r.tb_has_data);
+            let hasAnyRev = data.some(r => r.tb_rev_has_data);
+
             data.forEach(row => {
-                sums.old += parseFloat(row.balance_old || 0);
-                sums.new += parseFloat(row.debt_new || 0);
-                sums.receive += parseFloat(row.debt_receive || 0);
-                sums.dec += parseFloat(row.debt_adj_dec || 0);
-                sums.inc += parseFloat(row.debt_adj_inc || 0);
-                sums.total += parseFloat(row.balance_total || 0);
+                let ledger_old = parseFloat(row.balance_old || 0);
+                sums.old_debit += (ledger_old >= 0 ? ledger_old : 0);
+                sums.old_credit += (ledger_old < 0 ? Math.abs(ledger_old) : 0);
+                
+                sums.new_debit += parseFloat(row.debt_new || 0);
+                sums.receive_credit += parseFloat(row.debt_receive || 0);
+                sums.adj_inc += parseFloat(row.debt_adj_inc || 0);
+                sums.adj_dec += parseFloat(row.debt_adj_dec || 0);
+                
+                let ledger_total = parseFloat(row.balance_total || 0);
+                sums.total_debit += (ledger_total >= 0 ? ledger_total : 0);
+                sums.total_credit += (ledger_total < 0 ? Math.abs(ledger_total) : 0);
+                
                 sums.a90 += parseFloat(row.aging_90 || 0);
                 sums.a365 += parseFloat(row.aging_365 || 0);
                 sums.aover += parseFloat(row.aging_over || 0);
 
+                sums.tb_debit_bf += parseFloat(row.tb_debit_bf || 0);
+                sums.tb_credit_bf += parseFloat(row.tb_credit_bf || 0);
+                sums.tb_debit_month += parseFloat(row.tb_debit_month || 0);
+                sums.tb_credit_month += parseFloat(row.tb_credit_month || 0);
+                sums.tb_debit_net += parseFloat(row.tb_debit_net || 0);
+                sums.tb_credit_net += parseFloat(row.tb_credit_net || 0);
+                
+                sums.tb_rev_debit_bf += parseFloat(row.tb_rev_debit_bf || 0);
+                sums.tb_rev_credit_bf += parseFloat(row.tb_rev_credit_bf || 0);
+                sums.tb_rev_credit_month += parseFloat(row.tb_rev_credit_month || 0);
+                sums.tb_rev_debit_net += parseFloat(row.tb_rev_debit_net || 0);
+                sums.tb_rev_credit_net += parseFloat(row.tb_rev_credit_net || 0);
+
                 html += `
                     <tr>
-                        <td class="text-center small text-muted">${row.acc_code}</td>
-                        <td class="text-start fw-bold small text-dark">${row.acc_name}</td>
-                        <td class="text-end small">${formatNum(row.balance_old)}</td>
-                        <td class="text-end small">${formatNum(row.debt_new)}</td>
-                        <td class="text-end small">${formatNum(row.debt_receive)}</td>
-                        <td class="text-end small text-danger">${formatNum(row.debt_adj_dec)}</td>
-                        <td class="text-end small text-success">${formatNum(row.debt_adj_inc)}</td>
-                        <td class="text-end fw-bold text-primary small">${formatNum(row.balance_total)}</td>
-                        <td class="text-end small text-success">${formatNum(row.aging_90)}</td>
-                        <td class="text-end small text-warning">${formatNum(row.aging_365)}</td>
-                        <td class="text-end small text-danger">${formatNum(row.aging_over)}</td>
-                        <td class="text-center">
+                        <td class="text-center small text-muted align-middle">${row.acc_code}</td>
+                        <td class="text-start small align-middle">
+                            <div style="color: #1e293b !important; font-weight: 700;">${row.acc_name}</div>
+                            <div style="font-size: 0.65rem; font-weight: 500; margin-top: 1px; color: #0d6efd !important;">จากงบทดลอง (ลูกหนี้: ${row.acc_code})</div>
+                            ${row.tb_rev_code ? `<div style="font-size: 0.65rem; font-weight: 500; margin-top: 1px; color: #198754 !important;">จากงบทดลอง (รายได้: ${row.tb_rev_code})</div>` : `<div style="font-size: 0.65rem; font-weight: 500; margin-top: 1px; color: #6c757d !important;">จากงบทดลอง (รายได้: -)</div>`}
+                        </td>
+                        <td class="text-end small align-middle">${formatCell(ledger_old >= 0 ? ledger_old : 0, row.tb_debit_bf, row.tb_rev_debit_bf, row.tb_has_data, row.tb_rev_has_data, 'ยอดยกมาเดบิตไม่ตรง', 'both')}</td>
+                        <td class="text-end small align-middle">${formatCell(ledger_old < 0 ? Math.abs(ledger_old) : 0, row.tb_credit_bf, row.tb_rev_credit_bf, row.tb_has_data, row.tb_rev_has_data, 'ยอดยกมาเครดิตไม่ตรง', 'both')}</td>
+                        <td class="text-end small align-middle">${formatCell(row.debt_new, row.tb_debit_month, row.tb_rev_credit_month, row.tb_has_data, row.tb_rev_has_data, 'ยอดตั้งหนี้ไม่ตรง', 'both')}</td>
+                        <td class="text-end small align-middle">${formatCell(row.debt_receive, row.tb_credit_month, 0, row.tb_has_data, false, 'ยอดรับชำระไม่ตรง', 'asset_only')}</td>
+                        <td class="text-end small align-middle">${formatCell(row.debt_adj_inc, 0, 0, false, false, '', 'ledger_only')}</td>
+                        <td class="text-end small align-middle">${formatCell(row.debt_adj_dec, 0, 0, false, false, '', 'ledger_only')}</td>
+                        <td class="text-end fw-bold text-primary small align-middle">${formatCell(ledger_total >= 0 ? ledger_total : 0, row.tb_debit_net, row.tb_rev_debit_net, row.tb_has_data, row.tb_rev_has_data, 'ยอดคงเหลือเดบิตไม่ตรง', 'both')}</td>
+                        <td class="text-end fw-bold text-primary small align-middle">${formatCell(ledger_total < 0 ? Math.abs(ledger_total) : 0, row.tb_credit_net, row.tb_rev_credit_net, row.tb_has_data, row.tb_rev_has_data, 'ยอดคงเหลือเครดิตไม่ตรง', 'both')}</td>
+                        <td class="text-end small text-success align-middle">${formatLedgerOnly(row.aging_90)}</td>
+                        <td class="text-end small text-warning align-middle">${formatLedgerOnly(row.aging_365)}</td>
+                        <td class="text-end small text-danger align-middle">${formatLedgerOnly(row.aging_over)}</td>
+                        <td class="text-center align-middle">
                             <button class="btn btn-xs btn-outline-warning border-0 p-0 px-1" onclick='openAdjModal(${JSON.stringify(row)})'>
                                 <i class="bi bi-pencil-square"></i>
                             </button>
@@ -317,24 +490,54 @@
                 `;
             });
 
-            // แถวผลรวม
-            html += `
-                <tr class="bg-light-soft fw-bold">
-                    <td colspan="2" class="text-end">รวมทั้งหมด:</td>
-                    <td class="text-end small">${formatNum(sums.old)}</td>
-                    <td class="text-end small">${formatNum(sums.new)}</td>
-                    <td class="text-end small">${formatNum(sums.receive)}</td>
-                    <td class="text-end small text-danger">${formatNum(sums.dec)}</td>
-                    <td class="text-end small text-success">${formatNum(sums.inc)}</td>
-                    <td class="text-end text-primary small">${formatNum(sums.total)}</td>
-                    <td class="text-end small text-success">${formatNum(sums.a90)}</td>
-                    <td class="text-end small text-warning">${formatNum(sums.a365)}</td>
-                    <td class="text-end small text-danger">${formatNum(sums.aover)}</td>
-                    <td></td>
+            tbody.html(html);
+
+            // แถวผลรวม (Footer)
+            let footerHtml = `
+                <tr class="fw-bold" style="background-color: #e0f2fe !important;">
+                    <td colspan="2" class="text-end align-middle" style="background-color: #e0f2fe !important;">
+                        <div class="fw-bold" style="color: #1e293b !important; font-weight: 700;">รวมทั้งหมด:</div>
+                        <div style="font-size: 0.65rem; font-weight: bold; margin-top: 1px; color: #0d6efd !important;">จากงบทดลอง (ลูกหนี้):</div>
+                        <div style="font-size: 0.65rem; font-weight: bold; margin-top: 1px; color: #198754 !important;">จากงบทดลอง (รายได้):</div>
+                    </td>
+                    <td class="text-end small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.old_debit, sums.tb_debit_bf, sums.tb_rev_debit_bf, hasAnyTb, hasAnyRev, 'both')}</td>
+                    <td class="text-end small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.old_credit, sums.tb_credit_bf, sums.tb_rev_credit_bf, hasAnyTb, hasAnyRev, 'both')}</td>
+                    <td class="text-end small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.new_debit, sums.tb_debit_month, sums.tb_rev_credit_month, hasAnyTb, hasAnyRev, 'both')}</td>
+                    <td class="text-end small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.receive_credit, sums.tb_credit_month, 0, hasAnyTb, false, 'asset_only')}</td>
+                    <td class="text-end small text-danger align-middle" style="background-color: #e0f2fe !important;">${formatLedgerOnlySum(sums.adj_inc)}</td>
+                    <td class="text-end small text-success align-middle" style="background-color: #e0f2fe !important;">${formatLedgerOnlySum(sums.adj_dec)}</td>
+                    <td class="text-end text-primary small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.total_debit, sums.tb_debit_net, sums.tb_rev_debit_net, hasAnyTb, hasAnyRev, 'both')}</td>
+                    <td class="text-end text-primary small align-middle" style="background-color: #e0f2fe !important;">${formatCellSum(sums.total_credit, sums.tb_credit_net, sums.tb_rev_credit_net, hasAnyTb, hasAnyRev, 'both')}</td>
+                    <td class="text-end small text-success align-middle" style="background-color: #e0f2fe !important;">${formatLedgerOnlySum(sums.a90)}</td>
+                    <td class="text-end small text-warning align-middle" style="background-color: #e0f2fe !important;">${formatLedgerOnlySum(sums.a365)}</td>
+                    <td class="text-end small text-danger align-middle" style="background-color: #e0f2fe !important;">${formatLedgerOnlySum(sums.aover)}</td>
+                    <td style="background-color: #e0f2fe !important;"></td>
                 </tr>
             `;
 
             tbody.html(html);
+            tfoot.html(footerHtml);
+
+            // Initialize DataTable
+            $('#table-' + monthNo).DataTable({
+                language: {
+                    search: "ค้นหาบัญชี:",
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    paginate: {
+                        first: "หน้าแรก",
+                        last: "หน้าสุดท้าย",
+                        next: "ถัดไป",
+                        previous: "ก่อนหน้า"
+                    },
+                    zeroRecords: "ไม่พบข้อมูลรายการที่ค้นหา"
+                },
+                pageLength: 10,
+                ordering: false,
+                columnDefs: [
+                    { targets: 13, orderable: false }
+                ]
+            });
         }
 
         window.openAdjModal = function(row) {

@@ -94,35 +94,73 @@ class DebtorAccController extends Controller
         $sheet->setCellValue('A1', 'ทะเบียนคุมลูกหนี้ค่ารักษาพยาบาล');
         $sheet->setCellValue('A2', "โรงพยาบาล: $hospital_name | ประจำเดือน: $month_name ปีงบประมาณ: $budget_year");
         
-        $sheet->mergeCells('A1:H1');
-        $sheet->mergeCells('A2:H2');
+        $sheet->mergeCells('A1:M1');
+        $sheet->mergeCells('A2:M2');
         $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal('center');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
 
-        // Table Headers
-        $headers = ['รหัสบัญชี', 'ชื่อผังบัญชี', 'ยอดยกมา', 'ตั้งหนี้', 'ล้างหนี้/รับ', 'ปรับลด', 'ปรับเพิ่ม', 'คงเหลือยกไป'];
-        $cols = range('A', 'H');
-        foreach ($headers as $index => $header) {
-            $sheet->setCellValue($cols[$index] . '4', $header);
-            $sheet->getStyle($cols[$index] . '4')->getFont()->setBold(true);
-            $sheet->getStyle($cols[$index] . '4')->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
-        }
+        // Table Headers (Row 4)
+        $sheet->setCellValue('A4', 'รหัสบัญชี');
+        $sheet->setCellValue('B4', 'ชื่อผังบัญชี');
+        $sheet->setCellValue('C4', 'ยอดยกมา');
+        $sheet->setCellValue('E4', 'รับจ่ายในรอบเดือน');
+        $sheet->setCellValue('I4', 'ยอดคงเหลือยกไป');
+        $sheet->setCellValue('K4', '≤ 90 วัน');
+        $sheet->setCellValue('L4', '91-365 วัน');
+        $sheet->setCellValue('M4', '> 365 วัน');
 
-        // Data
-        $row_num = 5;
+        // Merges for double-header
+        $sheet->mergeCells('A4:A5');
+        $sheet->mergeCells('B4:B5');
+        $sheet->mergeCells('C4:D4');
+        $sheet->mergeCells('E4:H4');
+        $sheet->mergeCells('I4:J4');
+        $sheet->mergeCells('K4:K5');
+        $sheet->mergeCells('L4:L5');
+        $sheet->mergeCells('M4:M5');
+
+        // Sub-headers (Row 5)
+        $sheet->setCellValue('C5', 'เดบิต');
+        $sheet->setCellValue('D5', 'เครดิต');
+        $sheet->setCellValue('E5', 'ตั้งหนี้ (เดบิต)');
+        $sheet->setCellValue('F5', 'รับชำระ (เครดิต)');
+        $sheet->setCellValue('G5', 'ปรับเพิ่ม (เดบิต)');
+        $sheet->setCellValue('H5', 'ปรับลด (เครดิต)');
+        $sheet->setCellValue('I5', 'เดบิต');
+        $sheet->setCellValue('J5', 'เครดิต');
+
+        // Header Styling
+        $header_style = $sheet->getStyle('A4:M5');
+        $header_style->getFont()->setBold(true);
+        $header_style->getAlignment()->setHorizontal('center')->setVertical('center');
+        $header_style->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        // Data Rows
+        $row_num = 6;
         foreach ($data as $item) {
             $sheet->setCellValue('A' . $row_num, $item->acc_code);
             $sheet->setCellValue('B' . $row_num, $item->acc_name);
-            $sheet->setCellValue('C' . $row_num, $item->balance_old);
-            $sheet->setCellValue('D' . $row_num, $item->debt_new);
-            $sheet->setCellValue('E' . $row_num, $item->debt_receive);
-            $sheet->setCellValue('F' . $row_num, $item->debt_adj_dec);
-            $sheet->setCellValue('G' . $row_num, $item->debt_adj_inc);
-            $sheet->setCellValue('H' . $row_num, $item->balance_total);
+            
+            $old_val = floatval($item->balance_old);
+            $sheet->setCellValue('C' . $row_num, $old_val >= 0 ? $old_val : 0);
+            $sheet->setCellValue('D' . $row_num, $old_val < 0 ? abs($old_val) : 0);
+            
+            $sheet->setCellValue('E' . $row_num, floatval($item->debt_new));
+            $sheet->setCellValue('F' . $row_num, floatval($item->debt_receive));
+            $sheet->setCellValue('G' . $row_num, floatval($item->debt_adj_inc));
+            $sheet->setCellValue('H' . $row_num, floatval($item->debt_adj_dec));
+            
+            $total_val = floatval($item->balance_total);
+            $sheet->setCellValue('I' . $row_num, $total_val >= 0 ? $total_val : 0);
+            $sheet->setCellValue('J' . $row_num, $total_val < 0 ? abs($total_val) : 0);
+            
+            $sheet->setCellValue('K' . $row_num, floatval($item->aging_90));
+            $sheet->setCellValue('L' . $row_num, floatval($item->aging_365));
+            $sheet->setCellValue('M' . $row_num, floatval($item->aging_over));
             
             // Format numbers
-            $sheet->getStyle('C'.$row_num.':H'.$row_num)->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle('A'.$row_num.':H'.$row_num)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            $sheet->getStyle('C'.$row_num.':M'.$row_num)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('A'.$row_num.':M'.$row_num)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
             
             $row_num++;
         }
@@ -133,14 +171,14 @@ class DebtorAccController extends Controller
         $sheet->getStyle("A$row_num")->getFont()->setBold(true);
         
         $last_data_row = $row_num - 1;
-        foreach (range('C', 'H') as $col) {
-            $sheet->setCellValue($col . $row_num, "=SUM({$col}5:{$col}{$last_data_row})");
+        foreach (range('C', 'M') as $col) {
+            $sheet->setCellValue($col . $row_num, "=SUM({$col}6:{$col}{$last_data_row})");
             $sheet->getStyle($col . $row_num)->getFont()->setBold(true);
             $sheet->getStyle($col . $row_num)->getNumberFormat()->setFormatCode('#,##0.00');
         }
-        $sheet->getStyle("A$row_num:H$row_num")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        $sheet->getStyle("A$row_num:M$row_num")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
 
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'M') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -156,13 +194,91 @@ class DebtorAccController extends Controller
 
     public function get_data(Request $request)
     {
-        $budget_year = $request->budget_year;
-        $month_no = $request->month_no;
+        $budget_year = intval($request->budget_year);
+        $month_no = intval($request->month_no);
 
         $data = DB::table('debtor_acc_ledger')
             ->where('budget_year', $budget_year)
             ->where('month_no', $month_no)
             ->get();
+
+        // Calculate acc_period in BE (Buddhist Era) format
+        if ($month_no <= 3) {
+            $m = $month_no + 9;
+            $y = $budget_year - 1;
+        } else {
+            $m = $month_no - 3;
+            $y = $budget_year;
+        }
+        $acc_period = sprintf("%04d-%02d", $y, $m);
+
+        // Fetch corresponding general ledger rows for this period
+        $tb_rows = DB::table('hosfin_trial_balance')
+            ->where('acc_period', $acc_period)
+            ->get()
+            ->keyBy('account_code');
+
+        $revenue_map = $this->debtor_revenue_map;
+
+        // Map Trial Balance values to Ledger rows
+        $data = $data->map(function ($row) use ($tb_rows, $revenue_map) {
+            $code = $row->acc_code;
+            $tb = $tb_rows->get($code);
+
+            if ($tb) {
+                // Asset account: map all debit/credit fields
+                $row->tb_debit_bf = floatval($tb->debit_bf);
+                $row->tb_credit_bf = floatval($tb->credit_bf);
+                $row->tb_debit_month = floatval($tb->debit_month);
+                $row->tb_credit_month = floatval($tb->credit_month);
+                $row->tb_debit_net = floatval($tb->debit_net);
+                $row->tb_credit_net = floatval($tb->credit_net);
+                $row->tb_has_data = true;
+            } else {
+                $row->tb_debit_bf = 0.00;
+                $row->tb_credit_bf = 0.00;
+                $row->tb_debit_month = 0.00;
+                $row->tb_credit_month = 0.00;
+                $row->tb_debit_net = 0.00;
+                $row->tb_credit_net = 0.00;
+                $row->tb_has_data = false;
+            }
+
+            // Map Revenue (Category 4)
+            $rev_code = $revenue_map[$code] ?? null;
+            $row->tb_rev_code = $rev_code;
+            if ($rev_code) {
+                $tb_rev = $tb_rows->get($rev_code);
+                if ($tb_rev) {
+                    // Revenue account: map all debit/credit fields
+                    $row->tb_rev_debit_bf = floatval($tb_rev->debit_bf);
+                    $row->tb_rev_credit_bf = floatval($tb_rev->credit_bf);
+                    $row->tb_rev_debit_month = floatval($tb_rev->debit_month);
+                    $row->tb_rev_credit_month = floatval($tb_rev->credit_month);
+                    $row->tb_rev_debit_net = floatval($tb_rev->debit_net);
+                    $row->tb_rev_credit_net = floatval($tb_rev->credit_net);
+                    $row->tb_rev_has_data = true;
+                } else {
+                    $row->tb_rev_debit_bf = 0.00;
+                    $row->tb_rev_credit_bf = 0.00;
+                    $row->tb_rev_debit_month = 0.00;
+                    $row->tb_rev_credit_month = 0.00;
+                    $row->tb_rev_debit_net = 0.00;
+                    $row->tb_rev_credit_net = 0.00;
+                    $row->tb_rev_has_data = false;
+                }
+            } else {
+                $row->tb_rev_debit_bf = 0.00;
+                $row->tb_rev_credit_bf = 0.00;
+                $row->tb_rev_debit_month = 0.00;
+                $row->tb_rev_credit_month = 0.00;
+                $row->tb_rev_debit_net = 0.00;
+                $row->tb_rev_credit_net = 0.00;
+                $row->tb_rev_has_data = false;
+            }
+
+            return $row;
+        });
 
         return response()->json($data);
     }
@@ -238,6 +354,52 @@ class DebtorAccController extends Controller
         '1102050102.603' => ['name' => 'ลูกหนี้ค่ารักษา พรบ.รถ IP', 'table' => 'debtor_1102050102_603', 'date_field' => 'dchdate'],
         '1102050102.802' => ['name' => 'ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท. IP', 'table' => 'debtor_1102050102_802', 'date_field' => 'dchdate'],
         '1102050102.804' => ['name' => 'ลูกหนี้ค่ารักษา อปท.รูปแบบพิเศษ IP', 'table' => 'debtor_1102050102_804', 'date_field' => 'dchdate'],
+    ];
+
+    private $debtor_revenue_map = [
+        // OPD
+        '1102050101.103' => '4301020102.104', // ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ -> รายได้ค่าตรวจสุขภาพ-หน่วยงานภาครัฐ
+        '1102050101.109' => '4301020102.105', // ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน -> รายได้จากระบบปฏิบัติการฉุกเฉิน (EMS)
+        '1102050101.201' => '4301020105.201', // ลูกหนี้ค่ารักษา UC-OP ใน CUP -> รายได้ค่ารักษา UC -OP ใน CUP
+        '1102050101.203' => '4301020105.203', // ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัด) -> รายได้ค่ารักษา UC - OP นอก CUP ในจังหวัด
+        '1102050101.209' => '4301020105.241', // ลูกหนี้ค่ารักษา P&P -> รายได้ค่ารักษาด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)
+        '1102050101.216' => '4301020105.244', // ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) -> รายได้ค่ารักษา UC- OP บริการกรณีเฉพาะ (CR)
+        '1102050101.301' => '4301020106.305', // ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย -> รายได้ค่ารักษาประกันสังคม OP-เครือข่าย
+        '1102050101.303' => '4301020106.307', // ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย -> รายได้ค่ารักษาประกันสังคม OP-นอกเครือข่าย
+        '1102050101.307' => '4301020106.311', // ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน -> รายได้ค่ารักษาประกันสังคม-กองทุนทดแทน
+        '1102050101.309' => '4301020106.313', // ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง OP -> รายได้ค่ารักษาประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP
+        '1102050101.401' => '4301020104.401', // ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP -> รายได้ค่ารักษาเบิกจ่ายตรงกรมบัญชีกลาง OP
+        '1102050101.501' => '4301020106.503', // ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP -> รายได้ค่ารักษาแรงงานต่างด้าว OP
+        '1102050101.503' => '4301020106.512', // ลูกหนี้ค่ารักษา ต่างด้าว นอก CUP OP -> รายได้ค่ารักษาแรงงานต่างด้าว OP นอก CUP
+        '1102050101.701' => '4301020106.709', // ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะ OP ใน CUP -> รายได้ค่ารักษา-บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP
+        '1102050101.702' => '4301020106.701', // ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะ OP นอก CUP -> รายได้ค่ารักษาบุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP
+        '1102050102.103' => '4202010199.101', // ลูกหนี้ค่าตรวจสุขภาพ บุคคลภายนอก -> รายได้ค่าธรรมเนียมการบริการอื่น
+        '1102050102.106' => '4301020104.106', // ลูกหนี้ค่ารักษา ชําระเงิน OP -> รายได้ค่ารักษาชำระเงิน OP
+        '1102050102.108' => '4301020104.104', // ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP -> รายได้ค่ารักษาเบิกต้นสังกัด OP
+        '1102050102.110' => '4301020104.108', // ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP -> รายได้ค่ารักษาเบิกจ่ายตรง-หน่วยงานอื่น - OP
+        '1102050102.301' => '4301020106.307', // ลูกหนี้ค่ารักษา ประกันสังคม OP นอกเครือข่าย ต่างสังกัด สป.สธ.
+        '1102050102.602' => '4301020104.602', // ลูกหนี้ค่ารักษา พรบ.รถ OP -> รายได้ค่ารักษา พรบ.รถ OP
+        '1102050102.801' => '4301020104.801', // ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท. OP -> รายได้ค่ารักษาเบิกจ่ายตรง- อปท. OP
+        '1102050102.803' => '4301020104.805', // ลูกหนี้ค่ารักษา อปท.รูปแบบพิเศษ OP -> รายได้ค่ารักษาเบิกจ่ายตรง - อปท.รูปแบบพิเศษ OP
+
+        // IPD
+        '1102050101.202' => '4301020105.202', // ลูกหนี้ค่ารักษา UC-IP -> รายได้ค่ารักษา UC-IP
+        '1102050101.217' => '4301020105.245', // ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR) -> รายได้ค่ารักษา UC - IP บริการกรณีเฉพาะ (CR)
+        '1102050101.302' => '4301020106.306', // ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย -> รายได้ค่ารักษาประกันสังคม IP-เครือข่าย
+        '1102050101.304' => '4301020106.308', // ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย -> รายได้ค่ารักษาประกันสังคม IP-นอกเครือข่าย
+        '1102050101.308' => '4301020106.312', // ลูกหนี้ค่ารักษา ประกันสังคม 72 ชม. -> รายได้ค่ารักษาประกันสังคม 72 ชั่วโมงแรก
+        '1102050101.310' => '4301020106.314', // ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP -> รายได้ค่ารักษาประกันสังคม-ค่าใช้จ่ายสูง IP
+        '1102050101.402' => '4301020104.402', // ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง IP -> รายได้ค่ารักษาเบิกจ่ายตรงกรมบัญชีกลาง IP
+        '1102050101.502' => null,
+        '1102050101.504' => null,
+        '1102050101.704' => '4301020106.710', // ลูกหนี้ค่ารักษา ต่างด้าว เบิกส่วนกลาง IP -> รายได้ค่ารักษาบุคคลที่มีปัญหาสถานะและสิทธิ - เบิกจากส่วนกลาง IP
+        '1102050102.107' => '4301020104.107', // ลูกหนี้ค่ารักษา ชำระเงิน IP -> รายได้ค่ารักษาชำระเงิน IP
+        '1102050102.109' => '4301020104.105', // ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP -> รายได้ค่ารักษาเบิกต้นสังกัด IP
+        '1102050102.111' => null,
+        '1102050102.302' => '4301020106.308',
+        '1102050102.603' => '4301020104.603', // ลูกหนี้ค่ารักษา พรบ.รถ IP -> รายได้ค่ารักษา พรบ.รถ IP
+        '1102050102.802' => '4301020104.802', // ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท. IP -> รายได้ค่ารักษาเบิกจ่ายตรง-อปท. IP
+        '1102050102.804' => '4301020104.806', // ลูกหนี้ค่ารักษา อปท.รูปแบบพิเศษ IP -> รายได้ค่ารักษาเบิกจ่ายตรง- อปท.รูปแบบพิเศษ IP
     ];
 
     public function init_month_rows(Request $request)

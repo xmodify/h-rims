@@ -138,9 +138,9 @@
                     <th>ชื่อผังบัญชี</th>
                     <th width="10%">ยอดยกมา</th>
                     <th width="10%">ตั้งหนี้</th>
-                    <th width="10%">ล้างหนี้/รับ</th>
-                    <th width="9%">ปรับลด</th>
+                    <th width="10%">รับชำระ</th>
                     <th width="9%">ปรับเพิ่ม</th>
+                    <th width="9%">ปรับลด</th>
                     <th width="11%">คงเหลือยกไป</th>
                 </tr>
             </thead>
@@ -163,8 +163,8 @@
                         <td class="text-end">{{ number_format($row->balance_old, 2) }}</td>
                         <td class="text-end">{{ number_format($row->debt_new, 2) }}</td>
                         <td class="text-end">{{ number_format($row->debt_receive, 2) }}</td>
-                        <td class="text-end">{{ number_format($row->debt_adj_dec, 2) }}</td>
                         <td class="text-end">{{ number_format($row->debt_adj_inc, 2) }}</td>
+                        <td class="text-end">{{ number_format($row->debt_adj_dec, 2) }}</td>
                         <td class="text-end fw-bold">{{ number_format($row->balance_total, 2) }}</td>
                     </tr>
                 @endforeach
@@ -175,8 +175,8 @@
                     <td class="text-end">{{ number_format($sum_old, 2) }}</td>
                     <td class="text-end">{{ number_format($sum_new, 2) }}</td>
                     <td class="text-end">{{ number_format($sum_receive, 2) }}</td>
-                    <td class="text-end">{{ number_format($sum_dec, 2) }}</td>
                     <td class="text-end">{{ number_format($sum_inc, 2) }}</td>
+                    <td class="text-end">{{ number_format($sum_dec, 2) }}</td>
                     <td class="text-end">{{ number_format($sum_total, 2) }}</td>
                 </tr>
             </tfoot>

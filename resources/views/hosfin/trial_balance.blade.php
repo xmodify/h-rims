@@ -271,14 +271,14 @@
                                     @endforeach
                                 </tbody>
                                 <tfoot>
-                                    <tr class="fw-bold bg-light align-middle" style="border-top: 2px solid #cbd5e1 !important; border-bottom: 2px solid #cbd5e1 !important;">
-                                        <th colspan="3" class="text-center bg-light">รวมทั้งสิ้น</th>
-                                        <th class="text-end bg-light text-dark">0.00</th>
-                                        <th class="text-end bg-light text-dark">0.00</th>
-                                        <th class="text-end bg-light text-dark">0.00</th>
-                                        <th class="text-end bg-light text-dark">0.00</th>
-                                        <th class="text-end bg-light text-primary">0.00</th>
-                                        <th class="text-end bg-light text-danger">0.00</th>
+                                    <tr class="fw-bold align-middle" style="border-top: 2px solid #cbd5e1 !important; border-bottom: 2px solid #cbd5e1 !important; background-color: #e0f2fe !important;">
+                                        <th colspan="3" class="text-center text-dark" style="background-color: #e0f2fe !important;">รวมทั้งสิ้น</th>
+                                        <th class="text-end text-dark" style="background-color: #e0f2fe !important;">0.00</th>
+                                        <th class="text-end text-dark" style="background-color: #e0f2fe !important;">0.00</th>
+                                        <th class="text-end text-dark" style="background-color: #e0f2fe !important;">0.00</th>
+                                        <th class="text-end text-dark" style="background-color: #e0f2fe !important;">0.00</th>
+                                        <th class="text-end text-primary" style="background-color: #e0f2fe !important;">0.00</th>
+                                        <th class="text-end text-danger" style="background-color: #e0f2fe !important;">0.00</th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 zeroRecords: "ไม่พบข้อมูลรายการที่ค้นหา"
             },
-            pageLength: 50,
+            pageLength: 10,
             ordering: true,
             footerCallback: function (row, data, start, end, display) {
                 var api = this.api();

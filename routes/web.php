@@ -216,6 +216,8 @@ Route::post('import/eclaim-bot/rep-search', [EclaimBotController::class, 'search
 Route::post('import/eclaim-bot/rep-import', [EclaimBotController::class, 'importRepStatements'])->name('import.eclaim-bot.rep-import');
 Route::post('import/eclaim-bot/finance-search', [EclaimBotController::class, 'searchFinanceStatements'])->name('import.eclaim-bot.finance-search');
 Route::post('import/eclaim-bot/finance-import', [EclaimBotController::class, 'importFinanceStatements'])->name('import.eclaim-bot.finance-import');
+Route::post('import/eclaim-bot/stm-bkk-search', [EclaimBotController::class, 'stmBkkSearch'])->name('import.eclaim-bot.stm-bkk-search');
+Route::post('import/eclaim-bot/stm-bkk-import', [EclaimBotController::class, 'stmBkkImport'])->name('import.eclaim-bot.stm-bkk-import');
 Route::match(['get', 'post'], 'import/eclaim-bot/debug-check', [EclaimBotController::class, 'debugCheck'])->name('import.eclaim-bot.debug-check');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);

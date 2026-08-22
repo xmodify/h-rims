@@ -489,6 +489,8 @@ Route::match(['get', 'post'], 'claim_ip/act', [ClaimIpController::class, 'act'])
 Route::match(['get', 'post'], 'mishos/ucs_ae', [MishosController::class, 'ucs_ae']);
 Route::match(['get', 'post'], 'mishos/ucs_walkin', [MishosController::class, 'ucs_walkin']);
 Route::match(['get', 'post'], 'mishos/ucs_herb', [MishosController::class, 'ucs_herb']);
+Route::match(['get', 'post'], 'mishos/ucs_healthmed_procedure', [MishosController::class, 'ucs_healthmed_procedure']);
+Route::get('mishos/ucs_healthmed_procedure/export', [MishosController::class, 'ucs_healthmed_procedure_export']);
 Route::match(['get', 'post'], 'mishos/ucs_telemed', [MishosController::class, 'ucs_telemed']);
 Route::match(['get', 'post'], 'mishos/ucs_rider', [MishosController::class, 'ucs_rider']);
 Route::match(['get', 'post'], 'mishos/ucs_gdm', [MishosController::class, 'ucs_gdm']);

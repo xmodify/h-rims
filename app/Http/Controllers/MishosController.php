@@ -590,7 +590,448 @@ class MishosController extends Controller
         ]);
     }
 
-        public function ucs_telemed(Request $request)
+    public function ucs_healthmed_procedure(Request $request)
+    {
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
+
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_healthmed_procedure', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        // รหัสเคลมหัตถการ/ยา สมุนไพร ตามรูปที่ 2
+        $claim_codes = "'9007838', '9007712', '9007713', '9007714', '9007716', '9007730', '9007820', '9007811', '8727811', '8737811', '8747811', '8737835', '9007800'";
+
+        if (!$request->input('skip_chart')) {
+            $sum_month_sql = '
+
+            SELECT 
+                CASE WHEN MONTH(service_date)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(service_date)+543, 2))
+                    WHEN MONTH(service_date)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(service_date)+543, 2))
+                    END AS month,
+                SUM(IF(has_postpartum > 0, 1, 0)) AS postpartum_count,
+                SUM(IF(has_massage > 0 AND has_compress > 0, 1, 0)) AS massage_and_compress_count,
+                SUM(IF(has_massage > 0 AND has_compress = 0, 1, 0)) AS massage_only_count,
+                SUM(IF(has_compress > 0 AND has_massage = 0, 1, 0)) AS compress_only_count,
+                SUM(IF(has_poultice > 0, 1, 0)) AS poultice_count,
+                SUM(IF(has_steam > 0, 1, 0)) AS steam_count,
+                SUM(IF(has_herbs > 0, 1, 0)) AS herbs_count
+            FROM (
+                SELECT hms.service_date, hms.vn,
+                    SUM(IF(hmoi.icd10tm IN (\'9007712\',\'9007713\',\'9007714\',\'9007716\',\'9007730\'), 1, 0)) AS has_postpartum,
+                    SUM(IF(hmoi.icd10tm IN (\'8727811\',\'8737811\',\'8747811\',\'8737835\'), 1, 0)) AS has_poultice,
+                    SUM(IF(hmoi.icd10tm LIKE \'%7800\', 1, 0)) AS has_steam,
+                    SUM(IF(hmoi.icd10tm LIKE \'%7811\', 1, 0)) AS has_massage,
+                    SUM(IF(hmoi.icd10tm LIKE \'%7820\', 1, 0)) AS has_compress,
+                    SUM(IF(hmoi.icd10tm = \'9007838\', 1, 0)) AS has_herbs
+                FROM health_med_service hms
+                INNER JOIN health_med_service_operation hmso ON hmso.health_med_service_id = hms.health_med_service_id
+                INNER JOIN health_med_operation_item hmoi ON hmoi.health_med_operation_item_id = hmso.health_med_operation_item_id
+                WHERE hms.service_date BETWEEN ? AND ?
+                GROUP BY hms.vn
+            ) as ttm_visits
+            GROUP BY YEAR(service_date), MONTH(service_date)
+            ORDER BY YEAR(service_date), MONTH(service_date)
+            ';
+            $chart_placeholders = substr_count($sum_month_sql, '?');
+            $chart_bindings = [];
+            for ($k = 0; $k < $chart_placeholders; $k += 2) {
+                $chart_bindings[] = $start_date_b;
+                $chart_bindings[] = $end_date_b;
+            }
+            $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
+
+            $month = array_column($sum_month, 'month');
+            $postpartum_count = array_map('intval', array_column($sum_month, 'postpartum_count'));
+            $massage_and_compress_count = array_map('intval', array_column($sum_month, 'massage_and_compress_count'));
+            $massage_only_count = array_map('intval', array_column($sum_month, 'massage_only_count'));
+            $compress_only_count = array_map('intval', array_column($sum_month, 'compress_only_count'));
+            $poultice_count = array_map('intval', array_column($sum_month, 'poultice_count'));
+            $steam_count = array_map('intval', array_column($sum_month, 'steam_count'));
+            $herbs_count = array_map('intval', array_column($sum_month, 'herbs_count'));
+        }
+
+            $search_sql = '
+
+            SELECT o.vn AS seq, o.vstdate, o.vsttime, o.oqueue, pt.cid, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+            p.`name` AS pttype, vp.hospmain, v.pdx,
+            IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,
+            IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
+            COALESCE(herb.billing_list, "-") AS claim_billing_list,
+            COALESCE(herb.claim_price, 0) AS claim_billing_price, 
+            COALESCE(herb.claim_price, 0) AS claim_price, 
+            CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
+            LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug), COALESCE(herb.claim_price, 0)) AS receive_total,
+            ttm.claim_list,
+            ttm.has_postpartum, ttm.has_poultice, ttm.has_steam, ttm.has_massage, ttm.has_compress, ttm.has_herbs,
+            IF(fdh.seq IS NOT NULL,"Y","") AS claim
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype          
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            
+            INNER JOIN (
+                SELECT ttm_items.vn,
+                    MAX(ttm_items.has_postpartum) as has_postpartum,
+                    MAX(ttm_items.has_poultice) as has_poultice,
+                    MAX(ttm_items.has_steam) as has_steam,
+                    MAX(ttm_items.has_massage) as has_massage,
+                    MAX(ttm_items.has_compress) as has_compress,
+                    MAX(ttm_items.has_herbs) as has_herbs,
+                    GROUP_CONCAT(DISTINCT ttm_items.proc_combined) as claim_list
+                FROM (
+                    SELECT hms.vn,
+                        IF(hmoi.icd10tm IN (\'9007712\',\'9007713\',\'9007714\',\'9007716\',\'9007730\'), 1, 0) AS has_postpartum,
+                        IF(hmoi.icd10tm IN (\'8727811\',\'8737811\',\'8747811\',\'8737835\'), 1, 0) AS has_poultice,
+                        IF(hmoi.icd10tm LIKE \'%7800\', 1, 0) AS has_steam,
+                        IF(hmoi.icd10tm LIKE \'%7811\', 1, 0) AS has_massage,
+                        IF(hmoi.icd10tm LIKE \'%7820\', 1, 0) AS has_compress,
+                        IF(hmoi.icd10tm = \'9007838\', 1, 0) AS has_herbs,
+                        CONCAT(\'[\', hmoi.icd10tm, \'] \', hmoi.health_med_operation_item_name) as proc_combined
+                    FROM health_med_service hms
+                    INNER JOIN health_med_service_operation hmso ON hmso.health_med_service_id = hms.health_med_service_id
+                    INNER JOIN health_med_operation_item hmoi ON hmoi.health_med_operation_item_id = hmso.health_med_operation_item_id
+                    WHERE hms.service_date BETWEEN ? AND ?
+                      AND (
+                           hmoi.icd10tm LIKE "%7811"
+                        OR hmoi.icd10tm LIKE "%7820"
+                        OR hmoi.icd10tm LIKE "%7800"
+                        OR hmoi.icd10tm IN ("9007712","9007713","9007714","9007716","9007730")
+                        OR hmoi.icd10tm IN ("8727811","8737811","8747811","8737835")
+                        OR hmoi.icd10tm = "9007838"
+                      )
+                ) ttm_items
+                GROUP BY ttm_items.vn
+            ) ttm ON ttm.vn = o.vn
+            
+            LEFT JOIN (
+                SELECT op.vn, 
+                       GROUP_CONCAT(DISTINCT CONCAT(\'[\', n.nhso_adp_code, \'] \', n.name)) AS billing_list,
+                       SUM(op.sum_price) AS claim_price	
+                FROM opitemrece op
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? 
+                  AND op.paidst = "02" 
+                  AND n.nhso_adp_code LIKE "58%"
+                GROUP BY op.vn
+            ) herb ON herb.vn=o.vn						
+            LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
+            LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_hc_drug) AS receive_hc_drug,
+                SUM(receive_hc_hc) AS receive_hc_hc FROM hrims.stm_ucs 
+                WHERE vstdate BETWEEN ? AND ?
+                GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
+                AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
+            WHERE (o.an ="" OR o.an IS NULL)
+            AND p.hipdata_code IN ("UCS","WEL") 	
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
+            AND o.vstdate BETWEEN ? AND ?
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+            ';
+            $search_placeholders = substr_count($search_sql, '?');
+            $search_bindings = [];
+            for ($k = 0; $k < $search_placeholders; $k += 2) {
+                $search_bindings[] = $start_date;
+                $search_bindings[] = $end_date;
+            }
+            $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
+
+        $hns = array_filter(array_unique(array_column($all_visits, 'hn')));
+        $repData = [];
+        if (!empty($hns)) {
+            $repRecords = DB::table('hrims.rep_ucs')
+                ->whereIn('hn', $hns)
+                ->where('rep_type', 'OP')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->select('hn', 'vstdate', 'vsttime', 'error_code', 'repno')
+                ->get()
+                ->groupBy('hn');
+            foreach ($repRecords as $hn => $group) {
+                foreach ($group as $rep) {
+                    $repData[$hn][$rep->vstdate][substr($rep->vsttime, 0, 5)] = $rep;
+                }
+            }
+        }
+
+        foreach ($all_visits as $row) {
+            $vsttime5 = substr($row->vsttime, 0, 5);
+            $row->rep_error_code = $repData[$row->hn][$row->vstdate][$vsttime5]->error_code ?? null;
+            $row->rep_repno = $repData[$row->hn][$row->vstdate][$vsttime5]->repno ?? null;
+            if (!property_exists($row, 'repno')) {
+                $row->repno = null;
+            }
+            $row->claim_price = floatval($row->claim_price);
+        }
+
+        $this->checkClosedStatusOnly($all_visits);
+
+        $postpartum_list = [];
+        $compress_list = [];
+        $massage_list = [];
+        $massage_and_compress_list = [];
+        $poultice_list = [];
+        $steam_list = [];
+        $herbs_list = [];
+
+        foreach ($all_visits as $row) {
+            if ($row->has_postpartum > 0) {
+                $postpartum_list[] = $row;
+            }
+            if ($row->has_massage > 0 && $row->has_compress > 0) {
+                $massage_and_compress_list[] = $row;
+            }
+            if ($row->has_massage > 0 && $row->has_compress == 0) {
+                $massage_list[] = $row;
+            }
+            if ($row->has_compress > 0 && $row->has_massage == 0) {
+                $compress_list[] = $row;
+            }
+            if ($row->has_poultice > 0) {
+                $poultice_list[] = $row;
+            }
+            if ($row->has_steam > 0) {
+                $steam_list[] = $row;
+            }
+            if ($row->has_herbs > 0) {
+                $herbs_list[] = $row;
+            }
+        }
+
+        $table_html = view('mishos.ucs_healthmed_procedure_table', compact(
+            'budget_year', 'start_date', 'end_date',
+            'postpartum_list', 'compress_list', 'massage_list',
+            'massage_and_compress_list', 'poultice_list', 'steam_list', 'herbs_list'
+        ))->render();
+
+        $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $all_visits);
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'months' => $month,
+                'postpartum_count' => $postpartum_count,
+                'massage_and_compress_count' => $massage_and_compress_count,
+                'massage_only_count' => $massage_only_count,
+                'compress_only_count' => $compress_only_count,
+                'poultice_count' => $poultice_count,
+                'steam_count' => $steam_count,
+                'herbs_count' => $herbs_count
+            ] : null
+        ]);
+    }
+
+    public function ucs_healthmed_procedure_export(Request $request)
+    {
+        ini_set('max_execution_time', 0);
+
+        $budget_year = $request->budget_year ?: date('Y');
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        $search_sql = '
+            SELECT o.vn AS seq, o.vstdate, o.vsttime, o.oqueue, pt.cid, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+            p.`name` AS pttype, vp.hospmain, v.pdx,
+            COALESCE(herb.billing_list, "-") AS claim_billing_list,
+            COALESCE(herb.claim_price, 0) AS claim_billing_price,
+            COALESCE(herb.claim_price, 0) AS claim_price,
+            ttm.claim_list,
+            ttm.has_postpartum, ttm.has_poultice, ttm.has_steam, ttm.has_massage, ttm.has_compress, ttm.has_herbs
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
+            LEFT JOIN pttype p ON p.pttype=vp.pttype          
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            
+            INNER JOIN (
+                SELECT ttm_items.vn,
+                    MAX(ttm_items.has_postpartum) as has_postpartum,
+                    MAX(ttm_items.has_poultice) as has_poultice,
+                    MAX(ttm_items.has_steam) as has_steam,
+                    MAX(ttm_items.has_massage) as has_massage,
+                    MAX(ttm_items.has_compress) as has_compress,
+                    MAX(ttm_items.has_herbs) as has_herbs,
+                    GROUP_CONCAT(DISTINCT ttm_items.proc_combined) as claim_list
+                FROM (
+                    SELECT hms.vn,
+                        IF(hmoi.icd10tm IN (\'9007712\',\'9007713\',\'9007714\',\'9007716\',\'9007730\'), 1, 0) AS has_postpartum,
+                        IF(hmoi.icd10tm IN (\'8727811\',\'8737811\',\'8747811\',\'8737835\'), 1, 0) AS has_poultice,
+                        IF(hmoi.icd10tm LIKE \'%7800\', 1, 0) AS has_steam,
+                        IF(hmoi.icd10tm LIKE \'%7811\', 1, 0) AS has_massage,
+                        IF(hmoi.icd10tm LIKE \'%7820\', 1, 0) AS has_compress,
+                        IF(hmoi.icd10tm = \'9007838\', 1, 0) AS has_herbs,
+                        CONCAT(\'[\', hmoi.icd10tm, \'] \', hmoi.health_med_operation_item_name) as proc_combined
+                    FROM health_med_service hms
+                    INNER JOIN health_med_service_operation hmso ON hmso.health_med_service_id = hms.health_med_service_id
+                    INNER JOIN health_med_operation_item hmoi ON hmoi.health_med_operation_item_id = hmso.health_med_operation_item_id
+                    WHERE hms.service_date BETWEEN ? AND ?
+                      AND (
+                           hmoi.icd10tm LIKE "%7811"
+                        OR hmoi.icd10tm LIKE "%7820"
+                        OR hmoi.icd10tm LIKE "%7800"
+                        OR hmoi.icd10tm IN ("9007712","9007713","9007714","9007716","9007730")
+                        OR hmoi.icd10tm IN ("8727811","8737811","8747811","8737835")
+                        OR hmoi.icd10tm = "9007838"
+                      )
+                ) ttm_items
+                GROUP BY ttm_items.vn
+            ) ttm ON ttm.vn = o.vn
+            LEFT JOIN (
+                SELECT op.vn, 
+                       GROUP_CONCAT(DISTINCT CONCAT(\'[\', n.nhso_adp_code, \'] \', n.name)) AS billing_list,
+                       SUM(op.sum_price) AS claim_price	
+                FROM opitemrece op
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? 
+                  AND op.paidst = "02" 
+                  AND n.nhso_adp_code LIKE "58%"
+                GROUP BY op.vn
+            ) herb ON herb.vn=o.vn
+            WHERE (o.an ="" OR o.an IS NULL)
+            AND p.hipdata_code IN ("UCS","WEL") 	
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
+            AND o.vstdate BETWEEN ? AND ?
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
+        ';
+
+        $search_placeholders = substr_count($search_sql, '?');
+        $search_bindings = [];
+        for ($k = 0; $k < $search_placeholders; $k += 2) {
+            $search_bindings[] = $start_date;
+            $search_bindings[] = $end_date;
+        }
+        $all_visits = DB::connection('hosxp')->select($search_sql, $search_bindings);
+
+        $postpartum_list = [];
+        $compress_list = [];
+        $massage_list = [];
+        $massage_and_compress_list = [];
+        $poultice_list = [];
+        $steam_list = [];
+        $herbs_list = [];
+
+        foreach ($all_visits as $row) {
+            if ($row->has_postpartum > 0) {
+                $postpartum_list[] = $row;
+            }
+            if ($row->has_massage > 0 && $row->has_compress > 0) {
+                $massage_and_compress_list[] = $row;
+            }
+            if ($row->has_massage > 0 && $row->has_compress == 0) {
+                $massage_list[] = $row;
+            }
+            if ($row->has_compress > 0 && $row->has_massage == 0) {
+                $compress_list[] = $row;
+            }
+            if ($row->has_poultice > 0) {
+                $poultice_list[] = $row;
+            }
+            if ($row->has_steam > 0) {
+                $steam_list[] = $row;
+            }
+            if ($row->has_herbs > 0) {
+                $herbs_list[] = $row;
+            }
+        }
+
+        $tabs_data = [
+            'ดูแลมารดาหลังคลอด' => $postpartum_list,
+            'ประคบ' => $compress_list,
+            'นวด' => $massage_list,
+            'นวดและประคบ' => $massage_and_compress_list,
+            'พอกเข่า' => $poultice_list,
+            'อบสมุนไพร' => $steam_list,
+            'การใช้ยาจากสมุนไพร' => $herbs_list,
+        ];
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->removeSheetByIndex(0); // Remove default sheet
+
+        foreach ($tabs_data as $tab_title => $data) {
+            $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $tab_title);
+            $spreadsheet->addSheet($sheet);
+
+            // Write headers
+            $headers = ['ลำดับ', 'วันที่รับบริการ', 'เวลา', 'Queue', 'HN', 'ชื่อ-สกุล', 'สิทธิการรักษา', 'หัตถการ', 'รายการเรียกเก็บ', 'ยอดเรียกเก็บ'];
+            foreach ($headers as $col_index => $header) {
+                $col_letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col_index + 1);
+                $sheet->setCellValue($col_letter . '1', $header);
+                $sheet->getStyle($col_letter . '1')->getFont()->setBold(true);
+            }
+
+            // Write rows
+            $row_num = 2;
+            foreach ($data as $index => $row) {
+                $sheet->setCellValue('A' . $row_num, $index + 1);
+                $sheet->setCellValue('B' . $row_num, DateThai($row->vstdate));
+                $sheet->setCellValue('C' . $row_num, $row->vsttime);
+                $sheet->setCellValue('D' . $row_num, $row->oqueue);
+                $sheet->setCellValue('E' . $row_num, $row->hn);
+                $sheet->setCellValue('F' . $row_num, $row->ptname);
+                $sheet->setCellValue('G' . $row_num, $row->pttype);
+                $sheet->setCellValue('H' . $row_num, $row->claim_list);
+                $sheet->setCellValue('I' . $row_num, $row->claim_billing_list);
+                $sheet->setCellValue('J' . $row_num, floatval($row->claim_billing_price));
+                $sheet->getStyle('J' . $row_num)->getNumberFormat()->setFormatCode('#,##0.00');
+                $row_num++;
+            }
+
+            // Auto-size columns
+            foreach ($headers as $col_index => $header) {
+                $col_letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col_index + 1);
+                $sheet->getColumnDimension($col_letter)->setAutoSize(true);
+            }
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = "บริการแพทย์แผนไทย_" . date('Ymd_His') . ".xlsx";
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . urlencode($filename) . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function ucs_telemed(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 

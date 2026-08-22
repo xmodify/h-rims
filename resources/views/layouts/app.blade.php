@@ -1078,6 +1078,10 @@
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('mishos/ucs_healthmed_procedure') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการแพทย์แผนไทย นวด,อบ,ประคบ และการดูแลมารดาหลังคลอด</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('mishos/ucs_telemed') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการสาธารณสุขทางไกล (TELEMED)</a>
                                                 </li>
                                                 <li>
@@ -1186,7 +1190,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-22 15.00
+                                V.69-08-22 22.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

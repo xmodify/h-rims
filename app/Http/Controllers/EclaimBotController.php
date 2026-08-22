@@ -40,7 +40,8 @@ class EclaimBotController extends Controller
 
     /**
      * ทำความสะอาดและจัดรูปแบบ Cookie สำหรับส่งไปยัง e-Claim สปสช.
-     * รองรับทั้ง Full Cookie String (JSESSIONID + STEEXWDE + อื่นๆ) และ JSESSIONID ดิบ
+     * รองรับทั้ง Full Cookie String (JSESSIONID + ACCESS_TOKEN + STEEXWDE) และ JSESSIONID ดิบ
+     * พร้อมตัดขยะ Google Analytics (_ga, _gid) ที่ทำให้เกิด HTTP 400 Header Too Large ออก
      */
     protected function cleanToken($rawToken)
     {
@@ -50,8 +51,25 @@ class EclaimBotController extends Controller
         }
 
         // กรณีเป็น Full Cookie string ที่มีหลายตัวคั่นด้วย ; (เช่น JSESSIONID=...; STEEXWDE=...)
-        if (strpos($token, ';') !== false && (stripos($token, 'JSESSIONID=') !== false || stripos($token, 'STEEXWDE=') !== false)) {
-            return trim($token, " \t\n\r\0\x0B\"'");
+        if (strpos($token, ';') !== false && (stripos($token, 'JSESSIONID=') !== false || stripos($token, 'STEEXWDE=') !== false || stripos($token, 'ACCESS_TOKEN=') !== false)) {
+            $pairs = explode(';', $token);
+            $cleanPairs = [];
+            foreach ($pairs as $p) {
+                $p = trim($p);
+                if (empty($p)) continue;
+                $parts = explode('=', $p, 2);
+                $k = trim($parts[0]);
+                $v = isset($parts[1]) ? trim($parts[1]) : '';
+                
+                // กรองเอาเฉพาะ Cookie ที่จำเป็นต่อการ Auth (ตัดขยะ _ga, _gid, _gat ออก)
+                if (strpos($k, '_ga') === 0 || $k === '_gid' || $k === '_gat' || $k === '_gcl_au' || strpos($k, '__') === 0) {
+                    continue;
+                }
+                $cleanPairs[] = "{$k}={$v}";
+            }
+            if (!empty($cleanPairs)) {
+                return implode('; ', $cleanPairs);
+            }
         }
 
         // กรณีระบุมาเฉพาะ JSESSIONID=xxx

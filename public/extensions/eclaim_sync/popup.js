@@ -104,8 +104,15 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
             return;
         }
 
-        // รวมทุก Cookie ที่มี (ACCESS_TOKEN, JSESSIONID, STEEXWDE, REFRESH_TOKEN ฯลฯ)
-        const fullCookieString = Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
+        // กรองเอาเฉพาะ Cookie ที่จำเป็นต่อการ Auth (ตัด Google Analytics _ga, _gid ออก ป้องกัน Header Too Large)
+        const cleanCookies = [];
+        for (let [k, v] of cookieMap.entries()) {
+            if (k.startsWith('_ga') || k === '_gid' || k === '_gat' || k === '_gcl_au' || k.startsWith('__')) {
+                continue;
+            }
+            cleanCookies.push(`${k}=${v}`);
+        }
+        const fullCookieString = cleanCookies.join('; ');
 
         const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
         const hcode = document.getElementById('hospCode').value.trim();

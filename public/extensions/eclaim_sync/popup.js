@@ -100,7 +100,7 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
         }
 
         if (!cookieMap.has('JSESSIONID')) {
-            updateStatus("ไม่พบ Session e-Claim กรุณาล็อกอิน e-Claim ก่อนครับ", "red");
+            updateStatus("⚠️ ยังไม่ได้เข้าสู่ระบบ e-Claim กรุณาล็อกอินผ่าน ThaiD ก่อนซิงก์ครับ", "red");
             return;
         }
 

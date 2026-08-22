@@ -113,24 +113,48 @@ class EclaimBotController extends Controller
 
     /**
      * 0. บันทึก Session Token จาก RiMS Chrome Extension (API Endpoint)
+     * มีระบบตรวจสอบความถูกต้องของ Token ก่อนบันทึกทับ เพื่อป้องกันการหลงกดซิงก์จากเครื่องที่ยังไม่ได้ล็อกอิน
      */
     public function saveSessionFromExtension(Request $request)
     {
         $token = $this->cleanToken($request->token);
         if (!$token) {
-            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token'], 400);
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Session Token ที่ถูกต้อง'], 400);
+        }
+
+        // ตรวจสอบความถูกต้องของ Token โดยตรงกับ e-Claim สปสช. ก่อนบันทึกทับ
+        $user = 'เจ้าหน้าที่ e-Claim';
+        try {
+            $headers = $this->getEclaimBrowserHeaders($token);
+            $probeUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
+            $probeRes = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->timeout(8)
+                ->get($probeUrl);
+
+            $html = (string)$probeRes->body();
+            // ถ้าติดหน้า Error Page หรือไม่มีสิทธิ์ หรือ Session ไม่ถูกต้อง
+            if ($probeRes->status() !== 200 || stripos($html, '<title>Error Page</title>') !== false || stripos($html, 'คุณไม่มีสิทธิ์เข้าใช้งาน') !== false) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session นี้ยังไม่ได้ล็อกอิน e-Claim (ThaiD) หรือหมดอายุแล้ว ระบบจึงไม่บันทึกทับ Session เดิมในฐานข้อมูล'
+                ], 422);
+            }
+
+            // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim
+            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<]+)/u', $html, $m)) {
+                $user = trim(strip_tags($m[1]));
+            } elseif (auth()->check()) {
+                $user = auth()->user()->name;
+            }
+        } catch (\Exception $e) {
+            // กรณีเซิร์ฟเวอร์ชั่วคราว
         }
 
         $hcode = $request->hospcode ?: (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989');
         $now = date('Y-m-d H:i:s');
-        $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
 
-        // 1. Ensure main_setting value column is LONGTEXT for full JWT / multi-cookies
-        try {
-            DB::statement("ALTER TABLE main_setting MODIFY COLUMN value LONGTEXT NULL");
-        } catch (\Exception $e) {}
-
-        // Save to Database (main_setting) for hospital-wide sharing
+        // บันทึกลง Database (main_setting) เพื่อแชร์ให้ทุกคนใน รพ.
         DB::table('main_setting')->updateOrInsert(
             ['name' => 'eclaim_session_token'],
             ['name_th' => 'e-Claim Session Token', 'value' => $token]
@@ -157,7 +181,7 @@ class EclaimBotController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'ซิงก์ Session กับ RiMS และบันทึกลงฐานข้อมูลสำเร็จ (แชร์ให้ผู้ใช้ทุกคนใน รพ.)',
+            'message' => 'ซิงก์ Session กับ RiMS สำเร็จแล้ว (' . $user . ') พร้อมใช้งานสำหรับทุกคนใน รพ.',
             'token' => $token,
             'user' => $user
         ]);

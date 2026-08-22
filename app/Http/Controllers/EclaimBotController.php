@@ -1782,5 +1782,50 @@ class EclaimBotController extends Controller
             'reload' => true
         ]);
     }
+
+    /**
+     * 12. ตรวจสอบการเชื่อมต่อและวินิจฉัยปัญหา (Debug Diagnostic)
+     */
+    public function debugCheck(Request $request)
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $dbToken = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value');
+        $sessionToken = $this->getActiveEclaimToken();
+
+        $outgoingIp = null;
+        try {
+            $outgoingIp = Http::withoutVerifying()->timeout(5)->get('https://api.ipify.org')->body();
+        } catch (\Exception $e) {
+            $outgoingIp = 'Error: ' . $e->getMessage();
+        }
+
+        $url = "https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do?maininscl=ucs&mo=8&ye=2569";
+        $headers = $this->getEclaimBrowserHeaders($sessionToken);
+
+        $responseStatus = null;
+        $responseBody = null;
+        $errorMsg = null;
+
+        try {
+            $res = Http::withHeaders($headers)->withoutVerifying()->timeout(15)->get($url);
+            $responseStatus = $res->status();
+            $responseBody = $res->body();
+        } catch (\Exception $e) {
+            $errorMsg = $e->getMessage();
+        }
+
+        return response()->json([
+            'server_outgoing_ip' => $outgoingIp,
+            'db_token_length' => strlen((string)$dbToken),
+            'db_token_preview' => substr((string)$dbToken, 0, 150) . (strlen((string)$dbToken) > 150 ? '...' : ''),
+            'cookie_header_sent' => substr((string)($headers['Cookie'] ?? ''), 0, 150) . '...',
+            'eclaim_http_status' => $responseStatus,
+            'has_content2_table' => strpos((string)$responseBody, 'content2') !== false,
+            'has_frm_err' => strpos((string)$responseBody, 'frmErr') !== false || strpos((string)$responseBody, 'คุณไม่มีสิทธิ์') !== false,
+            'response_length' => strlen((string)$responseBody),
+            'raw_html_snippet' => substr((string)$responseBody, 0, 600),
+            'curl_error' => $errorMsg,
+        ]);
+    }
 }
 

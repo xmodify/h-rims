@@ -39,11 +39,46 @@ class EclaimBotController extends Controller
     }
 
     /**
+     * ทำความสะอาดและสกัดเฉพาะค่า JSESSIONID ดิบ (ตัดคำว่า JSESSIONID=, quotes, semicolon และ whitespace ออก)
+     */
+    protected function cleanToken($rawToken)
+    {
+        $token = trim((string)$rawToken);
+        if (preg_match('/JSESSIONID=([a-zA-Z0-9_\-]+)/i', $token, $m)) {
+            return $m[1];
+        }
+        $token = preg_replace('/^JSESSIONID=\s*/i', '', $token);
+        $token = preg_replace('/;.*$/', '', $token);
+        $token = trim($token, " \t\n\r\0\x0B;\"'");
+        return $token;
+    }
+
+    /**
+     * ชุด Browser Headers เลียนแบบ Chrome เต็มรูปแบบ สำหรับส่งไปยัง e-Claim สปสช.
+     */
+    protected function getEclaimBrowserHeaders($token)
+    {
+        $cleaned = $this->cleanToken($token);
+        return [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language' => 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer' => 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do',
+            'Sec-Fetch-Dest' => 'document',
+            'Sec-Fetch-Mode' => 'navigate',
+            'Sec-Fetch-Site' => 'same-origin',
+            'Sec-Fetch-User' => '?1',
+            'Upgrade-Insecure-Requests' => '1',
+            'Cookie' => 'JSESSIONID=' . $cleaned,
+        ];
+    }
+
+    /**
      * 0. บันทึก Session Token จาก RiMS Chrome Extension (API Endpoint)
      */
     public function saveSessionFromExtension(Request $request)
     {
-        $token = trim($request->token);
+        $token = $this->cleanToken($request->token);
         if (!$token) {
             return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token'], 400);
         }
@@ -182,8 +217,11 @@ class EclaimBotController extends Controller
             ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
             ?: DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')));
 
-        if ($token && !Session::has('eclaim_session_token')) {
-            Session::put('eclaim_session_token', $token);
+        if ($token) {
+            $token = $this->cleanToken($token);
+            if (!Session::has('eclaim_session_token')) {
+                Session::put('eclaim_session_token', $token);
+            }
         }
 
         return $token;
@@ -198,7 +236,7 @@ class EclaimBotController extends Controller
             'token' => 'required|string',
         ]);
 
-        $token = trim($request->token);
+        $token = $this->cleanToken($request->token);
         $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         $now = date('Y-m-d H:i:s');
@@ -281,12 +319,11 @@ class EclaimBotController extends Controller
         $monthStr = sprintf('%02d', (int)$month);
 
         try {
-            $response = Http::withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer' => 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do',
-                'X-Requested-With' => 'XMLHttpRequest',
-            ])->withoutVerifying()->timeout(15)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSViewAction.do', [
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do';
+            $headers['X-Requested-With'] = 'XMLHttpRequest';
+
+            $response = Http::withHeaders($headers)->withoutVerifying()->timeout(30)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSViewAction.do', [
                 'year' => (string)$yearAD,
                 'month' => $monthStr,
                 'person_type' => '',
@@ -472,11 +509,10 @@ class EclaimBotController extends Controller
 
             // ดาวน์โหลดไฟล์จริงจาก e-Claim
             try {
-                $dlResponse = Http::withHeaders([
-                    'Cookie' => 'JSESSIONID=' . $sessionToken,
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Referer' => 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do',
-                ])->withoutVerifying()->timeout(60)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSDownloadAction.do', [
+                $headers = $this->getEclaimBrowserHeaders($sessionToken);
+                $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do';
+
+                $dlResponse = Http::withHeaders($headers)->withoutVerifying()->timeout(60)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSDownloadAction.do', [
                     'document_no' => $docNo,
                     'person_type' => $personType,
                     'hcode' => $hospcode,
@@ -716,11 +752,10 @@ class EclaimBotController extends Controller
                 $url .= "&repno=" . urlencode($repnoFilter);
             }
 
-            $response = Http::withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            ])->withoutVerifying()->timeout(30)->get($url);
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
+
+            $response = Http::withHeaders($headers)->withoutVerifying()->timeout(30)->get($url);
 
             $body = $response->body();
             if (
@@ -926,11 +961,10 @@ class EclaimBotController extends Controller
 
             $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
 
-            $response = Http::withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept' => '*/*',
-            ])->withoutVerifying()->timeout(120)->get($downloadUrl);
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do';
+
+            $response = Http::withHeaders($headers)->withoutVerifying()->timeout(120)->get($downloadUrl);
 
             if ($response->failed() || strlen($response->body()) < 1000) {
                 Log::warning("Failed to download REP Excel for {$repNo} from {$downloadUrl}");
@@ -1094,11 +1128,10 @@ class EclaimBotController extends Controller
 
             $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
 
-            $response = Http::withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept' => '*/*',
-            ])->withoutVerifying()->timeout(120)->get($downloadUrl);
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do';
+
+            $response = Http::withHeaders($headers)->withoutVerifying()->timeout(120)->get($downloadUrl);
 
             if ($response->failed() || strlen($response->body()) < 1000) {
                 Log::warning("Failed to download STM LGO Excel for {$repNo}");
@@ -1360,12 +1393,11 @@ class EclaimBotController extends Controller
         try {
             $url = "https://eclaim.nhso.go.th/webComponent/nch/StatementReportWebActionList.do";
 
-            $response = Http::asForm()->withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept' => 'text/html, */*; q=0.01',
-                'X-Requested-With' => 'XMLHttpRequest',
-            ])->withoutVerifying()->timeout(30)->post($url, [
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/nch/StatementReportWebAction.do';
+            $headers['X-Requested-With'] = 'XMLHttpRequest';
+
+            $response = Http::asForm()->withHeaders($headers)->withoutVerifying()->timeout(30)->post($url, [
                 'zone' => '10',
                 'province_id' => '3700',
                 'hcode' => $hospcode,
@@ -1520,11 +1552,10 @@ class EclaimBotController extends Controller
 
             $downloadUrl = "https://eclaim.nhso.go.th/webComponent/nch/RepStatementOFCReportExcelWebAction.do";
 
-            $response = Http::asForm()->withHeaders([
-                'Cookie' => 'JSESSIONID=' . $sessionToken,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept' => '*/*',
-            ])->withoutVerifying()->timeout(120)->post($downloadUrl, $postData);
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/nch/StatementReportWebActionList.do';
+
+            $response = Http::asForm()->withHeaders($headers)->withoutVerifying()->timeout(120)->post($downloadUrl, $postData);
 
             if ($response->failed() || strlen($response->body()) < 1000) {
                 Log::warning("Failed to download Statement OFC Excel for {$docNo}");

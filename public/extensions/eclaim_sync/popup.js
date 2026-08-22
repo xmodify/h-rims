@@ -69,6 +69,49 @@ document.getElementById('testBtn').addEventListener('click', async () => {
     }
 });
 
+// ==================== E-Claim Session Sync ====================
+document.getElementById('syncSessionBtn').addEventListener('click', async () => {
+    updateStatus("กำลังอ่าน Session e-Claim...", "#ffc107");
+
+    chrome.cookies.getAll({ domain: "eclaim.nhso.go.th" }, async (cookies) => {
+        let jsession = (cookies || []).find(c => c.name === 'JSESSIONID');
+
+        // ถ้ายังไม่เจอ ลองดึงจาก URL ของแท็บปัจจุบัน
+        if (!jsession) {
+            let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab && tab.url) {
+                let tabCookies = await chrome.cookies.getAll({ url: tab.url });
+                jsession = (tabCookies || []).find(c => c.name === 'JSESSIONID');
+            }
+        }
+
+        if (!jsession || !jsession.value) {
+            updateStatus("ไม่พบ Session e-Claim กรุณาล็อกอิน e-Claim ก่อนครับ", "red");
+            return;
+        }
+
+        const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
+        const hcode = document.getElementById('hospCode').value.trim();
+        const targetUrl = baseUrl + '/eclaim/session-sync';
+
+        try {
+            const res = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ token: jsession.value, hospcode: hcode })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว!", "#198754");
+            } else {
+                updateStatus("ผิดพลาด: " + (data.message || 'บันทึกไม่สำเร็จ'), "red");
+            }
+        } catch (err) {
+            updateStatus("เชื่อมต่อ RiMS ไม่ได้: " + err.message, "red");
+        }
+    });
+});
+
 // ==================== E-Claim Status Sync ====================
 document.getElementById('syncBtn').addEventListener('click', async () => {
     if (isScraping) return;

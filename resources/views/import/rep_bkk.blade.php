@@ -15,10 +15,13 @@
                             <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่จำกัดจำนวนไฟล์</p>
                         </div>
                         
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-0">
                             <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
-                                <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
+                            <button class="btn btn-success px-3.5" type="submit" style="border-radius: 0;">
+                                <i class="bi bi-cloud-upload me-1.5"></i> นำเข้าข้อมูล
+                            </button>
+                            <button type="button" class="btn btn-primary px-3.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#eclaimRepBotModal" style="border-radius: 0 10px 10px 0; background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">
+                                <i class="bi bi-cloud-arrow-down-fill me-1.5"></i> ดึงจาก e-Claim
                             </button>
                         </div>
 
@@ -396,6 +399,174 @@
     </script>
 @endif
     
+
+<!-- Modal: e-Claim REP Bot Automation -->
+<div class="modal fade" id="eclaimRepBotModal" tabindex="-1" aria-labelledby="eclaimRepBotModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header text-white p-3 px-4 border-0" style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 bg-white bg-opacity-10 text-white shadow-sm">
+                        <i class="bi bi-robot fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="eclaimRepBotModalLabel">
+                            ดึงข้อมูลการตรวจสอบเบื้องต้น (REP BKK (สิทธิ์ข้าราชการ กทม.)) จาก e-Claim อัตโนมัติ
+                        </h5>
+                        <div class="small opacity-75 mt-0.5 d-flex align-items-center gap-2">
+                            <span>ระบบเชื่อมต่อตรง eclaim.nhso.go.th</span>
+                            <span class="badge rounded-pill bg-white text-dark py-1 px-2 fw-medium" style="font-size: 10.5px;">
+                                <i class="bi bi-shield-check text-primary me-1"></i> ThaiD SSO Ready
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light">
+                <!-- Section 1: e-Claim Session Connection (Cookie / Token) -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="eclaimRepAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" id="eclaimRepAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ e-Claim</div>
+                                    <div class="text-muted small" id="eclaimRepAuthStatusSub">ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเชื่อมต่อ</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-none" id="btnToggleRepTokenInput">
+                                    <i class="bi bi-pencil-square me-1"></i> เปลี่ยน Token
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimRepLogout">
+                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Session Input Form (Shows when disconnected or editing) -->
+                        <div id="sessionRepInputContainer" class="pt-3 mt-2 border-top">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="bi bi-key-fill text-primary me-1"></i> e-Claim Session Cookie (JSESSIONID):
+                            </label>
+
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text bg-white"><i class="bi bi-cookie text-muted"></i></span>
+                                <input type="text" class="form-control form-control-sm" id="eclaimRepTokenInput" placeholder="วางค่า e-Claim Session Cookie (JSESSIONID)">
+                                <button class="btn btn-primary px-3 fw-bold" type="button" id="btnSaveRepToken">
+                                    <i class="bi bi-link-45deg me-1"></i> เชื่อมต่อ Session
+                                </button>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-2 text-muted small" style="font-size: 11.5px;">
+                                <span><i class="bi bi-info-circle text-primary me-1"></i><strong>วิธีเชื่อมต่อ:</strong></span>
+                                <span>1. ล็อกอินเข้าเว็บ e-Claim ผ่าน ThaiD ในเบราว์เซอร์</span>
+                                <span>2. คัดลอกค่า <code>JSESSIONID</code> มาวางที่นี่ (หรือกดปุ่ม "ซิงก์ Session" ใน Extension)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Search & Filter Box -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">ปี (พ.ศ.)</label>
+                                <select class="form-select form-select-sm rounded-3" id="botRepBudgetYear">
+                                    @foreach ($budget_year_select as $row)
+                                        <option value="{{ $row->LEAVE_YEAR_ID }}" {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                            {{ $row->LEAVE_YEAR_NAME }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">งวดเดือน</label>
+                                <select class="form-select form-select-sm rounded-3" id="botRepMonth">
+                                    <option value="1">มกราคม</option>
+                                    <option value="2">กุมภาพันธ์</option>
+                                    <option value="3">มีนาคม</option>
+                                    <option value="4">เมษายน</option>
+                                    <option value="5">พฤษภาคม</option>
+                                    <option value="6">มิถุนายน</option>
+                                    <option value="7">กรกฎาคม</option>
+                                    <option value="8" selected>สิงหาคม</option>
+                                    <option value="9">กันยายน</option>
+                                    <option value="10">ตุลาคม</option>
+                                    <option value="11">พฤศจิกายน</option>
+                                    <option value="12">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">เลข REP (ระบุหรือไม่ก็ได้)</label>
+                                <input type="text" class="form-control form-control-sm rounded-3" id="botRepNoFilter" placeholder="เช่น 690800077">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end pt-3">
+                                <button class="btn btn-primary btn-sm w-100 rounded-3 py-1.5 fw-bold shadow-sm" type="button" id="btnBotRepSearch">
+                                    <i class="bi bi-search me-1"></i> ค้นหาใน e-Claim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: REP Results List Table -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-2.5 px-3 d-flex justify-content-between align-items-center">
+                        <div class="fw-bold small text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-list-task text-success"></i> รายการ REP ที่พบใน e-Claim (REP BKK (สิทธิ์ข้าราชการ กทม.))
+                        </div>
+                        <span class="badge bg-light text-dark border px-2.5 py-1" id="botRepCountBadge">พบ 0 รายการ</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 380px;">
+                        <table class="table table-hover table-bordered align-middle mb-0 text-nowrap small" id="botRepTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="text-center" width="40">
+                                        <input class="form-check-input" type="checkbox" id="checkAllBotRep">
+                                    </th>
+                                    <th class="text-center">วันที่นำส่ง</th>
+                                    <th class="text-center">เลข REP</th>
+                                    <th>ชื่อไฟล์ ECD / Excel</th>
+                                    <th class="text-center">จำนวน</th>
+                                    <th class="text-center">ผ่าน</th>
+                                    <th class="text-center">ไม่ผ่าน</th>
+                                    <th class="text-center">ผู้นำเข้า</th>
+                                    <th class="text-center">สถานะใน RIMS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="botRepTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center py-5 text-muted">
+                                        <div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>
+                                        กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ REP
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer p-3 bg-white border-top d-flex justify-content-between">
+                <div class="small fw-bold text-primary" id="selectedBotRepCount">เลือก 0 รายการ</div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4 shadow-sm fw-bold" id="btnStartImportBotRep" disabled>
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> เริ่มนำเข้า RIMS ทันที
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -841,6 +1012,396 @@
                                 confirmButtonText: 'ปิด',
                                 confirmButtonColor: '#d33'
                             });
+                        }
+                    });
+                }
+            });
+        });
+    
+
+        // ==========================================
+        // e-Claim REP Automation (bkk)
+        // ==========================================
+        var repMaininscl = 'bkk';
+
+        function checkEclaimRepStatus() {
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.status') }}",
+                method: "POST",
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.connected) {
+                        $('#eclaimRepAuthStatusIcon').removeClass('bg-warning-subtle text-warning').addClass('bg-success-subtle text-success')
+                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
+                        $('#eclaimRepAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
+                        $('#eclaimRepAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
+                        $('#btnEclaimRepLogout').removeClass('d-none');
+                        $('#btnToggleRepTokenInput').removeClass('d-none');
+                        $('#sessionRepInputContainer').addClass('d-none');
+                        $('#btnBotRepSearch').prop('disabled', false);
+                    } else {
+                        var savedToken = localStorage.getItem('eclaim_session_token');
+                        if (savedToken) {
+                            $.ajax({
+                                url: "{{ route('import.eclaim-bot.save-token') }}",
+                                method: "POST",
+                                data: { _token: "{{ csrf_token() }}", token: savedToken },
+                                success: function(saveRes) {
+                                    if (saveRes.status === 'success') {
+                                        checkEclaimRepStatus();
+                                    }
+                                }
+                            });
+                            return;
+                        }
+
+                        $('#eclaimRepAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
+                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                        $('#eclaimRepAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
+                        $('#eclaimRepAuthStatusSub').text('ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#btnEclaimRepLogout').addClass('d-none');
+                        $('#btnToggleRepTokenInput').addClass('d-none');
+                        $('#sessionRepInputContainer').removeClass('d-none');
+                    }
+                }
+            });
+        }
+
+        $('#eclaimRepBotModal').on('show.bs.modal', function () {
+            checkEclaimRepStatus();
+        });
+
+        $('#btnToggleRepTokenInput').on('click', function () {
+            $('#sessionRepInputContainer').toggleClass('d-none');
+        });
+
+        $('#btnSaveRepToken').on('click', function () {
+            var token = $('#eclaimRepTokenInput').val();
+            if (!token) {
+                Swal.fire('แจ้งเตือน', 'กรุณากรอก Session Token / Cookie', 'warning');
+                return;
+            }
+
+            localStorage.setItem('eclaim_session_token', token);
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.save-token') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    token: token
+                },
+                success: function (res) {
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'เชื่อมต่อสำเร็จ!',
+                            text: res.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        checkEclaimRepStatus();
+                    }
+                }
+            });
+        });
+
+        $('#btnEclaimRepLogout').on('click', function () {
+            Swal.fire({
+                title: 'ยืนยันตัดการเชื่อมต่อ?',
+                text: 'ระบบจะล้าง Session e-Claim ออกจากระบบทุกหน้าจอ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('eclaim_session_token');
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.logout') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function () {
+                            checkEclaimRepStatus();
+                            $('#eclaimRepTokenInput').val('');
+                            $('#botRepTableBody').html('<tr><td colspan="9" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ REP</td></tr>');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตัดการเชื่อมต่อแล้ว',
+                                text: 'ตัดการเชื่อมต่อกับ e-Claim เรียบร้อย',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var urlToken = urlParams.get('eclaim_token');
+        if (urlToken) {
+            localStorage.setItem('eclaim_session_token', urlToken);
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.save-token') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    token: urlToken
+                },
+                success: function (res) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    $('#eclaimRepBotModal').modal('show');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ!',
+                        text: 'เชื่อมต่อกับระบบ e-Claim เรียบร้อยแล้ว พร้อมค้นหาและนำเข้าข้อมูลได้ทันที',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    checkEclaimRepStatus();
+                }
+            });
+        }
+
+        $('#btnBotRepSearch').on('click', function () {
+            var budgetYear = $('#botRepBudgetYear').val();
+            var month = $('#botRepMonth').val();
+            var repNo = $('#botRepNoFilter').val();
+
+            $('#botRepTableBody').html(`
+                <tr>
+                    <td colspan="9" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2 text-muted fw-bold">กำลังดึงข้อมูลการตรวจสอบเบื้องต้น (REP) จาก e-Claim สปสช. ...</div>
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.rep-search') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    maininscl: repMaininscl,
+                    budget_year: budgetYear,
+                    month: month,
+                    rep_no: repNo
+                },
+                success: function (res) {
+                    if (res.status === 'success') {
+                        renderBotRepTable(res.data);
+                    } else {
+                        $('#botRepTableBody').html(`
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-danger">
+                                    <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
+                                    <strong>${res.message || 'ไม่พบข้อมูล'}</strong>
+                                </td>
+                            </tr>
+                        `);
+                    }
+                },
+                error: function (xhr) {
+                    var msg = 'เกิดข้อผิดพลาดในการค้นหาข้อมูล';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    $('#botRepTableBody').html(`
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-danger">
+                                <i class="bi bi-x-circle-fill fs-3 mb-2 d-block"></i>
+                                <strong>${msg}</strong>
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        });
+
+        function renderBotRepTable(items) {
+            $('#botRepCountBadge').text('พบ ' + items.length + ' รายการ');
+            $('#checkAllBotRep').prop('checked', false);
+            updateSelectedRepCount();
+
+            if (!items || items.length === 0) {
+                $('#botRepTableBody').html(`
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
+                            ไม่พบรายการ REP ในงวดเดือนที่เลือก
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            var html = '';
+            items.forEach(function (item, idx) {
+                var statusBadge = item.is_imported 
+                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle me-1"></i>นำเข้าแล้ว (${item.imported_count} ราย)</span>`
+                    : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1"><i class="bi bi-dash-circle me-1"></i>ยังไม่เคยนำเข้า</span>`;
+
+                var itemJson = encodeURIComponent(JSON.stringify(item));
+
+                html += `
+                    <tr>
+                        <td class="text-center">
+                            <input class="form-check-input bot-rep-check" type="checkbox" data-item="${itemJson}" ${item.is_imported ? '' : 'checked'}>
+                        </td>
+                        <td class="text-center small">${item.send_date}</td>
+                        <td class="text-center fw-bold text-primary">${item.rep_no}</td>
+                        <td>
+                            <div class="fw-bold text-dark"><i class="bi bi-file-earmark-excel text-success me-1"></i> ${item.filename}</div>
+                            <small class="text-muted" style="font-size: 11px;">ประเภท: ${item.import_type} | ตรวจสอบ: ${item.check_date}</small>
+                        </td>
+                        <td class="text-center fw-bold">${item.total.toLocaleString()}</td>
+                        <td class="text-center text-success fw-bold">${item.pass.toLocaleString()}</td>
+                        <td class="text-center ${item.fail > 0 ? 'text-danger fw-bold' : 'text-muted'}">${item.fail.toLocaleString()}</td>
+                        <td class="text-center small text-muted">${item.importer || '-'}</td>
+                        <td class="text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            $('#botRepTableBody').html(html);
+            updateSelectedRepCount();
+        }
+
+        $('#checkAllBotRep').on('change', function () {
+            var checked = $(this).prop('checked');
+            $('.bot-rep-check').prop('checked', checked);
+            updateSelectedRepCount();
+        });
+
+        $(document).on('change', '.bot-rep-check', function () {
+            updateSelectedRepCount();
+        });
+
+        function updateSelectedRepCount() {
+            var selected = $('.bot-rep-check:checked').length;
+            $('#selectedBotRepCount').text('เลือก ' + selected + ' รายการ');
+            $('#btnStartImportBotRep').prop('disabled', selected === 0);
+        }
+
+        $('#btnStartImportBotRep').on('click', function () {
+            var selectedItems = [];
+            $('.bot-rep-check:checked').each(function () {
+                var raw = $(this).attr('data-item');
+                if (raw) {
+                    try {
+                        selectedItems.push(JSON.parse(decodeURIComponent(raw)));
+                    } catch (e) {
+                        console.error("Parse item error: ", e);
+                    }
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกอย่างน้อย 1 รายการเพื่อนำเข้า', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการนำเข้าข้อมูล REP?',
+                text: 'ระบบจะดาวน์โหลดไฟล์ Excel ช่องสุดท้ายจาก e-Claim จำนวน ' + selectedItems.length + ' ไฟล์ และบันทึกลงระบบ RIMS',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '🚀 เริ่มนำเข้าทันที',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var total = selectedItems.length;
+                    var successCount = 0;
+                    var failedCount = 0;
+
+                    Swal.fire({
+                        title: 'กำลังดาวน์โหลดและนำเข้าข้อมูล...',
+                        html: `
+                            <div class="my-3 text-start">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span id="importRepProgressStatusText" class="small fw-bold text-dark text-truncate" style="max-width: 250px;">กำลังเริ่มต้น...</span>
+                                    <span id="importRepProgressPercentText" class="small fw-bold text-success">0%</span>
+                                </div>
+                                <div class="progress" style="height: 22px; border-radius: 11px; background-color: #e2e8f0;">
+                                    <div id="importRepProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%; font-size: 11.5px; font-weight: bold;">0%</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2 text-muted small">
+                                    <span id="importRepTimer"><i class="bi bi-clock-history me-1"></i> เวลา: 0 วิ</span>
+                                    <span id="importRepProgressDetail">สำเร็จ <b id="importRepSuccessCount" class="text-success">0</b> / ${total} ไฟล์</span>
+                                </div>
+                                <div class="alert alert-light border py-1.5 px-2 mt-2 mb-0 small text-muted" style="font-size: 11px;">
+                                    <i class="bi bi-info-circle text-primary me-1"></i> เซิร์ฟเวอร์ e-Claim สปสช. จะใช้เวลาสร้างไฟล์ Excel ประมาณ 10-20 วินาที/ไฟล์
+                                </div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: async () => {
+                            var elapsedSec = 0;
+                            var timerInterval = setInterval(function () {
+                                elapsedSec++;
+                                $('#importRepTimer').html('<i class="bi bi-clock-history me-1"></i> เวลา: ' + elapsedSec + ' วิ');
+                            }, 1000);
+
+                            for (var i = 0; i < total; i++) {
+                                var item = selectedItems[i];
+                                var itemLabel = item.rep_no ? ('REP: ' + item.rep_no) : ('ไฟล์ที่ ' + (i + 1));
+                                
+                                $('#importRepProgressStatusText').text(`กำลังดึง ${itemLabel} (${i + 1}/${total})`);
+                                
+                                try {
+                                    var res = await $.ajax({
+                                        url: "{{ route('import.eclaim-bot.rep-import') }}",
+                                        method: "POST",
+                                        data: {
+                                            _token: "{{ csrf_token() }}",
+                                            maininscl: repMaininscl,
+                                            items: [item]
+                                        }
+                                    });
+                                    
+                                    if (res && res.status === 'success') {
+                                        successCount++;
+                                    } else {
+                                        failedCount++;
+                                    }
+                                } catch (err) {
+                                    console.error("Error importing REP item: ", item, err);
+                                    failedCount++;
+                                }
+                                
+                                var percent = Math.round(((i + 1) / total) * 100);
+                                $('#importRepProgressBar').css('width', percent + '%').text(percent + '%');
+                                $('#importRepProgressPercentText').text(percent + '%');
+                                $('#importRepSuccessCount').text(successCount);
+                            }
+
+                            clearInterval(timerInterval);
+                            
+                            if (successCount > 0) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'นำเข้าสำเร็จ!',
+                                    html: `นำเข้าข้อมูล REP จาก e-Claim สำเร็จรวม <b>${successCount}</b> ไฟล์ ${failedCount > 0 ? `<br><span class="text-danger small">(ไม่สำเร็จ ${failedCount} ไฟล์)</span>` : ''}`,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#10b981'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ไม่สำเร็จ',
+                                    text: 'ไม่สามารถดาวน์โหลดหรือนำเข้า REP ที่เลือกได้ กรุณาตรวจสอบ Session e-Claim',
+                                    confirmButtonText: 'ปิด',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
                         }
                     });
                 }

@@ -1,0 +1,1692 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use App\Models\Stm_ucs;
+use App\Models\Stm_ucsexcel;
+use App\Models\Stm_ofc;
+use App\Models\Stm_ofcexcel;
+use App\Models\Stm_lgo;
+use App\Models\Stm_lgoexcel;
+use App\Models\Rep_ucs;
+use App\Models\Rep_ucsexcel;
+use App\Models\Rep_ofc;
+use App\Models\Rep_ofcexcel;
+use App\Models\Rep_sss;
+use App\Models\Rep_sssexcel;
+use App\Models\Rep_lgo;
+use App\Models\Rep_lgoexcel;
+use App\Models\Rep_bkk;
+use App\Models\Rep_bkkexcel;
+use App\Models\Rep_bmt;
+use App\Models\Rep_bmtexcel;
+use App\Models\Rep_srt;
+use App\Models\Rep_srtexcel;
+use App\Models\Rep_pvt;
+use App\Models\Rep_pvtexcel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+class EclaimBotController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth')->except(['saveSessionFromExtension']);
+    }
+
+    /**
+     * 0. บันทึก Session Token จาก RiMS Chrome Extension (API Endpoint)
+     */
+    public function saveSessionFromExtension(Request $request)
+    {
+        $token = trim($request->token);
+        if (!$token) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token'], 400);
+        }
+
+        $hcode = $request->hospcode ?: (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989');
+        $now = date('Y-m-d H:i:s');
+        $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
+
+        // 1. Save to Database (main_setting) for hospital-wide sharing
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_token'],
+            ['name_th' => 'e-Claim Session Token', 'value' => $token]
+        );
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_user'],
+            ['name_th' => 'e-Claim Session User', 'value' => $user]
+        );
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_time'],
+            ['name_th' => 'e-Claim Session Connected Time', 'value' => $now]
+        );
+
+        // 2. Save to Cache & Session
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_token_' . $hcode, $token, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_token_global', $token, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_user_' . $hcode, $user, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_time_' . $hcode, $now, 7200);
+
+        Session::put('eclaim_session_token', $token);
+        Session::put('eclaim_session_user', $user);
+        Session::put('eclaim_session_time', $now);
+        Session::put('eclaim_auth_method', 'RiMS Chrome Extension');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'ซิงก์ Session กับ RiMS และบันทึกลงฐานข้อมูลสำเร็จ (แชร์ให้ผู้ใช้ทุกคนใน รพ.)',
+            'token' => $token,
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * 1. ตรวจสอบสถานะการเชื่อมต่อ e-Claim / ThaiD Session (ค้นหาจาก Session -> Cache -> DB main_setting)
+     */
+    public function getStatus(Request $request)
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        
+        $sessionToken = Session::get('eclaim_session_token') 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
+            ?: DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')));
+            
+        $sessionUser = Session::get('eclaim_session_user') 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_user_' . $hospcode) 
+            ?: (DB::table('main_setting')->where('name', 'eclaim_session_user')->value('value')
+            ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim')));
+            
+        $sessionTime = Session::get('eclaim_session_time') 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_time_' . $hospcode) 
+            ?: (DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value')
+            ?: date('Y-m-d H:i:s')));
+
+        if ($sessionToken) {
+            // Auto-populate Session so subsequent calls in this request cycle are quick
+            Session::put('eclaim_session_token', $sessionToken);
+            Session::put('eclaim_session_user', $sessionUser);
+            Session::put('eclaim_session_time', $sessionTime);
+
+            return response()->json([
+                'connected' => true,
+                'user' => $sessionUser,
+                'connected_at' => $sessionTime,
+                'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
+            ]);
+        }
+
+        return response()->json([
+            'connected' => false,
+            'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim'
+        ]);
+    }
+
+    /**
+     * 2. สร้าง QR Code สำหรับ ThaiD SSO (แนวทางที่ 2)
+     */
+    public function generateThaiDQR(Request $request)
+    {
+        $sessionId = 'THAID_' . uniqid() . '_' . time();
+        Session::put('thaid_pending_session', $sessionId);
+
+        // จำลอง URL / Deep Link ของ ThaiD (หรือเชื่อมต่อ DOPA OIDC ถ้ามีการลงทะเบียน Client ID)
+        $qrData = "https://imauth.bora.dopa.go.th/api/v2/oauth2/auth?client_id=nhso_oss&response_type=code&state=" . $sessionId;
+        
+        // ใช้ Google Chart API / QR Server สร้าง QR Code image URL
+        $qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($qrData);
+
+        return response()->json([
+            'status' => 'success',
+            'session_id' => $sessionId,
+            'qr_image_url' => $qrImageUrl,
+            'expires_in' => 180 // 3 นาที
+        ]);
+    }
+
+    /**
+     * 3. ตรวจสอบ / ยืนยันการสแกน ThaiD (Polling หรือ Mock Confirm)
+     */
+    public function verifyThaiDLogin(Request $request)
+    {
+        $sessionId = $request->session_id ?: Session::get('thaid_pending_session');
+        $user = auth()->user();
+
+        // บันทึก Session จำลองว่าเข้าสู่ระบบสำเร็จ
+        Session::put('eclaim_session_token', 'ECLAIM_TOKEN_' . md5($sessionId . time()));
+        Session::put('eclaim_session_user', $user->name . ' (' . ($user->cid ?: 'CID: ' . substr($user->username, 0, 13)) . ')');
+        Session::put('eclaim_session_time', date('Y-m-d H:i:s'));
+        Session::put('eclaim_auth_method', 'ThaiD SSO (D.DOPA)');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'ยืนยันตัวตนผ่าน ThaiD สำเร็จ พร้อมเข้าถึงระบบ e-Claim',
+            'user' => Session::get('eclaim_session_user')
+        ]);
+    }
+
+    /**
+     * ดึงค่า Active Session Token (Session -> Cache -> DB main_setting)
+     */
+    protected function getActiveEclaimToken()
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        
+        $token = Session::get('eclaim_session_token') 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
+            ?: DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')));
+
+        if ($token && !Session::has('eclaim_session_token')) {
+            Session::put('eclaim_session_token', $token);
+        }
+
+        return $token;
+    }
+
+    /**
+     * 4. บันทึก Session Token / Cookie โดยตรง (แนวทางที่ 1: สำรอง)
+     */
+    public function saveSessionToken(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        $token = trim($request->token);
+        $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
+        $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $now = date('Y-m-d H:i:s');
+
+        // 1. Save to Database (main_setting) for hospital-wide sharing
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_token'],
+            ['name_th' => 'e-Claim Session Token', 'value' => $token]
+        );
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_user'],
+            ['name_th' => 'e-Claim Session User', 'value' => $user]
+        );
+        DB::table('main_setting')->updateOrInsert(
+            ['name' => 'eclaim_session_time'],
+            ['name_th' => 'e-Claim Session Connected Time', 'value' => $now]
+        );
+
+        // 2. Save to Cache & Session
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_token_' . $hcode, $token, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_token_global', $token, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_user_' . $hcode, $user, 7200);
+        \Illuminate\Support\Facades\Cache::put('eclaim_session_time_' . $hcode, $now, 7200);
+
+        Session::put('eclaim_session_token', $token);
+        Session::put('eclaim_session_user', $user);
+        Session::put('eclaim_session_time', $now);
+        Session::put('eclaim_auth_method', 'Session Cookie / Token');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'เชื่อมต่อระบบ e-Claim สำเร็จแล้ว (บันทึกลงฐานข้อมูล แชร์ให้ผู้ใช้ทุกคนใน รพ.)',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * 5. ออกจากระบบ / ล้าง Session e-Claim
+     */
+    public function logoutSession(Request $request)
+    {
+        $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        
+        // 1. Clear Database
+        DB::table('main_setting')->whereIn('name', ['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'])->delete();
+
+        // 2. Clear Cache
+        \Illuminate\Support\Facades\Cache::forget('eclaim_session_token_' . $hcode);
+        \Illuminate\Support\Facades\Cache::forget('eclaim_session_token_global');
+        \Illuminate\Support\Facades\Cache::forget('eclaim_session_user_' . $hcode);
+        \Illuminate\Support\Facades\Cache::forget('eclaim_session_time_' . $hcode);
+
+        // 3. Clear Session
+        Session::forget(['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time', 'eclaim_auth_method', 'thaid_pending_session']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'ตัดการเชื่อมต่อกับระบบ e-Claim เรียบร้อยแล้ว (ลบออกจากฐานข้อมูลและทุกหน้าจอ)'
+        ]);
+    }
+
+    public function searchStatements(Request $request)
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $sessionToken = $this->getActiveEclaimToken();
+
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาระบุ Session Cookie หรือกดซิงก์จาก Extension ก่อนค้นหาข้อมูล'
+            ], 401);
+        }
+
+        $budgetYear = $request->budget_year ?: (date('Y') + 543 + (date('m') >= 10 ? 1 : 0));
+        $month = $request->month ?: date('m');
+        $claimType = $request->claim_type ?: 'stm_ucs';
+
+        // แปลงปี พ.ศ. เป็น ค.ศ. สำหรับส่งไปยัง e-Claim (เช่น 2569 -> 2026)
+        $yearAD = (int)$budgetYear > 2500 ? ((int)$budgetYear - 543) : (int)$budgetYear;
+        $monthStr = sprintf('%02d', (int)$month);
+
+        try {
+            $response = Http::withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer' => 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])->withoutVerifying()->timeout(15)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSViewAction.do', [
+                'year' => (string)$yearAD,
+                'month' => $monthStr,
+                'person_type' => '',
+                'hcode' => (string)$hospcode,
+                'period_no' => '',
+                'PAGE_HEAD' => '1'
+            ]);
+
+            if ($response->status() !== 200) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ไม่สามารถเชื่อมต่อกับ e-Claim ได้ (HTTP Status: ' . $response->status() . ')'
+                ], 500);
+            }
+
+            $html = $response->body();
+
+            // ตรวจสอบจำนวนรายการที่พบ
+            preg_match('/พบข้อมูลทั้งหมด\s*(\d+)\s*รายการ/u', $html, $mCount);
+            $foundCount = isset($mCount[1]) ? (int)$mCount[1] : 0;
+
+            if ($foundCount === 0 || !str_contains($html, '<tbody')) {
+                return response()->json([
+                    'status' => 'success',
+                    'budget_year' => $budgetYear,
+                    'month' => $month,
+                    'count' => 0,
+                    'data' => [],
+                    'message' => 'ไม่พบข้อมูล Statement ในงวดเดือนที่เลือก'
+                ]);
+            }
+
+            // ดึงข้อมูลในฐานข้อมูล RIMS มาเปรียบเทียบ
+            $existingRounds = DB::table('stm_ucs')
+                ->select(
+                    'round_no',
+                    'stm_filename',
+                    DB::raw('COUNT(cid) as count_cid'),
+                    DB::raw('SUM(charge) as charge_total'),
+                    DB::raw('SUM(receive_total) as receive_total')
+                )
+                ->groupBy('round_no', 'stm_filename')
+                ->get()
+                ->keyBy('round_no');
+
+            // Parse ตาราง HTML จาก e-Claim
+            preg_match('/<tbody[^>]*>(.*?)<\/tbody>/is', $html, $tbody);
+            preg_match_all('/<tr[^>]*>(.*?)<\/tr>/is', $tbody[1] ?? '', $rows);
+
+            $statements = [];
+            foreach ($rows[1] as $idx => $r) {
+                preg_match_all('/<td[^>]*>(.*?)<\/td>/is', $r, $tds);
+                if (empty($tds[1]) || count($tds[1]) < 8) {
+                    continue;
+                }
+
+                $cols = array_map(function($t) { return trim(strip_tags($t)); }, $tds[1]);
+                
+                $period = $cols[0] ?? '';
+                $issueDate = $cols[1] ?? '';
+                $monthName = $cols[2] ?? '';
+                $typeText = $cols[3] ?? '';
+                $stmtPeriod = $cols[4] ?? '';
+                $docNo = $cols[7] ?? '';
+
+                $isIPD = str_contains($typeText, 'ใน') || str_contains($stmtPeriod, 'IP');
+                $type = $isIPD ? 'IPD' : 'OPD';
+                $filename = "STM_" . ($docNo ?: $stmtPeriod) . ".xls";
+                $roundNo = $stmtPeriod ?: $docNo;
+
+                // ดึง parameters สำหรับดาวน์โหลดจากฟังก์ชัน downloadBill(...)
+                $dlParams = [];
+                if (preg_match('/downloadBill\(([^)]+)\)/i', $r, $mDl)) {
+                    $rawArgs = explode(',', $mDl[1]);
+                    $dlParams = array_map(function($arg) {
+                        return trim(trim($arg), "'\"");
+                    }, $rawArgs);
+                }
+
+                // ตรวจสอบกับฐานข้อมูล RIMS
+                $dbMatch = $existingRounds->get($roundNo) ?: $existingRounds->where('stm_filename', $filename)->first();
+                $isImported = !is_null($dbMatch);
+                $importedCount = $isImported ? (int)$dbMatch->count_cid : 0;
+                $chargeTotal = $isImported ? (float)$dbMatch->charge_total : 0;
+                $receiveTotal = $isImported ? (float)$dbMatch->receive_total : 0;
+
+                $statements[] = [
+                    'round_no' => $roundNo,
+                    'filename' => $filename,
+                    'document_no' => $docNo ?: ($dlParams[0] ?? ''),
+                    'person_type' => $dlParams[1] ?? ($isIPD ? '2' : '1'),
+                    'hcode' => $dlParams[2] ?? $hospcode,
+                    'hname' => $dlParams[3] ?? ($hospcode . ' รพ.หัวตะพาน'),
+                    'province_name' => $dlParams[4] ?? '3700 อำนาจเจริญ',
+                    'datesend_from' => $dlParams[5] ?? '',
+                    'datesend_to' => $dlParams[6] ?? '',
+                    'type' => $type,
+                    'issue_date' => $issueDate,
+                    'count_cid' => $importedCount ?: '-',
+                    'charge_total' => $chargeTotal,
+                    'receive_total' => $receiveTotal,
+                    'is_imported' => $isImported,
+                    'imported_count' => $importedCount,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'budget_year' => $budgetYear,
+                'month' => $month,
+                'count' => count($statements),
+                'data' => $statements
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("e-Claim searchStatements error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 7. สั่งดาวน์โหลดไฟล์จาก e-Claim และนำเข้าสู่ฐานข้อมูล RIMS อัตโนมัติ (เสมือนนำเข้าจากไฟล์ Excel)
+     */
+    public function importStatements(Request $request)
+    {
+        set_time_limit(0);
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $sessionToken = $this->getActiveEclaimToken();
+
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+            ], 401);
+        }
+
+        $items = $request->items ?: [];
+        if (empty($items)) {
+            // ถ้าส่งมาเป็น rounds ธรรมดา
+            $rounds = $request->rounds ?: [];
+            if (empty($rounds)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'กรุณาเลือกไฟล์ Statement ที่ต้องการนำเข้าอย่างน้อย 1 รายการ'
+                ], 400);
+            }
+            $items = array_map(function($r) { return ['document_no' => $r, 'round_no' => $r]; }, $rounds);
+        }
+
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $importedRounds = [];
+        $totalImportedRows = 0;
+
+        /* ======================================================
+         1) เคลียร์ Staging Table
+        ====================================================== */
+        Stm_ucsexcel::truncate();
+
+        foreach ($items as $item) {
+            $docNo = $item['document_no'] ?? ($item['round_no'] ?? '');
+            $personType = $item['person_type'] ?? (str_contains($docNo, 'IP') ? '2' : '1');
+            $hname = $item['hname'] ?? ($hospcode . ' รพ.หัวตะพาน');
+            $provinceName = $item['province_name'] ?? '3700 อำนาจเจริญ';
+            $fileName = $item['filename'] ?? ("STM_" . $docNo . ".xls");
+
+            // ดาวน์โหลดไฟล์จริงจาก e-Claim
+            try {
+                $dlResponse = Http::withHeaders([
+                    'Cookie' => 'JSESSIONID=' . $sessionToken,
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Referer' => 'https://eclaim.nhso.go.th/webComponent/ucs/statementUCSAction.do',
+                ])->withoutVerifying()->timeout(60)->asForm()->post('https://eclaim.nhso.go.th/webComponent/ucs/statementUCSDownloadAction.do', [
+                    'document_no' => $docNo,
+                    'person_type' => $personType,
+                    'hcode' => $hospcode,
+                    'hname' => $hname,
+                    'province_name' => $provinceName,
+                    'datesend_from' => $item['datesend_from'] ?? '',
+                    'datesend_to' => $item['datesend_to'] ?? '',
+                ]);
+
+                if ($dlResponse->status() !== 200 || strlen($dlResponse->body()) < 1000) {
+                    Log::warning("Failed to download statement $docNo from e-Claim (Size: " . strlen($dlResponse->body()) . ")");
+                    continue;
+                }
+
+                // บันทึกไฟล์ชั่วคราว
+                $tempPath = storage_path('app/temp_stm_' . uniqid() . '_' . $docNo . '.xls');
+                file_put_contents($tempPath, $dlResponse->body());
+
+                /* ======================================================
+                 2) อ่านไฟล์ Excel และแปลงลง Staging Table
+                ====================================================== */
+                $spreadsheet = IOFactory::load($tempPath);
+
+                // ดึง Round No จาก Sheet 2 Cell A16
+                $sheetRound = $spreadsheet->setActiveSheetIndex(1);
+                $extractedRoundNo = trim($sheetRound->getCell('A16')->getValue()) ?: ($item['round_no'] ?? $docNo);
+
+                foreach ([2, 3] as $sheetIndex) {
+                    if (!isset($spreadsheet->getAllSheets()[$sheetIndex])) {
+                        continue;
+                    }
+
+                    $sheet = $spreadsheet->setActiveSheetIndex($sheetIndex);
+                    $row_limit = $sheet->getHighestDataRow();
+                    $startRow = 15;
+                    $buffer = [];
+
+                    for ($row = $startRow; $row <= $row_limit; $row++) {
+                        if (empty($sheet->getCell('A' . $row)->getValue())) {
+                            continue;
+                        }
+
+                        $adm = (string) $sheet->getCell('H' . $row)->getValue();
+                        $datetimeadm = substr($adm, 6, 4) . '-' . substr($adm, 3, 2) . '-' . substr($adm, 0, 2) . ' ' . substr($adm, 11, 8);
+
+                        $dch = (string) $sheet->getCell('I' . $row)->getValue();
+                        $datetimedch = substr($dch, 6, 4) . '-' . substr($dch, 3, 2) . '-' . substr($dch, 0, 2) . ' ' . substr($dch, 11, 8);
+
+                        $cols = ['S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL'];
+                        $clean = [];
+                        foreach ($cols as $c) {
+                            $clean[$c] = str_replace(',', '', $sheet->getCell($c . $row)->getValue());
+                        }
+
+                        $buffer[] = [
+                            'round_no' => $extractedRoundNo,
+                            'repno' => $sheet->getCell('A' . $row)->getValue(),
+                            'no' => $sheet->getCell('B' . $row)->getValue(),
+                            'tran_id' => $sheet->getCell('C' . $row)->getValue(),
+                            'hn' => $sheet->getCell('D' . $row)->getValue(),
+                            'an' => $sheet->getCell('E' . $row)->getValue(),
+                            'cid' => $sheet->getCell('F' . $row)->getValue(),
+                            'pt_name' => $sheet->getCell('G' . $row)->getValue(),
+                            'datetimeadm' => $datetimeadm,
+                            'vstdate' => date('Y-m-d', strtotime($datetimeadm)),
+                            'vsttime' => date('H:i:s', strtotime($datetimeadm)),
+                            'datetimedch' => $datetimedch,
+                            'dchdate' => date('Y-m-d', strtotime($datetimedch)),
+                            'dchtime' => date('H:i:s', strtotime($datetimedch)),
+                            'maininscl' => $sheet->getCell('J' . $row)->getValue(),
+                            'projcode' => $sheet->getCell('K' . $row)->getValue(),
+                            'charge' => $sheet->getCell('L' . $row)->getValue(),
+                            'fund_ip_act' => $sheet->getCell('M' . $row)->getValue(),
+                            'fund_ip_adjrw' => $sheet->getCell('N' . $row)->getValue(),
+                            'fund_ip_ps' => $sheet->getCell('O' . $row)->getValue(),
+                            'fund_ip_ps2' => $sheet->getCell('P' . $row)->getValue(),
+                            'fund_ip_ccuf' => $sheet->getCell('Q' . $row)->getValue(),
+                            'fund_ip_adjrw2' => $sheet->getCell('R' . $row)->getValue(),
+                            'fund_ip_payrate' => $clean['S'],
+                            'fund_ip_salary' => $clean['T'],
+                            'fund_compensate_salary' => $clean['U'],
+                            'receive_op' => $clean['V'],
+                            'receive_ip_compensate_cal' => $clean['W'],
+                            'receive_ip_compensate_pay' => $clean['X'],
+                            'receive_hc_hc' => $clean['Y'],
+                            'receive_hc_drug' => $clean['Z'],
+                            'receive_ae_ae' => $clean['AA'],
+                            'receive_ae_drug' => $clean['AB'],
+                            'receive_inst' => $clean['AC'],
+                            'receive_dmis_compensate_cal' => $clean['AD'],
+                            'receive_dmis_compensate_pay' => $clean['AE'],
+                            'receive_dmis_drug' => $clean['AF'],
+                            'receive_palliative' => $clean['AG'],
+                            'receive_dmishd' => $clean['AH'],
+                            'receive_pp' => $clean['AI'],
+                            'receive_fs' => $clean['AJ'],
+                            'receive_opbkk' => $clean['AK'],
+                            'receive_total' => $clean['AL'],
+                            'va' => $sheet->getCell('AM' . $row)->getValue(),
+                            'covid' => $sheet->getCell('AN' . $row)->getValue(),
+                            'resources' => $sheet->getCell('AO' . $row)->getValue(),
+                            'stm_filename' => $fileName,
+                        ];
+
+                        $totalImportedRows++;
+                        if (count($buffer) === 500) {
+                            Stm_ucsexcel::insert($buffer);
+                            $buffer = [];
+                        }
+                    }
+
+                    if ($buffer) {
+                        Stm_ucsexcel::insert($buffer);
+                    }
+                }
+
+                unset($spreadsheet);
+                gc_collect_cycles();
+                @unlink($tempPath);
+
+                $importedRounds[] = $extractedRoundNo;
+
+            } catch (\Exception $e) {
+                Log::error("Error processing statement $docNo: " . $e->getMessage());
+            }
+        }
+
+        /* ======================================================
+         3) Merge จาก Staging ไปยัง stm_ucs
+        ====================================================== */
+        DB::transaction(function () {
+            Stm_ucsexcel::whereNotNull('charge')->chunk(1000, function ($rows) {
+                foreach ($rows as $value) {
+                    Stm_ucs::updateOrInsert(
+                        [
+                            'repno' => $value->repno,
+                            'no' => $value->no,
+                        ],
+                        [
+                            'round_no' => $value->round_no,
+                            'tran_id' => $value->tran_id,
+                            'hn' => $value->hn,
+                            'an' => $value->an,
+                            'cid' => $value->cid,
+                            'pt_name' => $value->pt_name,
+                            'datetimeadm' => $value->datetimeadm,
+                            'vstdate' => $value->vstdate,
+                            'vsttime' => $value->vsttime,
+                            'datetimedch' => $value->datetimedch,
+                            'dchdate' => $value->dchdate,
+                            'dchtime' => $value->dchtime,
+                            'maininscl' => $value->maininscl,
+                            'projcode' => $value->projcode,
+                            'charge' => $value->charge,
+                            'fund_ip_act' => $value->fund_ip_act,
+                            'fund_ip_adjrw' => $value->fund_ip_adjrw,
+                            'fund_ip_ps' => $value->fund_ip_ps,
+                            'fund_ip_ps2' => $value->fund_ip_ps2,
+                            'fund_ip_ccuf' => $value->fund_ip_ccuf,
+                            'fund_ip_adjrw2' => $value->fund_ip_adjrw2,
+                            'fund_ip_payrate' => $value->fund_ip_payrate,
+                            'fund_ip_salary' => $value->fund_ip_salary,
+                            'fund_compensate_salary' => $value->fund_compensate_salary,
+                            'receive_op' => $value->receive_op,
+                            'receive_ip_compensate_cal' => $value->receive_ip_compensate_cal,
+                            'receive_ip_compensate_pay' => $value->receive_ip_compensate_pay,
+                            'receive_hc_hc' => $value->receive_hc_hc,
+                            'receive_hc_drug' => $value->receive_hc_drug,
+                            'receive_ae_ae' => $value->receive_ae_ae,
+                            'receive_ae_drug' => $value->receive_ae_drug,
+                            'receive_inst' => $value->receive_inst,
+                            'receive_dmis_compensate_cal' => $value->receive_dmis_compensate_cal,
+                            'receive_dmis_compensate_pay' => $value->receive_dmis_compensate_pay,
+                            'receive_dmis_drug' => $value->receive_dmis_drug,
+                            'receive_palliative' => $value->receive_palliative,
+                            'receive_dmishd' => $value->receive_dmishd,
+                            'receive_pp' => $value->receive_pp,
+                            'receive_fs' => $value->receive_fs,
+                            'receive_opbkk' => $value->receive_opbkk,
+                            'receive_total' => $value->receive_total,
+                            'va' => $value->va,
+                            'covid' => $value->covid,
+                            'resources' => $value->resources,
+                            'stm_filename' => $value->stm_filename,
+                        ]
+                    );
+                }
+            });
+        });
+
+        /* ======================================================
+         4) เคลียร์ Staging
+        ====================================================== */
+        Stm_ucsexcel::truncate();
+
+        $importedCount = count($importedRounds);
+        if ($importedCount === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement ที่เลือกได้ กรุณาตรวจสอบ Session e-Claim'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "นำเข้าข้อมูล Statement จาก e-Claim สำเร็จรวม {$importedCount} งวด (บันทึกข้อมูล {$totalImportedRows} รายการ)",
+            'imported_rounds' => $importedRounds,
+            'reload' => true
+        ]);
+    }
+
+    /**
+     * 8. ค้นหารายการ REP จาก e-Claim (ValidationMainAction.do?maininscl=...)
+     */
+    public function searchRepStatements(Request $request)
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $sessionToken = $this->getActiveEclaimToken();
+
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาระบุ Session Cookie หรือกดซิงก์จาก Extension ก่อนค้นหาข้อมูล'
+            ], 401);
+        }
+
+        $targetType = $request->target_type ?: 'rep';
+        $maininscl = strtolower(trim($request->maininscl ?: 'ucs'));
+        $targetTable = $targetType === 'stm_lgo' ? 'stm_lgo' : ('rep_' . $maininscl);
+        $budgetYear = (int)($request->budget_year ?: (date('Y') + 543 + (date('m') >= 10 ? 1 : 0)));
+        $month = (int)($request->month ?: date('m'));
+        $repnoFilter = trim($request->rep_no ?: '');
+
+        try {
+            $url = "https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do?maininscl={$maininscl}&mo={$month}&ye={$budgetYear}";
+            if ($repnoFilter) {
+                $url .= "&repno=" . urlencode($repnoFilter);
+            }
+
+            $response = Http::withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            ])->withoutVerifying()->timeout(30)->get($url);
+
+            if ($response->status() === 302 || $response->status() === 401 || (strpos($response->body(), 'เข้าสู่ระบบ') !== false || strpos($response->body(), 'Login') !== false) && strpos($response->body(), 'content2') === false) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+                ], 401);
+            }
+
+            $html = $response->body();
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+            $xpath = new \DOMXPath($dom);
+            $rows = $xpath->query('//table[@id="content2"]//tbody//tr');
+
+            $repItems = [];
+            foreach ($rows as $tr) {
+                $tds = $xpath->query('./td', $tr);
+                if ($tds->length >= 13) {
+                    $excelLink = '';
+                    foreach ($xpath->query('.//a', $tds->item(13)) as $a) {
+                        $href = $a->getAttribute('href');
+                        if (stripos($href, 'InvoiceReportExcelAction') !== false) {
+                            $excelLink = $href;
+                        }
+                    }
+
+                    $sendDate = trim($tds->item(0)->textContent);
+                    $repNo = trim($tds->item(1)->textContent);
+                    $hcode = trim($tds->item(2)->textContent);
+                    $hname = trim($tds->item(3)->textContent);
+                    $filename = trim($tds->item(4)->textContent);
+                    $total = (int)str_replace(',', '', trim($tds->item(5)->textContent));
+                    $pass = (int)str_replace(',', '', trim($tds->item(6)->textContent));
+                    $fail = (int)str_replace(',', '', trim($tds->item(7)->textContent));
+                    $importType = trim($tds->item(8)->textContent);
+                    $checkDate = trim($tds->item(9)->textContent);
+                    $importer = trim($tds->item(10)->textContent);
+
+                    if ($repNo && $excelLink) {
+                        $existingCount = 0;
+                        try {
+                            if ($targetType === 'stm_lgo') {
+                                $existingCount = DB::table('stm_lgo')->where('repno', $repNo)->orWhere('round_no', $repNo)->count();
+                            } else if (\Illuminate\Support\Facades\Schema::hasTable($targetTable)) {
+                                $existingCount = DB::table($targetTable)->where('repno', $repNo)->count();
+                            }
+                        } catch (\Exception $e) {}
+
+                        $repItems[] = [
+                            'send_date' => $sendDate,
+                            'rep_no' => $repNo,
+                            'hcode' => $hcode,
+                            'hname' => $hname,
+                            'filename' => $filename,
+                            'total' => $total,
+                            'pass' => $pass,
+                            'fail' => $fail,
+                            'import_type' => $importType,
+                            'check_date' => $checkDate,
+                            'importer' => $importer,
+                            'excel_url' => $excelLink,
+                            'is_imported' => $existingCount > 0,
+                            'imported_count' => $existingCount
+                        ];
+                    }
+                }
+            }
+
+            if (empty($repItems)) {
+                return response()->json([
+                    'status' => 'success',
+                    'budget_year' => $budgetYear,
+                    'month' => $month,
+                    'count' => 0,
+                    'data' => [],
+                    'message' => 'ไม่พบข้อมูลการตรวจสอบเบื้องต้น (REP) ในงวดเดือนที่เลือก'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'budget_year' => $budgetYear,
+                'month' => $month,
+                'count' => count($repItems),
+                'data' => $repItems
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("e-Claim searchRepStatements error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูล REP จาก e-Claim: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 9. สั่งดาวน์โหลดไฟล์ REP Excel จาก e-Claim และนำเข้าสู่ฐานข้อมูล RIMS อัตโนมัติ (รองรับทุกสิทธิ์ และ stm_lgo)
+     */
+    public function importRepStatements(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $sessionToken = $this->getActiveEclaimToken();
+
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+            ], 401);
+        }
+
+        $items = $request->items;
+        if (empty($items) || !is_array($items)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาเลือกอย่างน้อย 1 รายการ REP ที่ต้องการนำเข้า'
+            ], 400);
+        }
+
+        $targetType = $request->target_type ?: 'rep';
+        if ($targetType === 'stm_lgo') {
+            return $this->processStmLgoImport($items, $sessionToken);
+        }
+
+        $maininscl = strtolower(trim($request->maininscl ?: 'ucs'));
+        $stagingModelClass = 'App\\Models\\Rep_' . $maininscl . 'excel';
+        $prodModelClass = 'App\\Models\\Rep_' . $maininscl;
+
+        if (!class_exists($stagingModelClass) || !class_exists($prodModelClass)) {
+            // Fallback to ucs if model doesn't exist
+            $stagingModelClass = 'App\\Models\\Rep_ucsexcel';
+            $prodModelClass = 'App\\Models\\Rep_ucs';
+        }
+
+        // Numeric fields list
+        $numericFields = [
+            'net_compensate_nhso', 'net_compensate_employer', 'rw', 
+            'charge_non_vehicle_drug_device', 'charge_vehicle_drug_device', 'charge_total', 
+            'charge_central_reimburse', 'self_pay', 'payrate_point', 
+            'adjrw_nhso', 'adjrw2', 'compensate_amount', 'act_amount', 'salary_amount', 'compensate_after_salary',
+            'hc_iphc', 'hc_ophc', 'ae_opae', 'ae_ipnb', 'ae_ipuc', 'ae_ip3sss', 'ae_ip7sss', 'ae_carae', 'ae_caref', 'ae_caref_puc',
+            'inst_opinst', 'inst_ipinst', 'ip_ipaec', 'ip_ipaer', 'ip_ipinrgc', 'ip_ipinrgr', 'ip_ipinspsn', 'ip_ipprcc', 'ip_ipprcc_puc', 'ip_ipbkk_inst', 'ip_ip_ontop',
+            'dmis_cataract', 'dmis_ssj_workload', 'dmis_hosp_workload', 'dmis_catinst', 'dmis_rc', 'dmis_rc_workload', 'dmis_rcuhosc', 'dmis_rcuhosc_workload', 'dmis_rcuhosr', 'dmis_rcuhosr_workload',
+            'dmis_llop', 'dmis_llrgc', 'dmis_llrgr', 'dmis_lp', 'dmis_stroke_stemi_drug', 'dmis_dmidml', 'dmis_pp', 'dmis_dmishd', 'dmis_dmicnt', 'dmis_palliative_care', 'dmis_dm',
+            'drug', 'opbkk_hc', 'opbkk_dent', 'opbkk_drug', 'opbkk_fs', 'opbkk_others', 'opbkk_hsub', 'opbkk_nhso',
+            'base_rate_old', 'base_rate_add', 'base_rate_net', 'fs'
+        ];
+
+        // Column mapping list (1-based index from Excel A-DP)
+        $colMapping = [
+            1 => 'repno', 2 => 'no', 3 => 'tran_id', 4 => 'hn', 5 => 'an', 6 => 'cid', 7 => 'pt_name', 8 => 'pt_type',
+            11 => 'net_compensate_nhso', 12 => 'net_compensate_employer', 13 => 'compensate_from', 14 => 'error_code',
+            15 => 'main_fund', 16 => 'sub_fund', 17 => 'service_type', 18 => 'refer_type', 19 => 'has_right', 20 => 'use_right',
+            21 => 'chk', 22 => 'maininscl', 23 => 'subinscl', 24 => 'href', 25 => 'hcode', 26 => 'hmain', 27 => 'prov1', 28 => 'rg1',
+            29 => 'hmain2', 30 => 'prov2', 31 => 'rg2', 32 => 'dmis_hmain3', 33 => 'da', 34 => 'proj', 35 => 'pa', 36 => 'drg',
+            37 => 'rw', 38 => 'ca_type', 39 => 'charge_non_vehicle_drug_device', 40 => 'charge_vehicle_drug_device', 41 => 'charge_total',
+            42 => 'charge_central_reimburse', 43 => 'self_pay', 44 => 'payrate_point', 45 => 'delay_ps', 46 => 'delay_percent', 47 => 'ccuf',
+            48 => 'adjrw_nhso', 49 => 'adjrw2', 50 => 'compensate_amount', 51 => 'act_amount', 52 => 'salary_percent', 53 => 'salary_amount',
+            54 => 'compensate_after_salary', 55 => 'hc_iphc', 56 => 'hc_ophc', 57 => 'ae_opae', 58 => 'ae_ipnb', 59 => 'ae_ipuc',
+            60 => 'ae_ip3sss', 61 => 'ae_ip7sss', 62 => 'ae_carae', 63 => 'ae_caref', 64 => 'ae_caref_puc', 65 => 'inst_opinst',
+            66 => 'inst_ipinst', 67 => 'ip_ipaec', 68 => 'ip_ipaer', 69 => 'ip_ipinrgc', 70 => 'ip_ipinrgr', 71 => 'ip_ipinspsn',
+            72 => 'ip_ipprcc', 73 => 'ip_ipprcc_puc', 74 => 'ip_ipbkk_inst', 75 => 'ip_ip_ontop', 76 => 'dmis_cataract',
+            77 => 'dmis_ssj_workload', 78 => 'dmis_hosp_workload', 79 => 'dmis_catinst', 80 => 'dmis_rc', 81 => 'dmis_rc_workload',
+            82 => 'dmis_rcuhosc', 83 => 'dmis_rcuhosc_workload', 84 => 'dmis_rcuhosr', 85 => 'dmis_rcuhosr_workload', 86 => 'dmis_llop',
+            87 => 'dmis_llrgc', 88 => 'dmis_llrgr', 89 => 'dmis_lp', 90 => 'dmis_stroke_stemi_drug', 91 => 'dmis_dmidml', 92 => 'dmis_pp',
+            93 => 'dmis_dmishd', 94 => 'dmis_dmicnt', 95 => 'dmis_palliative_care', 96 => 'dmis_dm', 97 => 'drug', 98 => 'opbkk_hc',
+            99 => 'opbkk_dent', 100 => 'opbkk_drug', 101 => 'opbkk_fs', 102 => 'opbkk_others', 103 => 'opbkk_hsub', 104 => 'opbkk_nhso',
+            105 => 'deny_hc', 106 => 'deny_ae', 107 => 'deny_inst', 108 => 'deny_ip', 109 => 'deny_dmis', 110 => 'base_rate_old',
+            111 => 'base_rate_add', 112 => 'base_rate_net', 113 => 'fs', 114 => 'va', 115 => 'remark', 116 => 'audit_results',
+            117 => 'pay_pattern', 118 => 'seq_no', 119 => 'invoice_no', 120 => 'invoice_lt'
+        ];
+
+        $tempDir = storage_path('app/temp_rep');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+
+        $stagingModelClass::truncate();
+        $importedReps = [];
+        $totalImportedRows = 0;
+
+        foreach ($items as $item) {
+            $excelUrl = $item['excel_url'] ?? '';
+            $repNo = $item['rep_no'] ?? '';
+            $rawFilename = $item['filename'] ?? "REP_{$repNo}.xls";
+
+            if (empty($excelUrl)) {
+                continue;
+            }
+
+            $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
+
+            $response = Http::withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept' => '*/*',
+            ])->withoutVerifying()->timeout(120)->get($downloadUrl);
+
+            if ($response->failed() || strlen($response->body()) < 1000) {
+                Log::warning("Failed to download REP Excel for {$repNo} from {$downloadUrl}");
+                continue;
+            }
+
+            // Save temporary file
+            $tempFile = $tempDir . '/REP_' . $repNo . '_' . time() . '.xls';
+            file_put_contents($tempFile, $response->body());
+
+            try {
+                $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($tempFile);
+                $sheet = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit = $sheet->getHighestDataRow();
+
+                $file_name = str_ireplace('.ecd', '.xls', $rawFilename);
+                if (stripos($file_name, '.xls') === false) {
+                    $file_name .= '.xls';
+                }
+
+                $rep_type = (stripos($file_name, '_IP_') !== false) ? 'IP' : 'OP';
+                $is_appeal = (stripos($file_name, '_APPEAL_') !== false) ? 1 : 0;
+                $buffer = [];
+
+                for ($row = 9; $row <= $row_limit; $row++) {
+                    $hn = $sheet->getCell('D' . $row)->getValue();
+                    if (empty($hn)) continue;
+
+                    $rawAdm = (string) $sheet->getCell('I' . $row)->getValue();
+                    $datetimeadm = null; $vstdate = null; $vsttime = null;
+                    if (!empty($rawAdm) && $rawAdm !== '-') {
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', trim($rawAdm));
+                            if ($d) {
+                                $datetimeadm = $d->format('Y-m-d H:i:s');
+                                $vstdate = $d->format('Y-m-d');
+                                $vsttime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {}
+                    }
+
+                    $rawDch = (string) $sheet->getCell('J' . $row)->getValue();
+                    $datetimedch = null; $dchdate = null; $dchtime = null;
+                    if (!empty($rawDch) && $rawDch !== '-') {
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', trim($rawDch));
+                            if ($d) {
+                                $datetimedch = $d->format('Y-m-d H:i:s');
+                                $dchdate = $d->format('Y-m-d');
+                                $dchtime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {}
+                    }
+
+                    $rowData = [
+                        'rep_filename' => $file_name,
+                        'rep_type' => $rep_type,
+                        'is_appeal' => $is_appeal,
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate' => $vstdate,
+                        'vsttime' => $vsttime,
+                        'datetimedch' => $datetimedch,
+                        'dchdate' => $dchdate,
+                        'dchtime' => $dchtime,
+                    ];
+
+                    for ($c = 1; $c <= 120; $c++) {
+                        if ($c === 9 || $c === 10) continue;
+                        $colChar = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+                        $val = $sheet->getCell($colChar . $row)->getValue();
+                        $fieldName = $colMapping[$c];
+                        if (in_array($fieldName, $numericFields)) {
+                            $rowData[$fieldName] = ($val === '-' || $val === '' || $val === null) ? null : (double) str_replace(',', '', $val);
+                        } else {
+                            $rowData[$fieldName] = ($val === '-' || $val === '' || $val === null) ? null : trim((string)$val);
+                        }
+                    }
+
+                    $buffer[] = $rowData;
+                    $totalImportedRows++;
+
+                    if (count($buffer) === 1000) {
+                        $stagingModelClass::insert($buffer);
+                        $buffer = [];
+                    }
+                }
+
+                if (!empty($buffer)) {
+                    $stagingModelClass::insert($buffer);
+                }
+
+                unset($spreadsheet);
+                gc_collect_cycles();
+                @unlink($tempFile);
+
+                $importedReps[] = $repNo;
+
+            } catch (\Exception $e) {
+                Log::error("Error parsing REP Excel file for {$repNo}: " . $e->getMessage());
+                @unlink($tempFile);
+            }
+        }
+
+        // Merge Staging to Target Rep table
+        DB::transaction(function () use ($stagingModelClass, $prodModelClass) {
+            $stagingModelClass::chunk(1000, function ($rows) use ($prodModelClass) {
+                foreach ($rows as $value) {
+                    $valueArr = $value->toArray();
+                    unset($valueArr['id']);
+                    $prodModelClass::updateOrInsert(
+                        [
+                            'repno' => $value->repno,
+                            'no' => $value->no,
+                        ],
+                        $valueArr
+                    );
+                }
+            });
+        });
+
+        $stagingModelClass::truncate();
+
+        $importedCount = count($importedReps);
+        if ($importedCount === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า REP ที่เลือกได้ กรุณาตรวจสอบ Session e-Claim'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "นำเข้าข้อมูล REP จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
+            'imported_reps' => $importedReps,
+            'reload' => true
+        ]);
+    }
+
+    /**
+     * นำเข้าไฟล์ LGO Excel จาก e-Claim เข้าสู่ตาราง stm_lgo และ stm_lgoexcel
+     */
+    protected function processStmLgoImport(array $items, string $sessionToken)
+    {
+        $tempDir = storage_path('app/temp_stm_lgo');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+
+        Stm_lgoexcel::truncate();
+        $importedReps = [];
+        $totalImportedRows = 0;
+
+        foreach ($items as $item) {
+            $excelUrl = $item['excel_url'] ?? '';
+            $repNo = $item['rep_no'] ?? '';
+            $rawFilename = $item['filename'] ?? "STM_LGO_{$repNo}.xls";
+
+            if (empty($excelUrl)) continue;
+
+            $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
+
+            $response = Http::withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept' => '*/*',
+            ])->withoutVerifying()->timeout(120)->get($downloadUrl);
+
+            if ($response->failed() || strlen($response->body()) < 1000) {
+                Log::warning("Failed to download STM LGO Excel for {$repNo}");
+                continue;
+            }
+
+            $tempFile = $tempDir . '/STM_LGO_' . $repNo . '_' . time() . '.xls';
+            file_put_contents($tempFile, $response->body());
+
+            try {
+                $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($tempFile);
+                $sheet = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit = $sheet->getHighestDataRow();
+
+                $file_name = str_ireplace('.ecd', '.xls', $rawFilename);
+                if (stripos($file_name, '.xls') === false) {
+                    $file_name .= '.xls';
+                }
+
+                $buffer = [];
+
+                for ($row = 8; $row <= $row_limit; $row++) {
+                    $repnoVal = trim((string)$sheet->getCell('A' . $row)->getValue());
+                    $noVal = trim((string)$sheet->getCell('B' . $row)->getValue());
+                    
+                    // ข้ามแถวที่ไม่ใช่ข้อมูลผู้ป่วย (เช่น ส่วนสรุป/หมายเหตุท้ายไฟล์ Excel)
+                    if (empty($repnoVal) || !is_numeric($repnoVal) || empty($noVal) || !is_numeric($noVal)) {
+                        continue;
+                    }
+
+                    $adm = trim((string)$sheet->getCell('I' . $row)->getValue());
+                    $datetimeadm = null; $vstdate = null; $vsttime = null;
+                    if (!empty($adm) && $adm !== '-') {
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $adm);
+                            if ($d) {
+                                $datetimeadm = $d->format('Y-m-d H:i:s');
+                                $vstdate = $d->format('Y-m-d');
+                                $vsttime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            $day = substr($adm, 0, 2);
+                            $mo = substr($adm, 3, 2);
+                            $year = substr($adm, 6, 4);
+                            $tm = substr($adm, 11, 8);
+                            if ($day && $mo && $year) {
+                                $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . ($tm ?: '00:00:00');
+                                $vstdate = $year . '-' . $mo . '-' . $day;
+                                $vsttime = $tm ?: '00:00:00';
+                            }
+                        }
+                    }
+
+                    $dch = trim((string)$sheet->getCell('J' . $row)->getValue());
+                    $datetimedch = null; $dchdate = null; $dchtime = null;
+                    if (!empty($dch) && $dch !== '-') {
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $dch);
+                            if ($d) {
+                                $datetimedch = $d->format('Y-m-d H:i:s');
+                                $dchdate = $d->format('Y-m-d');
+                                $dchtime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            $dchday = substr($dch, 0, 2);
+                            $dchmo = substr($dch, 3, 2);
+                            $dchyear = substr($dch, 6, 4);
+                            $dchtime_raw = substr($dch, 11, 8);
+                            if ($dchday && $dchmo && $dchyear) {
+                                $datetimedch = $dchyear . '-' . $dchmo . '-' . $dchday . ' ' . ($dchtime_raw ?: '00:00:00');
+                                $dchdate = $dchyear . '-' . $dchmo . '-' . $dchday;
+                                $dchtime = $dchtime_raw ?: '00:00:00';
+                            }
+                        }
+                    }
+
+                    $cleanNum = function($cell) use ($sheet, $row) {
+                        $v = $sheet->getCell($cell . $row)->getValue();
+                        return ($v === '-' || $v === '' || $v === null) ? 0 : (double)str_replace(',', '', $v);
+                    };
+
+                    $cleanStr = function($cell) use ($sheet, $row) {
+                        $v = $sheet->getCell($cell . $row)->getValue();
+                        return ($v === '-' || $v === null) ? null : trim((string)$v);
+                    };
+
+                    $buffer[] = [
+                        'round_no' => (string)$repnoVal,
+                        'repno' => (string)$repnoVal,
+                        'no' => $noVal,
+                        'tran_id' => $cleanStr('C'),
+                        'hn' => $cleanStr('D'),
+                        'an' => $cleanStr('E'),
+                        'cid' => $cleanStr('F'),
+                        'pt_name' => $cleanStr('G'),
+                        'dep' => $cleanStr('H'),
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate' => $vstdate,
+                        'vsttime' => $vsttime,
+                        'datetimedch' => $datetimedch,
+                        'dchdate' => $dchdate,
+                        'dchtime' => $dchtime,
+                        'compensate_treatment' => $cleanNum('K'),
+                        'compensate_nhso' => $cleanNum('L'),
+                        'error_code' => $cleanStr('M'),
+                        'fund' => $cleanStr('N'),
+                        'service_type' => $cleanStr('O'),
+                        'refer' => $cleanStr('P'),
+                        'have_rights' => $cleanStr('Q'),
+                        'use_rights' => $cleanStr('R'),
+                        'main_rights' => $cleanStr('S'),
+                        'secondary_rights' => $cleanStr('T'),
+                        'href' => $cleanStr('U'),
+                        'hcode' => $cleanStr('V'),
+                        'prov1' => $cleanStr('W'),
+                        'hospcode' => $cleanStr('X'),
+                        'hospname' => $cleanStr('Y'),
+                        'proj' => $cleanStr('Z'),
+                        'pa' => $cleanStr('AA'),
+                        'drg' => $cleanStr('AB'),
+                        'rw' => $cleanStr('AC'),
+                        'charge_treatment' => $cleanNum('AD'),
+                        'charge_pp' => $cleanNum('AE'),
+                        'withdraw' => $cleanNum('AF'),
+                        'non_withdraw' => $cleanNum('AG'),
+                        'pay' => $cleanNum('AH'),
+                        'payrate' => $cleanNum('AI'),
+                        'delay' => $cleanStr('AJ'),
+                        'delay_percent' => $cleanStr('AK'),
+                        'ccuf' => $cleanStr('AL'),
+                        'adjrw' => $cleanStr('AM'),
+                        'act' => $cleanNum('AN'),
+                        'case_iplg' => $cleanNum('AO'),
+                        'case_oplg' => $cleanNum('AP'),
+                        'case_palg' => $cleanNum('AQ'),
+                        'case_inslg' => $cleanNum('AR'),
+                        'case_otlg' => $cleanNum('AS'),
+                        'case_pp' => $cleanNum('AT'),
+                        'case_drug' => $cleanNum('AU'),
+                        'deny_iplg' => $cleanStr('AV'),
+                        'deny_oplg' => $cleanStr('AW'),
+                        'deny_palg' => $cleanStr('AX'),
+                        'deny_inslg' => $cleanStr('AY'),
+                        'deny_otlg' => $cleanStr('AZ'),
+                        'ors' => $cleanStr('BA'),
+                        'va' => $cleanStr('BB'),
+                        'audit_results' => $cleanStr('BC'),
+                        'stm_filename' => $file_name,
+                    ];
+
+                    $totalImportedRows++;
+
+                    if (count($buffer) === 1000) {
+                        Stm_lgoexcel::insert($buffer);
+                        $buffer = [];
+                    }
+                }
+
+                if (!empty($buffer)) {
+                    Stm_lgoexcel::insert($buffer);
+                }
+
+                unset($spreadsheet);
+                gc_collect_cycles();
+                @unlink($tempFile);
+
+                $importedReps[] = $repNo;
+
+            } catch (\Exception $e) {
+                Log::error("Error parsing STM LGO Excel file for {$repNo}: " . $e->getMessage());
+                @unlink($tempFile);
+            }
+        }
+
+        // Merge Staging to Stm_lgo table
+        DB::transaction(function () {
+            $stm_lgoexcel = Stm_lgoexcel::whereNotNull('charge_treatment')->get();
+            foreach ($stm_lgoexcel as $value) {
+                $exists = Stm_lgo::where('repno', $value->repno)
+                    ->where('no', $value->no)
+                    ->exists();
+
+                if ($exists) {
+                    Stm_lgo::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'round_no' => $value->repno,
+                            'datetimeadm' => $value->datetimeadm,
+                            'vstdate' => $value->vstdate,
+                            'vsttime' => $value->vsttime,
+                            'datetimedch' => $value->datetimedch,
+                            'dchdate' => $value->dchdate,
+                            'dchtime' => $value->dchtime,
+                            'compensate_treatment' => $value->compensate_treatment,
+                            'compensate_nhso' => $value->compensate_nhso,
+                            'charge_treatment' => $value->charge_treatment,
+                            'charge_pp' => $value->charge_pp,
+                            'payrate' => $value->payrate,
+                            'case_iplg' => $value->case_iplg,
+                            'case_oplg' => $value->case_oplg,
+                            'case_palg' => $value->case_palg,
+                            'case_inslg' => $value->case_inslg,
+                            'case_otlg' => $value->case_otlg,
+                            'case_pp' => $value->case_pp,
+                            'case_drug' => $value->case_drug,
+                            'stm_filename' => $value->stm_filename,
+                        ]);
+                } else {
+                    $arr = $value->toArray();
+                    unset($arr['id']);
+                    $arr['round_no'] = $value->repno;
+                    Stm_lgo::create($arr);
+                }
+            }
+        });
+
+        Stm_lgoexcel::truncate();
+
+        $importedCount = count($importedReps);
+        if ($importedCount === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement LGO ที่เลือกได้'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "นำเข้าข้อมูล Statement LGO จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
+            'imported_reps' => $importedReps,
+            'reload' => true
+        ]);
+    }
+
+    /**
+     * 10. ค้นหารายการ Statement จากหน้า Finance Report (StatementReportWebActionList.do) สิทธิ์ OFC (ข้าราชการ)
+     */
+    public function searchFinanceStatements(Request $request)
+    {
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $sessionToken = $this->getActiveEclaimToken();
+
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาระบุ Session Cookie หรือกดซิงก์จาก Extension ก่อนค้นหาข้อมูล'
+            ], 401);
+        }
+
+        $maininscl = strtoupper(trim($request->maininscl ?: 'OFC'));
+        $budgetYear = (int)($request->budget_year ?: (date('Y') + 543 + (date('m') >= 10 ? 1 : 0)));
+        $gyear = (string)($budgetYear > 2400 ? $budgetYear - 543 : $budgetYear);
+        $month = $request->month ? (int)$request->month : null;
+        $gmonth = $month ? str_pad($month, 2, '0', STR_PAD_LEFT) : '';
+        $personType = trim($request->person_type ?: '');
+
+        try {
+            $url = "https://eclaim.nhso.go.th/webComponent/nch/StatementReportWebActionList.do";
+
+            $response = Http::asForm()->withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept' => 'text/html, */*; q=0.01',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])->withoutVerifying()->timeout(30)->post($url, [
+                'zone' => '10',
+                'province_id' => '3700',
+                'hcode' => $hospcode,
+                'maininscl' => $maininscl,
+                'gyear' => $gyear,
+                'gmonth' => $gmonth,
+                'ddlPerson_type' => $personType
+            ]);
+
+            if ($response->status() === 302 || $response->status() === 401 || (strpos($response->body(), 'เข้าสู่ระบบ') !== false || strpos($response->body(), 'Login') !== false) && strpos($response->body(), 'Statement No') === false) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+                ], 401);
+            }
+
+            $html = $response->body();
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+            $xpath = new \DOMXPath($dom);
+            $rows = $xpath->query('//table//tbody//tr | //tr');
+
+            $items = [];
+            foreach ($rows as $tr) {
+                $tds = $xpath->query('./td', $tr);
+                if ($tds->length >= 7) {
+                    $statementNo = trim($tds->item(0)->textContent);
+                    $monthName = trim($tds->item(1)->textContent);
+                    $yearTh = trim($tds->item(2)->textContent);
+                    $round = trim($tds->item(3)->textContent);
+                    $hcodeVal = trim($tds->item(4)->textContent);
+                    $benefit = trim($tds->item(5)->textContent);
+
+                    // Extract JS call in download statement cell (td 6)
+                    $dlTd = $tds->item(6);
+                    $onclick = '';
+                    foreach ($xpath->query('.//a', $dlTd) as $a) {
+                        $onclick = $a->getAttribute('onclick');
+                    }
+
+                    // Pattern: getReportNCHReportRepOFC('10989', 'OFC', '1', '2026', '08', '01', '10989_OP202608_01')
+                    if (preg_match("/getReportNCHReportRepOFC\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/", $onclick, $m)) {
+                        $p_hcode = $m[1];
+                        $p_maininscl = $m[2];
+                        $p_person_type = $m[3];
+                        $p_gyear = $m[4];
+                        $p_gmonth = $m[5];
+                        $p_revision = $m[6];
+                        $p_documentno = $m[7];
+
+                        $personTypeLabel = $p_person_type == '1' ? 'ผู้ป่วยนอก (OPD)' : ($p_person_type == '2' ? 'ผู้ป่วยใน (IPD)' : 'ทั้งหมด');
+
+                        $existingCount = 0;
+                        try {
+                            $existingCount = DB::table('stm_ofc')
+                                ->where('round_no', $p_documentno)
+                                ->orWhere('stm_filename', 'like', "%{$p_documentno}%")
+                                ->count();
+                        } catch (\Exception $e) {}
+
+                        $items[] = [
+                            'statement_no' => $p_documentno ?: $statementNo,
+                            'month_name' => $monthName,
+                            'year_th' => $yearTh,
+                            'round' => $round,
+                            'hcode' => $p_hcode,
+                            'maininscl' => $p_maininscl,
+                            'person_type' => $p_person_type,
+                            'person_type_label' => $personTypeLabel,
+                            'gyear' => $p_gyear,
+                            'gmonth' => $p_gmonth,
+                            'revision' => $p_revision,
+                            'documentno' => $p_documentno,
+                            'is_imported' => $existingCount > 0,
+                            'imported_count' => $existingCount,
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'budget_year' => $budgetYear,
+                'count' => count($items),
+                'data' => $items,
+                'message' => count($items) > 0 ? '' : 'ไม่พบรายการ Statement ในปี/เดือนที่เลือก'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("e-Claim searchFinanceStatements error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูล Statement จาก e-Claim: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 11. ดาวน์โหลดและนำเข้า Statement OFC (ข้าราชการ) จาก e-Claim เข้าสู่ตาราง stm_ofc
+     */
+    public function importFinanceStatements(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $sessionToken = $this->getActiveEclaimToken();
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+            ], 401);
+        }
+
+        $items = $request->items;
+        if (empty($items) || !is_array($items)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาเลือกอย่างน้อย 1 รายการ Statement ที่ต้องการนำเข้า'
+            ], 400);
+        }
+
+        $tempDir = storage_path('app/temp_stm_ofc');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+
+        Stm_ofcexcel::truncate();
+        $importedStatements = [];
+        $totalImportedRows = 0;
+
+        foreach ($items as $item) {
+            $postData = [
+                'hcode' => $item['hcode'] ?? '10989',
+                'maininscl' => $item['maininscl'] ?? 'OFC',
+                'person_type' => $item['person_type'] ?? '1',
+                'gyear' => $item['gyear'] ?? '2026',
+                'gmonth' => $item['gmonth'] ?? '08',
+                'revision' => $item['revision'] ?? '01',
+                'documentno' => $item['documentno'] ?? ''
+            ];
+
+            $docNo = $postData['documentno'];
+            if (empty($docNo)) continue;
+
+            $downloadUrl = "https://eclaim.nhso.go.th/webComponent/nch/RepStatementOFCReportExcelWebAction.do";
+
+            $response = Http::asForm()->withHeaders([
+                'Cookie' => 'JSESSIONID=' . $sessionToken,
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept' => '*/*',
+            ])->withoutVerifying()->timeout(120)->post($downloadUrl, $postData);
+
+            if ($response->failed() || strlen($response->body()) < 1000) {
+                Log::warning("Failed to download Statement OFC Excel for {$docNo}");
+                continue;
+            }
+
+            $tempFile = $tempDir . '/STM_' . $docNo . '_' . time() . '.xls';
+            file_put_contents($tempFile, $response->body());
+
+            try {
+                $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($tempFile);
+                $sheet = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit = $sheet->getHighestDataRow();
+
+                $roundText = $sheet->getCell('A6')->getCalculatedValue();
+                $round_no = trim(mb_substr((string) $roundText, 13, null, 'UTF-8')) ?: $docNo;
+                $file_name = "STM_{$docNo}.xls";
+
+                $buffer = [];
+
+                for ($row = 12; $row <= $row_limit; $row++) {
+                    $repnoVal = trim((string)$sheet->getCell('A' . $row)->getValue());
+                    $noVal = trim((string)$sheet->getCell('B' . $row)->getValue());
+                    $hnVal = trim((string)$sheet->getCell('C' . $row)->getValue());
+
+                    if (empty($repnoVal) || !is_numeric($repnoVal) || empty($noVal) || !is_numeric($noVal) || empty($hnVal)) {
+                        continue;
+                    }
+
+                    $adm = trim((string)$sheet->getCell('G' . $row)->getValue());
+                    $datetimeadm = null; $vstdate = null; $vsttime = null;
+                    if (!empty($adm) && $adm !== '-') {
+                        $cleanAdm = preg_replace('/\s*\/\s*/', '/', $adm);
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $cleanAdm);
+                            if ($d) {
+                                $datetimeadm = $d->format('Y-m-d H:i:s');
+                                $vstdate = $d->format('Y-m-d');
+                                $vsttime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            $parts = explode(' ', $cleanAdm);
+                            $dp = explode('/', $parts[0] ?? '');
+                            if (count($dp) === 3) {
+                                $datetimeadm = "{$dp[2]}-{$dp[1]}-{$dp[0]} " . ($parts[1] ?? '00:00:00');
+                                $vstdate = "{$dp[2]}-{$dp[1]}-{$dp[0]}";
+                                $vsttime = $parts[1] ?? '00:00:00';
+                            }
+                        }
+                    }
+
+                    $dch = trim((string)$sheet->getCell('H' . $row)->getValue());
+                    $datetimedch = null; $dchdate = null; $dchtime = null;
+                    if (!empty($dch) && $dch !== '-') {
+                        $cleanDch = preg_replace('/\s*\/\s*/', '/', $dch);
+                        try {
+                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $cleanDch);
+                            if ($d) {
+                                $datetimedch = $d->format('Y-m-d H:i:s');
+                                $dchdate = $d->format('Y-m-d');
+                                $dchtime = $d->format('H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            $parts = explode(' ', $cleanDch);
+                            $dp = explode('/', $parts[0] ?? '');
+                            if (count($dp) === 3) {
+                                $datetimedch = "{$dp[2]}-{$dp[1]}-{$dp[0]} " . ($parts[1] ?? '00:00:00');
+                                $dchdate = "{$dp[2]}-{$dp[1]}-{$dp[0]}";
+                                $dchtime = $parts[1] ?? '00:00:00';
+                            }
+                        }
+                    }
+
+                    $cleanNum = function($cell) use ($sheet, $row) {
+                        $v = $sheet->getCell($cell . $row)->getValue();
+                        return ($v === '-' || $v === '' || $v === null) ? 0 : (double)str_replace(',', '', $v);
+                    };
+
+                    $cleanStr = function($cell) use ($sheet, $row) {
+                        $v = $sheet->getCell($cell . $row)->getValue();
+                        return ($v === '-' || $v === null) ? null : trim((string)$v);
+                    };
+
+                    $buffer[] = [
+                        'round_no' => $round_no,
+                        'repno' => $repnoVal,
+                        'no' => $noVal,
+                        'hn' => $hnVal,
+                        'an' => $cleanStr('D'),
+                        'cid' => $cleanStr('E'),
+                        'pt_name' => $cleanStr('F'),
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate' => $vstdate,
+                        'vsttime' => $vsttime,
+                        'datetimedch' => $datetimedch,
+                        'dchdate' => $dchdate,
+                        'dchtime' => $dchtime,
+                        'projcode' => $cleanStr('I'),
+                        'adjrw' => $cleanStr('J'),
+                        'charge' => $cleanNum('K'),
+                        'act' => $cleanNum('L'),
+                        'receive_room' => $cleanNum('M'),
+                        'receive_instument' => $cleanNum('N'),
+                        'receive_drug' => $cleanNum('O'),
+                        'receive_treatment' => $cleanNum('P'),
+                        'receive_car' => $cleanNum('Q'),
+                        'receive_waitdch' => $cleanNum('R'),
+                        'receive_other' => $cleanNum('S'),
+                        'receive_total' => $cleanNum('T'),
+                        'stm_filename' => $file_name,
+                    ];
+
+                    $totalImportedRows++;
+
+                    if (count($buffer) === 1000) {
+                        Stm_ofcexcel::insert($buffer);
+                        $buffer = [];
+                    }
+                }
+
+                if (!empty($buffer)) {
+                    Stm_ofcexcel::insert($buffer);
+                }
+
+                unset($spreadsheet);
+                gc_collect_cycles();
+                @unlink($tempFile);
+
+                $importedStatements[] = $docNo;
+
+            } catch (\Exception $e) {
+                Log::error("Error parsing STM OFC Excel file for {$docNo}: " . $e->getMessage());
+                @unlink($tempFile);
+            }
+        }
+
+        // Merge Staging to Stm_ofc table
+        DB::transaction(function () {
+            $stm_ofcexcel = Stm_ofcexcel::whereNotNull('charge')
+                ->where('charge', '<>', 'เรียกเก็บ')
+                ->get();
+
+            foreach ($stm_ofcexcel as $value) {
+                $exists = Stm_ofc::where('repno', $value->repno)
+                    ->where('no', $value->no)
+                    ->exists();
+
+                if ($exists) {
+                    Stm_ofc::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'round_no' => $value->round_no,
+                            'datetimeadm' => $value->datetimeadm,
+                            'vstdate' => $value->vstdate,
+                            'vsttime' => $value->vsttime,
+                            'datetimedch' => $value->datetimedch,
+                            'dchdate' => $value->dchdate,
+                            'dchtime' => $value->dchtime,
+                            'charge' => $value->charge,
+                            'receive_room' => $value->receive_room,
+                            'receive_instument' => $value->receive_instument,
+                            'receive_drug' => $value->receive_drug,
+                            'receive_treatment' => $value->receive_treatment,
+                            'receive_car' => $value->receive_car,
+                            'receive_waitdch' => $value->receive_waitdch,
+                            'receive_other' => $value->receive_other,
+                            'receive_total' => $value->receive_total,
+                            'stm_filename' => $value->stm_filename,
+                        ]);
+                } else {
+                    $arr = $value->toArray();
+                    unset($arr['id']);
+                    Stm_ofc::create($arr);
+                }
+            }
+        });
+
+        Stm_ofcexcel::truncate();
+
+        $importedCount = count($importedStatements);
+        if ($importedCount === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement OFC ที่เลือกได้'
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "นำเข้าข้อมูล Statement OFC (ข้าราชการ) จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
+            'imported_statements' => $importedStatements,
+            'reload' => true
+        ]);
+    }
+}
+

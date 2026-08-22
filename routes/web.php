@@ -30,6 +30,7 @@ use App\Http\Controllers\DebtorAccController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\NhsoEndpointController;
 use App\Http\Controllers\ImportSssController;
+use App\Http\Controllers\EclaimBotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -202,6 +203,19 @@ Route::post('import/dmis/updateReceipt', [ImportDmisController::class, 'updateRe
 Route::post('import/dmis/delete', [ImportDmisController::class, 'delete'])->name('import.dmis.delete');
 Route::post('import/stm/delete', [ImportController::class, 'deleteBatch'])->name('import.stm.delete');
 Route::post('import/rep/delete', [ImportRepController::class, 'deleteBatch'])->name('import.rep.delete');
+
+// e-Claim Bot Automation Routes
+Route::post('import/eclaim-bot/status', [EclaimBotController::class, 'getStatus'])->name('import.eclaim-bot.status');
+Route::post('import/eclaim-bot/generate-qr', [EclaimBotController::class, 'generateThaiDQR'])->name('import.eclaim-bot.generate-qr');
+Route::post('import/eclaim-bot/verify-login', [EclaimBotController::class, 'verifyThaiDLogin'])->name('import.eclaim-bot.verify-login');
+Route::post('import/eclaim-bot/save-token', [EclaimBotController::class, 'saveSessionToken'])->name('import.eclaim-bot.save-token');
+Route::post('import/eclaim-bot/logout', [EclaimBotController::class, 'logoutSession'])->name('import.eclaim-bot.logout');
+Route::post('import/eclaim-bot/search', [EclaimBotController::class, 'searchStatements'])->name('import.eclaim-bot.search');
+Route::post('import/eclaim-bot/import', [EclaimBotController::class, 'importStatements'])->name('import.eclaim-bot.import');
+Route::post('import/eclaim-bot/rep-search', [EclaimBotController::class, 'searchRepStatements'])->name('import.eclaim-bot.rep-search');
+Route::post('import/eclaim-bot/rep-import', [EclaimBotController::class, 'importRepStatements'])->name('import.eclaim-bot.rep-import');
+Route::post('import/eclaim-bot/finance-search', [EclaimBotController::class, 'searchFinanceStatements'])->name('import.eclaim-bot.finance-search');
+Route::post('import/eclaim-bot/finance-import', [EclaimBotController::class, 'importFinanceStatements'])->name('import.eclaim-bot.finance-import');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);

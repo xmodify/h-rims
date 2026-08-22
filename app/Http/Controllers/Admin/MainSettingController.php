@@ -20,12 +20,13 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        // Exclude internal calculated AOPOD settings from being manually edited
+        // Exclude internal calculated / dynamic session settings from being manually edited
         $excludeFromDisplay = [
             'aopod_death_pct_patient', 'aopod_death_details_patient',
             'aopod_death_pct_person', 'aopod_death_details_person',
             'aopod_death_pct_clinicmember', 'aopod_death_details_clinicmember',
-            'aopod_death_pct_death', 'aopod_death_details_death'
+            'aopod_death_pct_death', 'aopod_death_details_death',
+            'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'
         ];
 
         $settings = MainSetting::orderBy('name_th', 'asc')
@@ -728,6 +729,9 @@ class MainSettingController extends Controller
                         ['name' => 'moph_alert_active', 'name_th' => 'เปิดใช้งานยืนยันตัวตน 2FA Moph Alert (Y/N)', 'value' => 'N'],
                         ['name' => 'moph_alert_client_id', 'name_th' => 'Moph Alert Client ID', 'value' => ''],
                         ['name' => 'moph_alert_client_secret', 'name_th' => 'Moph Alert Client Secret', 'value' => ''],
+                        ['name' => 'eclaim_session_token', 'name_th' => 'e-Claim Session Token', 'value' => ''],
+                        ['name' => 'eclaim_session_user', 'name_th' => 'e-Claim Session User ล่าสุด', 'value' => ''],
+                        ['name' => 'eclaim_session_time', 'name_th' => 'e-Claim Session เวลาเชื่อมต่อล่าสุด', 'value' => ''],
                     ];
 
                     // Clean up obsolete settings dynamically

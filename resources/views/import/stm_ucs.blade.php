@@ -15,15 +15,18 @@
                             <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่จำกัดจำนวนไฟล์</p>
                         </div>
                         
-                        <div class="input-group mb-3">
+                        <div class="input-group mb-0">
                             <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
-                                <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
+                            <button class="btn btn-success px-3.5" type="submit" style="border-radius: 0;">
+                                <i class="bi bi-cloud-upload me-1.5"></i> นำเข้าข้อมูล
+                            </button>
+                            <button type="button" class="btn btn-primary px-3.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#eclaimBotModal" style="border-radius: 0 10px 10px 0; background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">
+                                <i class="bi bi-cloud-arrow-down-fill me-1.5"></i> ดึงจาก e-Claim
                             </button>
                         </div>
 
                         @if ($message = Session::get('stm_success'))
-                            <div class="alert alert-success border-0 shadow-sm py-2 mb-0">
+                            <div class="alert alert-success border-0 shadow-sm py-2 mb-0 mt-3">
                                 <i class="bi bi-check-circle-fill me-2"></i> <strong>{{ $message }}</strong>
                             </div>
                         @endif
@@ -236,6 +239,173 @@
     </div>
 </div>
 {{-- End Modal --}}
+
+<!-- Modal: e-Claim Automation Bot (ThaiD SSO & Direct Import) -->
+<div class="modal fade" id="eclaimBotModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header text-white p-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 14px; color: white; box-shadow: 0 4px 12px rgba(2,132,199,0.4);">
+                        <i class="bi bi-robot fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white">ดึงข้อมูล Statement (STM UCS) จาก e-Claim อัตโนมัติ</h5>
+                        <div class="text-light-50 small mt-0.5 d-flex align-items-center gap-2">
+                            <span>ระบบเชื่อมต่อตรง eclaim.nhso.go.th</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 10px;">
+                                <i class="bi bi-shield-lock-fill me-1"></i> ThaiD SSO Ready
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light">
+                <!-- Section 1: e-Claim Session Connection (Cookie / Token) -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="eclaimAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" id="eclaimAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ e-Claim</div>
+                                    <div class="text-muted small" id="eclaimAuthStatusSub">ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเชื่อมต่อ</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-none" id="btnToggleTokenInput">
+                                    <i class="bi bi-pencil-square me-1"></i> เปลี่ยน Token
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimLogout">
+                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Session Input Form (Shows when disconnected or editing) -->
+                        <div id="sessionInputContainer" class="pt-3 mt-2 border-top">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="bi bi-key-fill text-primary me-1"></i> e-Claim Session Cookie (JSESSIONID):
+                            </label>
+
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text bg-white"><i class="bi bi-cookie text-muted"></i></span>
+                                <input type="text" class="form-control form-control-sm" id="eclaimTokenInput" placeholder="วางค่า e-Claim Session Cookie (JSESSIONID)">
+                                <button class="btn btn-primary px-3 fw-bold" type="button" id="btnSaveToken">
+                                    <i class="bi bi-link-45deg me-1"></i> เชื่อมต่อ Session
+                                </button>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-2 text-muted small" style="font-size: 11.5px;">
+                                <span><i class="bi bi-info-circle text-primary me-1"></i><strong>วิธีเชื่อมต่อ:</strong></span>
+                                <span>1. ล็อกอินเข้าเว็บ e-Claim ผ่าน ThaiD ในเบราว์เซอร์</span>
+                                <span>2. คัดลอกค่า <code>JSESSIONID</code> มาวางที่นี่ (หรือกดปุ่ม "ซิงก์ Session" ใน Extension)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Search & Filter Box -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">ปีงบประมาณ</label>
+                                <select class="form-select form-select-sm rounded-3" id="botBudgetYear">
+                                    @foreach ($budget_year_select as $row)
+                                        <option value="{{ $row->LEAVE_YEAR_ID }}" {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                            {{ $row->LEAVE_YEAR_NAME }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">งวดเดือน</label>
+                                <select class="form-select form-select-sm rounded-3" id="botMonth">
+                                    <option value="10">ตุลาคม (ต้นปีงบ)</option>
+                                    <option value="11">พฤศจิกายน</option>
+                                    <option value="12">ธันวาคม</option>
+                                    <option value="01">มกราคม</option>
+                                    <option value="02">กุมภาพันธ์</option>
+                                    <option value="03">มีนาคม</option>
+                                    <option value="04">เมษายน</option>
+                                    <option value="05">พฤษภาคม</option>
+                                    <option value="06">มิถุนายน</option>
+                                    <option value="07">กรกฎาคม</option>
+                                    <option value="08" selected>สิงหาคม</option>
+                                    <option value="09">กันยายน (สิ้นปีงบ)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">ประเภทสิทธิ์</label>
+                                <input type="text" class="form-control form-control-sm rounded-3 bg-light" value="UCS (ประกันสุขภาพถ้วนหน้า)" readonly>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill w-100 shadow-sm py-1.5" id="btnBotSearch">
+                                    <i class="bi bi-search me-1"></i> ค้นหาใน e-Claim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Statement List Table Preview -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-list-check text-success me-2"></i> รายการ Statement ที่พบใน e-Claim
+                        </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-dark border px-2.5 py-1" id="botResultBadge">พบ 0 รายการ</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="botStatementTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" width="5%">
+                                        <input class="form-check-input" type="checkbox" id="checkAllBot">
+                                    </th>
+                                    <th class="text-center">งวดที่ (Round)</th>
+                                    <th>ชื่อไฟล์ STM</th>
+                                    <th class="text-center">ประเภท</th>
+                                    <th class="text-center">วันที่ออก</th>
+                                    <th class="text-end">จำนวนราย</th>
+                                    <th class="text-end">เรียกเก็บ</th>
+                                    <th class="text-end">ชดเชยสุทธิ</th>
+                                    <th class="text-center">สถานะใน RIMS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="botStatementTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                                        กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-0 p-3 px-4 d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    <span id="selectedCountText" class="fw-bold text-primary">เลือก 0 รายการ</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4 shadow-sm" id="btnStartImportBot" disabled>
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> เริ่มนำเข้า RIMS ทันที
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- SweetAlert: Success -->
 @if (session('stm_success'))
@@ -609,6 +779,360 @@
                                 confirmButtonText: 'ปิด',
                                 confirmButtonColor: '#d33'
                             });
+                        }
+                    });
+                }
+            });
+        });
+
+        // ==========================================
+        // e-Claim Automation (Session Cookie / Direct Sync)
+        // ==========================================
+        // 2) Check e-Claim Authentication Status
+        // ==========================================
+        function checkEclaimStatus() {
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.status') }}",
+                method: "POST",
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.connected) {
+                        $('#eclaimAuthStatusIcon').removeClass('bg-warning-subtle text-warning').addClass('bg-success-subtle text-success')
+                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
+                        $('#eclaimAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
+                        $('#eclaimAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
+                        $('#btnEclaimLogout').removeClass('d-none');
+                        $('#btnToggleTokenInput').removeClass('d-none');
+                        $('#sessionInputContainer').addClass('d-none');
+                        $('#btnBotSearch').prop('disabled', false);
+                    } else {
+                        var savedToken = localStorage.getItem('eclaim_session_token');
+                        if (savedToken) {
+                            $.ajax({
+                                url: "{{ route('import.eclaim-bot.save-token') }}",
+                                method: "POST",
+                                data: { _token: "{{ csrf_token() }}", token: savedToken },
+                                success: function(saveRes) {
+                                    if (saveRes.status === 'success') {
+                                        checkEclaimStatus();
+                                    }
+                                }
+                            });
+                            return;
+                        }
+
+                        $('#eclaimAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
+                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                        $('#eclaimAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
+                        $('#eclaimAuthStatusSub').text('ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#btnEclaimLogout').addClass('d-none');
+                        $('#btnToggleTokenInput').addClass('d-none');
+                        $('#sessionInputContainer').removeClass('d-none');
+                    }
+                }
+            });
+        }
+
+        // When eclaimBotModal opens
+        $('#eclaimBotModal').on('show.bs.modal', function () {
+            checkEclaimStatus();
+        });
+
+        // Toggle Token Input field
+        $('#btnToggleTokenInput').on('click', function () {
+            $('#sessionInputContainer').toggleClass('d-none');
+        });
+
+        // Save Session Token
+        $('#btnSaveToken').on('click', function () {
+            var token = $('#eclaimTokenInput').val();
+            if (!token) {
+                Swal.fire('แจ้งเตือน', 'กรุณากรอก Session Token / Cookie', 'warning');
+                return;
+            }
+
+            localStorage.setItem('eclaim_session_token', token);
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.save-token') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    token: token
+                },
+                success: function (res) {
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'เชื่อมต่อสำเร็จ!',
+                            text: res.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        checkEclaimStatus();
+                    }
+                }
+            });
+        });
+
+        // Disconnect / Logout e-Claim
+        $('#btnEclaimLogout').on('click', function () {
+            Swal.fire({
+                title: 'ยืนยันตัดการเชื่อมต่อ?',
+                text: 'ระบบจะล้าง Session e-Claim ออกจากระบบทุกหน้าจอ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('eclaim_session_token');
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.logout') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function () {
+                            checkEclaimStatus();
+                            $('#eclaimTokenInput').val('');
+                            $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-muted">กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement</td></tr>');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตัดการเชื่อมต่อแล้ว',
+                                text: 'ตัดการเชื่อมต่อกับ e-Claim เรียบร้อย',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Auto-connect if URL has ?eclaim_token=...
+        var urlParams = new URLSearchParams(window.location.search);
+        var urlToken = urlParams.get('eclaim_token');
+        if (urlToken) {
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.save-token') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    token: urlToken
+                },
+                success: function (res) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    $('#eclaimBotModal').modal('show');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ!',
+                        text: 'เชื่อมต่อกับระบบ e-Claim เรียบร้อยแล้ว พร้อมค้นหาและนำเข้าข้อมูลได้ทันที',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    checkEclaimStatus();
+                }
+            });
+        }
+
+        // 5) Search Statements in e-Claim
+        $('#btnBotSearch').on('click', function () {
+            var btn = $(this);
+            var year = $('#botBudgetYear').val();
+            var month = $('#botMonth').val();
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> กำลังค้นหา...');
+            $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>กำลังดึงข้อมูลจาก e-Claim...</td></tr>');
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.search') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    budget_year: year,
+                    month: month,
+                    claim_type: 'stm_ucs'
+                },
+                success: function (res) {
+                    btn.prop('disabled', false).html('<i class="bi bi-search me-1"></i> ค้นหาใน e-Claim');
+                    if (res.status === 'success') {
+                        $('#botResultBadge').text('พบ ' + res.count + ' รายการ');
+                        renderBotStatementTable(res.data);
+                    }
+                },
+                error: function (xhr) {
+                    btn.prop('disabled', false).html('<i class="bi bi-search me-1"></i> ค้นหาใน e-Claim');
+                    $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger"><i class="bi bi-exclamation-octagon fs-4 d-block mb-1"></i>เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim</td></tr>');
+                }
+            });
+        });
+
+        function renderBotStatementTable(data) {
+            if (!data || data.length === 0) {
+                $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-muted"><i class="bi bi-info-circle fs-4 d-block mb-1"></i>ไม่พบข้อมูล Statement ในงวดเดือนที่เลือกจาก e-Claim</td></tr>');
+                $('#btnStartImportBot').prop('disabled', true);
+                return;
+            }
+
+            var html = '';
+            data.forEach(function (row, idx) {
+                var badgeStatus = row.is_imported
+                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i>นำเข้าแล้ว (' + Number(row.imported_count).toLocaleString() + ' ราย)</span>'
+                    : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2.5 py-1"><i class="bi bi-clock-history me-1"></i>ยังไม่เคยนำเข้า</span>';
+
+                var chargeDisplay = row.charge_total > 0 ? Number(row.charge_total).toLocaleString(undefined, {minimumFractionDigits: 2}) : '-';
+                var receiveDisplay = row.receive_total > 0 ? Number(row.receive_total).toLocaleString(undefined, {minimumFractionDigits: 2}) : '-';
+                var countDisplay = row.count_cid && row.count_cid !== '-' ? Number(row.count_cid).toLocaleString() : '-';
+
+                var itemJson = JSON.stringify(row).replace(/"/g, '&quot;');
+
+                html += '<tr>' +
+                    '<td class="text-center"><input class="form-check-input bot-row-check" type="checkbox" value="' + row.round_no + '" data-item="' + itemJson + '"></td>' +
+                    '<td class="text-center fw-bold text-primary">' + row.round_no + '</td>' +
+                    '<td class="fw-bold small text-dark">' + row.filename + '</td>' +
+                    '<td class="text-center"><span class="badge ' + (row.type === 'OPD' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger') + ' rounded-pill px-2">' + row.type + '</span></td>' +
+                    '<td class="text-center small text-muted">' + row.issue_date + '</td>' +
+                    '<td class="text-end fw-bold">' + countDisplay + '</td>' +
+                    '<td class="text-end text-muted">' + chargeDisplay + '</td>' +
+                    '<td class="text-end text-success fw-bold">' + receiveDisplay + '</td>' +
+                    '<td class="text-center">' + badgeStatus + '</td>' +
+                '</tr>';
+            });
+
+            $('#botStatementTableBody').html(html);
+            updateSelectedCount();
+        }
+
+        // Checkbox events
+        $('#checkAllBot').on('change', function () {
+            $('.bot-row-check').prop('checked', $(this).prop('checked'));
+            updateSelectedCount();
+        });
+
+        $(document).on('change', '.bot-row-check', function () {
+            updateSelectedCount();
+        });
+
+        function updateSelectedCount() {
+            var selected = $('.bot-row-check:checked').length;
+            $('#selectedCountText').text('เลือก ' + selected + ' รายการ');
+            $('#btnStartImportBot').prop('disabled', selected === 0);
+        }
+
+        // 6) Trigger Auto Import from Bot
+        $('#btnStartImportBot').on('click', function () {
+            var selectedItems = [];
+            $('.bot-row-check:checked').each(function () {
+                var itemData = $(this).data('item');
+                if (typeof itemData === 'string') {
+                    try { itemData = JSON.parse(itemData); } catch(e) {}
+                }
+                selectedItems.push(itemData);
+            });
+
+            if (selectedItems.length === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกไฟล์ Statement อย่างน้อย 1 รายการ', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการนำเข้าข้อมูล?',
+                text: 'ระบบจะทำการดาวน์โหลดไฟล์จาก e-Claim และนำเข้า Statement จำนวน ' + selectedItems.length + ' งวดเข้าสู่ฐานข้อมูล RIMS ทันที',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '🚀 เริ่มนำเข้าทันที',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var total = selectedItems.length;
+                    var successCount = 0;
+                    var failedCount = 0;
+
+                    Swal.fire({
+                        title: 'กำลังดาวน์โหลดและนำเข้าข้อมูล...',
+                        html: `
+                            <div class="my-3 text-start">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span id="importStmProgressStatusText" class="small fw-bold text-dark text-truncate" style="max-width: 250px;">กำลังเริ่มต้น...</span>
+                                    <span id="importStmProgressPercentText" class="small fw-bold text-success">0%</span>
+                                </div>
+                                <div class="progress" style="height: 22px; border-radius: 11px; background-color: #e2e8f0;">
+                                    <div id="importStmProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%; font-size: 11.5px; font-weight: bold;">0%</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2 text-muted small">
+                                    <span id="importStmTimer"><i class="bi bi-clock-history me-1"></i> เวลา: 0 วิ</span>
+                                    <span id="importStmProgressDetail">สำเร็จ <b id="importStmSuccessCount" class="text-success">0</b> / ${total} ไฟล์</span>
+                                </div>
+                                <div class="alert alert-light border py-1.5 px-2 mt-2 mb-0 small text-muted" style="font-size: 11px;">
+                                    <i class="bi bi-info-circle text-primary me-1"></i> ระบบกำลังดาวน์โหลด Statement Excel จาก e-Claim และประมวลผลเข้าฐานข้อมูล
+                                </div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: async () => {
+                            var elapsedSec = 0;
+                            var timerInterval = setInterval(function () {
+                                elapsedSec++;
+                                $('#importStmTimer').html('<i class="bi bi-clock-history me-1"></i> เวลา: ' + elapsedSec + ' วิ');
+                            }, 1000);
+
+                            for (var i = 0; i < total; i++) {
+                                var item = selectedItems[i];
+                                var itemLabel = item.round_no ? ('งวดที่ ' + item.round_no) : (item.filename ? item.filename : ('ไฟล์ที่ ' + (i + 1)));
+                                
+                                $('#importStmProgressStatusText').text(`กำลังดึง ${itemLabel} (${i + 1}/${total})`);
+                                
+                                try {
+                                    var res = await $.ajax({
+                                        url: "{{ route('import.eclaim-bot.import') }}",
+                                        method: "POST",
+                                        data: {
+                                            _token: "{{ csrf_token() }}",
+                                            items: [item]
+                                        }
+                                    });
+                                    
+                                    if (res && res.status === 'success') {
+                                        successCount++;
+                                    } else {
+                                        failedCount++;
+                                    }
+                                } catch (err) {
+                                    console.error("Error importing STM item: ", item, err);
+                                    failedCount++;
+                                }
+                                
+                                var percent = Math.round(((i + 1) / total) * 100);
+                                $('#importStmProgressBar').css('width', percent + '%').text(percent + '%');
+                                $('#importStmProgressPercentText').text(percent + '%');
+                                $('#importStmSuccessCount').text(successCount);
+                            }
+
+                            clearInterval(timerInterval);
+                            
+                            if (successCount > 0) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'นำเข้าสำเร็จ!',
+                                    html: `นำเข้าข้อมูล Statement UCS จาก e-Claim สำเร็จรวม <b>${successCount}</b> ไฟล์ ${failedCount > 0 ? `<br><span class="text-danger small">(ไม่สำเร็จ ${failedCount} ไฟล์)</span>` : ''}`,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#10b981'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ไม่สำเร็จ',
+                                    text: 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement ที่เลือกได้ กรุณาตรวจสอบ Session e-Claim',
+                                    confirmButtonText: 'ปิด',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
                         }
                     });
                 }

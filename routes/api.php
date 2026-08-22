@@ -41,3 +41,5 @@ Route::post('/amnosend', [AopodSendController::class, 'send']);
 
 // API E-Claim ---------------------------------------------------------------------------------
 Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class, 'sync_eclaim_extension']);
+Route::post('/eclaim/session-sync', [\App\Http\Controllers\EclaimBotController::class, 'saveSessionFromExtension']);
+

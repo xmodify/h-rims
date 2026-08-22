@@ -292,7 +292,7 @@
 
     <!-- Modal Create -->
     <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
             <form method="POST" action="{{ route('admin.users.store') }}" class="modal-content border-0 shadow-lg">
                 @csrf
                 <div class="modal-header bg-success text-white py-3 border-0">
@@ -302,37 +302,41 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Full Name</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
-                            <input name="name" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="กรอกชื่อ-นามสกุล" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">ชื่อ-สกุล</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                                <input name="name" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="กรอกชื่อ-นามสกุล" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                                <input name="email" type="email" class="form-control bg-light border-start-0 ps-0" placeholder="example@mail.com" required>
+                            </div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Email Address</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
-                            <input name="email" type="email" class="form-control bg-light border-start-0 ps-0" placeholder="example@mail.com" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Initial Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+                                <input name="password" type="password" class="form-control bg-light border-start-0 ps-0" placeholder="ไม่ต่ำกว่า 6 ตัวอักษร" required minlength="6">
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Initial Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
-                            <input name="password" type="password" class="form-control bg-light border-start-0 ps-0" placeholder="ไม่ต่ำกว่า 6 ตัวอักษร" required minlength="6">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">เลข CID (เจ้าหน้าที่ปิดสิทธิ สปสช.)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
-                            <input name="cid" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="เลขบัตรประชาชน 13 หลัก">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">เลขบัตรประชาชน CID</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
+                                <input name="cid" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="เลขบัตรประชาชน 13 หลัก">
+                            </div>
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
                     <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-md-3 row-cols-1 g-3">
+                    <div class="row row-cols-md-4 row-cols-1 g-3">
                         <div class="col">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="allow_home" id="add_allow_home" value="Y">
@@ -438,7 +442,7 @@
 
     <!-- Modal Edit -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
             <form method="POST" id="editForm" class="modal-content border-0 shadow-lg">
                 @csrf @method('PUT')
                 <div class="modal-header bg-primary text-white py-3 border-0">
@@ -448,46 +452,52 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Full Name</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
-                            <input class="form-control bg-light border-start-0 ps-0" id="editName" name="name" type="text" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">ชื่อ-สกุล</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editName" name="name" type="text" required>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Email Address</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
-                            <input class="form-control bg-light border-start-0 ps-0" id="editEmail" name="email" type="email" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">เลข CID (เจ้าหน้าที่ปิดสิทธิ สปสช.)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
-                            <input class="form-control bg-light border-start-0 ps-0" id="editCid" name="cid" type="text" placeholder="เลขบัตรประชาชน 13 หลัก">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editEmail" name="email" type="email" required>
+                            </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">User Status</label>
-                            <select class="form-select bg-light" id="editStatus" name="status">
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                            <label class="form-label fw-bold">เลขบัตรประชาชน CID</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editCid" name="cid" type="text" placeholder="เลขบัตรประชาชน 13 หลัก">
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold d-block">Account Active</label>
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="active" id="editActive" value="Y">
-                                <label class="form-check-label ms-2" for="editActive" id="activeLabel">เปิดใช้งาน</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold">User Status</label>
+                                    <select class="form-select bg-light" id="editStatus" name="status">
+                                        <option value="user">User</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold d-block">Account Active</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" name="active" id="editActive" value="Y">
+                                        <label class="form-check-label ms-2" for="editActive" id="activeLabel">เปิดใช้งาน</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
                     <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-md-3 row-cols-1 g-3">
+                    <div class="row row-cols-md-4 row-cols-1 g-3">
                         <div class="col">
                             <div class="form-check form-switch">
                                 <input class="form-check-input p_switch" type="checkbox" name="allow_home" id="edit_allow_home" value="Y">

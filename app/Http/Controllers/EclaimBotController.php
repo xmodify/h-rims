@@ -107,7 +107,12 @@ class EclaimBotController extends Controller
         $now = date('Y-m-d H:i:s');
         $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
 
-        // 1. Save to Database (main_setting) for hospital-wide sharing
+        // 1. Ensure main_setting value column is LONGTEXT for full JWT / multi-cookies
+        try {
+            DB::statement("ALTER TABLE main_setting MODIFY COLUMN value LONGTEXT NULL");
+        } catch (\Exception $e) {}
+
+        // Save to Database (main_setting) for hospital-wide sharing
         DB::table('main_setting')->updateOrInsert(
             ['name' => 'eclaim_session_token'],
             ['name_th' => 'e-Claim Session Token', 'value' => $token]
@@ -261,7 +266,12 @@ class EclaimBotController extends Controller
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         $now = date('Y-m-d H:i:s');
 
-        // 1. Save to Database (main_setting) for hospital-wide sharing
+        // 1. Ensure main_setting value column is LONGTEXT
+        try {
+            DB::statement("ALTER TABLE main_setting MODIFY COLUMN value LONGTEXT NULL");
+        } catch (\Exception $e) {}
+
+        // Save to Database (main_setting) for hospital-wide sharing
         DB::table('main_setting')->updateOrInsert(
             ['name' => 'eclaim_session_token'],
             ['name_th' => 'e-Claim Session Token', 'value' => $token]

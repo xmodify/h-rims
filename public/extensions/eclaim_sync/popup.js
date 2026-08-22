@@ -74,14 +74,18 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
     updateStatus("กำลังอ่าน Session e-Claim...", "#ffc107");
 
     chrome.cookies.getAll({ domain: "eclaim.nhso.go.th" }, async (cookies) => {
-        let jsession = (cookies || []).find(c => c.name === 'JSESSIONID');
+        let cookieList = cookies || [];
+        let jsession = cookieList.find(c => c.name === 'JSESSIONID');
 
         // ถ้ายังไม่เจอ ลองดึงจาก URL ของแท็บปัจจุบัน
         if (!jsession) {
             let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.url) {
                 let tabCookies = await chrome.cookies.getAll({ url: tab.url });
-                jsession = (tabCookies || []).find(c => c.name === 'JSESSIONID');
+                if (tabCookies && tabCookies.length > 0) {
+                    cookieList = tabCookies;
+                    jsession = cookieList.find(c => c.name === 'JSESSIONID');
+                }
             }
         }
 
@@ -89,6 +93,9 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
             updateStatus("ไม่พบ Session e-Claim กรุณาล็อกอิน e-Claim ก่อนครับ", "red");
             return;
         }
+
+        // รวมทุก Cookie ที่มี (JSESSIONID, STEEXWDE สำหรับ F5 / WAF) ส่งไปยัง RiMS
+        const fullCookieString = cookieList.map(c => `${c.name}=${c.value}`).join('; ');
 
         const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
         const hcode = document.getElementById('hospCode').value.trim();
@@ -98,7 +105,7 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
             const res = await fetch(targetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ token: jsession.value, hospcode: hcode })
+                body: JSON.stringify({ token: fullCookieString, hospcode: hcode })
             });
             const data = await res.json();
             if (data.status === 'success') {

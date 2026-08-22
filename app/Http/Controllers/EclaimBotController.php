@@ -39,14 +39,26 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * ทำความสะอาดและสกัดเฉพาะค่า JSESSIONID ดิบ (ตัดคำว่า JSESSIONID=, quotes, semicolon และ whitespace ออก)
+     * ทำความสะอาดและจัดรูปแบบ Cookie สำหรับส่งไปยัง e-Claim สปสช.
+     * รองรับทั้ง Full Cookie String (JSESSIONID + STEEXWDE + อื่นๆ) และ JSESSIONID ดิบ
      */
     protected function cleanToken($rawToken)
     {
         $token = trim((string)$rawToken);
+        if (empty($token)) {
+            return '';
+        }
+
+        // กรณีเป็น Full Cookie string ที่มีหลายตัวคั่นด้วย ; (เช่น JSESSIONID=...; STEEXWDE=...)
+        if (strpos($token, ';') !== false && (stripos($token, 'JSESSIONID=') !== false || stripos($token, 'STEEXWDE=') !== false)) {
+            return trim($token, " \t\n\r\0\x0B\"'");
+        }
+
+        // กรณีระบุมาเฉพาะ JSESSIONID=xxx
         if (preg_match('/JSESSIONID=([a-zA-Z0-9_\-]+)/i', $token, $m)) {
             return $m[1];
         }
+
         $token = preg_replace('/^JSESSIONID=\s*/i', '', $token);
         $token = preg_replace('/;.*$/', '', $token);
         $token = trim($token, " \t\n\r\0\x0B;\"'");
@@ -59,6 +71,14 @@ class EclaimBotController extends Controller
     protected function getEclaimBrowserHeaders($token)
     {
         $cleaned = $this->cleanToken($token);
+        $cookieHeader = '';
+
+        if (stripos($cleaned, 'JSESSIONID=') !== false || stripos($cleaned, 'STEEXWDE=') !== false) {
+            $cookieHeader = $cleaned;
+        } else {
+            $cookieHeader = 'JSESSIONID=' . $cleaned;
+        }
+
         return [
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
             'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -69,7 +89,7 @@ class EclaimBotController extends Controller
             'Sec-Fetch-Site' => 'same-origin',
             'Sec-Fetch-User' => '?1',
             'Upgrade-Insecure-Requests' => '1',
-            'Cookie' => 'JSESSIONID=' . $cleaned,
+            'Cookie' => $cookieHeader,
         ];
     }
 

@@ -91,8 +91,8 @@
                             <th class="text-center" width="8%">เลขที่ใบเสร็จ</th>
                             <th class="text-center" width="8%">วันที่ออกใบเสร็จ</th>
                             <th class="text-center" width="8%">ผู้ออกใบเสร็จ</th>
-                            @if(Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center" width="8%">การจัดการ</th>
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                <th class="text-center" width="10%">การจัดการ</th>
                             @endif
                         </tr>
                     </thead>
@@ -114,19 +114,33 @@
                             <td class="text-center text-primary fw-bold receive-no-val">{{ $row->receive_no }}</td>
                             <td class="text-center small receipt-date-val">{{ $row->receipt_date }}</td>
                             <td class="text-center small text-muted receipt-by-val">{{ $row->receipt_by }}</td>
-                            @if(Auth::user()->allow_receipt == 'Y')
-                                <td class="text-center">
-                                    @if(!empty($row->round_no))
-                                        <button type="button"
-                                            class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning' : 'btn-outline-danger' }} rounded-pill px-3 btn-action-receipt"
-                                            data-round="{{ $row->round_no }}"
-                                            data-receive="{{ $row->receive_no }}"
-                                            data-date="{{ $row->receipt_date }}"
-                                            title="{{ $row->receive_no ? 'แก้ไขใบเสร็จ' : 'ออกใบเสร็จ' }}">
-                                            <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                            {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                        </button>
-                                    @endif
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                <td class="text-center text-nowrap">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        @if(!empty($row->round_no))
+                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                                <button type="button"
+                                                    class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning' : 'btn-outline-success' }} rounded-pill px-2 btn-action-receipt"
+                                                    data-round="{{ $row->round_no }}"
+                                                    data-receive="{{ $row->receive_no }}"
+                                                    data-date="{{ $row->receipt_date }}"
+                                                    title="{{ $row->receive_no ? 'แก้ไขใบเสร็จ' : 'ออกใบเสร็จ' }}">
+                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
+                                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                                </button>
+                                            @endif
+
+                                            @if(Auth::user()->status == 'admin')
+                                                <button type="button"
+                                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-action-delete"
+                                                    data-round="{{ $row->round_no }}"
+                                                    title="ลบข้อมูลนำเข้า">
+                                                    <i class="bi bi-trash-fill me-1"></i>
+                                                    ลบ
+                                                </button>
+                                            @endif
+                                        @endif
+                                    </div>
                                 </td>
                             @endif
                         </tr>
@@ -269,7 +283,7 @@
 @push('scripts')
 <script>
     // Filename validation pattern, allowing suffixes like (1)
-    const dmisPattern = /^\d{5}_[A-Z]{4}([A-Z0-9]{10})\s*\(?\d*\)?\.xlsx?$/i;
+    const dmisPattern = /^\d{5}_[A-Z]{4}([A-Z0-9\-]{8,15})\s*\(?\d*\)?\.xlsx?$/i;
 
     function showLoadingAlert() {
         Swal.fire({
@@ -298,11 +312,18 @@
 
         const rawFiles = Array.from(fileInput.files);
         const invalidFileNames = [];
+        const repFileNames = [];
 
         // Validate all files first
         rawFiles.forEach(file => {
-            if (!dmisPattern.test(file.name)) {
+            const matches = file.name.match(/^\d{5}_[A-Z]{4}([A-Z0-9\-]{8,15})\s*\(?\d*\)?\.xlsx?$/i);
+            if (!matches) {
                 invalidFileNames.push(file.name);
+            } else {
+                const suffix = matches[1];
+                if (suffix.length === 11 && /^\d+$/.test(suffix)) {
+                    repFileNames.push(file.name);
+                }
             }
         });
 
@@ -312,6 +333,19 @@
                 title: 'ตรวจพบไฟล์ไม่ถูกต้อง',
                 html: `ระบบไม่อนุญาตให้นำเข้าไฟล์ที่ไม่ใช่รูปแบบ By Period ดังนี้:<br><ul class="text-start mt-2 text-danger small" style="max-height: 150px; overflow-y: auto;">` + 
                       invalidFileNames.map(f => `<li>${f}</li>`).join('') + `</ul>กรุณาตรวจสอบชื่อไฟล์อีกครั้ง`,
+                icon: 'error',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#d33'
+            });
+            return;
+        }
+
+        // Warn user if there are REP files
+        if (repFileNames.length > 0) {
+            Swal.fire({
+                title: 'ตรวจพบไฟล์รายงานผลการขอเบิก (REP)',
+                html: `ระบบไม่อนุญาตให้นำเข้าไฟล์ REP ดังนี้:<br><ul class="text-start mt-2 text-danger small" style="max-height: 150px; overflow-y: auto;">` + 
+                      repFileNames.map(f => `<li>${f}</li>`).join('') + `</ul>กรุณานำเข้าเฉพาะไฟล์ใบแจ้งยอด/ใบเสร็จ (STM) เท่านั้น`,
                 icon: 'error',
                 confirmButtonText: 'ตกลง',
                 confirmButtonColor: '#d33'
@@ -427,7 +461,7 @@
                             tr.find('.receipt-date-val').text(date);
                             tr.find('.receipt-by-val').text('{{ auth()->user()->name ?? "system" }}');
                             
-                            currentBtn.removeClass('btn-outline-danger').addClass('btn-outline-warning').text('แก้ไข');
+                            currentBtn.removeClass('btn-outline-success').addClass('btn-outline-warning').html('<i class="bi bi-pencil-square me-1"></i> แก้ไข');
                             currentBtn.data('receive', receive);
                             currentBtn.data('date', date);
                         }
@@ -435,6 +469,75 @@
                 },
                 error: function (xhr) {
                     Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถออกใบเสร็จได้', confirmButtonColor: '#d33' });
+                }
+            });
+        });
+
+        $(document).on('click', '.btn-action-delete', function () {
+            var btn = $(this);
+            var round = btn.data('round');
+
+            Swal.fire({
+                title: 'ยืนยันการลบข้อมูล?',
+                text: 'คุณต้องการลบข้อมูลนำเข้าของงวด/เลขที่เบิกจ่าย ' + round + ' ใช่หรือไม่? การลบนี้ไม่สามารถย้อนกลับได้',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังลบข้อมูล...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: "{{ route('import.dmis.delete') }}",
+                        method: "POST",
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            round_no: round
+                        },
+                        success: function (res) {
+                            if (res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ!',
+                                    text: res.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ผิดพลาด',
+                                    text: res.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
+                                    confirmButtonText: 'ปิด',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            var errMsg = 'เกิดข้อผิดพลาดในการลบข้อมูล';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errMsg = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ผิดพลาด',
+                                text: errMsg,
+                                confirmButtonText: 'ปิด',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
                 }
             });
         });

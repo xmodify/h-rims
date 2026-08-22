@@ -5647,4 +5647,64 @@ class ImportRepController extends Controller
         return view('import.rep_pvt_detail_ipd', compact('start_date', 'end_date'));
     }
 
+    public function deleteBatch(Request $request)
+    {
+        if (auth()->user()->status !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'คุณไม่มีสิทธิ์ในการลบข้อมูลนี้ (เฉพาะ Admin เท่านั้น)',
+            ], 403);
+        }
+
+        $request->validate([
+            'type' => 'required|string',
+            'filename' => 'required|string',
+        ]);
+
+        $type = $request->type;
+        $filename = $request->filename;
+
+        $map = [
+            'rep_ucs' => 'rep_ucs',
+            'rep_ofc' => 'rep_ofc',
+            'rep_sss' => 'rep_sss',
+            'rep_lgo' => 'rep_lgo',
+            'rep_bkk' => 'rep_bkk',
+            'rep_bmt' => 'rep_bmt',
+            'rep_srt' => 'rep_srt',
+            'rep_pvt' => 'rep_pvt',
+        ];
+
+        if (!isset($map[$type])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ประเภทข้อมูลนำเข้า REP ไม่ถูกต้อง',
+            ], 400);
+        }
+
+        $table = $map[$type];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                $deletedCount = DB::table($table)->where('rep_filename', $filename)->delete();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'ลบข้อมูลนำเข้าสำเร็จ จำนวน ' . number_format($deletedCount) . ' รายการ',
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => "ไม่พบตาราง {$table} ในระบบ",
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการลบข้อมูล: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

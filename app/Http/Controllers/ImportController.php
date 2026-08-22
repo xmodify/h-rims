@@ -8342,4 +8342,70 @@ class ImportController extends Controller
             file_put_contents($path, $content);
         }
     }
+
+    public function deleteBatch(Request $request)
+    {
+        if (auth()->user()->status !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'คุณไม่มีสิทธิ์ในการลบข้อมูลนี้ (เฉพาะ Admin เท่านั้น)',
+            ], 403);
+        }
+
+        $request->validate([
+            'type' => 'required|string',
+            'filename' => 'required|string',
+        ]);
+
+        $type = $request->type;
+        $filename = $request->filename;
+
+        $map = [
+            'stm_ucs' => 'stm_ucs',
+            'stm_ofc' => 'stm_ofc',
+            'stm_bkk' => 'stm_bkk',
+            'stm_bmt' => 'stm_bmt',
+            'stm_lgo' => 'stm_lgo',
+            'stm_srt' => 'stm_srt',
+            'stm_pvt' => 'stm_pvt',
+            'stm_ofc_csop' => 'stm_ofc_csop',
+            'stm_ofc_cipn' => 'stm_ofc_cipn',
+            'stm_ucs_kidney' => 'stm_ucs_kidney',
+            'stm_bkk_kidney' => 'stm_bkk_kidney',
+            'stm_bmt_kidney' => 'stm_bmt_kidney',
+            'stm_lgo_kidney' => 'stm_lgo_kidney',
+            'stm_sss_kidney' => 'stm_sss_kidney',
+        ];
+
+        if (!isset($map[$type])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ประเภทข้อมูลนำเข้า STM ไม่ถูกต้อง',
+            ], 400);
+        }
+
+        $table = $map[$type];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                $deletedCount = DB::table($table)->where('stm_filename', $filename)->delete();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'ลบข้อมูลนำเข้าสำเร็จ จำนวน ' . number_format($deletedCount) . ' รายการ',
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => "ไม่พบตาราง {$table} ในระบบ",
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการลบข้อมูล: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

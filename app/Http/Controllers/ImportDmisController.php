@@ -478,13 +478,20 @@ class ImportDmisController extends Controller
             $fileName = $file->getClientOriginalName();
 
             // 1. Filename validation: Must match the "By Period" pattern, allowing suffixes like (1)
-            if (!preg_match('/^\d{5}_([A-Z]{4})([A-Z0-9]{10})\s*\(?\d*\)?\.xlsx?$/i', $fileName, $matches)) {
+            if (!preg_match('/^\d{5}_([A-Z]{4})([A-Z0-9\-]{8,15})\s*\(?\d*\)?\.xlsx?$/i', $fileName, $matches)) {
                 $failedFiles[] = "{$fileName} (รูปแบบชื่อไฟล์ไม่ถูกต้องตามเงื่อนไข By Period)";
                 continue;
             }
 
             $dmisGroup = strtoupper($matches[1]);
-            $roundNo = $dmisGroup . $matches[2];
+            $suffix = $matches[2];
+            $roundNo = $dmisGroup . $suffix;
+
+            // Reject REP files based on filename suffix length (11 digits, e.g. 67091500014)
+            if (strlen($suffix) === 11 && ctype_digit($suffix)) {
+                $failedFiles[] = "{$fileName} (เป็นไฟล์รายงานผลการขอเบิก (REP) ระบบอนุญาตให้นำเข้าเฉพาะไฟล์ใบแจ้งยอด/ใบเสร็จ (STM) เท่านั้น)";
+                continue;
+            }
 
             try {
                 $spreadsheet = IOFactory::load($file->getRealPath());
@@ -692,6 +699,42 @@ class ImportDmisController extends Controller
             'receive_no' => $request->receive_no,
             'receipt_date' => $request->receipt_date,
         ]);
+    }
+
+    public function delete(Request $request)
+    {
+        if (auth()->user()->status !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'คุณไม่มีสิทธิ์ในการลบข้อมูลนี้ (เฉพาะ Admin เท่านั้น)',
+            ], 403);
+        }
+
+        $request->validate([
+            'round_no' => 'required',
+        ]);
+
+        try {
+            if (Schema::hasTable('stm_seamless_dmis')) {
+                $deletedCount = Stm_seamless_dmis::where('round_no', $request->round_no)->delete();
+                
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'ลบข้อมูลนำเข้าสำเร็จ จำนวน ' . $deletedCount . ' รายการ',
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบตาราง stm_seamless_dmis',
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการลบข้อมูล: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     protected function parseThaiDate($value)

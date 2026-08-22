@@ -89,6 +89,9 @@
                             <th class="text-center">ไม่ผ่าน (ราย)</th>
                             <th class="text-center">เรียกเก็บ</th>
                             <th class="text-center">ชดเชยสุทธิ</th>
+                            @if(Auth::user()->status == 'admin')
+                                <th class="text-center" width="10%">การจัดการ</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -152,6 +155,17 @@
                             </td>
                             <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
                             <td class="text-end text-primary fw-bold">{{ number_format($row->receive_total,2) }}</td>
+                            @if(Auth::user()->status == 'admin')
+                                <td class="text-center text-nowrap">
+                                    <button type="button"
+                                        class="btn btn-xs btn-outline-danger rounded-pill px-3 btn-action-delete"
+                                        data-filename="{{ $row->rep_filename }}"
+                                        data-type="rep_sss"
+                                        title="ลบข้อมูลนำเข้า">
+                                        <i class="bi bi-trash-fill me-1"></i> ลบ
+                                    </button>
+                                </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>
@@ -175,6 +189,9 @@
                             </td>
                             <td class="text-end text-muted">{{ number_format($total_charge,2) }}</td>
                             <td class="text-end text-primary">{{ number_format($total_receive,2) }}</td>
+                            @if(Auth::user()->status == 'admin')
+                                <td></td>
+                            @endif
                         </tr>
                     </tfoot>
                 </table>
@@ -756,6 +773,78 @@
                 yearlyCCodeChart = new ApexCharts(document.querySelector("#yearlyCCodeChart"), options);
                 yearlyCCodeChart.render();
             }
+        });
+    
+        // Deletion handler for REP index
+        $(document).on('click', '.btn-action-delete', function () {
+            var btn = $(this);
+            var filename = btn.data('filename');
+            var type = btn.data('type');
+
+            Swal.fire({
+                title: 'ยืนยันการลบข้อมูล?',
+                text: 'คุณต้องการลบข้อมูลนำเข้าของไฟล์ ' + filename + ' ใช่หรือไม่? การลบนี้ไม่สามารถย้อนกลับได้',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังลบข้อมูล...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: "{{ route('import.rep.delete') }}",
+                        method: "POST",
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            filename: filename,
+                            type: type
+                        },
+                        success: function (res) {
+                            if (res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ!',
+                                    text: res.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ผิดพลาด',
+                                    text: res.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
+                                    confirmButtonText: 'ปิด',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            var errMsg = 'เกิดข้อผิดพลาดในการลบข้อมูล';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errMsg = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ผิดพลาด',
+                                text: errMsg,
+                                confirmButtonText: 'ปิด',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
         });
     </script>
 @endpush

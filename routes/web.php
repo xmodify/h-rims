@@ -199,6 +199,9 @@ Route::match(['get', 'post'], 'import/dmis/detail', [ImportDmisController::class
 Route::get('import/dmis/chart-data', [ImportDmisController::class, 'getChartData'])->name('import.dmis.chart-data');
 Route::post('import/dmis/save', [ImportDmisController::class, 'save'])->name('import.dmis.save');
 Route::post('import/dmis/updateReceipt', [ImportDmisController::class, 'updateReceipt'])->name('import.dmis.updateReceipt');
+Route::post('import/dmis/delete', [ImportDmisController::class, 'delete'])->name('import.dmis.delete');
+Route::post('import/stm/delete', [ImportController::class, 'deleteBatch'])->name('import.stm.delete');
+Route::post('import/rep/delete', [ImportRepController::class, 'deleteBatch'])->name('import.rep.delete');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);

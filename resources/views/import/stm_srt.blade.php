@@ -88,8 +88,8 @@
                             <th class="text-center">เลขที่ใบเสร็จ</th>
                             <th class="text-center">วันที่ออกใบเสร็จ</th>
                             <th class="text-center">ผู้ออกใบเสร็จ</th>
-                            @if(Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center">ออกใบเสร็จ</th>
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                <th class="text-center" width="15%">การจัดการ</th>
                             @endif
                         </tr>
                     </thead>
@@ -107,23 +107,35 @@
                             <td class="text-center text-primary fw-bold">{{ $row->receive_no }}</td>
                             <td class="text-center small">{{ $row->receipt_date }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by }}</td>
-                            @if(Auth::user()->allow_receipt == 'Y')
-                                <td class="text-center">
-                                    @if(!empty($row->round_no))
-                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <button type="button"
-                                                class="btn btn-sm {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-danger btn-new-receipt' }} rounded-pill px-3"
-                                                data-round="{{ $row->round_no }}"
-                                                data-receive="{{ $row->receive_no }}"
-                                                data-date="{{ $row->receipt_date }}"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#receiptModal"
-                                                title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
-                                                <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                                {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                            </button>
-                                        </div>
-                                    @endif
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                <td class="text-center text-nowrap">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        @if(!empty($row->round_no))
+                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                                <button type="button"
+                                                    class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2"
+                                                    data-round="{{ $row->round_no }}"
+                                                    data-receive="{{ $row->receive_no }}"
+                                                    data-date="{{ $row->receipt_date }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#receiptModal"
+                                                    title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
+                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
+                                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                                </button>
+                                            @endif
+                                            
+                                            @if(Auth::user()->status == 'admin')
+                                                <button type="button"
+                                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-action-delete"
+                                                    data-filename="{{ $row->stm_filename }}"
+                                                    data-type="stm_srt"
+                                                    title="ลบข้อมูลนำเข้า">
+                                                    <i class="bi bi-trash-fill me-1"></i> ลบ
+                                                </button>
+                                            @endif
+                                        @endif
+                                    </div>
                                 </td>
                             @endif
                         </tr>
@@ -549,6 +561,78 @@
                 monthlyChart = new ApexCharts(document.querySelector("#monthlySummaryChart"), options);
                 monthlyChart.render();
             }
+        });
+    
+        // Deletion handler for STM index
+        $(document).on('click', '.btn-action-delete', function () {
+            var btn = $(this);
+            var filename = btn.data('filename');
+            var type = btn.data('type');
+
+            Swal.fire({
+                title: 'ยืนยันการลบข้อมูล?',
+                text: 'คุณต้องการลบข้อมูลนำเข้าของไฟล์ ' + filename + ' ใช่หรือไม่? การลบนี้ไม่สามารถย้อนกลับได้',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังลบข้อมูล...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: "{{ route('import.stm.delete') }}",
+                        method: "POST",
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            filename: filename,
+                            type: type
+                        },
+                        success: function (res) {
+                            if (res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ!',
+                                    text: res.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ผิดพลาด',
+                                    text: res.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
+                                    confirmButtonText: 'ปิด',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            var errMsg = 'เกิดข้อผิดพลาดในการลบข้อมูล';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errMsg = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ผิดพลาด',
+                                text: errMsg,
+                                confirmButtonText: 'ปิด',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
         });
     </script>
 @endpush

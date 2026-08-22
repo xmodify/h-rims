@@ -1722,7 +1722,7 @@
                                 const parser = new DOMParser();
                                 const doc = parser.parseFromString(responseText, 'text/html');
                                 const hasSuccessAlert = doc.querySelector('.alert-success') !== null;
-                                const hasSuccessScript = responseText.includes('นำเข้าสำเร็จ!');
+                                const hasSuccessScript = responseText.includes('นำเข้า' + 'สำเร็จ!');
                                 const isSuccess = hasSuccessAlert || hasSuccessScript;
 
                                 if (!isSuccess) {

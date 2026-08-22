@@ -304,6 +304,21 @@ class EclaimBotController extends Controller
 
             $html = $response->body();
 
+            if (
+                $response->status() === 302 || 
+                $response->status() === 401 || 
+                strpos($html, 'เข้าสู่ระบบ') !== false || 
+                strpos($html, 'Login') !== false || 
+                strpos($html, 'คุณไม่มีสิทธิ์') !== false || 
+                strpos($html, 'frmErr') !== false || 
+                strpos($html, 'Error Page') !== false
+            ) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดซิงก์จาก Extension'
+                ], 401);
+            }
+
             // ตรวจสอบจำนวนรายการที่พบ
             preg_match('/พบข้อมูลทั้งหมด\s*(\d+)\s*รายการ/u', $html, $mCount);
             $foundCount = isset($mCount[1]) ? (int)$mCount[1] : 0;
@@ -707,14 +722,24 @@ class EclaimBotController extends Controller
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             ])->withoutVerifying()->timeout(30)->get($url);
 
-            if ($response->status() === 302 || $response->status() === 401 || (strpos($response->body(), 'เข้าสู่ระบบ') !== false || strpos($response->body(), 'Login') !== false) && strpos($response->body(), 'content2') === false) {
+            $body = $response->body();
+            if (
+                $response->status() === 302 || 
+                $response->status() === 401 || 
+                strpos($body, 'เข้าสู่ระบบ') !== false || 
+                strpos($body, 'Login') !== false || 
+                strpos($body, 'คุณไม่มีสิทธิ์') !== false || 
+                strpos($body, 'frmErr') !== false || 
+                strpos($body, 'Error Page') !== false ||
+                strpos($body, 'content2') === false
+            ) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดซิงก์จาก Extension'
                 ], 401);
             }
 
-            $html = $response->body();
+            $html = $body;
             $dom = new \DOMDocument();
             @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
             $xpath = new \DOMXPath($dom);
@@ -1350,10 +1375,18 @@ class EclaimBotController extends Controller
                 'ddlPerson_type' => $personType
             ]);
 
-            if ($response->status() === 302 || $response->status() === 401 || (strpos($response->body(), 'เข้าสู่ระบบ') !== false || strpos($response->body(), 'Login') !== false) && strpos($response->body(), 'Statement No') === false) {
+            $body = $response->body();
+            if (
+                $response->status() === 302 || 
+                $response->status() === 401 || 
+                strpos($body, 'เข้าสู่ระบบ') !== false || 
+                strpos($body, 'Login') !== false || 
+                strpos($body, 'คุณไม่มีสิทธิ์') !== false || 
+                strpos($body, 'frmErr') !== false
+            ) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Session e-Claim หมดอายุ กรุณาซิงก์จาก Extension หรือเชื่อมต่อใหม่อีกครั้ง'
+                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดปุ่ม "ซิงก์ Session" จาก Extension'
                 ], 401);
             }
 

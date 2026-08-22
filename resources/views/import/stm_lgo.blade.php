@@ -448,31 +448,17 @@
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-none" id="btnToggleStmLgoTokenInput">
-                                    <i class="bi bi-pencil-square me-1"></i> เปลี่ยน Token
-                                </button>
+                                <a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="bi bi-download me-1"></i> ส่วนเสริม Chrome
+                                </a>
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimStmLgoLogout">
                                     <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Manual Token Input Container -->
-                        <div id="sessionStmLgoInputContainer" class="mt-3 pt-3 border-top">
-                            <label class="form-label small fw-bold text-dark mb-1">
-                                <i class="bi bi-key-fill text-primary me-1"></i> e-Claim Session Cookie (JSESSIONID):
-                            </label>
-                            <div class="input-group">
-                                <input type="text" id="eclaimStmLgoTokenInput" class="form-control font-monospace" placeholder="วางค่า e-Claim Session Cookie (JSESSIONID)" style="border-radius: 8px 0 0 8px; font-size: 13px;">
-                                <button class="btn btn-primary px-3 shadow-sm fw-bold" id="btnSaveStmLgoToken" type="button" style="border-radius: 0 8px 8px 0;">
-                                    <i class="bi bi-link-45deg me-1"></i> เชื่อมต่อ Session
-                                </button>
-                            </div>
-                            <div class="form-text small text-muted mt-1">
-                                <i class="bi bi-info-circle me-1"></i> วิธีเชื่อมต่อ: 1. ล็อกอินเข้าเว็บ e-Claim ผ่าน ThaiD ในเบราว์เซอร์ &nbsp; 2. คัดลอกค่า <code class="text-danger">JSESSIONID</code> มาวางที่นี่ (หรือกดปุ่ม "ซิงก์ Session" ใน Extension)
-                            </div>
-                        </div>
                     </div>
+                </div>
+
                 <!-- Section 2: Filter & Search in e-Claim -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-3">
@@ -842,32 +828,14 @@
                         $('#eclaimStmLgoAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
                         $('#eclaimStmLgoAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
                         $('#btnEclaimStmLgoLogout').removeClass('d-none');
-                        $('#btnToggleStmLgoTokenInput').removeClass('d-none');
-                        $('#sessionStmLgoInputContainer').addClass('d-none');
                         $('#btnBotStmLgoSearch').prop('disabled', false);
                     } else {
-                        var savedToken = localStorage.getItem('eclaim_session_token');
-                        if (savedToken) {
-                            $.ajax({
-                                url: "{{ route('import.eclaim-bot.save-token') }}",
-                                method: "POST",
-                                data: { _token: "{{ csrf_token() }}", token: savedToken },
-                                success: function(saveRes) {
-                                    if (saveRes.status === 'success') {
-                                        checkEclaimStmLgoStatus();
-                                    }
-                                }
-                            });
-                            return;
-                        }
-
                         $('#eclaimStmLgoAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
                             .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
                         $('#eclaimStmLgoAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
-                        $('#eclaimStmLgoAuthStatusSub').text('ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#eclaimStmLgoAuthStatusSub').text('เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
                         $('#btnEclaimStmLgoLogout').addClass('d-none');
-                        $('#btnToggleStmLgoTokenInput').addClass('d-none');
-                        $('#sessionStmLgoInputContainer').removeClass('d-none');
+                        $('#btnBotStmLgoSearch').prop('disabled', true);
                     }
                 }
             });
@@ -875,41 +843,6 @@
 
         $('#eclaimStmLgoBotModal').on('show.bs.modal', function () {
             checkEclaimStmLgoStatus();
-        });
-
-        $('#btnToggleStmLgoTokenInput').on('click', function () {
-            $('#sessionStmLgoInputContainer').toggleClass('d-none');
-        });
-
-        $('#btnSaveStmLgoToken').on('click', function () {
-            var token = $('#eclaimStmLgoTokenInput').val();
-            if (!token) {
-                Swal.fire('แจ้งเตือน', 'กรุณากรอก Session Token / Cookie', 'warning');
-                return;
-            }
-
-            localStorage.setItem('eclaim_session_token', token);
-
-            $.ajax({
-                url: "{{ route('import.eclaim-bot.save-token') }}",
-                method: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    token: token
-                },
-                success: function (res) {
-                    if (res.status === 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'เชื่อมต่อสำเร็จ!',
-                            text: res.message,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                        checkEclaimStmLgoStatus();
-                    }
-                }
-            });
         });
 
         $('#btnEclaimStmLgoLogout').on('click', function () {

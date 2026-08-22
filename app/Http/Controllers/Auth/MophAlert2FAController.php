@@ -148,6 +148,12 @@ class MophAlert2FAController extends Controller
         // Moph Alert official endpoint from documentation
         $url = 'https://morpromt2c.moph.go.th/alert/v3.1/messages';
 
+        $boldDigits = [
+            '0' => '𝟬', '1' => '𝟭', '2' => '𝟮', '3' => '𝟯', '4' => '𝟰',
+            '5' => '𝟱', '6' => '𝟲', '7' => '𝟳', '8' => '𝟴', '9' => '𝟵'
+        ];
+        $boldOtp = strtr($otp, $boldDigits);
+
         try {
             Log::info("Attempting to send OTP $otp via Moph Alert for CID $cid");
 
@@ -161,13 +167,13 @@ class MophAlert2FAController extends Controller
                     'cid' => [(string)$cid], // Must be an array of strings
                     'messages' => [
                         [
-                            'text' => "รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ $otp",
+                            'text' => "รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ $boldOtp",
                             'type' => 'text'
                         ]
                     ],
                     'message_title' => "รหัส OTP เข้าสู่ระบบ RiMS",
                     'message_html' => "<div>รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ <strong>$otp</strong></div>",
-                    'message_text' => "รหัส OTP ของท่านคือ $otp",
+                    'message_text' => "รหัส OTP ของท่านคือ $boldOtp",
                     'message_type' => "HPT"
                 ]);
 
@@ -192,13 +198,13 @@ class MophAlert2FAController extends Controller
                             'cid' => [(string)$cid],
                             'messages' => [
                                 [
-                                    'text' => "รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ $otp",
+                                    'text' => "รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ $boldOtp",
                                     'type' => 'text'
                                 ]
                             ],
                             'message_title' => "รหัส OTP เข้าสู่ระบบ RiMS",
                             'message_html' => "<div>รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ <strong>$otp</strong></div>",
-                            'message_text' => "รหัส OTP ของท่านคือ $otp",
+                            'message_text' => "รหัส OTP ของท่านคือ $boldOtp",
                             'message_type' => "HPT"
                         ]);
                     

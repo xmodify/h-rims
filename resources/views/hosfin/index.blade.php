@@ -87,21 +87,22 @@
         <div class="col-12 px-3 mb-4">
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 18px 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 w-100">
-                    <div>
-                        <h5 class="text-primary mb-1 fw-bold">
-                            <i class="bi bi-bank me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (HosFin Dashboard)
-                        </h5>
-                        <small class="text-muted">
-                            ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
-                        </small>
-                    </div>
-                    @if($hasData)
-                        <div class="d-flex align-items-center flex-wrap gap-3">
-                            <div class="bg-white border rounded-pill px-3 py-2 text-secondary shadow-sm d-flex align-items-center gap-2" style="font-size: 0.85rem; height: 48px;">
-                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
-                                ข้อมูลล่าสุด ณ งวดบัญชี: <strong class="text-dark">{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
-                            </div>
-                            
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <div>
+                            <h5 class="text-primary mb-1 fw-bold">
+                                <i class="bi bi-bank me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (HosFin Dashboard)
+                            </h5>
+                            <small class="text-muted d-inline-flex align-items-center gap-2">
+                                @if($hasData)
+                                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.75rem; height: 0.75rem;"></span>
+                                    ข้อมูลล่าสุด ณ งวดบัญชี: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                                @else
+                                    ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
+                                @endif
+                            </small>
+                        </div>
+                        
+                        @if($hasData)
                             @php
                                 $val105 = $latestMetrics['105']['val'];
                                 $isPositive105 = $val105 >= 0;
@@ -111,28 +112,29 @@
                                 $label105 = $isPositive105 ? 'ปกติ (บวก)' : 'วิกฤต (ติดลบ)';
                             @endphp
                             <!-- Net Cash Balance Display (105) -->
-                            <div class="d-flex align-items-center gap-3 px-3 py-1 rounded-3 shadow-sm border metric-card {{ $bgClass105 }} {{ $borderClass105 }}" 
-                                 style="border-width: 1px !important; height: 48px; cursor: pointer;"
+                            <div class="d-flex align-items-center rounded-3 shadow-sm border metric-card {{ $bgClass105 }} {{ $borderClass105 }} px-3" 
+                                 style="border-width: 1px !important; height: 48px; cursor: pointer; gap: 6px;"
                                  data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (105)">
                                 <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">เงินบำรุงคงเหลือสุทธิ:</span>
-                                <div class="fw-bold rounded {{ $textClass105 }}" style="font-size: 1.15rem; font-family: monospace; line-height: 1.1; padding: 2px 10px; font-weight: 800;">
+                                <div class="fw-bold {{ $textClass105 }}" style="font-size: 1.15rem; font-family: monospace; line-height: 1.1; font-weight: 800;">
                                     {{ number_format($val105, 2) }} บาท
                                 </div>
                             </div>
                             
                             <!-- Risk Score Display -->
-                            <div class="d-flex align-items-center gap-3 px-3 py-1 rounded-3 shadow-sm border metric-card {{ $riskScoreBgClass }}" 
-                                 style="border-width: 1px !important; height: 48px; cursor: pointer;"
+                            <div class="d-flex align-items-center rounded-3 shadow-sm border metric-card {{ $riskScoreBgClass }} px-3" 
+                                 style="border-width: 1px !important; height: 48px; cursor: pointer; gap: 8px;"
                                  data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)">
                                 <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">RISK SCORE:</span>
-                                <div class="fw-bold rounded {{ $riskScoreNumBgClass }} {{ $riskScoreTextClass }}" style="font-size: 1.6rem; font-family: monospace; line-height: 1.1; padding: 2px 10px; font-weight: 900;">
+                                <div class="fw-bold rounded {{ $riskScoreNumBgClass }} {{ $riskScoreTextClass }}" style="font-size: 1.6rem; font-family: monospace; line-height: 1.1; padding: 2px 8px; font-weight: 900;">
                                     {{ $riskScore }}
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Action Buttons (Pushed to far right) -->
+                        @endif
+                    </div>
+                    @if($hasData)
                         <div class="d-flex align-items-center gap-2 ms-lg-auto">
+                            <!-- Action Buttons -->
                             <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-tb-custom" 
                                style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;">
                                 <i class="bi bi-file-earmark-spreadsheet text-success" style="font-size: 1.1rem;"></i> งบทดลอง
@@ -141,6 +143,7 @@
                                style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;">
                                 <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.1rem;"></i> อัตราส่วนการเงิน
                             </a>
+                        </div>
                     @endif
                 </div>
             </div>

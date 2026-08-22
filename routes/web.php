@@ -220,6 +220,8 @@ Route::post('import/eclaim-bot/stm-bkk-search', [EclaimBotController::class, 'st
 Route::post('import/eclaim-bot/stm-bkk-import', [EclaimBotController::class, 'stmBkkImport'])->name('import.eclaim-bot.stm-bkk-import');
 Route::post('import/eclaim-bot/stm-bmt-search', [EclaimBotController::class, 'stmBmtSearch'])->name('import.eclaim-bot.stm-bmt-search');
 Route::post('import/eclaim-bot/stm-bmt-import', [EclaimBotController::class, 'stmBmtImport'])->name('import.eclaim-bot.stm-bmt-import');
+Route::post('import/eclaim-bot/stm-srt-search', [EclaimBotController::class, 'stmSrtSearch'])->name('import.eclaim-bot.stm-srt-search');
+Route::post('import/eclaim-bot/stm-srt-import', [EclaimBotController::class, 'stmSrtImport'])->name('import.eclaim-bot.stm-srt-import');
 Route::match(['get', 'post'], 'import/eclaim-bot/debug-check', [EclaimBotController::class, 'debugCheck'])->name('import.eclaim-bot.debug-check');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);

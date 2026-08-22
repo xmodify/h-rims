@@ -73,50 +73,58 @@ document.getElementById('testBtn').addEventListener('click', async () => {
 document.getElementById('syncSessionBtn').addEventListener('click', async () => {
     updateStatus("กำลังอ่าน Session e-Claim...", "#ffc107");
 
-    chrome.cookies.getAll({ domain: "eclaim.nhso.go.th" }, async (cookies) => {
-        let cookieList = cookies || [];
-        let jsession = cookieList.find(c => c.name === 'JSESSIONID');
+    try {
+        const getCookiesFor = (query) => new Promise(resolve => chrome.cookies.getAll(query, resolve));
 
-        // ถ้ายังไม่เจอ ลองดึงจาก URL ของแท็บปัจจุบัน
-        if (!jsession) {
+        const [cUrl, cDomain, cNhso] = await Promise.all([
+            getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
+            getCookiesFor({ domain: "eclaim.nhso.go.th" }),
+            getCookiesFor({ domain: ".nhso.go.th" })
+        ]);
+
+        const cookieMap = new Map();
+        [...(cUrl || []), ...(cDomain || []), ...(cNhso || [])].forEach(c => {
+            if (c && c.name && c.value) {
+                cookieMap.set(c.name, c.value);
+            }
+        });
+
+        if (!cookieMap.has('JSESSIONID')) {
             let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.url) {
-                let tabCookies = await chrome.cookies.getAll({ url: tab.url });
-                if (tabCookies && tabCookies.length > 0) {
-                    cookieList = tabCookies;
-                    jsession = cookieList.find(c => c.name === 'JSESSIONID');
-                }
+                let tabCookies = await getCookiesFor({ url: tab.url });
+                (tabCookies || []).forEach(c => {
+                    if (c && c.name && c.value) cookieMap.set(c.name, c.value);
+                });
             }
         }
 
-        if (!jsession || !jsession.value) {
+        if (!cookieMap.has('JSESSIONID')) {
             updateStatus("ไม่พบ Session e-Claim กรุณาล็อกอิน e-Claim ก่อนครับ", "red");
             return;
         }
 
-        // รวมทุก Cookie ที่มี (JSESSIONID, STEEXWDE สำหรับ F5 / WAF) ส่งไปยัง RiMS
-        const fullCookieString = cookieList.map(c => `${c.name}=${c.value}`).join('; ');
+        // รวมทุก Cookie ที่มี (ACCESS_TOKEN, JSESSIONID, STEEXWDE, REFRESH_TOKEN ฯลฯ)
+        const fullCookieString = Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
 
         const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
         const hcode = document.getElementById('hospCode').value.trim();
         const targetUrl = baseUrl + '/eclaim/session-sync';
 
-        try {
-            const res = await fetch(targetUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ token: fullCookieString, hospcode: hcode })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว!", "#198754");
-            } else {
-                updateStatus("ผิดพลาด: " + (data.message || 'บันทึกไม่สำเร็จ'), "red");
-            }
-        } catch (err) {
-            updateStatus("เชื่อมต่อ RiMS ไม่ได้: " + err.message, "red");
+        const res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ token: fullCookieString, hospcode: hcode })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว!", "#198754");
+        } else {
+            updateStatus("ผิดพลาด: " + (data.message || 'บันทึกไม่สำเร็จ'), "red");
         }
-    });
+    } catch (err) {
+        updateStatus("เชื่อมต่อ RiMS ไม่ได้: " + err.message, "red");
+    }
 });
 
 // ==================== E-Claim Status Sync ====================

@@ -231,22 +231,20 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * ดึงค่า Active Session Token (Session -> Cache -> DB main_setting)
+     * ดึงค่า Active Session Token (DB main_setting -> Cache -> Session)
      */
     protected function getActiveEclaimToken()
     {
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         
-        $token = Session::get('eclaim_session_token') 
+        $token = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
             ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
             ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
-            ?: DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')));
+            ?: Session::get('eclaim_session_token')));
 
         if ($token) {
             $token = $this->cleanToken($token);
-            if (!Session::has('eclaim_session_token')) {
-                Session::put('eclaim_session_token', $token);
-            }
+            Session::put('eclaim_session_token', $token);
         }
 
         return $token;
@@ -1818,12 +1816,13 @@ class EclaimBotController extends Controller
             'server_outgoing_ip' => $outgoingIp,
             'db_token_length' => strlen((string)$dbToken),
             'db_token_preview' => substr((string)$dbToken, 0, 150) . (strlen((string)$dbToken) > 150 ? '...' : ''),
-            'cookie_header_sent' => substr((string)($headers['Cookie'] ?? ''), 0, 150) . '...',
+            'cookie_header_sent' => substr((string)($headers['Cookie'] ?? ''), 0, 300) . '...',
             'eclaim_http_status' => $responseStatus,
             'has_content2_table' => strpos((string)$responseBody, 'content2') !== false,
             'has_frm_err' => strpos((string)$responseBody, 'frmErr') !== false || strpos((string)$responseBody, 'คุณไม่มีสิทธิ์') !== false,
             'response_length' => strlen((string)$responseBody),
-            'raw_html_snippet' => substr((string)$responseBody, 0, 600),
+            'error_text_extracted' => trim(preg_replace('/\s+/', ' ', strip_tags((string)$responseBody))),
+            'raw_html_snippet' => substr((string)$responseBody, 0, 1500),
             'curl_error' => $errorMsg,
         ]);
     }

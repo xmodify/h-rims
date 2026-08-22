@@ -173,7 +173,7 @@ class MophAlert2FAController extends Controller
                     ],
                     'message_title' => "รหัส OTP เข้าสู่ระบบ RiMS",
                     'message_html' => "<div>รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ <strong>$otp</strong></div>",
-                    'message_text' => "รหัส OTP ของท่านคือ $boldOtp",
+                    'message_text' => "รหัส OTP ของท่านคือ $otp",
                     'message_type' => "HPT"
                 ]);
 
@@ -204,7 +204,7 @@ class MophAlert2FAController extends Controller
                             ],
                             'message_title' => "รหัส OTP เข้าสู่ระบบ RiMS",
                             'message_html' => "<div>รหัสยืนยันตัวตน (2FA) สำหรับเข้าระบบ RiMS ของท่านคือ <strong>$otp</strong></div>",
-                            'message_text' => "รหัส OTP ของท่านคือ $boldOtp",
+                            'message_text' => "รหัส OTP ของท่านคือ $otp",
                             'message_type' => "HPT"
                         ]);
                     

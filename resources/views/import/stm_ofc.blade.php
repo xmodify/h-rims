@@ -438,7 +438,7 @@
                                 </div>
                                 <div>
                                     <div class="fw-bold text-dark" id="eclaimStmOfcAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ e-Claim</div>
-                                    <div class="text-muted small" id="eclaimStmOfcAuthStatusSub">ระบุ e-Claim Session Cookie (JSESSIONID) หรือกดซิงก์จาก Extension เพื่อเชื่อมต่อ</div>
+                                    <div class="text-muted small" id="eclaimStmOfcAuthStatusSub">เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเชื่อมต่อ</div>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
@@ -467,8 +467,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
                 <!-- Section 2: Filter & Search in e-Claim -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-3">

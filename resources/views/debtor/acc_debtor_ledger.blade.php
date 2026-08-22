@@ -27,6 +27,9 @@
             <button class="btn btn-success btn-sm shadow-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#ProcessModal">
                 <i class="bi bi-gear-fill me-1"></i> ประมวลผลข้อมูล
             </button>
+            <a href="{{ url('hosfin/trial_balance') }}" target="_blank" class="btn btn-outline-primary btn-sm shadow-sm rounded-pill px-3 ms-2">
+                <i class="bi bi-file-earmark-bar-graph me-1"></i> หน้างบทดลอง
+            </a>
         </div>
     </div>
 

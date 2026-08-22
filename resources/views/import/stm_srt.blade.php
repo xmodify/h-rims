@@ -280,19 +280,26 @@
 <div class="modal fade" id="eclaimStmSrtBotModal" tabindex="-1" aria-labelledby="eclaimStmSrtBotModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header bg-gradient text-white p-4" style="background: linear-gradient(135deg, #0284c7, #0369a1);">
+            <!-- Modal Header -->
+            <div class="modal-header text-white p-3 px-4 border-0" style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%) !important;">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle p-2.5 d-flex align-items-center justify-content-center shadow-sm" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px;">
+                    <div class="rounded-3 p-2 bg-white bg-opacity-10 text-white shadow-sm">
                         <i class="bi bi-robot fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold mb-0" id="eclaimStmSrtBotModalLabel">ดึงข้อมูล Statement การรถไฟฯ (SRT) อัตโนมัติจาก e-Claim</h5>
-                        <div class="text-white-50 small mt-0.5">เชื่อมต่อระบบ e-Claim สปสช. (ระบบรายงานสิทธิการรถไฟแห่งประเทศไทย) เพื่อค้นหาและนำเข้า Statement อัตโนมัติ</div>
+                        <h5 class="modal-title fw-bold mb-0" id="eclaimStmSrtBotModalLabel">
+                            ดึงข้อมูล Statement การรถไฟฯ (SRT) อัตโนมัติจาก e-Claim
+                        </h5>
+                        <div class="small opacity-75 mt-0.5 d-flex align-items-center gap-2">
+                            <span>เชื่อมต่อระบบ e-Claim สปสช. (ระบบรายงานสิทธิการรถไฟแห่งประเทศไทย) เพื่อค้นหาและนำเข้า Statement อัตโนมัติ</span>
+                            <span class="badge rounded-pill bg-white text-dark py-1 px-2 fw-medium" style="font-size: 10.5px;">
+                                <i class="bi bi-shield-check text-primary me-1"></i> ThaiD SSO Ready
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
             <div class="modal-body p-4 bg-light">
                 <!-- Section 1: e-Claim Session Connection (Cookie / Token) -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">

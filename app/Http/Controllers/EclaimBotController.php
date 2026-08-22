@@ -19,6 +19,8 @@ use App\Models\Stm_bmt;
 use App\Models\Stm_bmtexcel;
 use App\Models\Stm_srt;
 use App\Models\Stm_srtexcel;
+use App\Models\Stm_pvt;
+use App\Models\Stm_pvtexcel;
 use App\Models\Rep_ucs;
 use App\Models\Rep_ucsexcel;
 use App\Models\Rep_ofc;
@@ -2660,7 +2662,285 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * 18. ตรวจสอบการเชื่อมต่อและวินิจฉัยปัญหา (Debug Diagnostic)
+     * 18. ค้นหารายการ Statement PVT (ครูเอกชน) จาก e-Claim (pvt/PvtViewAction.do)
+     */
+    public function stmPvtSearch(Request $request)
+    {
+        $sessionToken = $this->getActiveEclaimToken();
+        if (!$sessionToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim กรุณาเชื่อมต่อก่อนค้นหา'
+            ], 401);
+        }
+
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $budgetYear = $request->budget_year ?: (date('Y') + 543);
+        $adYear = (int)$budgetYear - 543;
+        $month = $request->month ? str_pad($request->month, 2, '0', STR_PAD_LEFT) : '';
+        $personType = $request->person_type ?: '1'; // 1: OPD, 2: IPD
+
+        $headers = $this->getEclaimBrowserHeaders($sessionToken);
+        $headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+        $headers['X-Requested-With'] = 'XMLHttpRequest';
+        $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/pvt/mstatement.do';
+
+        $searchUrl = "https://eclaim.nhso.go.th/webComponent/pvt/PvtViewAction.do";
+        $postData = [
+            'chkhcode' => 'N',
+            'maininscl' => 'PVT',
+            'ddlZone' => '10',
+            'ddlProvince' => '3700',
+            'ddlLHospital' => $hospcode,
+            'ddlStatus' => '',
+            'ddlYear' => (string)$adYear,
+            'ddlMonth' => $month,
+            'ddlPerson_type' => $personType,
+        ];
+
+        try {
+            $response = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->timeout(30)
+                ->asForm()
+                ->post($searchUrl, $postData);
+
+            if ($response->status() !== 200) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'e-Claim ตอบกลับสถานะ ' . $response->status()
+                ], 500);
+            }
+
+            $html = $response->body();
+            if (strpos($html, 'Error Page') !== false || strpos($html, 'คุณไม่มีสิทธิ์') !== false) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session e-Claim หมดอายุหรือไม่ได้รับอนุญาต กรุณาซิงก์ Session ใหม่อีกครั้ง'
+                ], 401);
+            }
+
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+            $xpath = new \DOMXPath($dom);
+
+            $rows = $xpath->query('//table[@id="tb-list"]/tbody/tr | //table[@id="tb-sso-data"]/tbody/tr');
+            $results = [];
+
+            foreach ($rows as $tr) {
+                $tds = $xpath->query('.//td', $tr);
+                if ($tds->length < 7) continue;
+
+                $statementNo = trim($tds->item(0)->textContent);
+                if (empty($statementNo) || strpos($statementNo, 'ไม่พบข้อมูล') !== false) continue;
+
+                $monthName = trim($tds->item(1)->textContent);
+                $yearStr = trim($tds->item(2)->textContent);
+                $round = trim($tds->item(3)->textContent);
+                $hosp = trim($tds->item(4)->textContent);
+                $benefit = trim($tds->item(5)->textContent);
+                $sendDate = '';
+
+                // Extract download params from onclick="javascript:getReportNCHReportRep('10989', 'PVT', '1', '2026', '01', '22', '10989_OP202601_22')"
+                $downloadAnchor = $xpath->query('.//a[contains(@onclick, "getReportNCHReportRep")]', $tds->item(6));
+                $params = [];
+                if ($downloadAnchor->length > 0) {
+                    $onclick = $downloadAnchor->item(0)->getAttribute('onclick');
+                    if (preg_match("/getReportNCHReportRep\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/", $onclick, $m)) {
+                        $params = [
+                            'hcode' => $m[1],
+                            'maininscl' => $m[2],
+                            'person_type' => $m[3],
+                            'gyear' => $m[4],
+                            'gmonth' => $m[5],
+                            'revision' => $m[6],
+                            'documentno' => $m[7],
+                        ];
+                    }
+                }
+
+                // ตรวจสอบว่าใน stm_pvt นำเข้าหรือยัง
+                $importedCount = DB::table('stm_pvt')->where('stm_filename', 'like', "%{$statementNo}%")->count();
+
+                $results[] = [
+                    'statement_no' => $statementNo,
+                    'month' => $monthName,
+                    'year' => $yearStr,
+                    'round' => $round,
+                    'hospcode' => $hosp,
+                    'benefit' => $benefit,
+                    'send_date' => $sendDate,
+                    'person_type' => $personType == '2' ? 'IPD' : 'OPD',
+                    'download_params' => $params,
+                    'is_imported' => $importedCount > 0,
+                    'imported_count' => $importedCount,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $results,
+                'count' => count($results)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 19. ดาวน์โหลดและนำเข้า Statement PVT (ครูเอกชน) จาก e-Claim
+     */
+    public function stmPvtImport(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $sessionToken = $this->getActiveEclaimToken();
+        if (!$sessionToken) {
+            return response()->json(['status' => 'error', 'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim'], 401);
+        }
+
+        $items = $request->items;
+        if (empty($items) || !is_array($items)) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่มีรายการ Statement ที่เลือก'], 400);
+        }
+
+        $headers = $this->getEclaimBrowserHeaders($sessionToken);
+        $headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+        $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/pvt/mstatement.do';
+
+        $importedStatements = [];
+        $totalImportedRows = 0;
+
+        foreach ($items as $item) {
+            $params = $item['download_params'] ?? [];
+            if (empty($params['documentno'])) continue;
+
+            $downloadUrl = "https://eclaim.nhso.go.th/webComponent/pvt/StatementReportExcelWebAction.do";
+            $res = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->timeout(60)
+                ->asForm()
+                ->post($downloadUrl, $params);
+
+            if ($res->status() !== 200 || strlen($res->body()) < 500) {
+                continue;
+            }
+
+            $fileName = "STM_" . $params['hcode'] . "_" . $params['documentno'] . ".xls";
+            $tempDir = storage_path('app/temp_stm_pvt');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0777, true);
+            }
+            $tempFilePath = $tempDir . '/' . $fileName;
+            file_put_contents($tempFilePath, $res->body());
+
+            try {
+                $spreadsheet = IOFactory::load($tempFilePath);
+                $sheet = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit = $sheet->getHighestDataRow();
+
+                $roundText = $sheet->getCell('A6')->getCalculatedValue();
+                $round_no = trim(mb_substr((string) $roundText, 13, null, 'UTF-8'));
+                if (empty($round_no)) {
+                    $round_no = $item['statement_no'] ?? $params['documentno'];
+                }
+
+                $data = [];
+                for ($row = 12; $row <= $row_limit; $row++) {
+                    $repno = $sheet->getCell('A' . $row)->getValue();
+                    if (empty($repno) || $repno == 'รวม' || $repno == 'TOTAL') continue;
+
+                    $adm = $sheet->getCell('G' . $row)->getValue();
+                    $day = substr($adm, 0, 2);
+                    $mo = substr($adm, 3, 2);
+                    $year = substr($adm, 7, 4);
+                    $tm = substr($adm, 12, 8);
+                    $datetimeadm = ($year && $mo && $day) ? ($year . '-' . $mo . '-' . $day . ' ' . $tm) : null;
+
+                    $dch = $sheet->getCell('H' . $row)->getValue();
+                    $dchday = substr($dch, 0, 2);
+                    $dchmo = substr($dch, 3, 2);
+                    $dchyear = substr($dch, 7, 4);
+                    $dchtime = substr($dch, 12, 8);
+                    $datetimedch = ($dchyear && $dchmo && $dchday) ? ($dchyear . '-' . $dchmo . '-' . $dchday . ' ' . $dchtime) : null;
+
+                    $data[] = [
+                        'round_no' => $round_no,
+                        'repno' => $repno,
+                        'no' => $sheet->getCell('B' . $row)->getValue(),
+                        'hn' => $sheet->getCell('C' . $row)->getValue(),
+                        'an' => $sheet->getCell('D' . $row)->getValue(),
+                        'cid' => $sheet->getCell('E' . $row)->getValue(),
+                        'pt_name' => $sheet->getCell('F' . $row)->getValue(),
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate' => $datetimeadm ? date('Y-m-d', strtotime($datetimeadm)) : null,
+                        'vsttime' => $datetimeadm ? date('H:i:s', strtotime($datetimeadm)) : null,
+                        'datetimedch' => $datetimedch,
+                        'dchdate' => $datetimedch ? date('Y-m-d', strtotime($datetimedch)) : null,
+                        'dchtime' => $datetimedch ? date('H:i:s', strtotime($datetimedch)) : null,
+                        'projcode' => $sheet->getCell('I' . $row)->getValue(),
+                        'adjrw' => $sheet->getCell('J' . $row)->getValue() ?: 0,
+                        'charge' => $sheet->getCell('K' . $row)->getValue() ?: 0,
+                        'act' => $sheet->getCell('L' . $row)->getValue() ?: 0,
+                        'receive_room' => $sheet->getCell('M' . $row)->getValue() ?: 0,
+                        'receive_instument' => $sheet->getCell('N' . $row)->getValue() ?: 0,
+                        'receive_drug' => $sheet->getCell('O' . $row)->getValue() ?: 0,
+                        'receive_treatment' => $sheet->getCell('P' . $row)->getValue() ?: 0,
+                        'receive_car' => $sheet->getCell('Q' . $row)->getValue() ?: 0,
+                        'receive_waitdch' => $sheet->getCell('R' . $row)->getValue() ?: 0,
+                        'receive_other' => $sheet->getCell('S' . $row)->getValue() ?: 0,
+                        'receive_total' => $sheet->getCell('T' . $row)->getValue() ?: 0,
+                        'stm_filename' => $fileName,
+                    ];
+                }
+
+                if (!empty($data)) {
+                    Stm_pvtexcel::truncate();
+                    foreach (array_chunk($data, 1000) as $chunk) {
+                        Stm_pvtexcel::insert($chunk);
+                    }
+
+                    $excelRows = Stm_pvtexcel::whereNotNull('charge')->where('charge', '<>', 'เรียกเก็บ')->get();
+                    foreach ($excelRows as $val) {
+                        $exists = Stm_pvt::where('repno', $val->repno)->where('no', $val->no)->exists();
+                        $rowArr = $val->toArray();
+                        unset($rowArr['id']);
+                        if ($exists) {
+                            Stm_pvt::where('repno', $val->repno)->where('no', $val->no)->update($rowArr);
+                        } else {
+                            Stm_pvt::create($rowArr);
+                        }
+                    }
+                    Stm_pvtexcel::truncate();
+                    $totalImportedRows += count($data);
+                    $importedStatements[] = $fileName;
+                }
+            } catch (\Exception $e) {
+                Log::error("Error parsing STM PVT file {$fileName}: " . $e->getMessage());
+            }
+
+            @unlink($tempFilePath);
+        }
+
+        $importedCount = count($importedStatements);
+        if ($importedCount === 0) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement PVT ที่เลือกได้'], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "นำเข้าข้อมูล Statement ครูเอกชน (PVT) จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
+            'imported_statements' => $importedStatements,
+            'reload' => true
+        ]);
+    }
+
+    /**
+     * 20. ตรวจสอบการเชื่อมต่อและวินิจฉัยปัญหา (Debug Diagnostic)
      */
     public function debugCheck(Request $request)
     {

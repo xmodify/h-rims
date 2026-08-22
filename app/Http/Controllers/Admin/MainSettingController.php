@@ -978,6 +978,10 @@ class MainSettingController extends Controller
             $colObj = $table->decimal($colName, $precision, $scale);
         } elseif (strpos($type, 'double') !== false) {
             $colObj = $table->double($colName);
+        } elseif (strpos($type, 'longtext') !== false) {
+            $colObj = $table->longText($colName);
+        } elseif (strpos($type, 'mediumtext') !== false) {
+            $colObj = $table->mediumText($colName);
         } elseif (strpos($type, 'text') !== false) {
             $colObj = $table->text($colName);
         } elseif (strpos($type, 'timestamp') !== false) {

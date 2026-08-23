@@ -1,4 +1,4 @@
-    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
+<div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
         <div class="px-4 pt-2 pb-0 border-bottom">
             <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">
@@ -15,7 +15,7 @@
             <div class="d-flex justify-content-between align-items-end mb-3">
                 <div class="d-flex align-items-center gap-3">
                     <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการแพทย์แผนไทย ยาสมุนไพร
+                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้รับอวัยวะเทียม/อุปกรณ์
                     </h6>
                     <span class="text-muted small">
                         วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}

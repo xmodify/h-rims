@@ -62,6 +62,8 @@ class EclaimBotController extends Controller
         if (strpos($token, ';') !== false && (stripos($token, 'JSESSIONID=') !== false || stripos($token, 'STEEXWDE=') !== false || stripos($token, 'ACCESS_TOKEN=') !== false)) {
             $pairs = explode(';', $token);
             $cleanPairs = [];
+            $seenKeys = [];
+
             foreach ($pairs as $p) {
                 $p = trim($p);
                 if (empty($p)) continue;
@@ -69,10 +71,22 @@ class EclaimBotController extends Controller
                 $k = trim($parts[0]);
                 $v = isset($parts[1]) ? trim($parts[1]) : '';
                 
-                // กรองเอาเฉพาะ Cookie ที่จำเป็นต่อการ Auth (ตัดขยะ _ga, _gid, _gat ออก)
-                if (strpos($k, '_ga') === 0 || $k === '_gid' || $k === '_gat' || $k === '_gcl_au' || strpos($k, '__') === 0) {
+                // กรองเอาเฉพาะ Cookie ที่จำเป็นต่อการ Auth (ตัดขยะ Google Analytics และ Duplicate _LEGACY, REFRESH_TOKEN ออก ป้องกัน Header Too Large)
+                if (
+                    strpos($k, '_ga') === 0 || 
+                    $k === '_gid' || 
+                    $k === '_gat' || 
+                    $k === '_gcl_au' || 
+                    strpos($k, '__') === 0 ||
+                    $k === 'REFRESH_TOKEN' ||
+                    $k === 'KC_RESTART' ||
+                    stripos($k, '_LEGACY') !== false ||
+                    isset($seenKeys[$k])
+                ) {
                     continue;
                 }
+                
+                $seenKeys[$k] = true;
                 $cleanPairs[] = "{$k}={$v}";
             }
             if (!empty($cleanPairs)) {
@@ -217,23 +231,64 @@ class EclaimBotController extends Controller
             ?: (DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value')
             ?: date('Y-m-d H:i:s')));
 
-        if ($sessionToken) {
-            // Auto-populate Session so subsequent calls in this request cycle are quick
-            Session::put('eclaim_session_token', $sessionToken);
-            Session::put('eclaim_session_user', $sessionUser);
-            Session::put('eclaim_session_time', $sessionTime);
-
+        if (!$sessionToken) {
             return response()->json([
-                'connected' => true,
-                'user' => $sessionUser,
-                'connected_at' => $sessionTime,
-                'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
+                'connected' => false,
+                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim (กรุณาซิงก์ Session จาก Extension)'
             ]);
         }
 
+        // Live Probe: ทดสอบยิงไปตรวจสอบกับระบบ e-Claim สปสช. จริงก่อนแสดงสถานะเชื่อมต่อสำเร็จ
+        try {
+            $headers = $this->getEclaimBrowserHeaders($sessionToken);
+            $probeMo = (int)date('m');
+            $probeYe = (int)date('Y') + 543;
+            $probeUrl = "https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do?maininscl=ucs&mo={$probeMo}&ye={$probeYe}";
+            
+            $probeRes = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->timeout(5)
+                ->get($probeUrl);
+
+            $html = (string)$probeRes->body();
+
+            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Error Page หรือไม่มีตาราง content2
+            if (
+                $probeRes->status() !== 200 || 
+                stripos($html, 'Error Page') !== false || 
+                stripos($html, 'frmErr') !== false || 
+                stripos($html, 'คุณไม่มีสิทธิ์') !== false ||
+                stripos($html, 'content2') === false
+            ) {
+                return response()->json([
+                    'connected' => false,
+                    'message' => 'Session e-Claim หมดอายุหรือไม่สามารถเข้าถึงได้ (กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session" ใหม่อีกครั้ง)'
+                ]);
+            }
+
+            // ดึงชื่อผู้ใช้งานหากมี
+            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<]+)/u', $html, $m)) {
+                $sessionUser = trim(strip_tags($m[1]));
+            }
+
+        } catch (\Exception $e) {
+            // กรณีเครือข่ายเชื่อมต่อไม่ได้ชั่วคราว
+            return response()->json([
+                'connected' => false,
+                'message' => 'ไม่สามารถติดต่อเซิร์ฟเวอร์ e-Claim ได้: ' . $e->getMessage()
+            ]);
+        }
+
+        // Auto-populate Session so subsequent calls in this request cycle are quick
+        Session::put('eclaim_session_token', $sessionToken);
+        Session::put('eclaim_session_user', $sessionUser);
+        Session::put('eclaim_session_time', $sessionTime);
+
         return response()->json([
-            'connected' => false,
-            'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim'
+            'connected' => true,
+            'user' => $sessionUser,
+            'connected_at' => $sessionTime,
+            'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
         ]);
     }
 
@@ -428,9 +483,13 @@ class EclaimBotController extends Controller
                 strpos($html, 'frmErr') !== false || 
                 strpos($html, 'Error Page') !== false
             ) {
+                $errMsg = 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดเปิดหน้าเมนู Statement ในเว็บ e-Claim แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" จาก Extension ใหม่อีกครั้ง';
+                if (strpos($html, 'คุณไม่มีสิทธิ์') !== false) {
+                    $errMsg = 'บัญชี e-Claim (ThaiD) ที่เชื่อมต่อไม่มีสิทธิ์เข้าถึงรายงาน Statement UCS (ต้องใช้บัญชีที่มีสิทธิ์การเงิน/Statement จากระบบ OSS สปสช.)';
+                }
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดซิงก์จาก Extension'
+                    'message' => $errMsg
                 ], 401);
             }
 
@@ -1037,7 +1096,13 @@ class EclaimBotController extends Controller
                 continue;
             }
 
-            $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
+            if (strpos($excelUrl, 'http') === 0) {
+                $downloadUrl = $excelUrl;
+            } elseif (strpos($excelUrl, '/') === 0) {
+                $downloadUrl = 'https://eclaim.nhso.go.th' . $excelUrl;
+            } else {
+                $downloadUrl = 'https://eclaim.nhso.go.th/webComponent/validation/' . $excelUrl;
+            }
 
             $headers = $this->getEclaimBrowserHeaders($sessionToken);
             $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do';
@@ -1204,7 +1269,13 @@ class EclaimBotController extends Controller
 
             if (empty($excelUrl)) continue;
 
-            $downloadUrl = strpos($excelUrl, 'http') === 0 ? $excelUrl : ('https://eclaim.nhso.go.th' . $excelUrl);
+            if (strpos($excelUrl, 'http') === 0) {
+                $downloadUrl = $excelUrl;
+            } elseif (strpos($excelUrl, '/') === 0) {
+                $downloadUrl = 'https://eclaim.nhso.go.th' . $excelUrl;
+            } else {
+                $downloadUrl = 'https://eclaim.nhso.go.th/webComponent/validation/' . $excelUrl;
+            }
 
             $headers = $this->getEclaimBrowserHeaders($sessionToken);
             $headers['Referer'] = 'https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do';

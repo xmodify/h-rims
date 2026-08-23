@@ -768,26 +768,40 @@
         // 2) Check e-Claim Authentication Status
         // ==========================================
         function checkEclaimStatus() {
+            $('#eclaimAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning').addClass('bg-secondary-subtle text-secondary')
+                .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+            $('#eclaimAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ e-Claim...');
+            $('#eclaimAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ eclaim.nhso.go.th');
+            $('#btnBotSearch').prop('disabled', true);
+
             $.ajax({
                 url: "{{ route('import.eclaim-bot.status') }}",
                 method: "POST",
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
                     if (res.connected) {
-                        $('#eclaimAuthStatusIcon').removeClass('bg-warning-subtle text-warning').addClass('bg-success-subtle text-success')
+                        $('#eclaimAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary').addClass('bg-success-subtle text-success')
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
                         $('#eclaimAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
                         $('#eclaimAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
                         $('#btnEclaimLogout').removeClass('d-none');
                         $('#btnBotSearch').prop('disabled', false);
                     } else {
-                        $('#eclaimAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
+                        $('#eclaimAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
                             .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
-                        $('#eclaimAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
-                        $('#eclaimAuthStatusSub').text('เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#eclaimAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ');
+                        $('#eclaimAuthStatusSub').text(res.message || 'เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
                         $('#btnEclaimLogout').addClass('d-none');
                         $('#btnBotSearch').prop('disabled', true);
                     }
+                },
+                error: function() {
+                    $('#eclaimAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
+                        .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                    $('#eclaimAuthStatusText').text('ไม่สามารถตรวจสอบสถานะการเชื่อมต่อ e-Claim ได้');
+                    $('#eclaimAuthStatusSub').text('กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใหม่อีกครั้ง');
+                    $('#btnEclaimLogout').addClass('d-none');
+                    $('#btnBotSearch').prop('disabled', true);
                 }
             });
         }
@@ -878,11 +892,18 @@
                     if (res.status === 'success') {
                         $('#botResultBadge').text('พบ ' + res.count + ' รายการ');
                         renderBotStatementTable(res.data);
+                    } else {
+                        var errMsg = res.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim';
+                        $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger"><i class="bi bi-exclamation-octagon fs-4 d-block mb-1"></i>' + errMsg + '</td></tr>');
                     }
                 },
                 error: function (xhr) {
                     btn.prop('disabled', false).html('<i class="bi bi-search me-1"></i> ค้นหาใน e-Claim');
-                    $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger"><i class="bi bi-exclamation-octagon fs-4 d-block mb-1"></i>เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim</td></tr>');
+                    var errMsg = 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก e-Claim';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errMsg = xhr.responseJSON.message;
+                    }
+                    $('#botStatementTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger"><i class="bi bi-exclamation-octagon fs-4 d-block mb-1"></i>' + errMsg + '</td></tr>');
                 }
             });
         });

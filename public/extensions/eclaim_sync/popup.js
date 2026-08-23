@@ -1,5 +1,5 @@
 let isScraping = false;
-const defaultBaseUrl = 'https://huataphanhospital.go.th/rims/api';
+const defaultBaseUrl = 'http://127.0.0.1/rims/api';
 
 // Load saved settings
 chrome.storage.local.get(['apiUrl', 'hospCode'], function (result) {

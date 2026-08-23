@@ -793,26 +793,40 @@
         // e-Claim Statement PVT Automation (stm_pvt)
         // ==========================================
         function checkEclaimStmPvtStatus() {
+            $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning').addClass('bg-secondary-subtle text-secondary')
+                .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+            $('#eclaimStmPvtAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ e-Claim...');
+            $('#eclaimStmPvtAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ eclaim.nhso.go.th');
+            $('#btnBotStmPvtSearch').prop('disabled', true);
+
             $.ajax({
                 url: "{{ route('import.eclaim-bot.status') }}",
                 method: "POST",
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
                     if (res.connected) {
-                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-warning-subtle text-warning').addClass('bg-success-subtle text-success')
+                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary').addClass('bg-success-subtle text-success')
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
                         $('#eclaimStmPvtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
                         $('#eclaimStmPvtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
                         $('#btnEclaimStmPvtLogout').removeClass('d-none');
                         $('#btnBotStmPvtSearch').prop('disabled', false);
                     } else {
-                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success').addClass('bg-warning-subtle text-warning')
+                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
                             .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
-                        $('#eclaimStmPvtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim');
-                        $('#eclaimStmPvtAuthStatusSub').text('เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#eclaimStmPvtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ');
+                        $('#eclaimStmPvtAuthStatusSub').text(res.message || 'เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
                         $('#btnEclaimStmPvtLogout').addClass('d-none');
                         $('#btnBotStmPvtSearch').prop('disabled', true);
                     }
+                },
+                error: function() {
+                    $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
+                        .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                    $('#eclaimStmPvtAuthStatusText').text('ไม่สามารถตรวจสอบสถานะการเชื่อมต่อ e-Claim ได้');
+                    $('#eclaimStmPvtAuthStatusSub').text('กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใหม่อีกครั้ง');
+                    $('#btnEclaimStmPvtLogout').addClass('d-none');
+                    $('#btnBotStmPvtSearch').prop('disabled', true);
                 }
             });
         }

@@ -202,15 +202,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_ucs r2 
                     WHERE r2.hn = rep_ucs.hn 
                       AND r2.id != rep_ucs.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_ucs.rep_type = 'IP' AND r2.an = rep_ucs.an AND r2.rep_type = 'IP')
                           OR
@@ -414,12 +414,14 @@ class ImportRepController extends Controller
             ->whereRaw('(CAST(SUBSTRING(rep_filename, LOCATE("25", rep_filename), 4) AS UNSIGNED) + IF(CAST(SUBSTRING(rep_filename, LOCATE("25", rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
+            ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_ucs r2 
                 WHERE r2.hn = rep_ucs.hn 
                   AND r2.id != rep_ucs.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_ucs.rep_type = 'IP' AND r2.an = rep_ucs.an AND r2.rep_type = 'IP')
                       OR
@@ -1049,15 +1051,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_ofc r2 
                     WHERE r2.hn = rep_ofc.hn 
                       AND r2.id != rep_ofc.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_ofc.rep_type = 'IP' AND r2.an = rep_ofc.an AND r2.rep_type = 'IP')
                           OR
@@ -1238,12 +1240,14 @@ class ImportRepController extends Controller
             ->whereRaw('(CAST(SUBSTRING(rep_filename, LOCATE("25", rep_filename), 4) AS UNSIGNED) + IF(CAST(SUBSTRING(rep_filename, LOCATE("25", rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
+            ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_ofc r2 
                 WHERE r2.hn = rep_ofc.hn 
                   AND r2.id != rep_ofc.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_ofc.rep_type = 'IP' AND r2.an = rep_ofc.an AND r2.rep_type = 'IP')
                       OR
@@ -1782,15 +1786,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_sss r2 
                     WHERE r2.hn = rep_sss.hn 
                       AND r2.id != rep_sss.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_sss.rep_type = 'IP' AND r2.an = rep_sss.an AND r2.rep_type = 'IP')
                           OR
@@ -1971,12 +1975,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_sss r2 
                 WHERE r2.hn = rep_sss.hn 
                   AND r2.id != rep_sss.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_sss.rep_type = 'IP' AND r2.an = rep_sss.an AND r2.rep_type = 'IP')
                       OR
@@ -2464,15 +2469,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_lgo r2 
                     WHERE r2.hn = rep_lgo.hn 
                       AND r2.id != rep_lgo.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_lgo.rep_type = 'IP' AND r2.an = rep_lgo.an AND r2.rep_type = 'IP')
                           OR
@@ -2653,12 +2658,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_lgo r2 
                 WHERE r2.hn = rep_lgo.hn 
                   AND r2.id != rep_lgo.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_lgo.rep_type = 'IP' AND r2.an = rep_lgo.an AND r2.rep_type = 'IP')
                       OR
@@ -3154,15 +3160,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_bkk r2 
                     WHERE r2.hn = rep_bkk.hn 
                       AND r2.id != rep_bkk.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_bkk.rep_type = 'IP' AND r2.an = rep_bkk.an AND r2.rep_type = 'IP')
                           OR
@@ -3343,12 +3349,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_bkk r2 
                 WHERE r2.hn = rep_bkk.hn 
                   AND r2.id != rep_bkk.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_bkk.rep_type = 'IP' AND r2.an = rep_bkk.an AND r2.rep_type = 'IP')
                       OR
@@ -3842,15 +3849,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_bmt r2 
                     WHERE r2.hn = rep_bmt.hn 
                       AND r2.id != rep_bmt.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_bmt.rep_type = 'IP' AND r2.an = rep_bmt.an AND r2.rep_type = 'IP')
                           OR
@@ -4031,12 +4038,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_bmt r2 
                 WHERE r2.hn = rep_bmt.hn 
                   AND r2.id != rep_bmt.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_bmt.rep_type = 'IP' AND r2.an = rep_bmt.an AND r2.rep_type = 'IP')
                       OR
@@ -4530,15 +4538,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_srt r2 
                     WHERE r2.hn = rep_srt.hn 
                       AND r2.id != rep_srt.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_srt.rep_type = 'IP' AND r2.an = rep_srt.an AND r2.rep_type = 'IP')
                           OR
@@ -4719,12 +4727,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_srt r2 
                 WHERE r2.hn = rep_srt.hn 
                   AND r2.id != rep_srt.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_srt.rep_type = 'IP' AND r2.an = rep_srt.an AND r2.rep_type = 'IP')
                       OR
@@ -5218,15 +5227,15 @@ class ImportRepController extends Controller
             repno,
             MAX(is_appeal) AS is_appeal,
             COUNT(cid) AS count_cid,
-            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' THEN 1 ELSE 0 END) AS count_pass,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' THEN 1 ELSE 0 END) AS count_fail,
-            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND (
+            SUM(CASE WHEN error_code IS NULL OR error_code = '' OR error_code = '-' OR error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_pass,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' THEN 1 ELSE 0 END) AS count_fail,
+            SUM(CASE WHEN error_code IS NOT NULL AND error_code != '' AND error_code != '-' AND error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)' AND (
                 EXISTS (
                     SELECT 1 
                     FROM rep_pvt r2 
                     WHERE r2.hn = rep_pvt.hn 
                       AND r2.id != rep_pvt.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                       AND (
                           (rep_pvt.rep_type = 'IP' AND r2.an = rep_pvt.an AND r2.rep_type = 'IP')
                           OR
@@ -5407,12 +5416,13 @@ class ImportRepController extends Controller
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
             ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)'")
             ->whereRaw("NOT EXISTS (
                 SELECT 1 
                 FROM rep_pvt r2 
                 WHERE r2.hn = rep_pvt.hn 
                   AND r2.id != rep_pvt.id
-                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
+                  AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-' OR r2.error_code REGEXP '(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)')
                   AND (
                       (rep_pvt.rep_type = 'IP' AND r2.an = rep_pvt.an AND r2.rep_type = 'IP')
                       OR

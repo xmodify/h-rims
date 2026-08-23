@@ -1188,7 +1188,7 @@ class MishosController extends Controller
             if (!property_exists($row, 'repno')) {
                 $row->repno = null;
             }
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->claim_price = floatval($row->claim_price);
         }
 
         $this->checkClosedStatusOnly($all_visits);
@@ -1380,7 +1380,7 @@ class MishosController extends Controller
             if (!property_exists($row, 'repno')) {
                 $row->repno = null;
             }
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->claim_price = floatval($row->claim_price);
         }
 
         $this->checkClosedStatusOnly($all_visits);

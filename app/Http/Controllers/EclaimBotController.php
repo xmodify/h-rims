@@ -164,7 +164,7 @@ class EclaimBotController extends Controller
             }
 
             // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim
-            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<]+)/u', $html, $m)) {
+            if (preg_match('/(?:ชื่อ|ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
                 $user = trim(strip_tags($m[1]));
             } elseif (auth()->check()) {
                 $user = auth()->user()->name;
@@ -216,20 +216,18 @@ class EclaimBotController extends Controller
     {
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         
-        $sessionToken = Session::get('eclaim_session_token') 
+        $sessionToken = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
             ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
             ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
-            ?: DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')));
+            ?: Session::get('eclaim_session_token')));
             
-        $sessionUser = Session::get('eclaim_session_user') 
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_user_' . $hospcode) 
-            ?: (DB::table('main_setting')->where('name', 'eclaim_session_user')->value('value')
-            ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim')));
+        $sessionUser = DB::table('main_setting')->where('name', 'eclaim_session_user')->value('value')
+            ?: (Session::get('eclaim_session_user')
+            ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim'));
             
-        $sessionTime = Session::get('eclaim_session_time') 
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_time_' . $hospcode) 
-            ?: (DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value')
-            ?: date('Y-m-d H:i:s')));
+        $sessionTime = DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value')
+            ?: (Session::get('eclaim_session_time')
+            ?: date('Y-m-d H:i:s'));
 
         if (!$sessionToken) {
             return response()->json([
@@ -356,7 +354,7 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * 4. บันทึก Session Token / Cookie โดยตรง (แนวทางที่ 1: สำรอง)
+     * 4. บันทึก Session Token / Cookie โดยตรง
      */
     public function saveSessionToken(Request $request)
     {
@@ -365,9 +363,29 @@ class EclaimBotController extends Controller
         ]);
 
         $token = $this->cleanToken($request->token);
-        $user = auth()->check() ? auth()->user()->name : 'เจ้าหน้าที่ e-Claim';
+        $user = $request->input('user') ?: (auth()->check() ? auth()->user()->name : null);
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         $now = date('Y-m-d H:i:s');
+
+        // ถ้ายังไม่มีชื่อผู้ใช้ ให้ลอง probe ดึงชื่อผู้ใช้จริงจาก e-Claim
+        if (!$user) {
+            try {
+                $headers = $this->getEclaimHeaders($token);
+                $probeRes = Http::withHeaders($headers)
+                    ->withoutVerifying()
+                    ->timeout(4)
+                    ->get('https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do');
+                
+                $html = (string)$probeRes->body();
+                if (preg_match('/(?:ชื่อ\s*[:：]?|ผู้ใช้งาน\s*[:：]?|ยินดีต้อนรับ\s*[:：]?)\s*([^\r\n<\[]+)/u', $html, $m)) {
+                    $user = trim(strip_tags($m[1]));
+                }
+            } catch (\Exception $e) {}
+        }
+
+        if (!$user) {
+            $user = 'เจ้าหน้าที่ e-Claim';
+        }
 
         // 1. Ensure main_setting value column is LONGTEXT
         try {
@@ -401,6 +419,7 @@ class EclaimBotController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'connected' => true,
             'message' => 'เชื่อมต่อระบบ e-Claim สำเร็จแล้ว (บันทึกลงฐานข้อมูล แชร์ให้ผู้ใช้ทุกคนใน รพ.)',
             'user' => $user
         ]);

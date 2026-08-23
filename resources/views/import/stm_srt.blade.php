@@ -315,9 +315,12 @@
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" id="btnEclaimStmSrtLoginPopup">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบ e-Claim (ThaiD)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showEclaimExtensionGuide()">
                                     <i class="bi bi-download me-1"></i> ส่วนเสริม Chrome
-                                </a>
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimStmSrtLogout">
                                     <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
                                 </button>
@@ -831,8 +834,99 @@
             });
         }
 
+        window.showEclaimExtensionGuide = function() {
+            var apiUrl = "{{ url('/api') }}";
+            var zipUrl = "{{ url('downloads/eclaim_sync.zip') }}";
+            
+            Swal.fire({
+                title: '<div class="d-flex align-items-center justify-content-center gap-2 text-primary fs-5 fw-bold"><i class="bi bi-puzzle-fill"></i> คู่มือการติดตั้ง RiMS Chrome Extension</div>',
+                html: `
+                    <div class="text-start small text-secondary mb-3" style="line-height: 1.6;">
+                        <b class="text-dark">ขั้นตอนการใช้งาน:</b>
+                        <ol class="ps-3 mb-3 mt-1">
+                            <li>คลิกปุ่มสีน้ำเงินด้านล่างเพื่อ <b>ดาวน์โหลดไฟล์ eclaim_sync.zip</b></li>
+                            <li>แตกไฟล์ zip ไว้ในโฟลเดอร์ที่ต้องการในเครื่อง</li>
+                            <li>เปิด Chrome ไปที่ <code>chrome://extensions</code> เปิด <b>Developer mode</b> แล้วกด <b>Load unpacked</b> เลือกโฟลเดอร์ที่แตกไว้</li>
+                            <li>เปิดส่วนเสริม นำ <b>Server API URL</b> ด้านล่างนี้ไปวางในช่อง URL แล้วกดบันทึก:</li>
+                        </ol>
+                    </div>
+                    <div class="card bg-light border-0 p-3 mb-3 rounded-3 text-start shadow-sm">
+                        <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-link-45deg"></i> Server API URL สำหรับคัดลอกไปวางใน Extension:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm font-monospace bg-white fw-bold text-primary" id="rimsApiUrlInput" value="${apiUrl}" readonly>
+                            <button class="btn btn-sm btn-primary px-3" type="button" id="btnCopyApiUrl" onclick="navigator.clipboard.writeText('${apiUrl}'); this.innerHTML='<i class=\\'bi bi-check-lg me-1\\'></i> คัดลอกแล้ว!'; setTimeout(() => { this.innerHTML='<i class=\\'bi bi-clipboard me-1\\'></i> คัดลอก'; }, 2000);">
+                                <i class="bi bi-clipboard me-1"></i> คัดลอก
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="${zipUrl}" class="btn btn-primary rounded-pill py-2 shadow-sm fw-bold" download>
+                            <i class="bi bi-download me-1"></i> ดาวน์โหลดไฟล์ส่วนเสริม (eclaim_sync.zip)
+                        </a>
+                    </div>
+                `,
+                showConfirmButton: true,
+                confirmButtonText: 'ปิดหน้าต่าง',
+                confirmButtonColor: '#6c757d',
+                customClass: {
+                    popup: 'rounded-4 shadow-lg'
+                }
+            });
+        };
+
         $('#eclaimStmSrtBotModal').on('show.bs.modal', function () {
             checkEclaimStmSrtStatus();
+        });
+
+        $('#btnEclaimStmSrtLoginPopup').on('click', function () {
+            var loginUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
+            var popup = window.open(loginUrl, 'EclaimLoginPopup', 'width=850,height=850,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes');
+            
+            if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'เบราว์เซอร์บล็อก Popup',
+                    text: 'กรุณาอนุญาต (Allow Pop-up) ในเบราว์เซอร์เพื่อเปิดหน้าต่างเข้าสู่ระบบ e-Claim สปสช.',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            var checkCount = 0;
+            var checkInterval = setInterval(function () {
+                checkCount++;
+                if (popup.closed) {
+                    clearInterval(checkInterval);
+                    checkEclaimStmSrtStatus();
+                    return;
+                }
+
+                if (checkCount % 3 === 0) {
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.status') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function (res) {
+                            if (res && res.connected) {
+                                clearInterval(checkInterval);
+                                try { popup.close(); } catch(e) {}
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'เข้าสู่ระบบสำเร็จ!',
+                                    html: 'เชื่อมต่อกับ e-Claim สปสช. สำเร็จแล้ว: <b class="text-primary">' + res.user + '</b>',
+                                    timer: 2500,
+                                    showConfirmButton: false
+                                });
+                                checkEclaimStmSrtStatus();
+                            }
+                        }
+                    });
+                }
+
+                if (checkCount > 120) {
+                    clearInterval(checkInterval);
+                }
+            }, 1000);
         });
 
         $('#btnEclaimStmSrtLogout').on('click', function () {

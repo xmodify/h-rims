@@ -1,20 +1,32 @@
 {
     "manifest_version": 3,
     "name": "RiMS E-Claim Sync",
-    "version": "1.1",
-    "description": "ดึงข้อมูลจากระบบ E-Claim สปสช. เข้าสู่ระบบ RiMS สำหรับโรงพยาบาล",
+    "version": "1.2",
+    "description": "ดึงข้อมูลและเชื่อมต่อ Session จากระบบ E-Claim สปสช. เข้าสู่ระบบ RiMS อัตโนมัติ",
     "permissions": [
         "activeTab",
         "scripting",
         "storage",
-        "cookies"
+        "cookies",
+        "alarms"
     ],
     "host_permissions": [
         "https://eclaim.nhso.go.th/*",
+        "https://*.nhso.go.th/*",
         "<all_urls>"
     ],
+    "background": {
+        "service_worker": "background.js"
+    },
     "action": {
         "default_popup": "popup.html",
         "default_title": "RiMS E-Claim Sync"
-    }
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://eclaim.nhso.go.th/*"],
+            "js": ["content.js"],
+            "run_at": "document_idle"
+        }
+    ]
 }

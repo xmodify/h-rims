@@ -1,5 +1,14 @@
 // This content.js is injected into eclaim.nhso.go.th
-// It scrapes the data table and sends it to the RiMS backend.
+// It auto-notifies the background worker to sync session and can scrape tables.
+
+(function () {
+    try {
+        // Automatically request background worker to sync session to RiMS
+        chrome.runtime.sendMessage({ action: 'sync_session', url: window.location.href });
+    } catch (e) {
+        // Extension context might be invalidated or not ready
+    }
+})();
 
 (async function () {
     try {

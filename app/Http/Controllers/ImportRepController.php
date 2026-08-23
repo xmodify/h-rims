@@ -66,7 +66,7 @@ class ImportRepController extends Controller
                 $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
                 $h1 = trim((string)$sheet->getCell($colStr . $headerRow)->getValue());
                 $h2 = trim((string)$sheet->getCell($colStr . ($headerRow + 1))->getValue());
-                $headerText = mb_strtoupper($h1 . ' ' . $h2, 'UTF-8');
+                $headerText = preg_replace('/\s+/', ' ', mb_strtoupper($h1 . ' ' . $h2, 'UTF-8'));
                 
                 if ($headerText === '') continue;
                 

@@ -1021,6 +1021,133 @@ class EclaimBotController extends Controller
     /**
      * 9. สั่งดาวน์โหลดไฟล์ REP Excel จาก e-Claim และนำเข้าสู่ฐานข้อมูล RIMS อัตโนมัติ (รองรับทุกสิทธิ์ และ stm_lgo)
      */
+    /**
+     * ตรวจหาการจับคู่คอลัมน์ (Column Mapping) โดยอัตโนมัติจากหัวตาราง Excel ใน Row 5-8
+     */
+    protected function detectRepColMapping($sheet, array $defaultMapping = [])
+    {
+        $mapping = $defaultMapping;
+        $headerRow = 0;
+        
+        for ($r = 5; $r <= 8; $r++) {
+            $cellVal = (string)$sheet->getCell('D' . $r)->getValue();
+            if (stripos($cellVal, 'HN') !== false) {
+                $headerRow = $r;
+                break;
+            }
+        }
+        
+        if ($headerRow > 0) {
+            $detected = [];
+            $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn($headerRow));
+            for ($c = 1; $c <= min($highestCol, 120); $c++) {
+                $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+                $h1 = trim((string)$sheet->getCell($colStr . $headerRow)->getValue());
+                $h2 = trim((string)$sheet->getCell($colStr . ($headerRow + 1))->getValue());
+                $headerText = preg_replace('/\s+/', ' ', mb_strtoupper($h1 . ' ' . $h2, 'UTF-8'));
+                
+                if ($headerText === '') continue;
+                
+                if (str_contains($headerText, 'REP') && !str_contains($headerText, 'TYPE')) {
+                    $detected[$c] = 'repno';
+                } elseif (str_contains($headerText, 'ลำดับ')) {
+                    $detected[$c] = 'no';
+                } elseif (str_contains($headerText, 'TRAN_ID') || str_contains($headerText, 'TRAN ID')) {
+                    $detected[$c] = 'tran_id';
+                } elseif ($h1 === 'HN') {
+                    $detected[$c] = 'hn';
+                } elseif ($h1 === 'AN') {
+                    $detected[$c] = 'an';
+                } elseif ($h1 === 'PID' || $h1 === 'CID') {
+                    $detected[$c] = 'cid';
+                } elseif (str_contains($headerText, 'ชื่อ') && str_contains($headerText, 'สกุล')) {
+                    $detected[$c] = 'pt_name';
+                } elseif (str_contains($headerText, 'ประเภทผู้ป่วย')) {
+                    $detected[$c] = 'pt_type';
+                } elseif (str_contains($headerText, 'ชดเชยสุทธิ') || str_contains($headerText, 'รวมเงินค่าบริการทั้งหมด')) {
+                    $detected[$c] = 'net_compensate_nhso';
+                } elseif (str_contains($headerText, 'ต้นสังกัด') || str_contains($headerText, 'PP (รับจาก สปสช.)') || str_contains($headerText, 'PP (รับจาก')) {
+                    $detected[$c] = 'net_compensate_employer';
+                } elseif (str_contains($headerText, 'ชดเชยจาก')) {
+                    $detected[$c] = 'compensate_from';
+                } elseif (str_contains($headerText, 'ERROR CODE') || str_contains($headerText, 'ERROR') || str_contains($headerText, 'รหัส C')) {
+                    $detected[$c] = 'error_code';
+                } elseif (str_contains($headerText, 'กองทุนหลัก') || str_contains($headerText, 'กองทุน')) {
+                    $detected[$c] = 'main_fund';
+                } elseif (str_contains($headerText, 'กองทุนย่อย')) {
+                    $detected[$c] = 'sub_fund';
+                } elseif (str_contains($headerText, 'ประเภทบริการ')) {
+                    $detected[$c] = 'service_type';
+                } elseif (str_contains($headerText, 'การรับส่งต่อ')) {
+                    $detected[$c] = 'refer_type';
+                } elseif (str_contains($headerText, 'การมีสิทธิ')) {
+                    $detected[$c] = 'has_right';
+                } elseif (str_contains($headerText, 'การใช้สิทธิ')) {
+                    $detected[$c] = 'use_right';
+                } elseif (str_contains($headerText, 'สิทธิหลัก')) {
+                    $detected[$c] = 'maininscl';
+                } elseif (str_contains($headerText, 'สิทธิรอง') || str_contains($headerText, 'สิทธิย่อย')) {
+                    $detected[$c] = 'subinscl';
+                } elseif ($h1 === 'HREF') {
+                    $detected[$c] = 'href';
+                } elseif ($h1 === 'HCODE') {
+                    $detected[$c] = 'hcode';
+                } elseif ($h1 === 'PROV1') {
+                    $detected[$c] = 'prov1';
+                } elseif (str_contains($headerText, 'รหัสหน่วยงาน') || $h1 === 'HMAIN') {
+                    $detected[$c] = 'hmain';
+                } elseif (str_contains($headerText, 'ชื่อหน่วยงาน') || $h1 === 'PROV2') {
+                    $detected[$c] = 'prov2';
+                } elseif ($h1 === 'PROJ') {
+                    $detected[$c] = 'proj';
+                } elseif ($h1 === 'PA') {
+                    $detected[$c] = 'pa';
+                } elseif ($h1 === 'DRG') {
+                    $detected[$c] = 'drg';
+                } elseif ($h1 === 'RW') {
+                    $detected[$c] = 'rw';
+                } elseif (str_contains($headerText, 'เรียกเก็บ') && !str_contains($headerText, 'CENTRAL') && !str_contains($headerText, 'PP')) {
+                    $detected[$c] = 'charge_total';
+                } elseif (str_contains($headerText, 'เบิกได้')) {
+                    $detected[$c] = 'charge_vehicle_drug_device';
+                } elseif (str_contains($headerText, 'เบิกไม่ได้')) {
+                    $detected[$c] = 'charge_central_reimburse';
+                } elseif (str_contains($headerText, 'ชำระเอง')) {
+                    $detected[$c] = 'self_pay';
+                } elseif (str_contains($headerText, 'อัตราจ่าย')) {
+                    $detected[$c] = 'payrate_point';
+                } elseif (str_contains($headerText, 'ล่าช้า') && str_contains($headerText, 'เปอร์เซ็นต์')) {
+                    $detected[$c] = 'delay_percent';
+                } elseif (str_contains($headerText, 'ล่าช้า')) {
+                    $detected[$c] = 'delay_ps';
+                } elseif ($h1 === 'CCUF') {
+                    $detected[$c] = 'ccuf';
+                } elseif ($h1 === 'ADJRW' || str_contains($headerText, 'ADJRW_NHSO')) {
+                    $detected[$c] = 'adjrw_nhso';
+                } elseif (str_contains($headerText, 'พรบ')) {
+                    $detected[$c] = 'act_amount';
+                } elseif ($h1 === 'ORS') {
+                    $detected[$c] = 'pay_pattern';
+                } elseif ($h1 === 'VA') {
+                    $detected[$c] = 'va';
+                } elseif (str_contains($headerText, 'AUDIT RESULTS')) {
+                    $detected[$c] = 'audit_results';
+                } elseif (str_contains($headerText, 'SEQ NO')) {
+                    $detected[$c] = 'seq_no';
+                } elseif (str_contains($headerText, 'INVOICE NO')) {
+                    $detected[$c] = 'invoice_no';
+                } elseif (str_contains($headerText, 'INVOICE LT')) {
+                    $detected[$c] = 'invoice_lt';
+                }
+            }
+            if (count($detected) >= 15) {
+                return $detected;
+            }
+        }
+        
+        return $mapping;
+    }
+
     public function importRepStatements(Request $request)
     {
         set_time_limit(0);
@@ -1073,29 +1200,58 @@ class EclaimBotController extends Controller
             'base_rate_old', 'base_rate_add', 'base_rate_net', 'fs'
         ];
 
-        // Column mapping list (1-based index from Excel A-DP)
-        $colMapping = [
-            1 => 'repno', 2 => 'no', 3 => 'tran_id', 4 => 'hn', 5 => 'an', 6 => 'cid', 7 => 'pt_name', 8 => 'pt_type',
-            11 => 'net_compensate_nhso', 12 => 'net_compensate_employer', 13 => 'compensate_from', 14 => 'error_code',
-            15 => 'main_fund', 16 => 'sub_fund', 17 => 'service_type', 18 => 'refer_type', 19 => 'has_right', 20 => 'use_right',
-            21 => 'chk', 22 => 'maininscl', 23 => 'subinscl', 24 => 'href', 25 => 'hcode', 26 => 'hmain', 27 => 'prov1', 28 => 'rg1',
-            29 => 'hmain2', 30 => 'prov2', 31 => 'rg2', 32 => 'dmis_hmain3', 33 => 'da', 34 => 'proj', 35 => 'pa', 36 => 'drg',
-            37 => 'rw', 38 => 'ca_type', 39 => 'charge_non_vehicle_drug_device', 40 => 'charge_vehicle_drug_device', 41 => 'charge_total',
-            42 => 'charge_central_reimburse', 43 => 'self_pay', 44 => 'payrate_point', 45 => 'delay_ps', 46 => 'delay_percent', 47 => 'ccuf',
-            48 => 'adjrw_nhso', 49 => 'adjrw2', 50 => 'compensate_amount', 51 => 'act_amount', 52 => 'salary_percent', 53 => 'salary_amount',
-            54 => 'compensate_after_salary', 55 => 'hc_iphc', 56 => 'hc_ophc', 57 => 'ae_opae', 58 => 'ae_ipnb', 59 => 'ae_ipuc',
-            60 => 'ae_ip3sss', 61 => 'ae_ip7sss', 62 => 'ae_carae', 63 => 'ae_caref', 64 => 'ae_caref_puc', 65 => 'inst_opinst',
-            66 => 'inst_ipinst', 67 => 'ip_ipaec', 68 => 'ip_ipaer', 69 => 'ip_ipinrgc', 70 => 'ip_ipinrgr', 71 => 'ip_ipinspsn',
-            72 => 'ip_ipprcc', 73 => 'ip_ipprcc_puc', 74 => 'ip_ipbkk_inst', 75 => 'ip_ip_ontop', 76 => 'dmis_cataract',
-            77 => 'dmis_ssj_workload', 78 => 'dmis_hosp_workload', 79 => 'dmis_catinst', 80 => 'dmis_rc', 81 => 'dmis_rc_workload',
-            82 => 'dmis_rcuhosc', 83 => 'dmis_rcuhosc_workload', 84 => 'dmis_rcuhosr', 85 => 'dmis_rcuhosr_workload', 86 => 'dmis_llop',
-            87 => 'dmis_llrgc', 88 => 'dmis_llrgr', 89 => 'dmis_lp', 90 => 'dmis_stroke_stemi_drug', 91 => 'dmis_dmidml', 92 => 'dmis_pp',
-            93 => 'dmis_dmishd', 94 => 'dmis_dmicnt', 95 => 'dmis_palliative_care', 96 => 'dmis_dm', 97 => 'drug', 98 => 'opbkk_hc',
-            99 => 'opbkk_dent', 100 => 'opbkk_drug', 101 => 'opbkk_fs', 102 => 'opbkk_others', 103 => 'opbkk_hsub', 104 => 'opbkk_nhso',
-            105 => 'deny_hc', 106 => 'deny_ae', 107 => 'deny_inst', 108 => 'deny_ip', 109 => 'deny_dmis', 110 => 'base_rate_old',
-            111 => 'base_rate_add', 112 => 'base_rate_net', 113 => 'fs', 114 => 'va', 115 => 'remark', 116 => 'audit_results',
-            117 => 'pay_pattern', 118 => 'seq_no', 119 => 'invoice_no', 120 => 'invoice_lt'
-        ];
+        // Default Column mapping list by right/scheme
+        if ($maininscl === 'ofc') {
+            $defaultColMapping = [
+                1 => 'repno', 2 => 'no', 3 => 'tran_id', 4 => 'hn', 5 => 'an', 6 => 'cid', 7 => 'pt_name', 8 => 'pt_type',
+                11 => 'net_compensate_nhso', 12 => 'net_compensate_employer', 13 => 'main_fund', 14 => 'error_code',
+                15 => 'service_type', 16 => 'refer_type', 17 => 'has_right', 18 => 'use_right', 19 => 'maininscl', 20 => 'subinscl',
+                21 => 'href', 22 => 'hcode', 23 => 'prov1', 24 => 'hmain', 25 => 'prov2', 26 => 'proj', 27 => 'pa', 28 => 'drg',
+                29 => 'rw', 30 => 'charge_total', 31 => 'charge_non_vehicle_drug_device', 32 => 'charge_vehicle_drug_device',
+                33 => 'charge_central_reimburse', 34 => 'self_pay', 35 => 'payrate_point', 36 => 'delay_ps', 37 => 'delay_percent',
+                38 => 'ccuf', 39 => 'adjrw_nhso', 40 => 'act_amount', 41 => 'hc_iphc', 42 => 'ae_opae', 43 => 'ae_ipnb',
+                44 => 'inst_opinst', 45 => 'compensate_amount', 46 => 'salary_amount', 47 => 'drug', 48 => 'deny_ip',
+                49 => 'deny_hc', 50 => 'deny_ae', 51 => 'deny_inst', 52 => 'deny_dmis', 53 => 'pay_pattern', 54 => 'va',
+                55 => 'audit_results', 56 => 'seq_no', 57 => 'invoice_no', 58 => 'invoice_lt'
+            ];
+        } elseif ($maininscl === 'lgo') {
+            $defaultColMapping = [
+                1 => 'repno', 2 => 'no', 3 => 'tran_id', 4 => 'hn', 5 => 'an', 6 => 'cid', 7 => 'pt_name', 8 => 'pt_type',
+                11 => 'net_compensate_nhso', 12 => 'net_compensate_employer', 13 => 'main_fund', 14 => 'error_code',
+                15 => 'service_type', 16 => 'refer_type', 17 => 'has_right', 18 => 'use_right', 19 => 'maininscl', 20 => 'subinscl',
+                21 => 'href', 22 => 'hcode', 23 => 'prov1', 24 => 'hmain', 25 => 'prov2', 26 => 'proj', 27 => 'pa', 28 => 'drg',
+                29 => 'rw', 30 => 'charge_total', 31 => 'charge_non_vehicle_drug_device', 32 => 'charge_vehicle_drug_device',
+                33 => 'charge_central_reimburse', 34 => 'self_pay', 35 => 'payrate_point', 36 => 'delay_ps', 37 => 'delay_percent',
+                38 => 'ccuf', 39 => 'adjrw_nhso', 40 => 'act_amount', 41 => 'hc_iphc', 42 => 'ae_opae', 43 => 'ae_ipnb',
+                44 => 'inst_opinst', 45 => 'compensate_amount', 46 => 'salary_amount', 47 => 'drug', 48 => 'deny_ip',
+                49 => 'deny_hc', 50 => 'deny_ae', 51 => 'deny_inst', 52 => 'deny_dmis', 53 => 'pay_pattern', 54 => 'va',
+                55 => 'audit_results', 56 => 'seq_no', 57 => 'invoice_no', 58 => 'invoice_lt'
+            ];
+        } else {
+            // UCS, SSS, and 120-column standard mapping
+            $defaultColMapping = [
+                1 => 'repno', 2 => 'no', 3 => 'tran_id', 4 => 'hn', 5 => 'an', 6 => 'cid', 7 => 'pt_name', 8 => 'pt_type',
+                11 => 'net_compensate_nhso', 12 => 'net_compensate_employer', 13 => 'compensate_from', 14 => 'error_code',
+                15 => 'main_fund', 16 => 'sub_fund', 17 => 'service_type', 18 => 'refer_type', 19 => 'has_right', 20 => 'use_right',
+                21 => 'chk', 22 => 'maininscl', 23 => 'subinscl', 24 => 'href', 25 => 'hcode', 26 => 'hmain', 27 => 'prov1', 28 => 'rg1',
+                29 => 'hmain2', 30 => 'prov2', 31 => 'rg2', 32 => 'dmis_hmain3', 33 => 'da', 34 => 'proj', 35 => 'pa', 36 => 'drg',
+                37 => 'rw', 38 => 'ca_type', 39 => 'charge_non_vehicle_drug_device', 40 => 'charge_vehicle_drug_device', 41 => 'charge_total',
+                42 => 'charge_central_reimburse', 43 => 'self_pay', 44 => 'payrate_point', 45 => 'delay_ps', 46 => 'delay_percent', 47 => 'ccuf',
+                48 => 'adjrw_nhso', 49 => 'adjrw2', 50 => 'compensate_amount', 51 => 'act_amount', 52 => 'salary_percent', 53 => 'salary_amount',
+                54 => 'compensate_after_salary', 55 => 'hc_iphc', 56 => 'hc_ophc', 57 => 'ae_opae', 58 => 'ae_ipnb', 59 => 'ae_ipuc',
+                60 => 'ae_ip3sss', 61 => 'ae_ip7sss', 62 => 'ae_carae', 63 => 'ae_caref', 64 => 'ae_caref_puc', 65 => 'inst_opinst',
+                66 => 'inst_ipinst', 67 => 'ip_ipaec', 68 => 'ip_ipaer', 69 => 'ip_ipinrgc', 70 => 'ip_ipinrgr', 71 => 'ip_ipinspsn',
+                72 => 'ip_ipprcc', 73 => 'ip_ipprcc_puc', 74 => 'ip_ipbkk_inst', 75 => 'ip_ip_ontop', 76 => 'dmis_cataract',
+                77 => 'dmis_ssj_workload', 78 => 'dmis_hosp_workload', 79 => 'dmis_catinst', 80 => 'dmis_rc', 81 => 'dmis_rc_workload',
+                82 => 'dmis_rcuhosc', 83 => 'dmis_rcuhosc_workload', 84 => 'dmis_rcuhosr', 85 => 'dmis_rcuhosr_workload', 86 => 'dmis_llop',
+                87 => 'dmis_llrgc', 88 => 'dmis_llrgr', 89 => 'dmis_lp', 90 => 'dmis_stroke_stemi_drug', 91 => 'dmis_dmidml', 92 => 'dmis_pp',
+                93 => 'dmis_dmishd', 94 => 'dmis_dmicnt', 95 => 'dmis_palliative_care', 96 => 'dmis_dm', 97 => 'drug', 98 => 'opbkk_hc',
+                99 => 'opbkk_dent', 100 => 'opbkk_drug', 101 => 'opbkk_fs', 102 => 'opbkk_others', 103 => 'opbkk_hsub', 104 => 'opbkk_nhso',
+                105 => 'deny_hc', 106 => 'deny_ae', 107 => 'deny_inst', 108 => 'deny_ip', 109 => 'deny_dmis', 110 => 'base_rate_old',
+                111 => 'base_rate_add', 112 => 'base_rate_net', 113 => 'fs', 114 => 'va', 115 => 'remark', 116 => 'audit_results',
+                117 => 'pay_pattern', 118 => 'seq_no', 119 => 'invoice_no', 120 => 'invoice_lt'
+            ];
+        }
 
         $tempDir = storage_path('app/temp_rep');
         if (!file_exists($tempDir)) {
@@ -1149,13 +1305,29 @@ class EclaimBotController extends Controller
                     $file_name .= '.xls';
                 }
 
-                $rep_type = (stripos($file_name, '_IP_') !== false) ? 'IP' : 'OP';
+                $rep_type = (stripos($file_name, '_IP_') !== false || stripos($file_name, '_IPCS_') !== false) ? 'IP' : 'OP';
                 $is_appeal = (stripos($file_name, '_APPEAL_') !== false) ? 1 : 0;
                 $buffer = [];
 
-                for ($row = 9; $row <= $row_limit; $row++) {
+                // Detect headers and start row dynamically
+                $activeColMapping = $this->detectRepColMapping($sheet, $defaultColMapping);
+                
+                $startRow = 9;
+                for ($r = 5; $r <= 8; $r++) {
+                    $cellVal = (string)$sheet->getCell('D' . $r)->getValue();
+                    if (stripos($cellVal, 'HN') !== false) {
+                        $startRow = $r + 1;
+                        $nextVal = (string)$sheet->getCell('D' . ($r + 1))->getValue();
+                        if (empty($nextVal) || stripos($nextVal, 'HN') !== false || !preg_match('/^[0-9]+$/', trim($nextVal))) {
+                            $startRow = $r + 2;
+                        }
+                        break;
+                    }
+                }
+
+                for ($row = $startRow; $row <= $row_limit; $row++) {
                     $hn = $sheet->getCell('D' . $row)->getValue();
-                    if (empty($hn)) continue;
+                    if (empty($hn) || stripos((string)$hn, 'HN') !== false) continue;
 
                     $rawAdm = (string) $sheet->getCell('I' . $row)->getValue();
                     $datetimeadm = null; $vstdate = null; $vsttime = null;
@@ -1196,14 +1368,28 @@ class EclaimBotController extends Controller
                     ];
 
                     for ($c = 1; $c <= 120; $c++) {
-                        if ($c === 9 || $c === 10) continue;
+                        if ($c === 9 || $c === 10 || !isset($activeColMapping[$c])) continue;
                         $colChar = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
                         $val = $sheet->getCell($colChar . $row)->getValue();
-                        $fieldName = $colMapping[$c];
+                        $fieldName = $activeColMapping[$c];
                         if (in_array($fieldName, $numericFields)) {
                             $rowData[$fieldName] = ($val === '-' || $val === '' || $val === null) ? null : (double) str_replace(',', '', $val);
                         } else {
-                            $rowData[$fieldName] = ($val === '-' || $val === '' || $val === null) ? null : trim((string)$val);
+                            if ($val === '-' || $val === '' || $val === null) {
+                                $rowData[$fieldName] = null;
+                            } else {
+                                $trimmedVal = trim((string)$val);
+                                if ($fieldName === 'error_code') {
+                                    $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
+                                    if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                        $rowData['error_code'] = null;
+                                    } else {
+                                        $rowData['error_code'] = $trimmedVal;
+                                    }
+                                } else {
+                                    $rowData[$fieldName] = $trimmedVal;
+                                }
+                            }
                         }
                     }
 

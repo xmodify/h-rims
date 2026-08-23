@@ -713,7 +713,7 @@ class ImportRepController extends Controller
                             
                             // กรองค่า Error Code ป้องกันชื่อกองทุนหลุดเข้าไป
                             if ($fieldName === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $rowData['error_code'] = null;
                                 } else {
@@ -721,11 +721,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $rowData[$fieldName] = $trimmedVal;
-                            }
-                            
-                            // ถ้า main_fund เป็นรหัสข้อยกเว้น (ขึ้นต้นด้วย EXCEPT-) ให้คัดลอกไปที่ error_code
-                            if ($fieldName === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $rowData['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -1468,7 +1463,7 @@ class ImportRepController extends Controller
                             
                             // กรองค่า Error Code ป้องกันชื่อกองทุน เช่น OPCS, OTCS, INSTCS หลุดเข้าไป
                             if ($fieldName === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $rowData['error_code'] = null;
                                 } else {
@@ -1476,11 +1471,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $rowData[$fieldName] = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($fieldName === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $rowData['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -2195,7 +2185,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -2883,7 +2873,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -2891,11 +2881,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $val = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $record['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -3578,7 +3563,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -3586,11 +3571,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $val = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $record['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -4271,7 +4251,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -4279,11 +4259,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $val = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $record['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -4964,7 +4939,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -4972,11 +4947,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $val = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $record['error_code'] = $trimmedVal;
                             }
                         }
                     }
@@ -5657,7 +5627,7 @@ class ImportRepController extends Controller
                         } else {
                             $trimmedVal = trim((string)$val);
                             if ($field === 'error_code') {
-                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                $fundPattern = '/(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT|OPKTMN|IPKTMN|INSTKTMN|OTKTMN|EXCEPT|FPNHSO|PP_)/i';
                                 if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
                                     $val = '';
                                 } else {
@@ -5665,11 +5635,6 @@ class ImportRepController extends Controller
                                 }
                             } else {
                                 $val = $trimmedVal;
-                            }
-                            
-                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
-                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
-                                $record['error_code'] = $trimmedVal;
                             }
                         }
                     }

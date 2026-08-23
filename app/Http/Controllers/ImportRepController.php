@@ -43,6 +43,132 @@ class ImportRepController extends Controller
         ]);
     }
 
+    /**
+     * ตรวจหาการจับคู่คอลัมน์ (Column Mapping) โดยอัตโนมัติจากหัวตาราง Excel ใน Row 5-8
+     */
+    protected function detectRepColMapping($sheet, array $defaultMapping = [])
+    {
+        $mapping = $defaultMapping;
+        $headerRow = 0;
+        
+        for ($r = 5; $r <= 8; $r++) {
+            $cellVal = (string)$sheet->getCell('D' . $r)->getValue();
+            if (stripos($cellVal, 'HN') !== false) {
+                $headerRow = $r;
+                break;
+            }
+        }
+        
+        if ($headerRow > 0) {
+            $detected = [];
+            $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn($headerRow));
+            for ($c = 1; $c <= min($highestCol, 120); $c++) {
+                $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+                $h1 = trim((string)$sheet->getCell($colStr . $headerRow)->getValue());
+                $h2 = trim((string)$sheet->getCell($colStr . ($headerRow + 1))->getValue());
+                $headerText = mb_strtoupper($h1 . ' ' . $h2, 'UTF-8');
+                
+                if ($headerText === '') continue;
+                
+                if (str_contains($headerText, 'REP') && !str_contains($headerText, 'TYPE')) {
+                    $detected[$c] = 'repno';
+                } elseif (str_contains($headerText, 'ลำดับ')) {
+                    $detected[$c] = 'no';
+                } elseif (str_contains($headerText, 'TRAN_ID') || str_contains($headerText, 'TRAN ID')) {
+                    $detected[$c] = 'tran_id';
+                } elseif ($h1 === 'HN') {
+                    $detected[$c] = 'hn';
+                } elseif ($h1 === 'AN') {
+                    $detected[$c] = 'an';
+                } elseif ($h1 === 'PID' || $h1 === 'CID') {
+                    $detected[$c] = 'cid';
+                } elseif (str_contains($headerText, 'ชื่อ') && str_contains($headerText, 'สกุล')) {
+                    $detected[$c] = 'pt_name';
+                } elseif (str_contains($headerText, 'ประเภทผู้ป่วย')) {
+                    $detected[$c] = 'pt_type';
+                } elseif (str_contains($headerText, 'ชดเชยสุทธิ') || str_contains($headerText, 'รวมเงินค่าบริการทั้งหมด')) {
+                    $detected[$c] = 'net_compensate_nhso';
+                } elseif (str_contains($headerText, 'ต้นสังกัด') || str_contains($headerText, 'PP (รับจาก สปสช.)') || str_contains($headerText, 'PP (รับจาก')) {
+                    $detected[$c] = 'net_compensate_employer';
+                } elseif (str_contains($headerText, 'ชดเชยจาก')) {
+                    $detected[$c] = 'compensate_from';
+                } elseif (str_contains($headerText, 'ERROR CODE') || str_contains($headerText, 'ERROR') || str_contains($headerText, 'รหัส C')) {
+                    $detected[$c] = 'error_code';
+                } elseif (str_contains($headerText, 'กองทุนหลัก') || str_contains($headerText, 'กองทุน')) {
+                    $detected[$c] = 'main_fund';
+                } elseif (str_contains($headerText, 'กองทุนย่อย')) {
+                    $detected[$c] = 'sub_fund';
+                } elseif (str_contains($headerText, 'ประเภทบริการ')) {
+                    $detected[$c] = 'service_type';
+                } elseif (str_contains($headerText, 'การรับส่งต่อ')) {
+                    $detected[$c] = 'refer_type';
+                } elseif (str_contains($headerText, 'การมีสิทธิ')) {
+                    $detected[$c] = 'has_right';
+                } elseif (str_contains($headerText, 'การใช้สิทธิ')) {
+                    $detected[$c] = 'use_right';
+                } elseif (str_contains($headerText, 'สิทธิหลัก')) {
+                    $detected[$c] = 'maininscl';
+                } elseif (str_contains($headerText, 'สิทธิรอง') || str_contains($headerText, 'สิทธิย่อย')) {
+                    $detected[$c] = 'subinscl';
+                } elseif ($h1 === 'HREF') {
+                    $detected[$c] = 'href';
+                } elseif ($h1 === 'HCODE') {
+                    $detected[$c] = 'hcode';
+                } elseif ($h1 === 'PROV1') {
+                    $detected[$c] = 'prov1';
+                } elseif (str_contains($headerText, 'รหัสหน่วยงาน') || $h1 === 'HMAIN') {
+                    $detected[$c] = 'hmain';
+                } elseif (str_contains($headerText, 'ชื่อหน่วยงาน') || $h1 === 'PROV2') {
+                    $detected[$c] = 'prov2';
+                } elseif ($h1 === 'PROJ') {
+                    $detected[$c] = 'proj';
+                } elseif ($h1 === 'PA') {
+                    $detected[$c] = 'pa';
+                } elseif ($h1 === 'DRG') {
+                    $detected[$c] = 'drg';
+                } elseif ($h1 === 'RW') {
+                    $detected[$c] = 'rw';
+                } elseif (str_contains($headerText, 'เรียกเก็บ') && !str_contains($headerText, 'CENTRAL') && !str_contains($headerText, 'PP')) {
+                    $detected[$c] = 'charge_total';
+                } elseif (str_contains($headerText, 'เบิกได้')) {
+                    $detected[$c] = 'charge_vehicle_drug_device';
+                } elseif (str_contains($headerText, 'เบิกไม่ได้')) {
+                    $detected[$c] = 'charge_central_reimburse';
+                } elseif (str_contains($headerText, 'ชำระเอง')) {
+                    $detected[$c] = 'self_pay';
+                } elseif (str_contains($headerText, 'อัตราจ่าย')) {
+                    $detected[$c] = 'payrate_point';
+                } elseif (str_contains($headerText, 'ล่าช้า') && str_contains($headerText, 'เปอร์เซ็นต์')) {
+                    $detected[$c] = 'delay_percent';
+                } elseif (str_contains($headerText, 'ล่าช้า')) {
+                    $detected[$c] = 'delay_ps';
+                } elseif ($h1 === 'CCUF') {
+                    $detected[$c] = 'ccuf';
+                } elseif ($h1 === 'ADJRW' || str_contains($headerText, 'ADJRW_NHSO')) {
+                    $detected[$c] = 'adjrw_nhso';
+                } elseif (str_contains($headerText, 'พรบ')) {
+                    $detected[$c] = 'act_amount';
+                } elseif ($h1 === 'ORS') {
+                    $detected[$c] = 'pay_pattern';
+                } elseif ($h1 === 'VA') {
+                    $detected[$c] = 'va';
+                } elseif (str_contains($headerText, 'AUDIT RESULTS')) {
+                    $detected[$c] = 'audit_results';
+                } elseif (str_contains($headerText, 'SEQ NO')) {
+                    $detected[$c] = 'seq_no';
+                } elseif (str_contains($headerText, 'INVOICE NO')) {
+                    $detected[$c] = 'invoice_no';
+                } elseif (str_contains($headerText, 'INVOICE LT')) {
+                    $detected[$c] = 'invoice_lt';
+                }
+            }
+            if (count($detected) >= 15) {
+                $mapping = $detected;
+            }
+        }
+        return $mapping;
+    }
+
     // rep_index -----------------------------------------------------------------------------------------------------
     public function rep_index(Request $request)
     {
@@ -186,6 +312,8 @@ class ImportRepController extends Controller
             ->where('r.repno', $repno)
             ->whereNotNull('r.error_code')
             ->where('r.error_code', '!=', '')
+            ->where('r.error_code', '!=', '-')
+            ->whereRaw("r.error_code NOT REGEXP '^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$'")
             ->select([
                 'r.id',
                 'r.hn',
@@ -201,7 +329,7 @@ class ImportRepController extends Controller
                     FROM rep_ucs r2 
                     WHERE r2.hn = r.hn 
                       AND r2.id != r.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
                       AND (
                           (r.rep_type = 'IP' AND r2.an = r.an AND r2.rep_type = 'IP')
                           OR
@@ -246,6 +374,8 @@ class ImportRepController extends Controller
             ->where('repno', $repno)
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
+            ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$'")
             ->select('error_code', DB::raw('count(*) as count'))
             ->groupBy('error_code')
             ->orderByDesc('count')
@@ -501,6 +631,8 @@ class ImportRepController extends Controller
 
             $buffer = [];
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
+
             for ($row = $startRow; $row <= $row_limit; $row++) {
                 // Check if HN is empty
                 $hn = $sheet->getCell('D' . $row)->getValue();
@@ -556,15 +688,15 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                // Parse 120 columns using index
+                // Parse columns using active mapping
                 for ($c = 1; $c <= 120; $c++) {
-                    if ($c === 9 || $c === 10) {
+                    if ($c === 9 || $c === 10 || !isset($activeColMapping[$c])) {
                         continue; // Date fields handled above
                     }
 
                     $colChar = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
                     $val = $sheet->getCell($colChar . $row)->getValue();
-                    $fieldName = $colMapping[$c];
+                    $fieldName = $activeColMapping[$c];
 
                     if (in_array($fieldName, $numericFields)) {
                         if ($val === '-' || $val === '' || $val === null) {
@@ -577,7 +709,24 @@ class ImportRepController extends Controller
                         if ($val === '-' || $val === '' || $val === null) {
                             $rowData[$fieldName] = null;
                         } else {
-                            $rowData[$fieldName] = trim((string)$val);
+                            $trimmedVal = trim((string)$val);
+                            
+                            // กรองค่า Error Code ป้องกันชื่อกองทุนหลุดเข้าไป
+                            if ($fieldName === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $rowData['error_code'] = null;
+                                } else {
+                                    $rowData['error_code'] = $trimmedVal;
+                                }
+                            } else {
+                                $rowData[$fieldName] = $trimmedVal;
+                            }
+                            
+                            // ถ้า main_fund เป็นรหัสข้อยกเว้น (ขึ้นต้นด้วย EXCEPT-) ให้คัดลอกไปที่ error_code
+                            if ($fieldName === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $rowData['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                 }
@@ -996,6 +1145,8 @@ class ImportRepController extends Controller
             ->where('r.repno', $repno)
             ->whereNotNull('r.error_code')
             ->where('r.error_code', '!=', '')
+            ->where('r.error_code', '!=', '-')
+            ->whereRaw("r.error_code NOT REGEXP '^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$'")
             ->select([
                 'r.id',
                 'r.hn',
@@ -1011,7 +1162,7 @@ class ImportRepController extends Controller
                     FROM rep_ofc r2 
                     WHERE r2.hn = r.hn 
                       AND r2.id != r.id
-                      AND (r2.error_code IS NULL OR r2.error_code = '')
+                      AND (r2.error_code IS NULL OR r2.error_code = '' OR r2.error_code = '-')
                       AND (
                           (r.rep_type = 'IP' AND r2.an = r.an AND r2.rep_type = 'IP')
                           OR
@@ -1053,6 +1204,8 @@ class ImportRepController extends Controller
             ->where('repno', $repno)
             ->whereNotNull('error_code')
             ->where('error_code', '!=', '')
+            ->where('error_code', '!=', '-')
+            ->whereRaw("error_code NOT REGEXP '^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$'")
             ->select('error_code', DB::raw('count(*) as count'))
             ->groupBy('error_code')
             ->orderByDesc('count')
@@ -1153,7 +1306,7 @@ class ImportRepController extends Controller
             'base_rate_old', 'base_rate_add', 'base_rate_net', 'fs'
         ];
 
-        // Column mapping list (1-based index from Excel A-DP)
+        // Column mapping list (1-based index from Excel A-BF) for OFC
         $colMapping = [
             1 => 'repno',
             2 => 'no',
@@ -1164,10 +1317,10 @@ class ImportRepController extends Controller
             7 => 'pt_name',
             8 => 'pt_type',
             // 9 and 10 (dates) handled manually
-            11 => 'net_compensate_nhso', // ชดเชยสุทธิ
-            12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code (Col M)
-            14 => 'main_fund', // กองทุน (Col N)
+            11 => 'net_compensate_nhso', // ชดเชยสุทธิ (Col K)
+            12 => 'net_compensate_employer', // PP (Col L)
+            13 => 'main_fund', // กองทุน (Col M)
+            14 => 'error_code', // Error Code (Col N)
             15 => 'service_type', // ประเภทบริการ (Col O)
             16 => 'refer_type', // การรับส่งต่อ (Col P)
             17 => 'has_right', // การมีสิทธิ (Col Q)
@@ -1195,24 +1348,23 @@ class ImportRepController extends Controller
             39 => 'adjrw_nhso', // AdjRW (Col AM)
             40 => 'act_amount', // พรบ. (Col AN)
             41 => 'hc_iphc', // IPCS (Col AO)
-            42 => 'hc_ophc', // IPCS_ORS (Col AP)
-            43 => 'ae_opae', // OPCS (Col AQ)
-            44 => 'ae_ipnb', // PACS (Col AR)
-            45 => 'ae_ipuc', // INSTCS (Col AS)
-            46 => 'compensate_amount', // OTCS (Col AT)
-            47 => 'salary_amount', // PP (Col AU)
-            48 => 'salary_percent', // DRUG (Col AV)
-            49 => 'deny_ip', // Deny IPCS (Col AW)
-            50 => 'deny_hc', // Deny OPCS (Col AX)
-            51 => 'deny_ae', // Deny PACS (Col AY)
-            52 => 'deny_inst', // Deny INSTCS (Col AZ)
-            53 => 'deny_dmis', // Deny OTCS (Col BA)
-            54 => 'pay_pattern', // ORS (Col BB)
-            55 => 'va', // VA (Col BC)
-            56 => 'audit_results', // AUDIT RESULTS (Col BD)
-            57 => 'seq_no', // SEQ NO (Col BE)
-            58 => 'invoice_no', // INVOICE NO (Col BF)
-            59 => 'invoice_lt' // INVOICE LT (Col BG)
+            42 => 'ae_opae', // OPCS (Col AP)
+            43 => 'ae_ipnb', // PACS (Col AQ)
+            44 => 'inst_opinst', // INSTCS (Col AR)
+            45 => 'compensate_amount', // OTCS (Col AS)
+            46 => 'salary_amount', // PP (Col AT)
+            47 => 'drug', // DRUG (Col AU)
+            48 => 'deny_ip', // Deny IPCS (Col AV)
+            49 => 'deny_hc', // Deny OPCS (Col AW)
+            50 => 'deny_ae', // Deny PACS (Col AX)
+            51 => 'deny_inst', // Deny INSTCS (Col AY)
+            52 => 'deny_dmis', // Deny OTCS (Col AZ)
+            53 => 'pay_pattern', // ORS (Col BA)
+            54 => 'va', // VA (Col BB)
+            55 => 'audit_results', // AUDIT RESULTS (Col BC)
+            56 => 'seq_no', // SEQ NO (Col BD)
+            57 => 'invoice_no', // INVOICE NO (Col BE)
+            58 => 'invoice_lt' // INVOICE LT (Col BF)
         ];
 
         foreach ($uploadedFiles as $file) {
@@ -1236,6 +1388,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // OFC e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -1293,13 +1446,13 @@ class ImportRepController extends Controller
                 ];
 
                 for ($c = 1; $c <= 120; $c++) {
-                    if ($c === 9 || $c === 10 || !isset($colMapping[$c])) {
+                    if ($c === 9 || $c === 10 || !isset($activeColMapping[$c])) {
                         continue; // Date fields and unmapped columns handled manually/skipped
                     }
 
                     $colChar = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
                     $val = $sheet->getCell($colChar . $row)->getValue();
-                    $fieldName = $colMapping[$c];
+                    $fieldName = $activeColMapping[$c];
 
                     if (in_array($fieldName, $numericFields)) {
                         if ($val === '-' || $val === '' || $val === null) {
@@ -1312,7 +1465,18 @@ class ImportRepController extends Controller
                             $rowData[$fieldName] = null;
                         } else {
                             $trimmedVal = trim((string)$val);
-                            $rowData[$fieldName] = $trimmedVal;
+                            
+                            // กรองค่า Error Code ป้องกันชื่อกองทุน เช่น OPCS, OTCS, INSTCS หลุดเข้าไป
+                            if ($fieldName === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $rowData['error_code'] = null;
+                                } else {
+                                    $rowData['error_code'] = $trimmedVal;
+                                }
+                            } else {
+                                $rowData[$fieldName] = $trimmedVal;
+                            }
                             
                             // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
                             if ($fieldName === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
@@ -1948,6 +2112,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 9; // SSS e-Claim Excel files data starts at Row 9
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -2013,7 +2178,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -2027,6 +2192,18 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;
@@ -2562,8 +2739,8 @@ class ImportRepController extends Controller
             // 9 & 10 are dates (handled manually)
             11 => 'net_compensate_nhso', // ชดเชยสุทธิ
             12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code
-            14 => 'main_fund', // กองทุน
+            13 => 'main_fund', // กองทุน
+            14 => 'error_code', // Error Code
             15 => 'service_type', // ประเภทบริการ
             16 => 'refer_type', // การรับส่งต่อ
             17 => 'has_right', // การมีสิทธิ
@@ -2624,6 +2801,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // LGO e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -2688,7 +2866,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -2702,6 +2880,23 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
+                            
+                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
+                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $record['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;
@@ -3239,8 +3434,8 @@ class ImportRepController extends Controller
             // 9 & 10 are dates (handled manually)
             11 => 'net_compensate_nhso', // ชดเชยสุทธิ
             12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code
-            14 => 'main_fund', // กองทุน
+            13 => 'main_fund', // กองทุน
+            14 => 'error_code', // Error Code
             15 => 'service_type', // ประเภทบริการ
             16 => 'refer_type', // การรับส่งต่อ
             17 => 'has_right', // การมีสิทธิ
@@ -3301,6 +3496,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // BKK e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -3365,7 +3561,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -3379,6 +3575,23 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
+                            
+                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
+                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $record['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;
@@ -3914,8 +4127,8 @@ class ImportRepController extends Controller
             // 9 & 10 are dates (handled manually)
             11 => 'net_compensate_nhso', // ชดเชยสุทธิ
             12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code
-            14 => 'main_fund', // กองทุน
+            13 => 'main_fund', // กองทุน
+            14 => 'error_code', // Error Code
             15 => 'service_type', // ประเภทบริการ
             16 => 'refer_type', // การรับส่งต่อ
             17 => 'has_right', // การมีสิทธิ
@@ -3976,6 +4189,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // BMT e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -4040,7 +4254,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -4054,6 +4268,23 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
+                            
+                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
+                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $record['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;
@@ -4589,8 +4820,8 @@ class ImportRepController extends Controller
             // 9 & 10 are dates (handled manually)
             11 => 'net_compensate_nhso', // ชดเชยสุทธิ
             12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code
-            14 => 'main_fund', // กองทุน
+            13 => 'main_fund', // กองทุน
+            14 => 'error_code', // Error Code
             15 => 'service_type', // ประเภทบริการ
             16 => 'refer_type', // การรับส่งต่อ
             17 => 'has_right', // การมีสิทธิ
@@ -4651,6 +4882,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // SRT e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -4715,7 +4947,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -4729,6 +4961,23 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
+                            
+                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
+                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $record['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;
@@ -5264,8 +5513,8 @@ class ImportRepController extends Controller
             // 9 & 10 are dates (handled manually)
             11 => 'net_compensate_nhso', // ชดเชยสุทธิ
             12 => 'net_compensate_employer', // PP
-            13 => 'error_code', // Error Code
-            14 => 'main_fund', // กองทุน
+            13 => 'main_fund', // กองทุน
+            14 => 'error_code', // Error Code
             15 => 'service_type', // ประเภทบริการ
             16 => 'refer_type', // การรับส่งต่อ
             17 => 'has_right', // การมีสิทธิ
@@ -5326,6 +5575,7 @@ class ImportRepController extends Controller
             $row_limit = $sheet->getHighestDataRow();
             $startRow = 8; // PVT e-Claim Excel files data starts at Row 8
 
+            $activeColMapping = $this->detectRepColMapping($sheet, $colMapping);
             $buffer = [];
 
             for ($row = $startRow; $row <= $row_limit; $row++) {
@@ -5390,7 +5640,7 @@ class ImportRepController extends Controller
                     'dchtime' => $dchtime,
                 ];
 
-                foreach ($colMapping as $idx => $field) {
+                foreach ($activeColMapping as $idx => $field) {
                     $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx);
                     $val = $sheet->getCell($colStr . $row)->getValue();
                     
@@ -5404,6 +5654,23 @@ class ImportRepController extends Controller
                     } else {
                         if ($val === '-' || $val === null) {
                             $val = '';
+                        } else {
+                            $trimmedVal = trim((string)$val);
+                            if ($field === 'error_code') {
+                                $fundPattern = '/^(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT)(,(OPCS|OTCS|INSTCS|IPCS|PACS|OPLG|IPLG|PALG|INSTLG|OTLG|OPUCS|IPUCS|OPSSS|IPSSS|OPBKK|IPBKK|OPBMT|IPBMT|OPSRT|IPSRT|OPPVT|IPPVT))*$/i';
+                                if ($trimmedVal === '-' || $trimmedVal === '' || preg_match($fundPattern, $trimmedVal)) {
+                                    $val = '';
+                                } else {
+                                    $val = $trimmedVal;
+                                }
+                            } else {
+                                $val = $trimmedVal;
+                            }
+                            
+                            // If main_fund is an exception code (starts with EXCEPT-), copy it to error_code
+                            if ($field === 'main_fund' && strpos($trimmedVal, 'EXCEPT-') === 0) {
+                                $record['error_code'] = $trimmedVal;
+                            }
                         }
                     }
                     $record[$field] = $val;

@@ -74,29 +74,75 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
     updateStatus("กำลังอ่าน Session e-Claim...", "#ffc107");
 
     try {
-        const getCookiesFor = (query) => new Promise(resolve => chrome.cookies.getAll(query, resolve));
+        let cookieMap = new Map();
 
-        const [cUrl, cDomain, cNhso] = await Promise.all([
-            getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
-            getCookiesFor({ domain: "eclaim.nhso.go.th" }),
-            getCookiesFor({ domain: ".nhso.go.th" })
-        ]);
+        // 1. Try reading cookies via chrome.cookies API if available
+        if (chrome.cookies && typeof chrome.cookies.getAll === 'function') {
+            const getCookiesFor = (query) => new Promise(resolve => {
+                try {
+                    chrome.cookies.getAll(query, (res) => {
+                        if (chrome.runtime.lastError) {
+                            resolve([]);
+                        } else {
+                            resolve(res || []);
+                        }
+                    });
+                } catch(e) {
+                    resolve([]);
+                }
+            });
 
-        const cookieMap = new Map();
-        [...(cUrl || []), ...(cDomain || []), ...(cNhso || [])].forEach(c => {
-            if (c && c.name && c.value) {
-                cookieMap.set(c.name, c.value);
-            }
-        });
+            const [cUrl, cDomain, cNhso] = await Promise.all([
+                getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
+                getCookiesFor({ domain: "eclaim.nhso.go.th" }),
+                getCookiesFor({ domain: ".nhso.go.th" })
+            ]);
 
+            [...(cUrl || []), ...(cDomain || []), ...(cNhso || [])].forEach(c => {
+                if (c && c.name && c.value) {
+                    cookieMap.set(c.name, c.value);
+                }
+            });
+        }
+
+        // 2. Fallback: If chrome.cookies failed or didn't get JSESSIONID, try active tab
         if (!cookieMap.has('JSESSIONID')) {
-            let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab && tab.url) {
-                let tabCookies = await getCookiesFor({ url: tab.url });
-                (tabCookies || []).forEach(c => {
-                    if (c && c.name && c.value) cookieMap.set(c.name, c.value);
-                });
+            try {
+                let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab && tab.id && tab.url && tab.url.includes('nhso.go.th')) {
+                    const injectionResults = await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        func: () => document.cookie
+                    });
+                    if (injectionResults && injectionResults[0] && injectionResults[0].result) {
+                        const docCookies = injectionResults[0].result.split(';');
+                        docCookies.forEach(item => {
+                            const [k, v] = item.trim().split('=');
+                            if (k && v) cookieMap.set(k, v);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Tab script cookie fallback error:', e);
             }
+        }
+
+        // 3. Fallback: Ask background service worker to sync
+        if (!cookieMap.has('JSESSIONID')) {
+            try {
+                const response = await chrome.runtime.sendMessage({ action: 'sync_session' });
+                if (response && response.status === 'started') {
+                    updateStatus("🔄 ส่งคำขอให้ระบบ Background ซิงก์เรียบร้อยแล้ว", "#198754");
+                    return;
+                }
+            } catch (e) {
+                console.warn('Background message error:', e);
+            }
+        }
+
+        if (!cookieMap.has('JSESSIONID') && (!chrome.cookies || typeof chrome.cookies.getAll !== 'function')) {
+            updateStatus("⚠️ กรุณากดปุ่ม 🔄 Reload ส่วนเสริมในหน้า chrome://extensions ก่อนครับ", "red");
+            return;
         }
 
         if (!cookieMap.has('JSESSIONID')) {
@@ -116,7 +162,7 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
 
         const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
         const hcode = document.getElementById('hospCode').value.trim();
-        const targetUrl = baseUrl + '/eclaim/session-sync';
+        const targetUrl = baseUrl.replace(/\/+$/, '') + '/eclaim/session-sync';
 
         const res = await fetch(targetUrl, {
             method: 'POST',
@@ -125,7 +171,7 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
         });
         const data = await res.json();
         if (data.status === 'success') {
-            updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว!", "#198754");
+            updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว! (" + (data.user || '') + ")", "#198754");
         } else {
             updateStatus("ผิดพลาด: " + (data.message || 'บันทึกไม่สำเร็จ'), "red");
         }

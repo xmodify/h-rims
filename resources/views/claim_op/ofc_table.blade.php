@@ -41,11 +41,8 @@
                         <button type="submit" class="btn btn-success px-3 shadow-sm">
                             <i class="bi bi-table me-1"></i> โหลด indiv
                         </button>
-                        <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importEdcModal">
-                            <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> นำเข้า EDC
-                        </button>
-                        <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#ExtensionInfoModal">
-                            <i class="bi bi-puzzle-fill me-1"></i> ดึง E-Claim ด้วย Extension
+                        <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                         </button>
                     </div>
                 </form>

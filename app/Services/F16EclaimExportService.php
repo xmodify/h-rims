@@ -103,7 +103,7 @@ class F16EclaimExportService
                    o.pt_subtype,
                    COALESCE(vp.hospmain, v.hospmain) as hospmain,
                    COALESCE(vp.hospsub, v.hospsub) as hospsub,
-                   vp.claim_code as permitno,
+                   COALESCE(vp.claim_code, oq.edc_approve_list_text, v.auth_code) as permitno,
                    v.auth_code,
                    v.gov_code,
                    v.gov_name
@@ -112,6 +112,7 @@ class F16EclaimExportService
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN pttype p ON p.pttype = o.pttype
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype = o.pttype
+            LEFT JOIN ovst_seq oq ON oq.vn = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn IN ($placeholders)
             ORDER BY o.vstdate, o.vsttime

@@ -153,7 +153,7 @@
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
                     <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;">
-                        <i class="bi bi-folder-check me-1"></i> เลือกโฟลเดอร์และส่งออก (16 ไฟล์ .txt)
+                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">เลือกโฟลเดอร์และส่งออก (11 แฟ้ม OP .txt)</span>
                     </button>
                 </div>
             </div>
@@ -176,6 +176,7 @@
      * กรองการแสดงผลแท็บ 16 แฟ้มตามประเภท OP (VN), IP (AN), หรือ ALL
      */
     window.filterF16Scope = function(scope) {
+        window._f16ExportState.currentScope = scope;
         $('#f16FilterBtnOp').removeClass('btn-primary active').addClass('btn-outline-secondary');
         $('#f16FilterBtnIp').removeClass('btn-warning active text-dark').addClass('btn-outline-secondary');
         $('#f16FilterBtnAll').removeClass('btn-secondary active').addClass('btn-outline-secondary');
@@ -183,6 +184,7 @@
         if (scope === 'op') {
             $('#f16FilterBtnOp').removeClass('btn-outline-secondary').addClass('btn-primary active');
             $('#f16CurrentScopeText').html('<i class="bi bi-person-walking text-primary me-1"></i>โหมด: แฟ้มผู้ป่วยนอก (OPD - ใช้รหัส VN) - 11 แฟ้ม');
+            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (11 แฟ้ม OP .txt)');
             $('.f16-tab-item').each(function() {
                 const type = $(this).data('type');
                 if (type === 'ip') {
@@ -198,6 +200,7 @@
         } else if (scope === 'ip') {
             $('#f16FilterBtnIp').removeClass('btn-outline-secondary').addClass('btn-warning active text-dark');
             $('#f16CurrentScopeText').html('<i class="bi bi-hospital text-warning me-1"></i>โหมด: แฟ้มผู้ป่วยใน (IPD - ใช้รหัส AN) - 11 แฟ้ม');
+            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (11 แฟ้ม IP .txt)');
             $('.f16-tab-item').each(function() {
                 const type = $(this).data('type');
                 if (type === 'op') {
@@ -208,11 +211,12 @@
             });
             const activeTabItem = $('.f16-tab-item:visible .nav-link.active');
             if (activeTabItem.length === 0) {
-                $('#f16-tab-IPD').trigger('click');
+                $('#f16-tab-INS').trigger('click');
             }
         } else {
             $('#f16FilterBtnAll').removeClass('btn-outline-secondary').addClass('btn-secondary active');
             $('#f16CurrentScopeText').html('<i class="bi bi-grid-fill text-muted me-1"></i>โหมด: แสดงครบทั้ง 16 แฟ้มมาตรฐาน สปสช.');
+            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (ครบทั้ง 16 ไฟล์ .txt)');
             $('.f16-tab-item').show();
         }
     };

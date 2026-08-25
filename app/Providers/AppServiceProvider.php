@@ -36,11 +36,14 @@ class AppServiceProvider extends ServiceProvider
         // 1. บังคับ URL พื้นฐานตามที่ตั้งค่าใน .env (APP_URL)
         // วิธีนี้จะช่วยแก้ปัญหาเวลา Proxy หรือ Alias แล้ว Link เจนออกมาผิด Port หรือผิด Path
         if (!app()->runningInConsole()) {
-            URL::forceRootUrl(config('app.url'));
+            if (config('app.url')) {
+                URL::forceRootUrl(config('app.url'));
+            }
 
-            // 2. ถ้า Server จริงใช้ HTTPS (moph.go.th) แต่หน้าเว็บแสดงผลไม่สมบูรณ์
-            // ให้บังคับ Scheme เป็น https ด้วยครับ
-            if (str_contains(config('app.url'), 'https://')) {
+            // บังคับ HTTPS เฉพาะเมื่อเข้ามาผ่าน HTTPS จริง, ผ่าน Reverse Proxy HTTPS, หรือ APP_URL เป็น https โดยไม่ใช่การต่อ Port ธรรมดา
+            if (request()->isSecure() || request()->header('X-Forwarded-Proto') === 'https') {
+                URL::forceScheme('https');
+            } elseif (str_starts_with(config('app.url', ''), 'https://') && request()->getPort() != 3001 && request()->getPort() != 8000 && request()->getPort() != 8080) {
                 URL::forceScheme('https');
             }
         }

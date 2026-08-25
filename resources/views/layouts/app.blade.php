@@ -1944,6 +1944,13 @@
             borderRadius: '15px'
         });
     }
+
+    // Prevent Chrome Accessibility aria-hidden focus warning on modal close
+    $(document).on('hide.bs.modal', '.modal', function() {
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
+    });
     </script>
 </body>
 

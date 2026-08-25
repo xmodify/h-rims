@@ -249,14 +249,14 @@ class EclaimBotController extends Controller
 
             $html = (string)$probeRes->body();
 
-            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Login / Error Page
+            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Error Page / SSO Login
             if (
                 $probeRes->status() !== 200 || 
                 stripos($html, 'Error Page') !== false || 
                 stripos($html, 'frmErr') !== false || 
                 stripos($html, 'คุณไม่มีสิทธิ์') !== false ||
-                stripos($html, 'เข้าสู่ระบบ') !== false ||
-                stripos($html, 'login') !== false
+                stripos($html, 'ประกาศใช้งานระบบ SSO') !== false ||
+                (stripos($html, 'Logout') === false && stripos($html, 'ออกจากระบบ') === false && stripos($html, 'ผู้ใช้งาน') === false && stripos($html, 'ชื่อ :') === false && stripos($html, 'หน่วยงาน') === false)
             ) {
                 return response()->json([
                     'connected' => false,
@@ -922,14 +922,12 @@ class EclaimBotController extends Controller
 
             $body = $response->body();
             if (
-                $response->status() === 302 || 
-                $response->status() === 401 || 
-                strpos($body, 'เข้าสู่ระบบ') !== false || 
-                strpos($body, 'Login') !== false || 
-                strpos($body, 'คุณไม่มีสิทธิ์') !== false || 
-                strpos($body, 'frmErr') !== false || 
-                strpos($body, 'Error Page') !== false ||
-                strpos($body, 'content2') === false
+                $response->status() !== 200 || 
+                stripos($body, 'content2') === false ||
+                stripos($body, 'Error Page') !== false || 
+                stripos($body, 'frmErr') !== false || 
+                stripos($body, 'คุณไม่มีสิทธิ์') !== false ||
+                stripos($body, 'ประกาศใช้งานระบบ SSO') !== false
             ) {
                 return response()->json([
                     'status' => 'error',
@@ -941,17 +939,18 @@ class EclaimBotController extends Controller
             $dom = new \DOMDocument();
             @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
             $xpath = new \DOMXPath($dom);
-            $rows = $xpath->query('//table[@id="content2"]//tbody//tr');
+            $rows = $xpath->query('//table[@id="content2"]//tbody//tr | //table[@id="content2"]//tr');
 
             $repItems = [];
             foreach ($rows as $tr) {
                 $tds = $xpath->query('./td', $tr);
-                if ($tds->length >= 13) {
+                if ($tds->length >= 10) {
                     $excelLink = '';
-                    foreach ($xpath->query('.//a', $tds->item(13)) as $a) {
+                    foreach ($xpath->query('.//a', $tr) as $a) {
                         $href = $a->getAttribute('href');
-                        if (stripos($href, 'InvoiceReportExcelAction') !== false) {
+                        if (stripos($href, 'InvoiceReportExcelAction') !== false || stripos($href, 'excel') !== false) {
                             $excelLink = $href;
+                            break;
                         }
                     }
 

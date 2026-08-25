@@ -107,6 +107,46 @@
         claim-title="สิทธิ OP-OFC (กรมบัญชีกลาง)" 
     />
 
+    <!-- Modal Import EDC ZIP -->
+    <div class="modal fade" id="importEdcModal" tabindex="-1" aria-labelledby="importEdcModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header bg-success text-white py-3 px-4">
+                    <h5 class="modal-title fw-bold" id="importEdcModalLabel">
+                        <i class="bi bi-file-earmark-zip-fill me-2"></i> นำเข้าไฟล์เลขอนุมัติ EDC (ZIP)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="edcZipForm" enctype="multipart/form-data">
+                        <div class="mb-4 text-center">
+                            <i class="bi bi-cloud-arrow-up-fill text-success" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2 small">เลือกไฟล์ ZIP ที่ประกอบไปด้วยไฟล์รายงานเลข EDC ด้านใน</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="zip_file" class="form-label small fw-bold text-muted">เลือกไฟล์ ZIP</label>
+                            <input class="form-control" type="file" id="zip_file" name="zip_file[]" accept=".zip" multiple required>
+                        </div>
+                    </form>
+
+                    <!-- Progress Bar Area -->
+                    <div id="edc-import-progress-area" style="display: none;">
+                        <hr>
+                        <div id="edc-progress-text" class="mb-2 text-start small text-muted">กำลังเตรียมนำเข้า...</div>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div id="edc-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                        <div id="edc-details-log" class="text-start small bg-light p-2 border rounded-3" style="max-height: 120px; overflow-y: auto; font-family: monospace; font-size: 11px; line-height: 1.4;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-2">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal" id="cancelImportBtn">ยกเลิก</button>
+                    <button type="button" class="btn btn-success px-4 rounded-pill shadow" id="submitZipBtn">นำเข้าข้อมูล</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Extension Info -->
     <x-extension_info_modal />
 
@@ -321,134 +361,152 @@
                 });
 
                 // Bind EDC ZIP Import Handler
-                document.getElementById('submitZipBtn').addEventListener('click', async function () {
-                    const fileInput = document.getElementById('zip_file');
-                    if (fileInput.files.length === 0) {
-                        Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์ ZIP', confirmButtonText: 'ตกลง' });
-                        return;
-                    }
+                const submitZipBtnEl = document.getElementById('submitZipBtn');
+                if (submitZipBtnEl) {
+                    submitZipBtnEl.addEventListener('click', async function () {
+                        const fileInput = document.getElementById('zip_file');
+                        if (!fileInput || fileInput.files.length === 0) {
+                            Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์ ZIP', confirmButtonText: 'ตกลง' });
+                            return;
+                        }
 
-                    const filesToUpload = Array.from(fileInput.files);
-                    const totalZipFiles = filesToUpload.length;
+                        const filesToUpload = Array.from(fileInput.files);
+                        const totalZipFiles = filesToUpload.length;
 
-                    document.getElementById('edc-import-progress-area').style.display = 'block';
-                    const logDiv = document.getElementById('edc-details-log');
-                    const progressText = document.getElementById('edc-progress-text');
-                    const progressBar = document.getElementById('edc-progress-bar');
-                    const submitBtn = document.getElementById('submitZipBtn');
-                    const cancelBtn = document.getElementById('cancelImportBtn');
+                        const progressArea = document.getElementById('edc-import-progress-area');
+                        if (progressArea) progressArea.style.display = 'block';
+                        const logDiv = document.getElementById('edc-details-log');
+                        const progressText = document.getElementById('edc-progress-text');
+                        const progressBar = document.getElementById('edc-progress-bar');
+                        const submitBtn = document.getElementById('submitZipBtn');
+                        const cancelBtn = document.getElementById('cancelImportBtn');
 
-                    logDiv.innerHTML = '';
-                    progressText.innerText = 'กำลังเริ่มนำเข้า...';
-                    progressBar.style.width = '0%';
-                    progressBar.innerText = '0%';
-                    progressBar.setAttribute('aria-valuenow', 0);
-                    submitBtn.disabled = true;
-                    cancelBtn.disabled = true;
+                        if (logDiv) logDiv.innerHTML = '';
+                        if (progressText) progressText.innerText = 'กำลังเริ่มนำเข้า...';
+                        if (progressBar) {
+                            progressBar.style.width = '0%';
+                            progressBar.innerText = '0%';
+                            progressBar.setAttribute('aria-valuenow', 0);
+                        }
+                        if (submitBtn) submitBtn.disabled = true;
+                        if (cancelBtn) cancelBtn.disabled = true;
 
-                    let grandTotalFiles = 0;
-                    let grandProcessedCount = 0;
+                        let grandTotalFiles = 0;
+                        let grandProcessedCount = 0;
 
-                    try {
-                        for (let z = 0; z < totalZipFiles; z++) {
-                            const zipFile = filesToUpload[z];
-                            logDiv.innerHTML += `<div>📦 [${z + 1}/${totalZipFiles}] กำลังอัปโหลดและแตกไฟล์ ${zipFile.name}...</div>`;
-                            progressText.innerText = `กำลังอัปโหลด [${z + 1}/${totalZipFiles}]: ${zipFile.name}`;
-                            logDiv.scrollTop = logDiv.scrollHeight;
-
-                            const formData = new FormData();
-                            formData.append('zip_file', zipFile);
-                            formData.append('_token', "{{ csrf_token() }}");
-
-                            const uploadRes = await fetch("{{ route('api.import_edc_zip') }}", {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                                    'Accept': 'application/json'
+                        try {
+                            for (let z = 0; z < totalZipFiles; z++) {
+                                const zipFile = filesToUpload[z];
+                                if (logDiv) {
+                                    logDiv.innerHTML += `<div>📦 [${z + 1}/${totalZipFiles}] กำลังอัปโหลดและแตกไฟล์ ${zipFile.name}...</div>`;
+                                    logDiv.scrollTop = logDiv.scrollHeight;
                                 }
-                            });
+                                if (progressText) progressText.innerText = `กำลังอัปโหลด [${z + 1}/${totalZipFiles}]: ${zipFile.name}`;
 
-                            const uploadData = await uploadRes.json();
-                            if (!uploadRes.ok || !uploadData.success) {
-                                logDiv.innerHTML += `<div class="text-danger">❌ ล้มเหลวในการอ่านไฟล์ ZIP ${zipFile.name}: ${uploadData.message || 'เกิดข้อผิดพลาด'}</div>`;
-                                logDiv.scrollTop = logDiv.scrollHeight;
-                                continue;
-                            }
+                                const formData = new FormData();
+                                formData.append('zip_file', zipFile);
+                                formData.append('_token', "{{ csrf_token() }}");
 
-                            const uniqueId = uploadData.unique_id;
-                            const files = uploadData.files;
-                            const totalFiles = files.length;
-                            grandTotalFiles += totalFiles;
-
-                            logDiv.innerHTML += `<div class="text-success">✔ อัปโหลดสำเร็จ พบไฟล์รายงานด้านในทั้งหมด ${totalFiles} ไฟล์</div>`;
-                            logDiv.scrollTop = logDiv.scrollHeight;
-
-                            for (let i = 0; i < totalFiles; i++) {
-                                const fileObj = files[i];
-                                progressText.innerText = `[ไฟล์ ZIP ${z + 1}/${totalZipFiles}] กำลังนำเข้า ${i + 1}/${totalFiles}: ${fileObj.name}`;
-                                logDiv.innerHTML += `<div>🚀 เริ่มนำเข้าไฟล์ ${fileObj.name}...</div>`;
-                                logDiv.scrollTop = logDiv.scrollHeight;
-
-                                const fileFormData = new FormData();
-                                fileFormData.append('unique_id', uniqueId);
-                                fileFormData.append('file_name', fileObj.name);
-
-                                const fileRes = await fetch("{{ route('api.import_edc_file') }}", {
+                                const uploadRes = await fetch("{{ route('api.import_edc_zip') }}", {
                                     method: 'POST',
-                                    body: fileFormData,
+                                    body: formData,
                                     headers: {
                                         'X-CSRF-TOKEN': "{{ csrf_token() }}",
                                         'Accept': 'application/json'
                                     }
                                 });
 
-                                const fileData = await fileRes.json();
-                                if (fileRes.ok && fileData.success) {
-                                    grandProcessedCount++;
-                                    logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px;">✔ ${fileData.message}</div>`;
-                                } else {
-                                    logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px;">❌ ล้มเหลว: ${fileData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                                const uploadData = await uploadRes.json();
+                                if (!uploadRes.ok || !uploadData.success) {
+                                    if (logDiv) {
+                                        logDiv.innerHTML += `<div class="text-danger">❌ ล้มเหลวในการอ่านไฟล์ ZIP ${zipFile.name}: ${uploadData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                                        logDiv.scrollTop = logDiv.scrollHeight;
+                                    }
+                                    continue;
                                 }
 
-                                const overallPercent = Math.round(((z / totalZipFiles) + ((i + 1) / totalFiles) / totalZipFiles) * 100);
-                                progressBar.style.width = `${overallPercent}%`;
-                                progressBar.innerText = `${overallPercent}%`;
-                                progressBar.setAttribute('aria-valuenow', overallPercent);
-                                logDiv.scrollTop = logDiv.scrollHeight;
+                                const uniqueId = uploadData.unique_id;
+                                const files = uploadData.files;
+                                const totalFiles = files.length;
+                                grandTotalFiles += totalFiles;
+
+                                if (logDiv) {
+                                    logDiv.innerHTML += `<div class="text-success">✔ อัปโหลดสำเร็จ พบไฟล์รายงานด้านในทั้งหมด ${totalFiles} ไฟล์</div>`;
+                                    logDiv.scrollTop = logDiv.scrollHeight;
+                                }
+
+                                for (let i = 0; i < totalFiles; i++) {
+                                    const fileObj = files[i];
+                                    if (progressText) progressText.innerText = `[ไฟล์ ZIP ${z + 1}/${totalZipFiles}] กำลังนำเข้า ${i + 1}/${totalFiles}: ${fileObj.name}`;
+                                    if (logDiv) {
+                                        logDiv.innerHTML += `<div>🚀 เริ่มนำเข้าไฟล์ ${fileObj.name}...</div>`;
+                                        logDiv.scrollTop = logDiv.scrollHeight;
+                                    }
+
+                                    const fileFormData = new FormData();
+                                    fileFormData.append('unique_id', uniqueId);
+                                    fileFormData.append('file_name', fileObj.name);
+
+                                    const fileRes = await fetch("{{ route('api.import_edc_file') }}", {
+                                        method: 'POST',
+                                        body: fileFormData,
+                                        headers: {
+                                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                                            'Accept': 'application/json'
+                                        }
+                                    });
+
+                                    const fileData = await fileRes.json();
+                                    if (fileRes.ok && fileData.success) {
+                                        grandProcessedCount++;
+                                        if (logDiv) logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px;">✔ ${fileData.message}</div>`;
+                                    } else {
+                                        if (logDiv) logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px;">❌ ล้มเหลว: ${fileData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                                    }
+
+                                    const overallPercent = Math.round(((z / totalZipFiles) + ((i + 1) / totalFiles) / totalZipFiles) * 100);
+                                    if (progressBar) {
+                                        progressBar.style.width = `${overallPercent}%`;
+                                        progressBar.innerText = `${overallPercent}%`;
+                                        progressBar.setAttribute('aria-valuenow', overallPercent);
+                                    }
+                                    if (logDiv) logDiv.scrollTop = logDiv.scrollHeight;
+                                }
                             }
+
+                            if (progressText) progressText.innerText = 'นำเข้าข้อมูลเสร็จสิ้นทั้งหมด!';
+                            if (progressBar) {
+                                progressBar.style.width = `100%`;
+                                progressBar.innerText = `100%`;
+                                progressBar.setAttribute('aria-valuenow', 100);
+                                progressBar.classList.replace('bg-success', 'bg-primary');
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'นำเข้าข้อมูลสำเร็จ!',
+                                text: `ประมวลผลไฟล์ ZIP ทั้งหมดเสร็จสิ้น (${totalZipFiles} ไฟล์ ZIP) รวมนำเข้าไฟล์รายงานย่อยสำเร็จ ${grandProcessedCount} ไฟล์`,
+                                confirmButtonText: 'ตกลง',
+                                confirmButtonColor: '#198754'
+                            }).then(() => {
+                                loadDashboard({ budget_year: $('#form_budget_year select[name="budget_year"]').val(), start_date: $('#start_date').val(), end_date: $('#end_date').val(), skip_chart: 1 });
+                                $('#importEdcModal').modal('hide');
+                            });
+
+                        } catch (error) {
+                            if (logDiv) logDiv.innerHTML += `<div class="text-danger">❌ เกิดข้อผิดพลาดร้ายแรง: ${error.message}</div>`;
+                            if (progressText) progressText.innerText = 'การนำเข้าล้มเหลว';
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'การนำเข้าล้มเหลว',
+                                text: error.message
+                            });
+                        } finally {
+                            if (submitBtn) submitBtn.disabled = false;
+                            if (cancelBtn) cancelBtn.disabled = false;
                         }
-
-                        progressText.innerText = 'นำเข้าข้อมูลเสร็จสิ้นทั้งหมด!';
-                        progressBar.style.width = `100%`;
-                        progressBar.innerText = `100%`;
-                        progressBar.setAttribute('aria-valuenow', 100);
-                        progressBar.classList.replace('bg-success', 'bg-primary');
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'นำเข้าข้อมูลสำเร็จ!',
-                            text: `ประมวลผลไฟล์ ZIP ทั้งหมดเสร็จสิ้น (${totalZipFiles} ไฟล์ ZIP) รวมนำเข้าไฟล์รายงานย่อยสำเร็จ ${grandProcessedCount} ไฟล์`,
-                            confirmButtonText: 'ตกลง',
-                            confirmButtonColor: '#198754'
-                        }).then(() => {
-                            loadDashboard({ budget_year: $('#form_budget_year select[name="budget_year"]').val(), start_date: $('#start_date').val(), end_date: $('#end_date').val(), skip_chart: 1 });
-                            $('#importEdcModal').modal('hide');
-                        });
-
-                    } catch (error) {
-                        logDiv.innerHTML += `<div class="text-danger">❌ เกิดข้อผิดพลาดร้ายแรง: ${error.message}</div>`;
-                        progressText.innerText = 'การนำเข้าล้มเหลว';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'การนำเข้าล้มเหลว',
-                            text: error.message
-                        });
-                    } finally {
-                        submitBtn.disabled = false;
-                        cancelBtn.disabled = false;
-                    }
-                });
+                    });
+                }
 
                 // Draw/Update Chart
                 if (res.chart_data) {

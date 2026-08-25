@@ -31,42 +31,65 @@
 
                 <!-- Main Content Area (Hidden while loading) -->
                 <div id="f16MainContent" style="display: none;">
+                    <!-- OP / IP Scope Switcher Bar -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-1">
+                        <div class="btn-group btn-group-sm shadow-sm" role="group" id="f16ScopeBtnGroup">
+                            <button type="button" class="btn btn-primary active fw-bold px-3 py-1" id="f16FilterBtnOp" onclick="filterF16Scope('op')">
+                                <i class="bi bi-person-walking me-1"></i> แฟ้มผู้ป่วยนอก OP (ใช้ VN)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary fw-bold px-3 py-1" id="f16FilterBtnIp" onclick="filterF16Scope('ip')">
+                                <i class="bi bi-hospital me-1"></i> แฟ้มผู้ป่วยใน IP (ใช้ AN)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary fw-bold px-3 py-1" id="f16FilterBtnAll" onclick="filterF16Scope('all')">
+                                <i class="bi bi-grid-fill me-1"></i> แสดงทั้งหมด 16 แฟ้ม
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge text-dark bg-white border shadow-sm px-2 py-1" id="f16CurrentScopeText" style="font-size: 0.78rem;">
+                                <i class="bi bi-info-circle text-primary me-1"></i>โหมด: แฟ้มผู้ป่วยนอก (OPD - ใช้รหัส VN)
+                            </span>
+                        </div>
+                    </div>
+
                     <!-- 16 Tabs Bar -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body p-2 bg-white rounded">
                             <ul class="nav nav-pills nav-fill flex-wrap gap-1" id="f16Tabs" role="tablist">
                                 @php
                                     $fileTabs = [
-                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิ'],
-                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ผู้ป่วย'],
-                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'ผู้ป่วยนอก'],
-                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อ OP'],
-                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัย OP'],
-                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ OP'],
-                                        ['key' => 'IPD', 'name' => 'IPD', 'desc' => 'ผู้ป่วยใน'],
-                                        ['key' => 'IRF', 'name' => 'IRF', 'desc' => 'ส่งต่อ IP'],
-                                        ['key' => 'IDX', 'name' => 'IDX', 'desc' => 'วินิจฉัย IP'],
-                                        ['key' => 'IOP', 'name' => 'IOP', 'desc' => 'หัตถการ IP'],
-                                        ['key' => 'LVD', 'name' => 'LVD', 'desc' => 'ลาชั่วคราว'],
-                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'ยา'],
-                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => '16 หมวด'],
-                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'การเงิน'],
-                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุ'],
-                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการเสริม'],
+                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิ', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ผู้ป่วย', 'type' => 'both', 'tag' => 'HN'],
+                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'ผู้ป่วยนอก', 'type' => 'op', 'tag' => 'VN'],
+                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อ OP', 'type' => 'op', 'tag' => 'VN'],
+                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัย OP', 'type' => 'op', 'tag' => 'VN'],
+                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ OP', 'type' => 'op', 'tag' => 'VN'],
+                                        ['key' => 'IPD', 'name' => 'IPD', 'desc' => 'ผู้ป่วยใน', 'type' => 'ip', 'tag' => 'AN'],
+                                        ['key' => 'IRF', 'name' => 'IRF', 'desc' => 'ส่งต่อ IP', 'type' => 'ip', 'tag' => 'AN'],
+                                        ['key' => 'IDX', 'name' => 'IDX', 'desc' => 'วินิจฉัย IP', 'type' => 'ip', 'tag' => 'AN'],
+                                        ['key' => 'IOP', 'name' => 'IOP', 'desc' => 'หัตถการ IP', 'type' => 'ip', 'tag' => 'AN'],
+                                        ['key' => 'LVD', 'name' => 'LVD', 'desc' => 'ลาชั่วคราว', 'type' => 'ip', 'tag' => 'AN'],
+                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'ยา', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => '16 หมวด', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'การเงิน', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุ', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการเสริม', 'type' => 'both', 'tag' => 'VN/AN'],
                                     ];
                                 @endphp
 
                                 @foreach($fileTabs as $index => $tab)
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link text-center px-2 py-1 {{ $index === 0 ? 'active' : '' }}" 
+                                <li class="nav-item f16-tab-item" data-type="{{ $tab['type'] }}" role="presentation">
+                                    <button class="nav-link text-center px-1 py-1 {{ $index === 0 ? 'active' : '' }}" 
                                             id="f16-tab-{{ $tab['key'] }}" 
                                             data-bs-toggle="pill" 
                                             data-bs-target="#f16-pane-{{ $tab['key'] }}" 
                                             type="button" 
                                             role="tab"
-                                            style="font-size: 0.78rem; min-width: 62px;">
-                                        <div class="fw-bold">{{ $tab['name'] }}</div>
-                                        <span class="badge rounded-pill bg-secondary text-white f16-badge-count" id="badge-count-{{ $tab['key'] }}" style="font-size: 0.68rem;">0</span>
+                                            style="font-size: 0.76rem; min-width: 60px;">
+                                        <div class="fw-bold d-flex align-items-center justify-content-center gap-1">
+                                            <span>{{ $tab['name'] }}</span>
+                                            <span class="badge rounded-pill {{ $tab['type'] == 'op' ? 'bg-primary-soft text-primary' : ($tab['type'] == 'ip' ? 'bg-warning-soft text-warning' : 'bg-light text-muted') }}" style="font-size: 0.6rem; padding: 1px 3px;">{{ $tab['tag'] }}</span>
+                                        </div>
+                                        <span class="badge rounded-pill bg-secondary text-white f16-badge-count mt-1" id="badge-count-{{ $tab['key'] }}" style="font-size: 0.68rem;">0</span>
                                     </button>
                                 </li>
                                 @endforeach
@@ -84,6 +107,13 @@
                                         <i class="bi bi-file-earmark-text text-warning"></i>
                                         <span class="fw-bold">{{ $tab['name'] }}.txt</span>
                                         <span class="text-white-50 small">({{ $tab['desc'] }})</span>
+                                        @if($tab['type'] === 'op')
+                                            <span class="badge bg-primary text-white ms-1" style="font-size: 0.7rem;"><i class="bi bi-person-walking me-1"></i>แฟ้มผู้ป่วยนอก (ใช้รหัส VN)</span>
+                                        @elseif($tab['type'] === 'ip')
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;"><i class="bi bi-hospital me-1"></i>แฟ้มผู้ป่วยใน (ใช้รหัส AN)</span>
+                                        @else
+                                            <span class="badge bg-secondary text-white ms-1" style="font-size: 0.7rem;"><i class="bi bi-people me-1"></i>แฟ้มทั่วไป (OP/IP)</span>
+                                        @endif
                                     </div>
                                     <span class="badge bg-secondary" id="pane-count-{{ $tab['key'] }}">0 แถว</span>
                                 </div>
@@ -143,6 +173,51 @@
     };
 
     /**
+     * กรองการแสดงผลแท็บ 16 แฟ้มตามประเภท OP (VN), IP (AN), หรือ ALL
+     */
+    window.filterF16Scope = function(scope) {
+        $('#f16FilterBtnOp').removeClass('btn-primary active').addClass('btn-outline-secondary');
+        $('#f16FilterBtnIp').removeClass('btn-warning active text-dark').addClass('btn-outline-secondary');
+        $('#f16FilterBtnAll').removeClass('btn-secondary active').addClass('btn-outline-secondary');
+
+        if (scope === 'op') {
+            $('#f16FilterBtnOp').removeClass('btn-outline-secondary').addClass('btn-primary active');
+            $('#f16CurrentScopeText').html('<i class="bi bi-person-walking text-primary me-1"></i>โหมด: แฟ้มผู้ป่วยนอก (OPD - ใช้รหัส VN) - 11 แฟ้ม');
+            $('.f16-tab-item').each(function() {
+                const type = $(this).data('type');
+                if (type === 'ip') {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                }
+            });
+            const activeTabItem = $('.f16-tab-item:visible .nav-link.active');
+            if (activeTabItem.length === 0) {
+                $('#f16-tab-INS').trigger('click');
+            }
+        } else if (scope === 'ip') {
+            $('#f16FilterBtnIp').removeClass('btn-outline-secondary').addClass('btn-warning active text-dark');
+            $('#f16CurrentScopeText').html('<i class="bi bi-hospital text-warning me-1"></i>โหมด: แฟ้มผู้ป่วยใน (IPD - ใช้รหัส AN) - 11 แฟ้ม');
+            $('.f16-tab-item').each(function() {
+                const type = $(this).data('type');
+                if (type === 'op') {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                }
+            });
+            const activeTabItem = $('.f16-tab-item:visible .nav-link.active');
+            if (activeTabItem.length === 0) {
+                $('#f16-tab-IPD').trigger('click');
+            }
+        } else {
+            $('#f16FilterBtnAll').removeClass('btn-outline-secondary').addClass('btn-secondary active');
+            $('#f16CurrentScopeText').html('<i class="bi bi-grid-fill text-muted me-1"></i>โหมด: แสดงครบทั้ง 16 แฟ้มมาตรฐาน สปสช.');
+            $('.f16-tab-item').show();
+        }
+    };
+
+    /**
      * ฟังก์ชันเปิด Modal ส่งออก 16 แฟ้ม
      * @param {Object} config { vns: ['690701130818', ...], claimCode: 'OFC', claimTitle: 'OP-OFC (ข้าราชการ)' }
      */
@@ -178,6 +253,13 @@
         $('#f16ModalClaimTitle').text(claimTitle);
         $('#f16ModalSelectedBadge').text(vns.length + ' รายการที่เลือก');
         $('#f16ExportProgressText').text('');
+
+        // Set default scope (OP vs IP)
+        if (claimCode.toLowerCase().includes('ip') || claimTitle.toLowerCase().includes('ip')) {
+            filterF16Scope('ip');
+        } else {
+            filterF16Scope('op');
+        }
 
         // Reset UI to Loading State
         $('#f16LoadingOverlay').show();

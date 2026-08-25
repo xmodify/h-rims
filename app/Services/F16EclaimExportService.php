@@ -98,7 +98,7 @@ class F16EclaimExportService
                    v.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                    pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                    pt.chwpart, pt.amppart, pt.tmbpart,
-                   p.hipdata_code, p.pttype_sks_code, p.nhso_code,
+                   p.hipdata_code, p.nhso_code,
                    doc.licenseno as doctor_license, doc.name as doctor_name,
                    o.pt_subtype,
                    COALESCE(vp.hospmain, v.hospmain) as hospmain,
@@ -125,99 +125,141 @@ class F16EclaimExportService
         // -------------------------------------------------------------
         // 2. Query OPD Diag (ovstdiag)
         // -------------------------------------------------------------
-        $opdDiags = [];
+        $opdDiags = collect();
         if (!empty($vnsList)) {
-            $diagRows = DB::connection('hosxp')->select("
-                SELECT od.vn, od.hn, od.vstdate, od.icd10, od.diagtype, od.doctor,
-                       doc.licenseno as doctor_license,
-                       pt.cid, o.cur_dep as clinic
-                FROM ovstdiag od
-                LEFT JOIN ovst o ON o.vn = od.vn
-                LEFT JOIN patient pt ON pt.hn = od.hn
-                LEFT JOIN doctor doc ON doc.code = od.doctor
-                WHERE od.vn IN ($placeholders)
-                ORDER BY od.vn, od.diagtype
-            ", $vnsList);
-            $opdDiags = collect($diagRows);
+            try {
+                $diagRows = DB::connection('hosxp')->select("
+                    SELECT od.vn, od.hn, od.vstdate, od.icd10, od.diagtype, od.doctor,
+                           doc.licenseno as doctor_license,
+                           pt.cid, o.cur_dep as clinic
+                    FROM ovstdiag od
+                    LEFT JOIN ovst o ON o.vn = od.vn
+                    LEFT JOIN patient pt ON pt.hn = od.hn
+                    LEFT JOIN doctor doc ON doc.code = od.doctor
+                    WHERE od.vn IN ($placeholders)
+                    ORDER BY od.vn, od.diagtype
+                ", $vnsList);
+                $opdDiags = collect($diagRows);
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export ovstdiag query error: " . $e->getMessage());
+            }
         }
 
         // -------------------------------------------------------------
         // 3. Query OPD Procedure (ovst_operation / doctor_operation)
         // -------------------------------------------------------------
-        $opdOpers = [];
+        $opdOpers = collect();
         if (!empty($vnsList)) {
-            $operRows = DB::connection('hosxp')->select("
-                SELECT op.vn, op.hn, o.vstdate, o.cur_dep as clinic,
-                       op.icd9, op.doctor, doc.licenseno as doctor_license,
-                       pt.cid, op.price as servprice
-                FROM ovst_operation op
-                LEFT JOIN ovst o ON o.vn = op.vn
-                LEFT JOIN patient pt ON pt.hn = op.hn
-                LEFT JOIN doctor doc ON doc.code = op.doctor
-                WHERE op.vn IN ($placeholders)
-                ORDER BY op.vn
-            ", $vnsList);
-            $opdOpers = collect($operRows);
+            try {
+                $operRows = DB::connection('hosxp')->select("
+                    SELECT op.vn, op.hn, o.vstdate, o.cur_dep as clinic,
+                           op.icd9, op.doctor, doc.licenseno as doctor_license,
+                           pt.cid, op.price as servprice
+                    FROM ovst_operation op
+                    LEFT JOIN ovst o ON o.vn = op.vn
+                    LEFT JOIN patient pt ON pt.hn = op.hn
+                    LEFT JOIN doctor doc ON doc.code = op.doctor
+                    WHERE op.vn IN ($placeholders)
+                    ORDER BY op.vn
+                ", $vnsList);
+                $opdOpers = collect($operRows);
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export ovst_operation query error: " . $e->getMessage());
+            }
         }
 
         // -------------------------------------------------------------
         // 4. Query Items (opitemrece, drugitems, nondrugitems)
         // -------------------------------------------------------------
-        $items = [];
+        $items = collect();
         if (!empty($vnsList)) {
-            $itemRows = DB::connection('hosxp')->select("
-                SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                       op.income, op.nhso_adp_code, op.nhso_adp_type, op.nhso_sub_code, op.claim_code, op.hos_guid,
-                       d.name as drug_name, d.units as drug_unit, d.packing as drug_pack, d.did as drug_did,
-                       d.tmt_tp_code, d.tmt_gp_code, d.nhso_tmt_id, d.therapeutic,
-                       n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type as nondrug_adp_type,
-                       o.cur_dep as clinic, pt.cid, doc.licenseno as doctor_license,
-                       op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
-                FROM opitemrece op
-                LEFT JOIN ovst o ON o.vn = op.vn
-                LEFT JOIN patient pt ON pt.hn = op.hn
-                LEFT JOIN drugitems d ON d.icode = op.icode
-                LEFT JOIN nondrugitems n ON n.icode = op.icode
-                LEFT JOIN doctor doc ON doc.code = op.doctor
-                LEFT JOIN drugusage du ON du.drugusage = op.drugusage
-                WHERE op.vn IN ($placeholders)
-                ORDER BY op.vn, op.item_no
-            ", $vnsList);
-            $items = collect($itemRows);
+            try {
+                $itemRows = DB::connection('hosxp')->select("
+                    SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
+                           op.income, op.nhso_adp_code, op.nhso_adp_type, op.nhso_sub_code, op.claim_code, op.hos_guid,
+                           d.name as drug_name, d.units as drug_unit, d.packing as drug_pack, d.did as drug_did,
+                           d.tmt_tp_code, d.tmt_gp_code, d.nhso_tmt_id, d.therapeutic,
+                           n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type as nondrug_adp_type,
+                           o.cur_dep as clinic, pt.cid, doc.licenseno as doctor_license,
+                           op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
+                    FROM opitemrece op
+                    LEFT JOIN ovst o ON o.vn = op.vn
+                    LEFT JOIN patient pt ON pt.hn = op.hn
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN doctor doc ON doc.code = op.doctor
+                    LEFT JOIN drugusage du ON du.drugusage = op.drugusage
+                    WHERE op.vn IN ($placeholders)
+                    ORDER BY op.vn, op.item_no
+                ", $vnsList);
+                $items = collect($itemRows);
+            } catch (\Throwable $e) {
+                // Fallback query if drugusage table or columns differ
+                try {
+                    $itemRows = DB::connection('hosxp')->select("
+                        SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
+                               op.income, op.nhso_adp_code, op.nhso_adp_type, op.nhso_sub_code, op.claim_code, op.hos_guid,
+                               d.name as drug_name, d.units as drug_unit, d.packing as drug_pack, d.did as drug_did,
+                               d.tmt_tp_code, d.tmt_gp_code, d.nhso_tmt_id, d.therapeutic,
+                               n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type as nondrug_adp_type,
+                               o.cur_dep as clinic, pt.cid, doc.licenseno as doctor_license,
+                               op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
+                        FROM opitemrece op
+                        LEFT JOIN ovst o ON o.vn = op.vn
+                        LEFT JOIN patient pt ON pt.hn = op.hn
+                        LEFT JOIN drugitems d ON d.icode = op.icode
+                        LEFT JOIN nondrugitems n ON n.icode = op.icode
+                        LEFT JOIN doctor doc ON doc.code = op.doctor
+                        WHERE op.vn IN ($placeholders)
+                        ORDER BY op.vn, op.item_no
+                    ", $vnsList);
+                    $items = collect($itemRows);
+                } catch (\Throwable $e2) {
+                    Log::warning("F16 Export opitemrece query error: " . $e2->getMessage());
+                }
+            }
         }
 
         // -------------------------------------------------------------
         // 5. Query Refer (referout / referin)
         // -------------------------------------------------------------
-        $referOuts = [];
+        $referOuts = collect();
         if (!empty($vnsList)) {
-            $referRows = DB::connection('hosxp')->select("
-                SELECT ro.vn, ro.hn, ro.refer_date, ro.refer_hospcode, ro.refer_type,
-                       ro.refer_number, o.cur_dep as clinic, ro.station_id
-                FROM referout ro
-                LEFT JOIN ovst o ON o.vn = ro.vn
-                WHERE ro.vn IN ($placeholders)
-            ", $vnsList);
-            $referOuts = collect($referRows);
+            try {
+                $referRows = DB::connection('hosxp')->select("
+                    SELECT ro.vn, ro.hn, ro.refer_date, ro.refer_hospcode, ro.refer_type,
+                           ro.refer_number, o.cur_dep as clinic, ro.station_id
+                    FROM referout ro
+                    LEFT JOIN ovst o ON o.vn = ro.vn
+                    WHERE ro.vn IN ($placeholders)
+                ", $vnsList);
+                $referOuts = collect($referRows);
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export referout query error: " . $e->getMessage());
+            }
         }
 
         // -------------------------------------------------------------
         // 6. Query ER (er_regist) for AER.txt
         // -------------------------------------------------------------
-        $erVisits = [];
+        $erVisits = collect();
         if (!empty($vnsList)) {
-            $erRows = DB::connection('hosxp')->select("
-                SELECT er.vn, o.hn, o.vstdate, er.enter_time, er.er_emergency_type,
-                       er.er_accident_type_id, er.accident_place_type_id,
-                       er.er_pt_type, er.accident_transport_type_id,
-                       er.er_accident_airway_type_id, er.er_accident_alcohol_type_id,
-                       ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp
-                FROM er_regist er
-                LEFT JOIN ovst o ON o.vn = er.vn
-                LEFT JOIN referout ro ON ro.vn = er.vn
-                WHERE er.vn IN ($placeholders)
-            ", $vnsList);
-            $erVisits = collect($erRows)->keyBy('vn');
+            try {
+                $erRows = DB::connection('hosxp')->select("
+                    SELECT er.vn, o.hn, o.vstdate, er.enter_time, er.er_emergency_type,
+                           er.er_accident_type_id, er.accident_place_type_id,
+                           er.er_pt_type, er.accident_transport_type_id,
+                           er.er_accident_airway_type_id, er.er_accident_alcohol_type_id,
+                           ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp
+                    FROM er_regist er
+                    LEFT JOIN ovst o ON o.vn = er.vn
+                    LEFT JOIN referout ro ON ro.vn = er.vn
+                    WHERE er.vn IN ($placeholders)
+                ", $vnsList);
+                $erVisits = collect($erRows)->keyBy('vn');
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export er_regist query error: " . $e->getMessage());
+            }
         }
 
         // -------------------------------------------------------------
@@ -264,7 +306,7 @@ class F16EclaimExportService
         // HN|INSCL|SUBTYPE|CID|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNRNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE
         $insLines = [];
         foreach ($visits as $v) {
-            $inscl = $v->hipdata_code ?: ($v->pttype_sks_code ?: 'A2');
+            $inscl = $v->hipdata_code ?: ($v->pttype ?: 'A2');
             $subtype = $v->pt_subtype ?: 'O4';
             $cid = trim((string)$v->cid);
             $hospmain = $v->hospmain ?: '';
@@ -505,7 +547,7 @@ class F16EclaimExportService
             $date = self::formatDate($v->vstdate);
             $total = number_format((float)$v->income, 2, '.', '');
             $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
-            $pttype = $v->hipdata_code ?: ($v->pttype_sks_code ?: 'A2');
+            $pttype = $v->hipdata_code ?: ($v->pttype ?: 'A2');
             $cid = trim((string)$v->cid);
             $an = $v->an ?: '';
             $seq = $v->seq ?: $v->vn;

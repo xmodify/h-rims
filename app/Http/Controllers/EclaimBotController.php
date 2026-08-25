@@ -169,11 +169,43 @@ class EclaimBotController extends Controller
             } elseif (auth()->check()) {
                 $user = auth()->user()->name;
             }
+
+            // ตรวจจับรหัสสถานพยาบาล 5 หลัก จาก e-Claim HTML
+            $eclaimHcode = null;
+            if (preg_match('/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล|Hospcode|Hcode|รหัส)\s*[:：\-]?\s*(\d{5})/u', $html, $mHosp)) {
+                $eclaimHcode = $mHosp[1];
+            } elseif (preg_match('/(?:\[|\()(\d{5})(?:\]|\))/u', $html, $mHosp)) {
+                $eclaimHcode = $mHosp[1];
+            } elseif (preg_match('/\b(1\d{4})\b/', $html, $mHosp)) {
+                $eclaimHcode = $mHosp[1];
+            }
+            if (!$eclaimHcode && $request->hospcode && preg_match('/^\d{5}$/', trim($request->hospcode))) {
+                $eclaimHcode = trim($request->hospcode);
+            }
+
+            // ดึงรหัสสถานพยาบาลของ Server RiMS ปลายทาง
+            $serverHcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+            if (!$serverHcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+                $serverHcode = DB::table('opdconfig')->value('hospitalcode');
+            }
+            $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: '';
+            if (!$serverHname && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+                $serverHname = DB::table('opdconfig')->value('hospitalname') ?: '';
+            }
+
+            // ตรวจสอบ: ถ้ารหัส รพ. ฝั่ง e-Claim หรือ Extension ไม่ตรงกับ Server RiMS ให้แจ้งเตือนและบล็อกทันที
+            if (!empty($serverHcode) && !empty($eclaimHcode) && trim($serverHcode) !== trim($eclaimHcode)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "❌ รหัสสถานพยาบาลไม่ตรงกัน! บัญชี e-Claim นี้เป็นของ รพ. [{$eclaimHcode}] แต่ Server RiMS ปลายทางเป็นของ [{$serverHcode}" . ($serverHname ? " - {$serverHname}" : "") . "] กรุณาตรวจสอบว่าสลับ Server ปลายทางถูกต้อง หรือล็อกอินบัญชี e-Claim ตรงกับ รพ. หรือไม่"
+                ], 422);
+            }
+
         } catch (\Exception $e) {
             // กรณีเซิร์ฟเวอร์ชั่วคราว
         }
 
-        $hcode = $request->hospcode ?: (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989');
+        $hcode = $serverHcode ?: ($request->hospcode ?: '10989');
         $now = date('Y-m-d H:i:s');
 
         // บันทึกลง Database (main_setting) เพื่อแชร์ให้ทุกคนใน รพ.

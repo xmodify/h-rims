@@ -150,6 +150,9 @@
     <!-- Modal Extension Info -->
     <x-extension_info_modal />
 
+    <!-- Modal ส่งออก 16 แฟ้ม (f16_eclaim_export) -->
+    <x-f16_eclaim_export_modal />
+
 @endsection
 
 @push('scripts')
@@ -163,6 +166,54 @@
     function fetchData() {
         // Fallback for any legacy onclick handlers
     }
+
+    // ฟังก์ชันรวบรวม VN ที่ถูกเลือกและเปิด Modal ส่งออก 16 แฟ้ม
+    function exportSelectedF16OFC() {
+        let checkedVns = [];
+        
+        // ค้นหา Checkbox ที่ถูกติ๊กในแท็บที่เปิดอยู่ก่อน
+        const activePane = $('.tab-pane.active');
+        let checkboxes = activePane.find('.chk_f16_visit:checked');
+        
+        if (checkboxes.length === 0) {
+            checkboxes = $('.chk_f16_visit:checked');
+        }
+        
+        checkboxes.each(function() {
+            const vn = $(this).val();
+            if (vn && !checkedVns.includes(vn)) {
+                checkedVns.push(vn);
+            }
+        });
+
+        if (checkedVns.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่ได้เลือกรายการ',
+                    text: 'กรุณาติ๊กเลือก Checkbox หน้ารายชื่อผู้ป่วยที่ต้องการส่งออก 16 แฟ้ม',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0d6efd'
+                });
+            } else {
+                alert('กรุณาติ๊กเลือก Checkbox หน้ารายชื่อผู้ป่วยที่ต้องการส่งออก 16 แฟ้ม');
+            }
+            return;
+        }
+
+        window.openF16EclaimExportModal({
+            vns: checkedVns,
+            claimCode: 'OFC',
+            claimTitle: 'OP-OFC (ข้าราชการ กรมบัญชีกลาง)'
+        });
+    }
+
+    // จัดการ Event Select All Checkboxes
+    $(document).on('change', '.select_all_f16', function() {
+        const isChecked = $(this).is(':checked');
+        const table = $(this).closest('table');
+        table.find('.chk_f16_visit').prop('checked', isChecked);
+    });
 
     function copyToClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {

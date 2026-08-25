@@ -1,3 +1,7 @@
+@php
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim');
+@endphp
+
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
     <!-- Section 1: Chart -->
     <div class="px-4 pt-2 pb-0 border-bottom">
@@ -44,6 +48,11 @@
                         <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                             <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                         </button>
+                        @if($is_f16_licensed)
+                        <button type="button" class="btn btn-warning text-dark fw-bold px-3 shadow-sm" onclick="exportSelectedF16OFC()">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                        </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -72,6 +81,9 @@
                     <table id="t_search" class="table table-modern w-100">
                         <thead>
                             <tr>
+                                @if($is_f16_licensed)
+                                <th class="text-center" width="40"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                @endif
                                 <th class="text-center">#</th> 
                                 <th class="text-center">สถานะ</th>
                                 <th class="text-center">ประสงค์เบิก</th>
@@ -93,7 +105,7 @@
                             @php 
                                 $count = 1; 
                                 $sum_income = 0; 
-                                $sum_paid_money = 0;
+                                $sum_paid_money = 0; 
                                 $sum_rcpt_money = 0; 
                                 $sum_ppfs = 0; 
                                 $sum_ems = 0; 
@@ -101,6 +113,11 @@
                             @endphp
                             @foreach($search as $row) 
                             <tr>
+                                @if($is_f16_licensed)
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}" data-vn="{{ $row->seq }}" data-hn="{{ $row->hn }}">
+                                </td>
+                                @endif
                                 <td class="text-center text-muted small">{{ $count }}</td>
                                 <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                     @if(!$row->is_valid)
@@ -153,7 +170,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                <th colspan="{{ $is_f16_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
@@ -172,6 +189,9 @@
                     <table id="t_claim" class="table table-modern w-100">
                         <thead>
                             <tr>
+                                @if($is_f16_licensed)
+                                <th class="text-center" rowspan="2" width="40"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                @endif
                                 <th class="text-center" rowspan="2">#</th> 
                                 <th class="text-center" rowspan="2">สถานะ</th>
                                 <th class="text-center" rowspan="2">Error</th>
@@ -211,6 +231,11 @@
                             @endphp
                             @foreach($claim as $row) 
                             <tr>
+                                @if($is_f16_licensed)
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}" data-vn="{{ $row->seq }}" data-hn="{{ $row->hn }}">
+                                </td>
+                                @endif
                                 <td class="text-center text-muted small">{{ $count }}</td>
                                 <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                     @if(!$row->is_valid)
@@ -225,7 +250,7 @@
                                     @if(!empty($row->check_detail))
                                         @php
                                             $prefix = '';
-                                            $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
+                                             $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
                                             if (!empty($row->ec_status)) {
                                                 $first_char = substr($row->ec_status, 0, 1);
                                                 if (in_array($first_char, ['2', '3'])) {
@@ -297,7 +322,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                <th colspan="{{ $is_f16_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>

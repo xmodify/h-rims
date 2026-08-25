@@ -239,24 +239,24 @@ class EclaimBotController extends Controller
         // Live Probe: ทดสอบยิงไปตรวจสอบกับระบบ e-Claim สปสช. จริงก่อนแสดงสถานะเชื่อมต่อสำเร็จ
         try {
             $headers = $this->getEclaimBrowserHeaders($sessionToken);
-            $probeMo = (int)date('m');
-            $probeYe = (int)date('Y') + 543;
-            $probeUrl = "https://eclaim.nhso.go.th/webComponent/validation/ValidationMainAction.do?maininscl=ucs&mo={$probeMo}&ye={$probeYe}";
+            $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
             
+            // 1. ลอง Probe ด้วยหน้าหลัก MainWebAction (โหลดเร็ว ไม่ต้อง Query ฐานข้อมูลหนัก)
             $probeRes = Http::withHeaders($headers)
                 ->withoutVerifying()
-                ->timeout(5)
+                ->timeout(15)
                 ->get($probeUrl);
 
             $html = (string)$probeRes->body();
 
-            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Error Page หรือไม่มีตาราง content2
+            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Login / Error Page
             if (
                 $probeRes->status() !== 200 || 
                 stripos($html, 'Error Page') !== false || 
                 stripos($html, 'frmErr') !== false || 
                 stripos($html, 'คุณไม่มีสิทธิ์') !== false ||
-                stripos($html, 'content2') === false
+                stripos($html, 'เข้าสู่ระบบ') !== false ||
+                stripos($html, 'login') !== false
             ) {
                 return response()->json([
                     'connected' => false,
@@ -265,15 +265,22 @@ class EclaimBotController extends Controller
             }
 
             // ดึงชื่อผู้ใช้งานหากมี
-            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<]+)/u', $html, $m)) {
+            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
                 $sessionUser = trim(strip_tags($m[1]));
             }
 
         } catch (\Exception $e) {
-            // กรณีเครือข่ายเชื่อมต่อไม่ได้ชั่วคราว
+            // กรณีเครือข่ายเชื่อมต่อไม่ได้หรือ Timeout
+            $errMsg = $e->getMessage();
+            if (stripos($errMsg, 'timed out') !== false || stripos($errMsg, 'cURL error 28') !== false) {
+                $friendlyMsg = 'เซิร์ฟเวอร์ e-Claim สปสช. ตอบสนองช้าชั่วคราว (Network Timeout) หรือ Session อาจหมดอายุ กรุณากดปุ่ม "ซิงก์ Session" จาก Extension ใหม่อีกครั้ง';
+            } else {
+                $friendlyMsg = 'ไม่สามารถติดต่อเซิร์ฟเวอร์ e-Claim ได้: ' . $errMsg;
+            }
+
             return response()->json([
                 'connected' => false,
-                'message' => 'ไม่สามารถติดต่อเซิร์ฟเวอร์ e-Claim ได้: ' . $e->getMessage()
+                'message' => $friendlyMsg
             ]);
         }
 

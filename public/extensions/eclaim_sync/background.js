@@ -45,6 +45,9 @@ async function performHeartbeatPing() {
                 }
             });
             console.log('[RiMS Sync] Keep-Alive ping sent successfully.');
+            
+            // Auto-resync latest session token to RiMS DB
+            await autoSyncSessionToRims('heartbeat');
         }
     } catch (err) {
         console.warn('[RiMS Sync] Keep-Alive ping error:', err);

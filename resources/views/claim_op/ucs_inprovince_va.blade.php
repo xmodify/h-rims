@@ -415,7 +415,27 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด VA วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
+              title: function() {
+                  var hmain = $('#filter_hmain').val();
+                  var baseTitle = 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด VA วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}';
+                  return hmain ? (baseTitle + ' (Hmain: ' + hmain + ')') : (baseTitle + ' (ทั้งหมด)');
+              },
+              filename: function() {
+                  var hmain = $('#filter_hmain').val();
+                  var baseFile = 'รายชื่อผู้มารับบริการ_UCOP_ในจังหวัด_VA_{{ $start_date }}_ถึง_{{ $end_date }}';
+                  if (hmain) {
+                      var cleanHmain = hmain.replace(/[\/\\:*?"<>|\s]+/g, '_').trim();
+                      return baseFile + '_' + cleanHmain;
+                  }
+                  return baseFile + '_ทั้งหมด';
+              },
+              exportOptions: {
+                  columns: ':visible',
+                  modifier: {
+                      search: 'applied',
+                      page: 'all'
+                  }
+              },
               footer: true
             }
         ],

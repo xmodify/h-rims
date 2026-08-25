@@ -1844,7 +1844,7 @@ class HosFinController extends Controller
                 'precision' => 2
             ],
             '260' => [
-                'name' => 'Average Payment Period',
+                'name' => 'ระยะเวลาชำระเจ้าหนี้การค้ายา&เวชภัณฑ์มิใช่ยา',
                 'numerator_name' => 'เจ้าหนี้การค้า(ยา วชช.)คงเหลือเฉลี่ย',
                 'denominator_name' => 'เจ้าหนี้การค้า(ยา วชช.)รวม',
                 'num_group' => '2600X',
@@ -1854,7 +1854,7 @@ class HosFinController extends Controller
                 'precision' => 2
             ],
             '261' => [
-                'name' => 'Average Collection Period-สิทธิ UC',
+                'name' => 'ระยะเวลาถัวเฉลี่ยในการเรียกเก็บหนี้สิทธิ UC',
                 'numerator_name' => 'ลูกหนี้ค่ารักษาสิทธิ UC เฉลี่ย',
                 'denominator_name' => 'รายได้ค่ารักษาพยาบาลสิทธิ UC สุทธิ',
                 'num_group' => '2610X',
@@ -1864,7 +1864,7 @@ class HosFinController extends Controller
                 'precision' => 2
             ],
             '262' => [
-                'name' => 'Average Collection Period-CSMBS',
+                'name' => 'ระยะเวลาถัวเฉลี่ยในการเรียกเก็บหนี้สิทธิข้าราชการ',
                 'numerator_name' => 'ลูกหนี้ค่ารักษาสิทธิ CS เฉลี่ย',
                 'denominator_name' => 'รายได้ค่ารักษาพยาบาล CS สุทธิ',
                 'num_group' => '2620X',
@@ -1884,7 +1884,7 @@ class HosFinController extends Controller
                 'precision' => 2
             ],
             '264' => [
-                'name' => 'Inventory Management',
+                'name' => 'การบริหารสินคงคลัง (Inventory Management)',
                 'numerator_name' => 'วัสดุคงคลังเฉลี่ย',
                 'denominator_name' => 'วัสดุใช้ไป',
                 'num_group' => '2640X',

@@ -832,6 +832,23 @@
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
                     if (res.connected) {
+                        if (window.eclaimRetryTimer_checkEclaimStmLgoStatus) {
+                            clearInterval(window.eclaimRetryTimer_checkEclaimStmLgoStatus);
+                            window.eclaimRetryTimer_checkEclaimStmLgoStatus = null;
+                        }
+
+        $(window).on('focus', function () {
+            if ($('#eclaimStmLgoBotModal').hasClass('show')) {
+                checkEclaimStmLgoStatus();
+            }
+        });
+
+        $('#eclaimStmLgoBotModal').on('hidden.bs.modal', function () {
+            if (window.eclaimRetryTimer_checkEclaimStmLgoStatus) {
+                clearInterval(window.eclaimRetryTimer_checkEclaimStmLgoStatus);
+                window.eclaimRetryTimer_checkEclaimStmLgoStatus = null;
+            }
+        });
                         $('#eclaimStmLgoAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary').addClass('bg-success-subtle text-success')
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
                         $('#eclaimStmLgoAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
@@ -846,7 +863,31 @@
                         $('#btnEclaimStmLgoLogout').addClass('d-none');
                         $('#btnBotStmLgoSearch').prop('disabled', true);
                     }
-                },
+                
+
+                        // Auto-retry polling every 3s while modal is open
+                        if (!window.eclaimRetryTimer_checkEclaimStmLgoStatus && $('#eclaimStmLgoBotModal').hasClass('show')) {
+                            window.eclaimRetryTimer_checkEclaimStmLgoStatus = setInterval(function() {
+                                if ($('#eclaimStmLgoBotModal').hasClass('show')) {
+                                    $.ajax({
+                                        url: "{{ route('import.eclaim-bot.status') }}",
+                                        method: "POST",
+                                        data: { _token: "{{ csrf_token() }}" },
+                                        success: function(r) {
+                                            if (r && r.connected) {
+                                                clearInterval(window.eclaimRetryTimer_checkEclaimStmLgoStatus);
+                                                window.eclaimRetryTimer_checkEclaimStmLgoStatus = null;
+                                                checkEclaimStmLgoStatus();
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    clearInterval(window.eclaimRetryTimer_checkEclaimStmLgoStatus);
+                                    window.eclaimRetryTimer_checkEclaimStmLgoStatus = null;
+                                }
+                            }, 3000);
+                        }
+                    },
                 error: function() {
                     $('#eclaimStmLgoAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
                         .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');

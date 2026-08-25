@@ -1017,6 +1017,10 @@
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
                     if (res.connected) {
+                        if (window.eclaimRepRetryTimer) {
+                            clearInterval(window.eclaimRepRetryTimer);
+                            window.eclaimRepRetryTimer = null;
+                        }
                         $('#eclaimRepAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary').addClass('bg-success-subtle text-success')
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
                         $('#eclaimRepAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
@@ -1030,6 +1034,29 @@
                         $('#eclaimRepAuthStatusSub').text(res.message || 'เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
                         $('#btnEclaimRepLogout').addClass('d-none');
                         $('#btnBotRepSearch').prop('disabled', true);
+
+                        // Auto-retry polling every 3s while modal is open
+                        if (!window.eclaimRepRetryTimer && $('#eclaimRepBotModal').hasClass('show')) {
+                            window.eclaimRepRetryTimer = setInterval(function() {
+                                if ($('#eclaimRepBotModal').hasClass('show')) {
+                                    $.ajax({
+                                        url: "{{ route('import.eclaim-bot.status') }}",
+                                        method: "POST",
+                                        data: { _token: "{{ csrf_token() }}" },
+                                        success: function(r) {
+                                            if (r && r.connected) {
+                                                clearInterval(window.eclaimRepRetryTimer);
+                                                window.eclaimRepRetryTimer = null;
+                                                checkEclaimRepStatus();
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    clearInterval(window.eclaimRepRetryTimer);
+                                    window.eclaimRepRetryTimer = null;
+                                }
+                            }, 3000);
+                        }
                     }
                 },
                 error: function() {
@@ -1042,6 +1069,19 @@
                 }
             });
         }
+
+        $(window).on('focus', function () {
+            if ($('#eclaimRepBotModal').hasClass('show')) {
+                checkEclaimRepStatus();
+            }
+        });
+
+        $('#eclaimRepBotModal').on('hidden.bs.modal', function () {
+            if (window.eclaimRepRetryTimer) {
+                clearInterval(window.eclaimRepRetryTimer);
+                window.eclaimRepRetryTimer = null;
+            }
+        });
 
         window.showEclaimExtensionGuide = function() {
             var apiUrl = "{{ url('/api') }}";

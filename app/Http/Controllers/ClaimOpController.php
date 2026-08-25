@@ -2266,6 +2266,7 @@ class ClaimOpController extends Controller
         }
         $search = $filtered_search;
         foreach ($claim as $row) {
+            $row->debtor = floatval($row->income) - floatval($row->rcpt_money) - floatval($row->ems_price);
             $result = $validator->validateOfc($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];

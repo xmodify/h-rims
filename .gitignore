@@ -4,3 +4,6 @@
 /storage/*.key
 /public/storage
 /master_admin_info.txt
+__pycache__/
+*.pyc
+*.pyo

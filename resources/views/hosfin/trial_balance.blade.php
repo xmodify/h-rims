@@ -744,6 +744,40 @@ document.addEventListener('DOMContentLoaded', function () {
             error: function(xhr) {
                 $('#analyzeSpinner').addClass('d-none');
                 $('#mdbAnalyzeForm button[type="submit"]').prop('disabled', false);
+                
+                if (xhr.responseJSON && xhr.responseJSON.is_python_missing) {
+                    var guide = xhr.responseJSON.guide || {};
+                    var stepsHtml = '';
+                    if (guide.steps && guide.steps.length > 0) {
+                        stepsHtml = '<ol class="text-start ps-3 small text-secondary mt-2 mb-3" style="line-height: 1.6;">' +
+                            guide.steps.map(function(s) { return '<li class="mb-1">' + s + '</li>'; }).join('') +
+                        '</ol>';
+                    }
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'จำเป็นต้องติดตั้ง Python บนเซิร์ฟเวอร์',
+                        html: `
+                            <div class="text-start">
+                                <p class="text-dark mb-2">${xhr.responseJSON.message}</p>
+                                <div class="p-3 bg-light border rounded-3 text-start small">
+                                    <div class="fw-bold text-primary mb-1"><i class="bi bi-info-circle-fill me-1"></i> คำแนะนำการติดตั้งสำหรับ XAMPP / Windows Server:</div>
+                                    ${stepsHtml}
+                                </div>
+                                <div class="mt-3 text-center">
+                                    <a href="https://www.python.org/downloads/" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> ไปยังหน้าดาวน์โหลด Python.org
+                                    </a>
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: 'รับทราบ',
+                        confirmButtonColor: '#0a4d2c',
+                        width: 600
+                    });
+                    return;
+                }
+
                 var msg = 'เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
@@ -840,6 +874,17 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         });
                         
+                        if (xhr.responseJSON && xhr.responseJSON.is_python_missing) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'จำเป็นต้องติดตั้ง Python บนเซิร์ฟเวอร์',
+                                text: xhr.responseJSON.message,
+                                confirmButtonText: 'รับทราบ',
+                                confirmButtonColor: '#0a4d2c'
+                            });
+                            return;
+                        }
+
                         var msg = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             msg = xhr.responseJSON.message;

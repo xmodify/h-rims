@@ -616,50 +616,21 @@ class MainSettingController extends Controller
                         $report[] = "hosfin_dtl_mappings (ไม่พบไฟล์)";
                     }
 
-                    // --- 2.7: Auto-Install Python dependencies (access-parser) ---
+                    // --- 2.7: Auto-Detect & Check Python dependencies (access-parser for HosFin MDB) ---
                     $pythonInstallMsg = '';
                     try {
-                        $libsPath = base_path('app/Helpers/Python/libs');
-                        $return_var = 1;
-                        $outputCheck = [];
-                        @exec('python -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
-                        if ($return_var !== 0) {
-                            @exec('python3 -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
-                        }
-
-                        if ($return_var !== 0) {
-                            $installCommands = [
-                                'pip install access-parser 2>&1',
-                                'pip3 install access-parser 2>&1',
-                                'python3 -m pip install access-parser 2>&1',
-                                'python -m pip install access-parser 2>&1'
-                            ];
-                            $installed = false;
-                            $lastError = 'no pip commands found';
-                            foreach ($installCommands as $installCmd) {
-                                $outputInstall = [];
-                                $returnInstall = 1;
-                                @exec($installCmd, $outputInstall, $returnInstall);
-                                if ($returnInstall === 0) {
-                                    $installed = true;
-                                    break;
-                                } else {
-                                    if (!empty($outputInstall)) {
-                                        $lastError = implode('; ', array_slice($outputInstall, -2));
-                                    }
-                                }
-                            }
-
-                            if ($installed) {
-                                $pythonInstallMsg = ' + python access-parser (ติดตั้งสำเร็จ)';
+                        $pyStatus = \App\Helpers\PythonHelper::checkStatus();
+                        if ($pyStatus['available']) {
+                            if ($pyStatus['has_access_parser']) {
+                                $pythonInstallMsg = ' + python access-parser (พร้อมใช้งาน)';
                             } else {
-                                $pythonInstallMsg = ' + python access-parser (ติดตั้งล้มเหลว: ' . $lastError . ')';
+                                $pythonInstallMsg = ' + python (' . ($pyStatus['version'] ?? 'ตรวจพบ') . ' แต่ access-parser ไม่สมบูรณ์)';
                             }
                         } else {
-                            $pythonInstallMsg = ' + python access-parser (พร้อมใช้งาน)';
+                            $pythonInstallMsg = ' + python (ไม่พบในเซิร์ฟเวอร์ - ติดตั้งเพิ่มเฉพาะเมื่อต้องการนำเข้า MDB งบกระทรวง)';
                         }
                     } catch (\Throwable $ex) {
-                        $pythonInstallMsg = ' + python access-parser (ขัดข้อง: ' . $ex->getMessage() . ')';
+                        $pythonInstallMsg = ' + python (ขัดข้อง: ' . $ex->getMessage() . ')';
                     }
 
                     return response()->json([

@@ -940,45 +940,12 @@ class HosFinController extends Controller
     }
 
     /**
-     * Check if access-parser python package is installed, and try to auto-install if missing.
+     * Check if Python and access-parser are ready.
      */
     private function checkPythonDependencies()
     {
-        $libsPath = base_path('app/Helpers/Python/libs');
-        $return_var = 1;
-        $outputCheck = [];
-        @exec('python -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
-        if ($return_var !== 0) {
-            @exec('python3 -c "import sys; sys.path.insert(0, \'' . $libsPath . '\'); import access_parser" 2>&1', $outputCheck, $return_var);
-        }
-        
-        if ($return_var !== 0) {
-            \Log::info("access-parser is missing. Programmatically installing via pip...");
-            
-            $installCommands = [
-                'pip install access-parser 2>&1',
-                'pip3 install access-parser 2>&1',
-                'python3 -m pip install access-parser 2>&1',
-                'python -m pip install access-parser 2>&1'
-            ];
-            $installed = false;
-            foreach ($installCommands as $installCmd) {
-                $outputInstall = [];
-                $returnInstall = 1;
-                @exec($installCmd, $outputInstall, $returnInstall);
-                if ($returnInstall === 0) {
-                    $installed = true;
-                    break;
-                }
-            }
-            
-            if (!$installed) {
-                \Log::error("Failed to install access-parser across all pip commands.");
-                return false;
-            }
-            \Log::info("access-parser successfully installed.");
-        }
-        return true;
+        $pyStatus = \App\Helpers\PythonHelper::checkStatus();
+        return $pyStatus['available'] && $pyStatus['has_access_parser'];
     }
 
     /**
@@ -986,11 +953,14 @@ class HosFinController extends Controller
      */
     public function analyzeMdb(Request $request)
     {
-        if (!$this->checkPythonDependencies()) {
+        $pyStatus = \App\Helpers\PythonHelper::checkStatus();
+        if (!$pyStatus['available']) {
             return response()->json([
                 'success' => false,
-                'message' => 'ระบบต้องการไลบรารี Python access-parser แต่ไม่สามารถติดตั้งอัตโนมัติได้ กรุณาติดต่อผู้ดูแลระบบเพื่อรันคำสั่ง "pip install access-parser" บนเซิร์ฟเวอร์'
-            ], 500);
+                'is_python_missing' => true,
+                'message' => 'ระบบไม่พบโปรแกรม Python บนเซิร์ฟเวอร์สำหรับอ่านไฟล์ฐานข้อมูล (.mdb)',
+                'guide' => $pyStatus['guide']
+            ], 400);
         }
 
         if (!$request->hasFile('file')) {
@@ -1051,21 +1021,17 @@ class HosFinController extends Controller
             }
 
             $pythonScript = base_path('app/Helpers/Python/analyze_mdb.py');
-            $command = 'python "' . $pythonScript . '" "' . $mdbPath . '" 2>&1';
-            exec($command, $output, $returnVar);
+            $runResult = \App\Helpers\PythonHelper::runScript($pythonScript, [$mdbPath]);
 
-            $outputStr = implode("\n", $output);
-            if (!mb_check_encoding($outputStr, 'UTF-8')) {
-                $outputStr = iconv('TIS-620', 'UTF-8//IGNORE', $outputStr);
-            }
-            if ($returnVar !== 0) {
+            if (!$runResult['success']) {
                 $this->deleteDir($tempDir);
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่สามารถวิเคราะห์ไฟล์ได้: ' . $outputStr
+                    'message' => 'ไม่สามารถวิเคราะห์ไฟล์ได้: ' . $runResult['output']
                 ], 500);
             }
 
+            $outputStr = $runResult['output'];
             $data = json_decode($outputStr, true);
             if (!is_array($data) || isset($data['error'])) {
                 $this->deleteDir($tempDir);
@@ -1104,6 +1070,16 @@ class HosFinController extends Controller
      */
     public function importMdbPeriod(Request $request)
     {
+        $pyStatus = \App\Helpers\PythonHelper::checkStatus();
+        if (!$pyStatus['available']) {
+            return response()->json([
+                'success' => false,
+                'is_python_missing' => true,
+                'message' => 'ระบบไม่พบโปรแกรม Python บนเซิร์ฟเวอร์สำหรับอ่านไฟล์ฐานข้อมูล (.mdb)',
+                'guide' => $pyStatus['guide']
+            ], 400);
+        }
+
         $tempToken = $request->input('temp_token');
         $pdate = $request->input('pdate');
         $period = $request->input('period');
@@ -1126,20 +1102,16 @@ class HosFinController extends Controller
         try {
             $mdbPath = $sessionData['path'];
             $pythonScript = base_path('app/Helpers/Python/import_mdb_period.py');
-            $command = 'python "' . $pythonScript . '" "' . $mdbPath . '" "' . $pdate . '" 2>&1';
-            exec($command, $output, $returnVar);
+            $runResult = \App\Helpers\PythonHelper::runScript($pythonScript, [$mdbPath, $pdate]);
 
-            $outputStr = implode("\n", $output);
-            if (!mb_check_encoding($outputStr, 'UTF-8')) {
-                $outputStr = iconv('TIS-620', 'UTF-8//IGNORE', $outputStr);
-            }
-            if ($returnVar !== 0) {
+            if (!$runResult['success']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่สามารถประมวลผลข้อมูลในเดือนที่เลือกได้: ' . $outputStr
+                    'message' => 'ไม่สามารถประมวลผลข้อมูลในเดือนที่เลือกได้: ' . $runResult['output']
                 ], 500);
             }
 
+            $outputStr = $runResult['output'];
             $rows = json_decode($outputStr, true);
             if (!is_array($rows) || isset($rows['error'])) {
                 $errorMsg = isset($rows['error']) ? $rows['error'] : 'ไฟล์งบกระทรวงรูปแบบไม่ถูกต้องหรือไม่พบข้อมูลในตาราง DataIn';

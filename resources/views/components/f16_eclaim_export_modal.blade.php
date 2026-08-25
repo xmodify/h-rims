@@ -8,7 +8,7 @@
                     <i class="bi bi-box-arrow-up-right fs-4 text-warning"></i>
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="f16EclaimExportModalLabel">
-                            ส่งออกข้อมูลมาตรฐาน 16 แฟ้ม (HOSxP ➔ e-Claim)
+                            ส่งออกข้อมูลมาตรฐาน 16 แฟ้ม (e-Claim)
                         </h5>
                         <div class="d-flex align-items-center gap-2 mt-1">
                             <span class="badge bg-white text-dark fw-bold" id="f16ModalClaimTitle">OFC (กรมบัญชีกลาง)</span>
@@ -31,64 +31,36 @@
 
                 <!-- Main Content Area (Hidden while loading) -->
                 <div id="f16MainContent" style="display: none;">
-                    <!-- OP / IP Scope Switcher Bar -->
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-1">
-                        <div class="btn-group btn-group-sm shadow-sm" role="group" id="f16ScopeBtnGroup">
-                            <button type="button" class="btn btn-primary active fw-bold px-3 py-1" id="f16FilterBtnOp" onclick="filterF16Scope('op')">
-                                <i class="bi bi-person-walking me-1"></i> แฟ้มผู้ป่วยนอก OP (ใช้ VN)
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary fw-bold px-3 py-1" id="f16FilterBtnIp" onclick="filterF16Scope('ip')">
-                                <i class="bi bi-hospital me-1"></i> แฟ้มผู้ป่วยใน IP (ใช้ AN)
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary fw-bold px-3 py-1" id="f16FilterBtnAll" onclick="filterF16Scope('all')">
-                                <i class="bi bi-grid-fill me-1"></i> แสดงทั้งหมด 16 แฟ้ม
-                            </button>
-                        </div>
-                        <div>
-                            <span class="badge text-dark bg-white border shadow-sm px-2 py-1" id="f16CurrentScopeText" style="font-size: 0.78rem;">
-                                <i class="bi bi-info-circle text-primary me-1"></i>โหมด: แฟ้มผู้ป่วยนอก (OPD - ใช้รหัส VN)
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- 16 Tabs Bar -->
+                    <!-- 11 OP Tabs Bar -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body p-2 bg-white rounded">
                             <ul class="nav nav-pills nav-fill flex-wrap gap-1" id="f16Tabs" role="tablist">
                                 @php
                                     $fileTabs = [
-                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิ', 'type' => 'both', 'tag' => 'VN/AN'],
-                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ผู้ป่วย', 'type' => 'both', 'tag' => 'HN'],
-                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'ผู้ป่วยนอก', 'type' => 'op', 'tag' => 'VN'],
-                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อ OP', 'type' => 'op', 'tag' => 'VN'],
-                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัย OP', 'type' => 'op', 'tag' => 'VN'],
-                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ OP', 'type' => 'op', 'tag' => 'VN'],
-                                        ['key' => 'IPD', 'name' => 'IPD', 'desc' => 'ผู้ป่วยใน', 'type' => 'ip', 'tag' => 'AN'],
-                                        ['key' => 'IRF', 'name' => 'IRF', 'desc' => 'ส่งต่อ IP', 'type' => 'ip', 'tag' => 'AN'],
-                                        ['key' => 'IDX', 'name' => 'IDX', 'desc' => 'วินิจฉัย IP', 'type' => 'ip', 'tag' => 'AN'],
-                                        ['key' => 'IOP', 'name' => 'IOP', 'desc' => 'หัตถการ IP', 'type' => 'ip', 'tag' => 'AN'],
-                                        ['key' => 'LVD', 'name' => 'LVD', 'desc' => 'ลาชั่วคราว', 'type' => 'ip', 'tag' => 'AN'],
-                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'ยา', 'type' => 'both', 'tag' => 'VN/AN'],
-                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => '16 หมวด', 'type' => 'both', 'tag' => 'VN/AN'],
-                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'การเงิน', 'type' => 'both', 'tag' => 'VN/AN'],
-                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุ', 'type' => 'both', 'tag' => 'VN/AN'],
-                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการเสริม', 'type' => 'both', 'tag' => 'VN/AN'],
+                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิ'],
+                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ผู้ป่วย'],
+                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'ผู้ป่วยนอก'],
+                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อ'],
+                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัย'],
+                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ'],
+                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'ยา'],
+                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => '16 หมวด'],
+                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'การเงิน'],
+                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุ'],
+                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการเสริม'],
                                     ];
                                 @endphp
 
                                 @foreach($fileTabs as $index => $tab)
-                                <li class="nav-item f16-tab-item" data-type="{{ $tab['type'] }}" role="presentation">
+                                <li class="nav-item f16-tab-item" role="presentation">
                                     <button class="nav-link text-center px-1 py-1 {{ $index === 0 ? 'active' : '' }}" 
                                             id="f16-tab-{{ $tab['key'] }}" 
                                             data-bs-toggle="pill" 
                                             data-bs-target="#f16-pane-{{ $tab['key'] }}" 
                                             type="button" 
                                             role="tab"
-                                            style="font-size: 0.76rem; min-width: 60px;">
-                                        <div class="fw-bold d-flex align-items-center justify-content-center gap-1">
-                                            <span>{{ $tab['name'] }}</span>
-                                            <span class="badge rounded-pill {{ $tab['type'] == 'op' ? 'bg-primary-soft text-primary' : ($tab['type'] == 'ip' ? 'bg-warning-soft text-warning' : 'bg-light text-muted') }}" style="font-size: 0.6rem; padding: 1px 3px;">{{ $tab['tag'] }}</span>
-                                        </div>
+                                            style="font-size: 0.78rem; min-width: 65px;">
+                                        <div class="fw-bold">{{ $tab['name'] }}</div>
                                         <span class="badge rounded-pill bg-secondary text-white f16-badge-count mt-1" id="badge-count-{{ $tab['key'] }}" style="font-size: 0.68rem;">0</span>
                                     </button>
                                 </li>
@@ -107,13 +79,6 @@
                                         <i class="bi bi-file-earmark-text text-warning"></i>
                                         <span class="fw-bold">{{ $tab['name'] }}.txt</span>
                                         <span class="text-white-50 small">({{ $tab['desc'] }})</span>
-                                        @if($tab['type'] === 'op')
-                                            <span class="badge bg-primary text-white ms-1" style="font-size: 0.7rem;"><i class="bi bi-person-walking me-1"></i>แฟ้มผู้ป่วยนอก (ใช้รหัส VN)</span>
-                                        @elseif($tab['type'] === 'ip')
-                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;"><i class="bi bi-hospital me-1"></i>แฟ้มผู้ป่วยใน (ใช้รหัส AN)</span>
-                                        @else
-                                            <span class="badge bg-secondary text-white ms-1" style="font-size: 0.7rem;"><i class="bi bi-people me-1"></i>แฟ้มทั่วไป (OP/IP)</span>
-                                        @endif
                                     </div>
                                     <span class="badge bg-secondary" id="pane-count-{{ $tab['key'] }}">0 แถว</span>
                                 </div>
@@ -136,7 +101,7 @@
                                 </label>
                             </div>
                             <span class="text-muted small">
-                                <i class="bi bi-info-circle me-1"></i>เขียนไฟล์ .txt ทั้ง 16 ไฟล์ลงโฟลเดอร์โดยตรง
+                                <i class="bi bi-info-circle me-1"></i>เขียนไฟล์ .txt ทั้ง 11 แฟ้มลงโฟลเดอร์โดยตรง
                             </span>
                         </div>
                     </div>
@@ -173,56 +138,7 @@
     };
 
     /**
-     * กรองการแสดงผลแท็บ 16 แฟ้มตามประเภท OP (VN), IP (AN), หรือ ALL
-     */
-    window.filterF16Scope = function(scope) {
-        window._f16ExportState.currentScope = scope;
-        $('#f16FilterBtnOp').removeClass('btn-primary active').addClass('btn-outline-secondary');
-        $('#f16FilterBtnIp').removeClass('btn-warning active text-dark').addClass('btn-outline-secondary');
-        $('#f16FilterBtnAll').removeClass('btn-secondary active').addClass('btn-outline-secondary');
-
-        if (scope === 'op') {
-            $('#f16FilterBtnOp').removeClass('btn-outline-secondary').addClass('btn-primary active');
-            $('#f16CurrentScopeText').html('<i class="bi bi-person-walking text-primary me-1"></i>โหมด: แฟ้มผู้ป่วยนอก (OPD - ใช้รหัส VN) - 11 แฟ้ม');
-            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (11 แฟ้ม OP .txt)');
-            $('.f16-tab-item').each(function() {
-                const type = $(this).data('type');
-                if (type === 'ip') {
-                    $(this).hide();
-                } else {
-                    $(this).show();
-                }
-            });
-            const activeTabItem = $('.f16-tab-item:visible .nav-link.active');
-            if (activeTabItem.length === 0) {
-                $('#f16-tab-INS').trigger('click');
-            }
-        } else if (scope === 'ip') {
-            $('#f16FilterBtnIp').removeClass('btn-outline-secondary').addClass('btn-warning active text-dark');
-            $('#f16CurrentScopeText').html('<i class="bi bi-hospital text-warning me-1"></i>โหมด: แฟ้มผู้ป่วยใน (IPD - ใช้รหัส AN) - 11 แฟ้ม');
-            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (11 แฟ้ม IP .txt)');
-            $('.f16-tab-item').each(function() {
-                const type = $(this).data('type');
-                if (type === 'op') {
-                    $(this).hide();
-                } else {
-                    $(this).show();
-                }
-            });
-            const activeTabItem = $('.f16-tab-item:visible .nav-link.active');
-            if (activeTabItem.length === 0) {
-                $('#f16-tab-INS').trigger('click');
-            }
-        } else {
-            $('#f16FilterBtnAll').removeClass('btn-outline-secondary').addClass('btn-secondary active');
-            $('#f16CurrentScopeText').html('<i class="bi bi-grid-fill text-muted me-1"></i>โหมด: แสดงครบทั้ง 16 แฟ้มมาตรฐาน สปสช.');
-            $('#btnExecuteF16ExportText').text('เลือกโฟลเดอร์และส่งออก (ครบทั้ง 16 ไฟล์ .txt)');
-            $('.f16-tab-item').show();
-        }
-    };
-
-    /**
-     * ฟังก์ชันเปิด Modal ส่งออก 16 แฟ้ม
+     * ฟังก์ชันเปิด Modal ส่งออก 16 แฟ้ม (e-Claim)
      * @param {Object} config { vns: ['690701130818', ...], claimCode: 'OFC', claimTitle: 'OP-OFC (ข้าราชการ)' }
      */
     window.openF16EclaimExportModal = function(config) {
@@ -258,13 +174,6 @@
         $('#f16ModalSelectedBadge').text(vns.length + ' รายการที่เลือก');
         $('#f16ExportProgressText').text('');
 
-        // Set default scope (OP vs IP)
-        if (claimCode.toLowerCase().includes('ip') || claimTitle.toLowerCase().includes('ip')) {
-            filterF16Scope('ip');
-        } else {
-            filterF16Scope('op');
-        }
-
         // Reset UI to Loading State
         $('#f16LoadingOverlay').show();
         $('#f16MainContent').hide();
@@ -299,8 +208,8 @@
                     const counts = res.counts || {};
                     const snippets = res.snippets || {};
 
-                    // Update Tab Badges and Snippets
-                    const keys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'LVD', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
+                    // Update Tab Badges and Snippets (11 OP Files)
+                    const keys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
                     keys.forEach(function(k) {
                         const count = counts[k] || 0;
                         const badgeEl = $('#badge-count-' + k);
@@ -345,7 +254,7 @@
     };
 
     /**
-     * บันทึกไฟล์ .txt ทั้ง 16 ไฟล์ลงโฟลเดอร์โดยตรงผ่าน File System Access API
+     * บันทึกไฟล์ .txt ทั้ง 11 แฟ้ม OP ลงโฟลเดอร์โดยตรงผ่าน File System Access API
      */
     window.executeF16DirectoryExport = async function() {
         const state = window._f16ExportState;
@@ -388,7 +297,7 @@
         const btn = $('#btnExecuteF16Export');
         const originalBtnHtml = btn.html();
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>กำลังบันทึกไฟล์...');
-        $('#f16ExportProgressText').text('⏳ กำลังดึงข้อมูลเนื้อหาเต็มทั้ง 16 แฟ้ม...');
+        $('#f16ExportProgressText').text('⏳ กำลังดึงข้อมูลเนื้อหาเต็มทั้ง 11 แฟ้ม...');
 
         // 2. Fetch Full File Content from Server
         $.ajax({
@@ -413,10 +322,10 @@
                             targetDir = await dirHandle.getDirectoryHandle(subfolderName, { create: true });
                         }
 
-                        $('#f16ExportProgressText').text('⏳ กำลังเขียนไฟล์ .txt ทั้ง 16 แฟ้มลงโฟลเดอร์...');
+                        $('#f16ExportProgressText').text('⏳ กำลังเขียนไฟล์ .txt ทั้ง 11 แฟ้มลงโฟลเดอร์...');
 
-                        // 4. Write each of the 16 .txt files
-                        const fileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'LVD', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
+                        // 4. Write each of the 11 OP .txt files
+                        const fileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
                         let writtenFiles = 0;
 
                         for (const k of fileKeys) {
@@ -434,18 +343,18 @@
                         }
 
                         btn.prop('disabled', false).html(originalBtnHtml);
-                        $('#f16ExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งออกสำเร็จครบ 16 ไฟล์</span>');
+                        $('#f16ExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งออกสำเร็จครบ 11 แฟ้ม</span>');
 
                         // 5. Show Success Notification
                         const folderDisplay = createSubfolder ? subfolderName : dirHandle.name;
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'ส่งออก 16 แฟ้มสำเร็จเรียบร้อย!',
+                                title: 'ส่งออก 16 แฟ้ม (e-Claim) สำเร็จเรียบร้อย!',
                                 html: `
                                     <div class="text-start p-3 bg-light rounded small mt-2">
                                         <div class="mb-1"><b>📁 โฟลเดอร์:</b> <code class="text-primary fs-6">${folderDisplay}</code></div>
-                                        <div class="mb-1"><b>📄 จำนวนไฟล์:</b> ครบทั้ง 16 ไฟล์ (.txt)</div>
+                                        <div class="mb-1"><b>📄 จำนวนไฟล์:</b> ครบ 11 แฟ้มผู้ป่วยนอก (.txt)</div>
                                         <div class="mb-0"><b>👥 ผู้รับบริการ:</b> ${state.vns.length} รายการ</div>
                                     </div>
                                     <div class="mt-3 text-muted small">
@@ -453,10 +362,10 @@
                                     </div>
                                 `,
                                 confirmButtonText: 'รับทราบ',
-                                confirmButtonColor: '#198754'
+                                confirmButtonColor: '#0e939a'
                             });
                         } else {
-                            alert('ส่งออก 16 แฟ้มสำเร็จเรียบร้อยที่โฟลเดอร์: ' + folderDisplay);
+                            alert('ส่งออกสำเร็จเรียบร้อยที่โฟลเดอร์: ' + folderDisplay);
                         }
 
                     } catch (writeErr) {

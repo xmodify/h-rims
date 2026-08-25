@@ -1,7 +1,7 @@
 let isScraping = false;
 const defaultBaseUrl = 'http://127.0.0.1/rims/api';
 
-// Load saved settings
+// Load saved settings & auto-detect open RiMS tabs
 chrome.storage.local.get(['apiUrl', 'hospCode'], function (result) {
     if (result.apiUrl) {
         document.getElementById('apiUrl').value = result.apiUrl;
@@ -11,6 +11,42 @@ chrome.storage.local.get(['apiUrl', 'hospCode'], function (result) {
     if (result.hospCode) {
         document.getElementById('hospCode').value = result.hospCode;
     }
+
+    // Auto-detect if user currently has an open RiMS tab on a remote hospital server
+    chrome.tabs.query({}, function (tabs) {
+        if (!tabs || tabs.length === 0) return;
+        for (let tab of tabs) {
+            if (tab.url && (tab.url.includes('/import/') || tab.url.includes('/claim_') || tab.url.includes('/hosfin') || tab.url.includes('/rims') || (tab.title && tab.title.includes('RiMS')))) {
+                try {
+                    const u = new URL(tab.url);
+                    let detectedApi = u.origin;
+                    if (u.pathname.startsWith('/rims/')) {
+                        detectedApi += '/rims/api';
+                    } else {
+                        detectedApi += '/api';
+                    }
+
+                    const currentConfigured = (result.apiUrl || defaultBaseUrl).replace(/\/+$/, '');
+                    if (currentConfigured !== detectedApi) {
+                        const badge = document.getElementById('detectedHostBadge');
+                        const name = document.getElementById('detectedHostName');
+                        if (badge && name) {
+                            name.textContent = u.host;
+                            badge.style.display = 'block';
+                            badge.onclick = function () {
+                                document.getElementById('apiUrl').value = detectedApi;
+                                chrome.storage.local.set({ apiUrl: detectedApi }, () => {
+                                    updateStatus("สลับ API ไปใช้ " + u.host + " แล้ว", "#198754");
+                                    badge.style.display = 'none';
+                                });
+                            };
+                        }
+                    }
+                    break;
+                } catch (e) { }
+            }
+        }
+    });
 });
 
 // Toggle Settings

@@ -49,7 +49,7 @@
                             <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                         </button>
                         @if($is_f16_licensed)
-                        <button type="button" class="btn btn-warning text-dark fw-bold px-3 shadow-sm" onclick="exportSelectedF16OFC()">
+                        <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16OFC()">
                             <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
                         </button>
                         @endif

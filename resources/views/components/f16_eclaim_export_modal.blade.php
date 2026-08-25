@@ -2,17 +2,17 @@
 <div class="modal fade" id="f16EclaimExportModal" tabindex="-1" aria-labelledby="f16EclaimExportModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
-            <!-- Modal Header -->
-            <div class="modal-header bg-primary text-white py-3 px-4">
+            <!-- Modal Header with e-Claim Teal Theme -->
+            <div class="modal-header text-white py-3 px-4" style="background: linear-gradient(135deg, #0b7379 0%, #0e939a 50%, #17b7be 100%);">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-folder-symlink-fill fs-4 text-warning"></i>
+                    <i class="bi bi-box-arrow-up-right fs-4 text-warning"></i>
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="f16EclaimExportModalLabel">
                             ส่งออกข้อมูลมาตรฐาน 16 แฟ้ม (HOSxP ➔ e-Claim)
                         </h5>
                         <div class="d-flex align-items-center gap-2 mt-1">
-                            <span class="badge bg-light text-primary fw-semibold" id="f16ModalClaimTitle">OFC (กรมบัญชีกลาง)</span>
-                            <span class="badge bg-warning text-dark fw-bold" id="f16ModalSelectedBadge">0 รายการที่เลือก</span>
+                            <span class="badge bg-white text-dark fw-bold" id="f16ModalClaimTitle">OFC (กรมบัญชีกลาง)</span>
+                            <span class="badge text-white fw-bold" style="background-color: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4);" id="f16ModalSelectedBadge">0 รายการที่เลือก</span>
                             <span class="text-white-50 small" id="f16ModalHcodeText">HCODE: {{ \App\Services\LicenseVerificationService::getHcode() }}</span>
                         </div>
                     </div>
@@ -24,7 +24,7 @@
             <div class="modal-body p-4 bg-light">
                 <!-- Loading State -->
                 <div id="f16LoadingOverlay" class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem; color: #0e939a !important;" role="status"></div>
                     <h6 class="fw-bold text-dark mb-1">กำลังประมวลผลและดึงข้อมูล 16 แฟ้มจาก HOSxP...</h6>
                     <p class="text-muted small">ระบบกำลังเตรียมไฟล์ INS, PAT, OPD, DRU, CHA, CHT, ADP ฯลฯ กรุณารอสักครู่</p>
                 </div>
@@ -122,7 +122,7 @@
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
-                    <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()">
+                    <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;">
                         <i class="bi bi-folder-check me-1"></i> เลือกโฟลเดอร์และส่งออก (16 ไฟล์ .txt)
                     </button>
                 </div>
@@ -159,7 +159,7 @@
                     title: 'ยังไม่ได้เลือกรายการ',
                     text: 'กรุณาติ๊กเลือกรายการในตารางอย่างน้อย 1 รายการก่อนส่งออก 16 แฟ้ม',
                     confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#0d6efd'
+                    confirmButtonColor: '#0e939a'
                 });
             } else {
                 alert('กรุณาติ๊กเลือกรายการในตารางอย่างน้อย 1 รายการก่อนส่งออก 16 แฟ้ม');
@@ -184,10 +184,16 @@
         $('#f16MainContent').hide();
         $('#btnExecuteF16Export').prop('disabled', true);
 
-        // Show Modal
-        const modalEl = document.getElementById('f16EclaimExportModal');
-        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modalInstance.show();
+        // Show Modal (Compatible with both Bootstrap 4 and Bootstrap 5)
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            try {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('f16EclaimExportModal')).show();
+            } catch (e) {
+                $('#f16EclaimExportModal').modal('show');
+            }
+        } else {
+            $('#f16EclaimExportModal').modal('show');
+        }
 
         // AJAX Request for Preview & Generation
         $.ajax({
@@ -219,16 +225,16 @@
                         paneCountEl.text(count + ' แถว');
 
                         if (count > 0) {
-                            badgeEl.removeClass('bg-secondary').addClass('bg-success');
+                            badgeEl.removeClass('bg-secondary').addClass('text-white').css('background-color', '#0e939a');
                             previewEl.text(snippets[k] || '(ไม่มีข้อมูล)');
                         } else {
-                            badgeEl.removeClass('bg-success').addClass('bg-secondary');
+                            badgeEl.removeClass('text-white').addClass('bg-secondary').css('background-color', '');
                             previewEl.text('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
                         }
                     });
 
                     // Activate First Tab
-                    $('#f16-tab-INS').tab('show');
+                    $('#f16-tab-INS').trigger('click');
                 } else {
                     if (typeof Swal !== 'undefined') {
                         Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถประมวลผล 16 แฟ้มได้', 'error');

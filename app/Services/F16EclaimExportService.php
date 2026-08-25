@@ -93,32 +93,65 @@ class F16EclaimExportService
         // -------------------------------------------------------------
         // 1. Query Visit Details (ovst, vn_stat, patient, pttype, doctor, clinic)
         // -------------------------------------------------------------
-        $visits = DB::connection('hosxp')->select("
-            SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
-                   v.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
-                   pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
-                   pt.chwpart, pt.amppart, pt.tmbpart,
-                   p.hipdata_code, p.nhso_code,
-                   doc.licenseno as doctor_license, doc.name as doctor_name,
-                   o.pt_subtype,
-                   COALESCE(vp.hospmain, v.hospmain) as hospmain,
-                   COALESCE(vp.hospsub, v.hospsub) as hospsub,
-                   COALESCE(vp.claim_code, oq.edc_approve_list_text, v.auth_code) as permitno,
-                   v.auth_code,
-                   v.gov_code,
-                   v.gov_name
-            FROM ovst o
-            LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN patient pt ON pt.hn = o.hn
-            LEFT JOIN pttype p ON p.pttype = o.pttype
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype = o.pttype
-            LEFT JOIN ovst_seq oq ON oq.vn = o.vn
-            LEFT JOIN doctor doc ON doc.code = o.doctor
-            WHERE o.vn IN ($placeholders)
-            ORDER BY o.vstdate, o.vsttime
-        ", $vns);
-
-        $visits = collect($visits);
+        $visits = collect();
+        try {
+            $visitRows = DB::connection('hosxp')->select("
+                SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
+                       o.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
+                       pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
+                       pt.chwpart, pt.amppart, pt.tmbpart,
+                       p.hipdata_code,
+                       doc.licenseno as doctor_license, doc.name as doctor_name,
+                       o.pt_subtype,
+                       vp.hospmain,
+                       vp.hospsub,
+                       COALESCE(vp.claim_code, oq.edc_approve_list_text, vp.auth_code, '') as permitno,
+                       vp.auth_code,
+                       '' as gov_code,
+                       '' as gov_name
+                FROM ovst o
+                LEFT JOIN vn_stat v ON v.vn = o.vn
+                LEFT JOIN patient pt ON pt.hn = o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+                LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                LEFT JOIN ovst_seq oq ON oq.vn = o.vn
+                LEFT JOIN doctor doc ON doc.code = o.doctor
+                WHERE o.vn IN ($placeholders)
+                ORDER BY o.vstdate, o.vsttime
+            ", $vns);
+            $visits = collect($visitRows);
+        } catch (\Throwable $e) {
+            // Fallback without ovst_seq
+            try {
+                $visitRows = DB::connection('hosxp')->select("
+                    SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
+                           o.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
+                           pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
+                           pt.chwpart, pt.amppart, pt.tmbpart,
+                           p.hipdata_code,
+                           doc.licenseno as doctor_license, doc.name as doctor_name,
+                           o.pt_subtype,
+                           vp.hospmain,
+                           vp.hospsub,
+                           COALESCE(vp.claim_code, vp.auth_code, '') as permitno,
+                           vp.auth_code,
+                           '' as gov_code,
+                           '' as gov_name
+                    FROM ovst o
+                    LEFT JOIN vn_stat v ON v.vn = o.vn
+                    LEFT JOIN patient pt ON pt.hn = o.hn
+                    LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+                    LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                    LEFT JOIN doctor doc ON doc.code = o.doctor
+                    WHERE o.vn IN ($placeholders)
+                    ORDER BY o.vstdate, o.vsttime
+                ", $vns);
+                $visits = collect($visitRows);
+            } catch (\Throwable $e2) {
+                Log::error("F16 Export main visit query error: " . $e2->getMessage());
+                throw $e2;
+            }
+        }
         $vnsList = $visits->pluck('vn')->toArray();
         $hnsList = $visits->pluck('hn')->unique()->toArray();
         $ansList = $visits->pluck('an')->filter()->unique()->toArray();

@@ -160,22 +160,33 @@ class EclaimBotController extends Controller
             $probeUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
             $probeRes = Http::withHeaders($headers)
                 ->withoutVerifying()
-                ->timeout(6)
+                ->timeout(8)
                 ->get($probeUrl);
 
             if ($probeRes->status() === 200) {
                 $html = (string)$probeRes->body();
-                // ถ้าติดหน้า Error Page หรือไม่มีสิทธิ์เข้าใช้งานจริง
-                if (stripos($html, '<title>Error Page</title>') !== false || stripos($html, 'คุณไม่มีสิทธิ์เข้าใช้งาน') !== false) {
+                // ถ้าติดหน้า Error Page, ไม่มีสิทธิ์, หรือยังอยู่ที่หน้าประกาศ SSO (ThaiD)
+                if (
+                    stripos($html, '<title>Error Page</title>') !== false || 
+                    stripos($html, 'Error Page') !== false || 
+                    stripos($html, 'คุณไม่มีสิทธิ์') !== false ||
+                    stripos($html, 'ประกาศใช้งานระบบ SSO') !== false ||
+                    stripos($html, 'SSO (ThaiD)') !== false ||
+                    stripos($html, 'frmErr') !== false ||
+                    (stripos($html, 'Logout') === false && stripos($html, 'ออกจากระบบ') === false && stripos($html, 'ยินดีต้อนรับ') === false && stripos($html, 'maininscl') === false)
+                ) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Session นี้ยังไม่ได้ล็อกอิน e-Claim (ThaiD) หรือหมดอายุแล้ว ระบบจึงไม่บันทึกทับ Session เดิมในฐานข้อมูล'
+                        'message' => 'Session นี้ยังไม่ได้เข้าสู่ระบบ e-Claim (ThaiD) หรือยังอยู่ที่หน้าประกาศ SSO กรุณาเปิดเว็บ e-Claim ล็อกอินด้วย ThaiD ให้เสร็จสิ้นจนถึงหน้าหลัก แล้วกดซิงก์ Session ใหม่อีกครั้ง'
                     ], 422);
                 }
 
-                // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim
-                if (preg_match('/(?:ชื่อ|ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                    $user = trim(strip_tags($m[1]));
+                // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim (ตัดข้อความที่เป็นประกาศทิ้ง)
+                if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                    $extracted = trim(strip_tags($m[1]));
+                    if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
+                        $user = $extracted;
+                    }
                 } elseif (auth()->check()) {
                     $user = auth()->user()->name;
                 }
@@ -200,11 +211,14 @@ class EclaimBotController extends Controller
                         'message' => "❌ รหัสสถานพยาบาลไม่ตรงกัน! บัญชี e-Claim นี้เป็นของ รพ. [{$eclaimHcode}] แต่ Server RiMS ปลายทางเป็นของ [{$serverHcode}" . ($serverHname ? " - {$serverHname}" : "") . "] กรุณาตรวจสอบว่าสลับ Server ปลายทางถูกต้อง หรือล็อกอินบัญชี e-Claim ตรงกับ รพ. หรือไม่"
                     ], 422);
                 }
-            } elseif (auth()->check()) {
-                $user = auth()->user()->name;
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ไม่สามารถยืนยัน Session กับ e-Claim ได้ (HTTP ' . $probeRes->status() . ') กรุณาลองล็อกอิน ThaiD ใหม่อีกครั้ง'
+                ], 422);
             }
         } catch (\Exception $e) {
-            // กรณีเซิร์ฟเวอร์ชั่วคราว หรือติด Firewall ขาออก ยอมให้บันทึก Token จาก Extension ได้
+            // กรณีเซิร์ฟเวอร์เชื่อมต่อออกภายนอกไม่ได้
             if (auth()->check()) {
                 $user = auth()->user()->name;
             }
@@ -273,22 +287,13 @@ class EclaimBotController extends Controller
             ]);
         }
 
-        // ตรวจสอบความสดใหม่ของ Session (ซิงก์มาไม่เกิน 4 ชั่วโมง)
-        $isFreshSession = false;
-        if ($sessionTime) {
-            $timeDiff = time() - strtotime($sessionTime);
-            if ($timeDiff >= 0 && $timeDiff <= 14400) { // 4 ชั่วโมง
-                $isFreshSession = true;
-            }
-        }
-
         // Live Probe: ทดสอบยิงไปตรวจสอบกับระบบ e-Claim สปสช. จริงก่อนแสดงสถานะเชื่อมต่อสำเร็จ
         $probePassed = false;
         try {
             $headers = $this->getEclaimBrowserHeaders($sessionToken);
             $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
             
-            // 1. ลอง Probe ด้วยหน้าหลัก MainWebAction (timeout 8s กระชับ ไม่ค้าง)
+            // ลอง Probe ด้วยหน้าหลัก MainWebAction (timeout 8s กระชับ ไม่ค้าง)
             $probeRes = Http::withHeaders($headers)
                 ->withoutVerifying()
                 ->timeout(8)
@@ -296,19 +301,23 @@ class EclaimBotController extends Controller
 
             $html = (string)$probeRes->body();
 
-            // ตรวจสอบว่า Probe ผ่าน (ได้รับหน้าเว็บ e-Claim ที่สมบูรณ์)
+            // ตรวจสอบว่า Probe ผ่าน (ได้รับหน้าเว็บ e-Claim ที่ล็อกอินแล้วสมบูรณ์)
             if (
                 $probeRes->status() === 200 &&
                 stripos($html, 'Error Page') === false &&
                 stripos($html, 'frmErr') === false &&
                 stripos($html, 'คุณไม่มีสิทธิ์') === false &&
                 stripos($html, 'ประกาศใช้งานระบบ SSO') === false &&
-                (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ผู้ใช้งาน') !== false || stripos($html, 'ชื่อ :') !== false || stripos($html, 'หน่วยงาน') !== false)
+                stripos($html, 'SSO (ThaiD)') === false &&
+                (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ยินดีต้อนรับ') !== false || stripos($html, 'maininscl') !== false)
             ) {
                 $probePassed = true;
                 // ดึงชื่อผู้ใช้งานหากมี
-                if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                    $sessionUser = trim(strip_tags($m[1]));
+                if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                    $extracted = trim(strip_tags($m[1]));
+                    if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
+                        $sessionUser = $extracted;
+                    }
                 }
             }
 
@@ -317,8 +326,8 @@ class EclaimBotController extends Controller
             $probePassed = false;
         }
 
-        // หาก Probe ผ่าน หรือ ถ้าเป็น Fresh Session ที่เพิ่งซิงก์จาก Extension (Graceful Fallback สำหรับ Server ที่ติด Firewall)
-        if ($probePassed || $isFreshSession) {
+        // หาก Probe ผ่านจริง
+        if ($probePassed) {
             Session::put('eclaim_session_token', $sessionToken);
             Session::put('eclaim_session_user', $sessionUser);
             Session::put('eclaim_session_time', $sessionTime);
@@ -331,10 +340,10 @@ class EclaimBotController extends Controller
             ]);
         }
 
-        // กรณี Session เก่าเกิน 4 ชม. และ Probe ไม่ผ่าน
+        // กรณี Probe ไม่ผ่าน หรือ Session หมดอายุ / ยังไม่ได้ล็อกอิน ThaiD
         return response()->json([
             'connected' => false,
-            'message' => 'Session e-Claim หมดอายุหรือไม่สามารถเข้าถึงได้ (กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session" ใหม่อีกครั้ง)'
+            'message' => 'Session e-Claim ยังไม่ได้เข้าสู่ระบบ ThaiD หรือหมดอายุแล้ว (กรุณาเปิด e-Claim ใน Chrome ล็อกอินด้วย ThaiD ให้เสร็จสิ้น แล้วกดซิงก์ Session ใหม่อีกครั้ง)'
         ]);
     }
 

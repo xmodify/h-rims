@@ -68,20 +68,25 @@ async function autoSyncSessionToRims(source = 'background') {
         try {
             const getCookiesFor = (query) => new Promise(resolve => chrome.cookies.getAll(query, resolve));
 
-            const [cUrl, cDomain, cNhso] = await Promise.all([
+            const [cUrl, cDomain, cNhso, cIam, cHome, cRoot] = await Promise.all([
                 getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
                 getCookiesFor({ domain: "eclaim.nhso.go.th" }),
-                getCookiesFor({ domain: ".nhso.go.th" })
+                getCookiesFor({ domain: ".nhso.go.th" }),
+                getCookiesFor({ domain: "iam.nhso.go.th" }),
+                getCookiesFor({ url: "https://eclaim.nhso.go.th/Client/home" }),
+                getCookiesFor({ url: "https://eclaim.nhso.go.th/" })
             ]);
 
             const cookieMap = new Map();
-            [...(cUrl || []), ...(cDomain || []), ...(cNhso || [])].forEach(c => {
+            [...(cUrl || []), ...(cDomain || []), ...(cNhso || []), ...(cIam || []), ...(cHome || []), ...(cRoot || [])].forEach(c => {
                 if (c && c.name && c.value) {
                     cookieMap.set(c.name, c.value);
                 }
             });
 
-            if (!cookieMap.has('JSESSIONID')) {
+            const hasAuthToken = cookieMap.has('ACCESS_TOKEN') || cookieMap.has('STEEXWDE') || cookieMap.has('AUTH_SESSION_ID');
+            if (!cookieMap.has('JSESSIONID') || !hasAuthToken) {
+                console.log('[RiMS Sync] ข้ามการ Sync: ยังไม่ได้ล็อกอิน ThaiD หรือ Token ยังไม่ครบสมบูรณ์');
                 return;
             }
 
@@ -117,6 +122,9 @@ async function autoSyncSessionToRims(source = 'background') {
             if (res.ok) {
                 const data = await res.json();
                 console.log('[RiMS Sync] Session synced successfully:', data);
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                console.warn('[RiMS Sync] Session sync skipped/rejected:', errData.message || res.status);
             }
         } catch (err) {
             console.warn('[RiMS Sync] Auto-sync failed:', err);

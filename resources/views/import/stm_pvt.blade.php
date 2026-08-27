@@ -795,77 +795,69 @@
         // ==========================================
         // e-Claim Statement PVT Automation (stm_pvt)
         // ==========================================
-        function checkEclaimStmPvtStatus() {
-            $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning').addClass('bg-secondary-subtle text-secondary')
-                .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-            $('#eclaimStmPvtAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ e-Claim...');
-            $('#eclaimStmPvtAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ eclaim.nhso.go.th');
-            $('#btnBotStmPvtSearch').prop('disabled', true);
+        var eclaimStmPvtIsChecking = false;
+        var eclaimStmPvtIsConnected = false;
+
+        function checkEclaimStmPvtStatus(silent = false) {
+            if (eclaimStmPvtIsChecking) return;
+            eclaimStmPvtIsChecking = true;
+
+            if (!silent && !eclaimStmPvtIsConnected) {
+                $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning')
+                    .addClass('bg-secondary-subtle text-secondary')
+                    .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+                $('#eclaimStmPvtAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ e-Claim...');
+                $('#eclaimStmPvtAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ eclaim.nhso.go.th');
+                $('#btnBotStmPvtSearch').prop('disabled', true);
+            }
 
             $.ajax({
                 url: "{{ route('import.eclaim-bot.status') }}",
                 method: "POST",
                 data: { _token: "{{ csrf_token() }}" },
                 success: function(res) {
-                    if (res.connected) {
+                    eclaimStmPvtIsChecking = false;
+                    if (res && res.connected) {
+                        eclaimStmPvtIsConnected = true;
                         if (window.eclaimRetryTimer_checkEclaimStmPvtStatus) {
                             clearInterval(window.eclaimRetryTimer_checkEclaimStmPvtStatus);
                             window.eclaimRetryTimer_checkEclaimStmPvtStatus = null;
                         }
 
-        $(window).on('focus', function () {
-            if ($('#eclaimStmPvtBotModal').hasClass('show')) {
-                checkEclaimStmPvtStatus();
-            }
-        });
-
-        $('#eclaimStmPvtBotModal').on('hidden.bs.modal', function () {
-            if (window.eclaimRetryTimer_checkEclaimStmPvtStatus) {
-                clearInterval(window.eclaimRetryTimer_checkEclaimStmPvtStatus);
-                window.eclaimRetryTimer_checkEclaimStmPvtStatus = null;
-            }
-        });
-                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary').addClass('bg-success-subtle text-success')
+                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary')
+                            .addClass('bg-success-subtle text-success')
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
-                        $('#eclaimStmPvtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + res.user + '</span>');
-                        $('#eclaimStmPvtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + res.connected_at);
+                        $('#eclaimStmPvtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + (res.user || 'ผู้ใช้งาน e-Claim') + '</span>');
+                        $('#eclaimStmPvtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + (res.connected_at || '{{ date("Y-m-d H:i:s") }}'));
                         $('#btnEclaimStmPvtLogout').removeClass('d-none');
                         $('#btnBotStmPvtSearch').prop('disabled', false);
                     } else {
-                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
+                        eclaimStmPvtIsConnected = false;
+                        $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                            .addClass('bg-warning-subtle text-warning')
                             .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
                         $('#eclaimStmPvtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ');
                         $('#eclaimStmPvtAuthStatusSub').text(res.message || 'เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
                         $('#btnEclaimStmPvtLogout').addClass('d-none');
                         $('#btnBotStmPvtSearch').prop('disabled', true);
-                    }
-                
 
-                        // Auto-retry polling every 3s while modal is open
                         if (!window.eclaimRetryTimer_checkEclaimStmPvtStatus && $('#eclaimStmPvtBotModal').hasClass('show')) {
                             window.eclaimRetryTimer_checkEclaimStmPvtStatus = setInterval(function() {
-                                if ($('#eclaimStmPvtBotModal').hasClass('show')) {
-                                    $.ajax({
-                                        url: "{{ route('import.eclaim-bot.status') }}",
-                                        method: "POST",
-                                        data: { _token: "{{ csrf_token() }}" },
-                                        success: function(r) {
-                                            if (r && r.connected) {
-                                                clearInterval(window.eclaimRetryTimer_checkEclaimStmPvtStatus);
-                                                window.eclaimRetryTimer_checkEclaimStmPvtStatus = null;
-                                                checkEclaimStmPvtStatus();
-                                            }
-                                        }
-                                    });
+                                if ($('#eclaimStmPvtBotModal').hasClass('show') && !eclaimStmPvtIsConnected) {
+                                    checkEclaimStmPvtStatus(true);
                                 } else {
                                     clearInterval(window.eclaimRetryTimer_checkEclaimStmPvtStatus);
                                     window.eclaimRetryTimer_checkEclaimStmPvtStatus = null;
                                 }
-                            }, 3000);
+                            }, 4000);
                         }
-                    },
+                    }
+                },
                 error: function() {
-                    $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary').addClass('bg-warning-subtle text-warning')
+                    eclaimStmPvtIsChecking = false;
+                    eclaimStmPvtIsConnected = false;
+                    $('#eclaimStmPvtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                        .addClass('bg-warning-subtle text-warning')
                         .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
                     $('#eclaimStmPvtAuthStatusText').text('ไม่สามารถตรวจสอบสถานะการเชื่อมต่อ e-Claim ได้');
                     $('#eclaimStmPvtAuthStatusSub').text('กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใหม่อีกครั้ง');
@@ -874,6 +866,23 @@
                 }
             });
         }
+
+        $('#eclaimStmPvtBotModal').on('show.bs.modal', function () {
+            checkEclaimStmPvtStatus(false);
+        });
+
+        $('#eclaimStmPvtBotModal').on('hidden.bs.modal', function () {
+            if (window.eclaimRetryTimer_checkEclaimStmPvtStatus) {
+                clearInterval(window.eclaimRetryTimer_checkEclaimStmPvtStatus);
+                window.eclaimRetryTimer_checkEclaimStmPvtStatus = null;
+            }
+        });
+
+        $(window).on('focus', function () {
+            if ($('#eclaimStmPvtBotModal').hasClass('show') && !eclaimStmPvtIsConnected) {
+                checkEclaimStmPvtStatus(true);
+            }
+        });
 
         window.showEclaimExtensionGuide = function() {
             var apiUrl = "{{ url('/api') }}";
@@ -914,10 +923,6 @@
                 }
             });
         };
-
-        $('#eclaimStmPvtBotModal').on('show.bs.modal', function () {
-            checkEclaimStmPvtStatus();
-        });
 
         $('#btnEclaimStmPvtLoginPopup').on('click', function () {
             var loginUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';

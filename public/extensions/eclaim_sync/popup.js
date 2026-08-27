@@ -128,13 +128,16 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
                 }
             });
 
-            const [cUrl, cDomain, cNhso] = await Promise.all([
+            const [cUrl, cDomain, cNhso, cIam, cHome, cRoot] = await Promise.all([
                 getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
                 getCookiesFor({ domain: "eclaim.nhso.go.th" }),
-                getCookiesFor({ domain: ".nhso.go.th" })
+                getCookiesFor({ domain: ".nhso.go.th" }),
+                getCookiesFor({ domain: "iam.nhso.go.th" }),
+                getCookiesFor({ url: "https://eclaim.nhso.go.th/Client/home" }),
+                getCookiesFor({ url: "https://eclaim.nhso.go.th/" })
             ]);
 
-            [...(cUrl || []), ...(cDomain || []), ...(cNhso || [])].forEach(c => {
+            [...(cUrl || []), ...(cDomain || []), ...(cNhso || []), ...(cIam || []), ...(cHome || []), ...(cRoot || [])].forEach(c => {
                 if (c && c.name && c.value) {
                     cookieMap.set(c.name, c.value);
                 }
@@ -181,8 +184,9 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
             return;
         }
 
-        if (!cookieMap.has('JSESSIONID')) {
-            updateStatus("⚠️ ยังไม่ได้เข้าสู่ระบบ e-Claim กรุณาล็อกอินผ่าน ThaiD ก่อนซิงก์ครับ", "red");
+        const hasAuthToken = cookieMap.has('ACCESS_TOKEN') || cookieMap.has('STEEXWDE') || cookieMap.has('AUTH_SESSION_ID');
+        if (!cookieMap.has('JSESSIONID') || !hasAuthToken) {
+            updateStatus("⚠️ ยังไม่ได้เข้าสู่ระบบ e-Claim หรือยังอยู่ที่หน้าประกาศ SSO กรุณาล็อกอินให้ถึงหน้าหลักก่อนกดซิงก์ครับ", "red");
             return;
         }
 

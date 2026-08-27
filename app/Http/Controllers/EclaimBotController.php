@@ -146,63 +146,68 @@ class EclaimBotController extends Controller
 
         // ตรวจสอบความถูกต้องของ Token โดยตรงกับ e-Claim สปสช. ก่อนบันทึกทับ
         $user = 'เจ้าหน้าที่ e-Claim';
+        $serverHcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$serverHcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $serverHcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: '';
+        if (!$serverHname && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $serverHname = DB::table('opdconfig')->value('hospitalname') ?: '';
+        }
+
         try {
             $headers = $this->getEclaimBrowserHeaders($token);
             $probeUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
             $probeRes = Http::withHeaders($headers)
                 ->withoutVerifying()
-                ->timeout(8)
+                ->timeout(6)
                 ->get($probeUrl);
 
-            $html = (string)$probeRes->body();
-            // ถ้าติดหน้า Error Page หรือไม่มีสิทธิ์ หรือ Session ไม่ถูกต้อง
-            if ($probeRes->status() !== 200 || stripos($html, '<title>Error Page</title>') !== false || stripos($html, 'คุณไม่มีสิทธิ์เข้าใช้งาน') !== false) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Session นี้ยังไม่ได้ล็อกอิน e-Claim (ThaiD) หรือหมดอายุแล้ว ระบบจึงไม่บันทึกทับ Session เดิมในฐานข้อมูล'
-                ], 422);
-            }
+            if ($probeRes->status() === 200) {
+                $html = (string)$probeRes->body();
+                // ถ้าติดหน้า Error Page หรือไม่มีสิทธิ์เข้าใช้งานจริง
+                if (stripos($html, '<title>Error Page</title>') !== false || stripos($html, 'คุณไม่มีสิทธิ์เข้าใช้งาน') !== false) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Session นี้ยังไม่ได้ล็อกอิน e-Claim (ThaiD) หรือหมดอายุแล้ว ระบบจึงไม่บันทึกทับ Session เดิมในฐานข้อมูล'
+                    ], 422);
+                }
 
-            // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim
-            if (preg_match('/(?:ชื่อ|ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                $user = trim(strip_tags($m[1]));
+                // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim
+                if (preg_match('/(?:ชื่อ|ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                    $user = trim(strip_tags($m[1]));
+                } elseif (auth()->check()) {
+                    $user = auth()->user()->name;
+                }
+
+                // ตรวจจับรหัสสถานพยาบาล 5 หลัก จาก e-Claim HTML
+                $eclaimHcode = null;
+                if (preg_match('/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล|Hospcode|Hcode|รหัส)\s*[:：\-]?\s*(\d{5})/u', $html, $mHosp)) {
+                    $eclaimHcode = $mHosp[1];
+                } elseif (preg_match('/(?:\[|\()(\d{5})(?:\]|\))/u', $html, $mHosp)) {
+                    $eclaimHcode = $mHosp[1];
+                } elseif (preg_match('/\b(1\d{4})\b/', $html, $mHosp)) {
+                    $eclaimHcode = $mHosp[1];
+                }
+                if (!$eclaimHcode && $request->hospcode && preg_match('/^\d{5}$/', trim($request->hospcode))) {
+                    $eclaimHcode = trim($request->hospcode);
+                }
+
+                // ตรวจสอบ: ถ้ารหัส รพ. ฝั่ง e-Claim หรือ Extension ไม่ตรงกับ Server RiMS ให้แจ้งเตือนและบล็อกทันที
+                if (!empty($serverHcode) && !empty($eclaimHcode) && trim($serverHcode) !== trim($eclaimHcode)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "❌ รหัสสถานพยาบาลไม่ตรงกัน! บัญชี e-Claim นี้เป็นของ รพ. [{$eclaimHcode}] แต่ Server RiMS ปลายทางเป็นของ [{$serverHcode}" . ($serverHname ? " - {$serverHname}" : "") . "] กรุณาตรวจสอบว่าสลับ Server ปลายทางถูกต้อง หรือล็อกอินบัญชี e-Claim ตรงกับ รพ. หรือไม่"
+                    ], 422);
+                }
             } elseif (auth()->check()) {
                 $user = auth()->user()->name;
             }
-
-            // ตรวจจับรหัสสถานพยาบาล 5 หลัก จาก e-Claim HTML
-            $eclaimHcode = null;
-            if (preg_match('/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล|Hospcode|Hcode|รหัส)\s*[:：\-]?\s*(\d{5})/u', $html, $mHosp)) {
-                $eclaimHcode = $mHosp[1];
-            } elseif (preg_match('/(?:\[|\()(\d{5})(?:\]|\))/u', $html, $mHosp)) {
-                $eclaimHcode = $mHosp[1];
-            } elseif (preg_match('/\b(1\d{4})\b/', $html, $mHosp)) {
-                $eclaimHcode = $mHosp[1];
-            }
-            if (!$eclaimHcode && $request->hospcode && preg_match('/^\d{5}$/', trim($request->hospcode))) {
-                $eclaimHcode = trim($request->hospcode);
-            }
-
-            // ดึงรหัสสถานพยาบาลของ Server RiMS ปลายทาง
-            $serverHcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-            if (!$serverHcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-                $serverHcode = DB::table('opdconfig')->value('hospitalcode');
-            }
-            $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: '';
-            if (!$serverHname && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-                $serverHname = DB::table('opdconfig')->value('hospitalname') ?: '';
-            }
-
-            // ตรวจสอบ: ถ้ารหัส รพ. ฝั่ง e-Claim หรือ Extension ไม่ตรงกับ Server RiMS ให้แจ้งเตือนและบล็อกทันที
-            if (!empty($serverHcode) && !empty($eclaimHcode) && trim($serverHcode) !== trim($eclaimHcode)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "❌ รหัสสถานพยาบาลไม่ตรงกัน! บัญชี e-Claim นี้เป็นของ รพ. [{$eclaimHcode}] แต่ Server RiMS ปลายทางเป็นของ [{$serverHcode}" . ($serverHname ? " - {$serverHname}" : "") . "] กรุณาตรวจสอบว่าสลับ Server ปลายทางถูกต้อง หรือล็อกอินบัญชี e-Claim ตรงกับ รพ. หรือไม่"
-                ], 422);
-            }
-
         } catch (\Exception $e) {
-            // กรณีเซิร์ฟเวอร์ชั่วคราว
+            // กรณีเซิร์ฟเวอร์ชั่วคราว หรือติด Firewall ขาออก ยอมให้บันทึก Token จาก Extension ได้
+            if (auth()->check()) {
+                $user = auth()->user()->name;
+            }
         }
 
         $hcode = $serverHcode ?: ($request->hospcode ?: '10989');
@@ -268,64 +273,68 @@ class EclaimBotController extends Controller
             ]);
         }
 
+        // ตรวจสอบความสดใหม่ของ Session (ซิงก์มาไม่เกิน 4 ชั่วโมง)
+        $isFreshSession = false;
+        if ($sessionTime) {
+            $timeDiff = time() - strtotime($sessionTime);
+            if ($timeDiff >= 0 && $timeDiff <= 14400) { // 4 ชั่วโมง
+                $isFreshSession = true;
+            }
+        }
+
         // Live Probe: ทดสอบยิงไปตรวจสอบกับระบบ e-Claim สปสช. จริงก่อนแสดงสถานะเชื่อมต่อสำเร็จ
+        $probePassed = false;
         try {
             $headers = $this->getEclaimBrowserHeaders($sessionToken);
             $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
             
-            // 1. ลอง Probe ด้วยหน้าหลัก MainWebAction (โหลดเร็ว ไม่ต้อง Query ฐานข้อมูลหนัก)
+            // 1. ลอง Probe ด้วยหน้าหลัก MainWebAction (timeout 8s กระชับ ไม่ค้าง)
             $probeRes = Http::withHeaders($headers)
                 ->withoutVerifying()
-                ->timeout(15)
+                ->timeout(8)
                 ->get($probeUrl);
 
             $html = (string)$probeRes->body();
 
-            // ถ้า e-Claim ตอบกลับว่าไม่มีสิทธิ์ หรือติดหน้า Error Page / SSO Login
+            // ตรวจสอบว่า Probe ผ่าน (ได้รับหน้าเว็บ e-Claim ที่สมบูรณ์)
             if (
-                $probeRes->status() !== 200 || 
-                stripos($html, 'Error Page') !== false || 
-                stripos($html, 'frmErr') !== false || 
-                stripos($html, 'คุณไม่มีสิทธิ์') !== false ||
-                stripos($html, 'ประกาศใช้งานระบบ SSO') !== false ||
-                (stripos($html, 'Logout') === false && stripos($html, 'ออกจากระบบ') === false && stripos($html, 'ผู้ใช้งาน') === false && stripos($html, 'ชื่อ :') === false && stripos($html, 'หน่วยงาน') === false)
+                $probeRes->status() === 200 &&
+                stripos($html, 'Error Page') === false &&
+                stripos($html, 'frmErr') === false &&
+                stripos($html, 'คุณไม่มีสิทธิ์') === false &&
+                stripos($html, 'ประกาศใช้งานระบบ SSO') === false &&
+                (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ผู้ใช้งาน') !== false || stripos($html, 'ชื่อ :') !== false || stripos($html, 'หน่วยงาน') !== false)
             ) {
-                return response()->json([
-                    'connected' => false,
-                    'message' => 'Session e-Claim หมดอายุหรือไม่สามารถเข้าถึงได้ (กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session" ใหม่อีกครั้ง)'
-                ]);
-            }
-
-            // ดึงชื่อผู้ใช้งานหากมี
-            if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                $sessionUser = trim(strip_tags($m[1]));
+                $probePassed = true;
+                // ดึงชื่อผู้ใช้งานหากมี
+                if (preg_match('/(?:ผู้ใช้งาน|ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                    $sessionUser = trim(strip_tags($m[1]));
+                }
             }
 
         } catch (\Exception $e) {
-            // กรณีเครือข่ายเชื่อมต่อไม่ได้หรือ Timeout
-            $errMsg = $e->getMessage();
-            if (stripos($errMsg, 'timed out') !== false || stripos($errMsg, 'cURL error 28') !== false) {
-                $friendlyMsg = 'เซิร์ฟเวอร์ e-Claim สปสช. ตอบสนองช้าชั่วคราว (Network Timeout) หรือ Session อาจหมดอายุ กรุณากดปุ่ม "ซิงก์ Session" จาก Extension ใหม่อีกครั้ง';
-            } else {
-                $friendlyMsg = 'ไม่สามารถติดต่อเซิร์ฟเวอร์ e-Claim ได้: ' . $errMsg;
-            }
+            // กรณีเครือข่ายเชื่อมต่อไม่ได้หรือ Timeout จาก Firewall
+            $probePassed = false;
+        }
+
+        // หาก Probe ผ่าน หรือ ถ้าเป็น Fresh Session ที่เพิ่งซิงก์จาก Extension (Graceful Fallback สำหรับ Server ที่ติด Firewall)
+        if ($probePassed || $isFreshSession) {
+            Session::put('eclaim_session_token', $sessionToken);
+            Session::put('eclaim_session_user', $sessionUser);
+            Session::put('eclaim_session_time', $sessionTime);
 
             return response()->json([
-                'connected' => false,
-                'message' => $friendlyMsg
+                'connected' => true,
+                'user' => $sessionUser,
+                'connected_at' => $sessionTime,
+                'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
             ]);
         }
 
-        // Auto-populate Session so subsequent calls in this request cycle are quick
-        Session::put('eclaim_session_token', $sessionToken);
-        Session::put('eclaim_session_user', $sessionUser);
-        Session::put('eclaim_session_time', $sessionTime);
-
+        // กรณี Session เก่าเกิน 4 ชม. และ Probe ไม่ผ่าน
         return response()->json([
-            'connected' => true,
-            'user' => $sessionUser,
-            'connected_at' => $sessionTime,
-            'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
+            'connected' => false,
+            'message' => 'Session e-Claim หมดอายุหรือไม่สามารถเข้าถึงได้ (กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session" ใหม่อีกครั้ง)'
         ]);
     }
 
@@ -471,8 +480,10 @@ class EclaimBotController extends Controller
     {
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         
-        // 1. Clear Database
-        DB::table('main_setting')->whereIn('name', ['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'])->delete();
+        // 1. Clear Database (Update ค่าเป็นว่าง แทนการลบ record เพื่อรักษาโครงสร้างตารางไว้)
+        DB::table('main_setting')
+            ->whereIn('name', ['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'])
+            ->update(['value' => '']);
 
         // 2. Clear Cache
         \Illuminate\Support\Facades\Cache::forget('eclaim_session_token_' . $hcode);
@@ -485,7 +496,7 @@ class EclaimBotController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'ตัดการเชื่อมต่อกับระบบ e-Claim เรียบร้อยแล้ว (ลบออกจากฐานข้อมูลและทุกหน้าจอ)'
+            'message' => 'ตัดการเชื่อมต่อกับระบบ e-Claim เรียบร้อยแล้ว'
         ]);
     }
 

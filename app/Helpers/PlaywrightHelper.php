@@ -423,7 +423,7 @@ class PlaywrightHelper
         } else {
             $logFile = storage_path('logs/thaid_bot_' . $sessionId . '.log');
             $customPath = static::getCustomBrowsersPath();
-            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=\"{$customPath}\" && export HOME=/tmp && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
+            $cmd = "nohup env PLAYWRIGHT_BROWSERS_PATH=\"{$customPath}\" HOME=/tmp {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} </dev/null > \"{$logFile}\" 2>&1 &";
             exec($cmd);
         }
 

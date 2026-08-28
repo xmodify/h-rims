@@ -1,20 +1,3 @@
-try {
-    const fs = require('fs');
-    const path = require('path');
-    const { chromium } = require('playwright');
-    let hasValidDefault = false;
-    try {
-        if (fs.existsSync(chromium.executablePath())) {
-            hasValidDefault = true;
-        }
-    } catch (e) {}
-
-    if (!hasValidDefault) {
-        const storageBrowserPath = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
-        process.env.PLAYWRIGHT_BROWSERS_PATH = storageBrowserPath;
-    }
-} catch (e) {}
-
 /**
  * KTB Corporate Online EDC Crawler (Playwright Script)
  * Automates login, navigation, report search, and downloading text/zip files.
@@ -82,9 +65,19 @@ function findChromiumExecutable() {
             const hTarget = process.platform === 'win32' ? 'chrome-headless-shell.exe' : 'chrome-headless-shell';
             const cTarget = process.platform === 'win32' ? 'chrome.exe' : 'chrome';
             const fH = rec(dir, hTarget);
-            if (fH) return fH;
+            if (fH) {
+                if (process.platform !== 'win32') {
+                    try { fs.chmodSync(fH, 0o755); } catch(e) {}
+                }
+                return fH;
+            }
             const fC = rec(dir, cTarget);
-            if (fC) return fC;
+            if (fC) {
+                if (process.platform !== 'win32') {
+                    try { fs.chmodSync(fC, 0o755); } catch(e) {}
+                }
+                return fC;
+            }
         }
     } catch(e) {}
     try {

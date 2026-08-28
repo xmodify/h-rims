@@ -21,12 +21,20 @@ class F16EclaimExportController extends Controller
         }
 
         $vns = $request->input('vns', []);
-        if (empty($vns) || !is_array($vns)) {
+        if (is_string($vns)) {
+            $decoded = json_decode($vns, true);
+            $vns = is_array($decoded) ? $decoded : explode(',', $vns);
+        }
+        $vns = array_values(array_filter(array_unique((array)$vns)));
+        if (empty($vns)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งออก'
             ], 422);
         }
+
+        @ini_set('max_execution_time', 0);
+        @ini_set('memory_limit', '512M');
 
         try {
             $result = F16EclaimExportService::generate16Files($vns);
@@ -49,7 +57,7 @@ class F16EclaimExportController extends Controller
                     $rows[] = explode('|', $line);
                 }
                 $headers[$key] = count($rows) > 0 ? $rows[0] : [];
-                $tables[$key] = count($rows) > 1 ? array_slice($rows, 1) : [];
+                $tables[$key] = count($rows) > 1 ? array_slice($rows, 1, 100) : [];
             }
 
             return response()->json([
@@ -59,6 +67,7 @@ class F16EclaimExportController extends Controller
                 'tables' => $tables,
                 'raw_files' => $rawFiles,
                 'total_visits' => $result['total_visits'],
+                'subfolder_name' => $result['subfolder_name'] ?? ('F16_' . ($request->input('claim_code', 'OFC')) . '_' . date('Ymd_Hi')),
                 'hcode' => $result['hcode']
             ]);
         } catch (\Throwable $e) {
@@ -83,12 +92,20 @@ class F16EclaimExportController extends Controller
 
         $vns = $request->input('vns', []);
         $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
-        if (empty($vns) || !is_array($vns)) {
+        if (is_string($vns)) {
+            $decoded = json_decode($vns, true);
+            $vns = is_array($decoded) ? $decoded : explode(',', $vns);
+        }
+        $vns = array_values(array_filter(array_unique((array)$vns)));
+        if (empty($vns)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งออก'
             ], 422);
         }
+
+        @ini_set('max_execution_time', 0);
+        @ini_set('memory_limit', '512M');
 
         try {
             $result = F16EclaimExportService::generate16Files($vns);

@@ -130,52 +130,78 @@
         // Fallback for any legacy onclick handlers
     }
 
-    // ฟังก์ชันรวบรวม VN ที่ถูกเลือกและเปิด Modal ส่งออก 16 แฟ้ม
+    // ฟังก์ชันรวบรวม VN ที่ถูกเลือกและเปิด Modal ส่งออก 16 แฟ้ม (แยกตาม Tab ที่กำลังเปิดดูอยู่)
     function exportSelectedF16OFC() {
         let checkedVns = [];
         
-        // ค้นหา Checkbox ที่ถูกติ๊กในแท็บที่เปิดอยู่ก่อน
-        const activePane = $('.tab-pane.active');
-        let checkboxes = activePane.find('.chk_f16_visit:checked');
-        
-        if (checkboxes.length === 0) {
-            checkboxes = $('.chk_f16_visit:checked');
+        // 1. ตรวจสอบว่ากำลังเปิดดู Tab ไหนอยู่ (#search หรือ #claim)
+        let activeTableId = '#t_search';
+        const activeTabBtn = document.querySelector('#myTab .nav-link.active, #search-tab.active, #claim-tab.active');
+        if (activeTabBtn) {
+            const target = activeTabBtn.getAttribute('data-bs-target') || activeTabBtn.getAttribute('href');
+            if (target === '#claim' || activeTabBtn.id === 'claim-tab') {
+                activeTableId = '#t_claim';
+            }
+        } else if ($('#claim').hasClass('active') || $('#claim').hasClass('show')) {
+            activeTableId = '#t_claim';
+        }
+
+        // 2. ดึงเฉพาะ Checkbox ใน Tab ที่กำลังเปิดดูอยู่เท่านั้น (ครอบคลุมทุกหน้าของ DataTables ใน Tab นั้น)
+        if ($(activeTableId).length > 0 && $.fn.DataTable.isDataTable(activeTableId)) {
+            const dt = $(activeTableId).DataTable();
+            $(dt.$('.chk_f16_visit:checked')).each(function() {
+                const vn = $(this).val();
+                if (vn && !checkedVns.includes(vn)) {
+                    checkedVns.push(vn);
+                }
+            });
         }
         
-        checkboxes.each(function() {
-            const vn = $(this).val();
-            if (vn && !checkedVns.includes(vn)) {
-                checkedVns.push(vn);
-            }
-        });
+        // Fallback หากไม่พบจาก DataTable API ให้หาจาก DOM เฉพาะใน Tab นั้น
+        if (checkedVns.length === 0) {
+            const paneSelector = activeTableId === '#t_claim' ? '#claim' : '#search';
+            $(`${paneSelector} .chk_f16_visit:checked`).each(function() {
+                const vn = $(this).val();
+                if (vn && !checkedVns.includes(vn)) {
+                    checkedVns.push(vn);
+                }
+            });
+        }
 
         if (checkedVns.length === 0) {
+            const tabName = activeTableId === '#t_claim' ? 'ส่ง Claim แล้ว' : 'รอส่ง Claim';
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'warning',
                     title: 'ยังไม่ได้เลือกรายการ',
-                    text: 'กรุณาติ๊กเลือก Checkbox หน้ารายชื่อผู้ป่วยที่ต้องการส่งออก 16 แฟ้ม',
+                    text: `กรุณาติ๊กเลือก Checkbox ในแท็บ "${tabName}" เพื่อส่งออก 16 แฟ้ม`,
                     confirmButtonText: 'ตกลง',
                     confirmButtonColor: '#0d6efd'
                 });
             } else {
-                alert('กรุณาติ๊กเลือก Checkbox หน้ารายชื่อผู้ป่วยที่ต้องการส่งออก 16 แฟ้ม');
+                alert(`กรุณาติ๊กเลือก Checkbox ในแท็บ "${tabName}" เพื่อส่งออก 16 แฟ้ม`);
             }
             return;
         }
 
+        const tabTitle = activeTableId === '#t_claim' ? 'OP-OFC ส่ง Claim แล้ว' : 'OP-OFC รอส่ง Claim';
         window.openF16EclaimExportModal({
             vns: checkedVns,
             claimCode: 'OFC',
-            claimTitle: 'OP-OFC (ข้าราชการ กรมบัญชีกลาง)'
+            claimTitle: `${tabTitle} (ข้าราชการ กรมบัญชีกลาง)`
         });
     }
 
-    // จัดการ Event Select All Checkboxes
+    // จัดการ Event Select All Checkboxes (เลือกเฉพาะรายการในหน้าที่กำลังแสดงอยู่ เช่น 200 รายการ หรือ ทั้งหมด)
     $(document).on('change', '.select_all_f16', function() {
         const isChecked = $(this).is(':checked');
         const table = $(this).closest('table');
-        table.find('.chk_f16_visit').prop('checked', isChecked);
+        if (table.length > 0 && (table.attr('id') === 't_search' || table.attr('id') === 't_claim') && $.fn.DataTable.isDataTable(table)) {
+            const dt = table.DataTable();
+            $(dt.$('.chk_f16_visit', { page: 'current' })).prop('checked', isChecked);
+        } else {
+            table.find('.chk_f16_visit').prop('checked', isChecked);
+        }
     });
 
     function copyToClipboard(text) {
@@ -319,6 +345,10 @@
                 // Initialize Datatables
                 var dt_search = $('#t_search').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
+                    columnDefs: [
+                        { orderable: false, targets: 'no-sort' }
+                    ],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -336,6 +366,10 @@
 
                 var dt_claim = $('#t_claim').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
+                    columnDefs: [
+                        { orderable: false, targets: 'no-sort' }
+                    ],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -369,9 +403,9 @@
                 }
 
                 // Adjust column headers on tab switch
-                $('button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
-                    dt_search.columns.adjust().draw(false);
-                    dt_claim.columns.adjust().draw(false);
+                $('#myTab button[data-bs-toggle="pill"], #myTab button[data-bs-toggle="tab"]').on('shown.bs.tab shown.bs.pill', function () {
+                    if ($.fn.DataTable.isDataTable('#t_search')) dt_search.columns.adjust().draw(false);
+                    if ($.fn.DataTable.isDataTable('#t_claim')) dt_claim.columns.adjust().draw(false);
                 });
 
                 // Draw/Update Chart

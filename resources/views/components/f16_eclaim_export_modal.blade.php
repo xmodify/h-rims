@@ -45,7 +45,7 @@
                     <i class="bi bi-box-arrow-up-right fs-4 text-warning"></i>
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="f16EclaimExportModalLabel">
-                            ส่งออกข้อมูลมาตรฐาน 16 แฟ้ม (e-Claim)
+                            ส่งออกข้อมูลมาตรฐาน 16/17 แฟ้ม (e-Claim)
                         </h5>
                         <div class="d-flex align-items-center gap-2 mt-1">
                             <span class="badge bg-white text-dark fw-bold" id="f16ModalClaimTitle">OFC (กรมบัญชีกลาง)</span>
@@ -62,13 +62,13 @@
                 <!-- Loading State -->
                 <div id="f16LoadingOverlay" class="text-center py-5">
                     <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem; color: #0e939a !important;" role="status"></div>
-                    <h6 class="fw-bold text-dark mb-1">กำลังประมวลผลและดึงข้อมูล 16 แฟ้มจาก HOSxP...</h6>
-                    <p class="text-muted small">ระบบกำลังเตรียมไฟล์ INS, PAT, OPD, DRU, CHA, CHT, ADP ฯลฯ กรุณารอสักครู่</p>
+                    <h6 class="fw-bold text-dark mb-1">กำลังประมวลผลและดึงข้อมูล 17 แฟ้มจาก HOSxP...</h6>
+                    <p class="text-muted small">ระบบกำลังเตรียมไฟล์ INS, PAT, OPD, IPD, DRU, CHA, CHT, ADP, LVD, LAB ฯลฯ กรุณารอสักครู่</p>
                 </div>
 
                 <!-- Main Content Area (Hidden while loading) -->
                 <div id="f16MainContent" style="display: none;">
-                    <!-- 11 OP Tabs Bar -->
+                    <!-- 17 Tabs Bar (e-Claim Standard) -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body p-2 bg-white rounded">
                             <ul class="nav nav-pills nav-fill flex-wrap gap-1" id="f16Tabs" role="tablist">
@@ -96,7 +96,7 @@
                                             'key' => 'ORF', 
                                             'name' => 'ORF', 
                                             'desc' => 'ส่งต่อผู้ป่วยนอก',
-                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'REFER', 'REFERTYPE', 'SEQ']
+                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'REFER', 'REFERTYPE', 'SEQ', 'REFERDATE']
                                         ],
                                         [
                                             'key' => 'ODX', 
@@ -111,16 +111,28 @@
                                             'headers' => ['HN', 'DATEOPD', 'CLINIC', 'OPER', 'DROPID', 'PERSON_ID', 'SEQ']
                                         ],
                                         [
-                                            'key' => 'DRU', 
-                                            'name' => 'DRU', 
-                                            'desc' => 'รายการสั่งใช้ยา',
-                                            'headers' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRICE', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGTYPE', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL']
+                                            'key' => 'IPD', 
+                                            'name' => 'IPD', 
+                                            'desc' => 'ข้อมูลผู้ป่วยใน',
+                                            'headers' => ['HN', 'AN', 'DATEADM', 'TIMEADM', 'DATEDSC', 'TIMEDSC', 'DISCHS', 'DISCHT', 'WARDDSC', 'DEPT', 'ADM_W', 'UUC', 'SVCTYPE']
                                         ],
                                         [
-                                            'key' => 'CHA', 
-                                            'name' => 'CHA', 
-                                            'desc' => 'ค่าบริการ 16 หมวด สปสช.',
-                                            'headers' => ['HN', 'AN', 'DATE', 'CHRGITEM', 'AMOUNT', 'PERSON_ID', 'SEQ']
+                                            'key' => 'IRF', 
+                                            'name' => 'IRF', 
+                                            'desc' => 'ส่งต่อผู้ป่วยใน',
+                                            'headers' => ['AN', 'REFER', 'REFERTYPE']
+                                        ],
+                                        [
+                                            'key' => 'IDX', 
+                                            'name' => 'IDX', 
+                                            'desc' => 'วินิจฉัยโรค IPD',
+                                            'headers' => ['AN', 'DIAG', 'DXTYPE', 'DRDX']
+                                        ],
+                                        [
+                                            'key' => 'IOP', 
+                                            'name' => 'IOP', 
+                                            'desc' => 'หัตถการ IPD',
+                                            'headers' => ['AN', 'OPER', 'OPTYPE', 'DROPID', 'DATEIN', 'TIMEIN', 'DATEOUT', 'TIMEOUT']
                                         ],
                                         [
                                             'key' => 'CHT', 
@@ -129,9 +141,15 @@
                                             'headers' => ['HN', 'AN', 'DATE', 'TOTAL', 'PAID', 'PTTYPE', 'PERSON_ID', 'SEQ']
                                         ],
                                         [
+                                            'key' => 'CHA', 
+                                            'name' => 'CHA', 
+                                            'desc' => 'ค่าบริการ 16 หมวด สปสช.',
+                                            'headers' => ['HN', 'AN', 'DATE', 'CHRGITEM', 'AMOUNT', 'PERSON_ID', 'SEQ']
+                                        ],
+                                        [
                                             'key' => 'AER', 
                                             'name' => 'AER', 
-                                            'desc' => 'อุบัติเหตุและฉุกเฉิน',
+                                            'desc' => 'อุบัติเหตุ ฉุกเฉิน และรับส่งต่อ',
                                             'headers' => ['HN', 'AN', 'DATEOPD', 'AUTHAE', 'AEDATE', 'AETIME', 'AETYPE', 'REFER_NO', 'REFMAINI', 'IREFTYPE', 'REFMAINO', 'OREFTYPE', 'UCAE', 'EMTYPE', 'SEQ', 'AESTATUS', 'DALERT', 'TALERT']
                                         ],
                                         [
@@ -139,6 +157,24 @@
                                             'name' => 'ADP', 
                                             'desc' => 'บริการเสริม/อุปกรณ์/PPFS',
                                             'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM', 'CHECK_KEY', 'GUID']
+                                        ],
+                                        [
+                                            'key' => 'LVD', 
+                                            'name' => 'LVD', 
+                                            'desc' => 'วันลากลับบ้าน (Leave Day)',
+                                            'headers' => ['SEQLVD', 'AN', 'DATEOUT', 'TIMEOUT', 'DATEIN', 'TIMEIN', 'QTYDAY']
+                                        ],
+                                        [
+                                            'key' => 'DRU', 
+                                            'name' => 'DRU', 
+                                            'desc' => 'รายการสั่งใช้ยา',
+                                            'headers' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRICE', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGTYPE', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL']
+                                        ],
+                                        [
+                                            'key' => 'LAB', 
+                                            'name' => 'LAB', 
+                                            'desc' => 'ผลตรวจแล็บโรคเรื้อรัง (LABFU)',
+                                            'headers' => ['HCODE', 'HN', 'PERSON_ID', 'DATESERV', 'SEQ', 'LABTEST', 'LABRESULT']
                                         ],
                                     ];
                                 @endphp
@@ -151,9 +187,9 @@
                                             data-bs-target="#f16-pane-{{ $tab['key'] }}" 
                                             type="button" 
                                             role="tab"
-                                            style="font-size: 0.78rem; min-width: 65px;">
+                                            style="font-size: 0.76rem; min-width: 58px;">
                                         <div class="fw-bold">{{ $tab['name'] }}</div>
-                                        <span class="badge rounded-pill bg-secondary text-white f16-badge-count mt-1" id="badge-count-{{ $tab['key'] }}" style="font-size: 0.68rem;">0</span>
+                                        <span class="badge rounded-pill bg-light text-secondary border f16-badge-count mt-1" id="badge-count-{{ $tab['key'] }}" style="font-size: 0.68rem;">0</span>
                                     </button>
                                 </li>
                                 @endforeach
@@ -183,7 +219,7 @@
                                             <thead>
                                                 <tr>
                                                     @foreach($tab['headers'] as $colIdx => $headerTitle)
-                                                    <th class="f16-sortable-th" onclick="sortF16Table('{{ $tab['key'] }}', {{ $colIdx }})" title="คลิกเพื่อเรียงตาม {{ $headerTitle }}">
+                                                     <th class="f16-sortable-th" onclick="sortF16Table('{{ $tab['key'] }}', {{ $colIdx }})" title="คลิกเพื่อเรียงตาม {{ $headerTitle }}">
                                                         <div class="d-flex align-items-center justify-content-between gap-1">
                                                             <span>{{ $headerTitle }}</span>
                                                             <span class="sort-icon text-muted small"><i class="bi bi-arrow-down-up"></i></span>
@@ -203,7 +239,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Collapsible Raw Text Section (Like SSOP) -->
+                                <!-- Collapsible Raw Text Section -->
                                 <div class="card-footer bg-light border-top p-0">
                                     <button class="btn btn-sm btn-light w-100 text-start d-flex justify-content-between align-items-center py-2 px-3 text-secondary border-0" 
                                             type="button" 
@@ -248,7 +284,7 @@
                                 </label>
                             </div>
                             <span class="text-muted small">
-                                <i class="bi bi-info-circle me-1"></i>เขียนไฟล์ .txt ทั้ง 11 แฟ้มลงโฟลเดอร์โดยตรง
+                                <i class="bi bi-info-circle me-1"></i>เขียนไฟล์ .txt ทั้ง 17 แฟ้ม e-Claim ลงโฟลเดอร์โดยตรง
                             </span>
                         </div>
                     </div>
@@ -265,7 +301,7 @@
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
                     <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;">
-                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">เลือกโฟลเดอร์และส่งออก (11 แฟ้ม OP .txt)</span>
+                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">เลือกโฟลเดอร์และส่งออก (17 แฟ้ม e-Claim .txt)</span>
                     </button>
                 </div>
             </div>
@@ -486,7 +522,7 @@
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                vns: vns,
+                vns: JSON.stringify(vns),
                 claim_code: claimCode
             },
             success: function(res) {
@@ -504,9 +540,10 @@
                     window._f16ExportState.tables = tables;
                     window._f16ExportState.rawFiles = rawFiles;
                     window._f16ExportState.counts = counts;
+                    window._f16ExportState.subfolderName = res.subfolder_name || ('F16_' + claimCode + '_' + Date.now());
 
-                    // Update Tab Badges, Tables, and Raw Text (11 OP Files)
-                    const keys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
+                    // Update Tab Badges, Tables, and Raw Text (All 17 e-Claim Files)
+                    const keys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'CHT', 'CHA', 'AER', 'ADP', 'LVD', 'DRU', 'LAB'];
                     keys.forEach(function(k) {
                         const count = counts[k] || 0;
                         const badgeEl = $('#badge-count-' + k);
@@ -517,10 +554,10 @@
                         paneCountEl.text(count + ' แถว');
 
                         if (count > 0) {
-                            badgeEl.removeClass('bg-secondary').addClass('text-white').css('background-color', '#0e939a');
+                            badgeEl.removeClass('bg-light text-secondary border').addClass('text-white border-0').css('background-color', '#0e939a');
                             rawTextarea.val(rawFiles[k] || '');
                         } else {
-                            badgeEl.removeClass('text-white').addClass('bg-secondary').css('background-color', '');
+                            badgeEl.removeClass('text-white border-0').addClass('bg-light text-secondary border').css('background-color', '');
                             rawTextarea.val('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
                         }
 
@@ -533,9 +570,9 @@
                     $('#f16-tab-INS').trigger('click');
                 } else {
                     if (typeof Swal !== 'undefined') {
-                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถประมวลผล 16 แฟ้มได้', 'error');
+                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถประมวลผล 17 แฟ้มได้', 'error');
                     } else {
-                        alert(res.message || 'ไม่สามารถประมวลผล 16 แฟ้มได้');
+                        alert(res.message || 'ไม่สามารถประมวลผล 17 แฟ้มได้');
                     }
                 }
             },
@@ -555,7 +592,7 @@
     };
 
     /**
-     * บันทึกไฟล์ .txt ทั้ง 11 แฟ้ม OP ลงโฟลเดอร์โดยตรงผ่าน File System Access API
+     * บันทึกไฟล์ .txt ทั้ง 17 แฟ้ม e-Claim ลงโฟลเดอร์โดยตรงผ่าน File System Access API
      */
     window.executeF16DirectoryExport = async function() {
         const state = window._f16ExportState;
@@ -598,97 +635,123 @@
         const btn = $('#btnExecuteF16Export');
         const originalBtnHtml = btn.html();
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>กำลังบันทึกไฟล์...');
-        $('#f16ExportProgressText').text('⏳ กำลังดึงข้อมูลเนื้อหาเต็มทั้ง 11 แฟ้ม...');
+        $('#f16ExportProgressText').text('⏳ กำลังเขียนไฟล์ .txt ทั้ง 17 แฟ้มลงโฟลเดอร์...');
 
-        // 2. Fetch Full File Content from Server
+        const writeFilesToDirectory = async function(files, subfolderName) {
+            const createSubfolder = $('#f16CreateSubfolderSwitch').is(':checked');
+            try {
+                // Determine Target Directory
+                let targetDir = dirHandle;
+                if (createSubfolder) {
+                    targetDir = await dirHandle.getDirectoryHandle(subfolderName, { create: true });
+                }
+
+                // Write each of the 17 .txt files
+                const fileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'CHT', 'CHA', 'AER', 'ADP', 'LVD', 'DRU', 'LAB'];
+                let writtenFiles = 0;
+
+                for (const k of fileKeys) {
+                    const fileName = k + '.txt';
+                    const fileContent = files[k] || '';
+                    
+                    // Create or overwrite file
+                    const fileHandle = await targetDir.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    
+                    // Write UTF-8 string
+                    await writable.write(fileContent);
+                    await writable.close();
+                    writtenFiles++;
+
+                    // Also export LABFU.txt alias if k === 'LAB' for backward compatibility
+                    if (k === 'LAB') {
+                        const labfuHandle = await targetDir.getFileHandle('LABFU.txt', { create: true });
+                        const labfuWritable = await labfuHandle.createWritable();
+                        await labfuWritable.write(fileContent);
+                        await labfuWritable.close();
+                    }
+                }
+
+                btn.prop('disabled', false).html(originalBtnHtml);
+                $('#f16ExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งออกสำเร็จครบ 17 แฟ้ม e-Claim</span>');
+
+                // Show Success Notification
+                const folderDisplay = createSubfolder ? subfolderName : dirHandle.name;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งออก 16/17 แฟ้ม (e-Claim) สำเร็จเรียบร้อย!',
+                        html: `
+                            <div class="text-start p-3 bg-light rounded small mt-2">
+                                <div class="mb-1"><b>📁 โฟลเดอร์:</b> <code class="text-primary fs-6">${folderDisplay}</code></div>
+                                <div class="mb-1"><b>📄 จำนวนไฟล์:</b> ครบ 17 แฟ้มมาตรฐาน e-Claim (.txt)</div>
+                                <div class="mb-0"><b>👥 ผู้รับบริการ:</b> ${state.vns.length} รายการ</div>
+                            </div>
+                            <div class="mt-3 text-muted small">
+                                เปิดหน้า <b>e-Claim (import16)</b> แล้วกดปุ่ม <b>[ แนบไฟล์ ]</b> เพื่อเลือกไฟล์ทั้งหมดไปนำเข้าได้ทันที
+                            </div>
+                        `,
+                        confirmButtonText: 'รับทราบ',
+                        confirmButtonColor: '#0e939a'
+                    });
+                } else {
+                    alert('ส่งออกสำเร็จเรียบร้อยที่โฟลเดอร์: ' + folderDisplay);
+                }
+            } catch (writeErr) {
+                btn.prop('disabled', false).html(originalBtnHtml);
+                $('#f16ExportProgressText').text('');
+                console.error('File Writing Error:', writeErr);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('เกิดข้อผิดพลาดในการเขียนไฟล์', writeErr.message, 'error');
+                } else {
+                    alert('เกิดข้อผิดพลาดในการเขียนไฟล์: ' + writeErr.message);
+                }
+            }
+        };
+
+        // If raw files are already loaded in memory, write immediately
+        if (state.rawFiles && Object.keys(state.rawFiles).length > 0) {
+            const subfolderName = state.subfolderName || ('F16_' + state.claimCode + '_' + Date.now());
+            await writeFilesToDirectory(state.rawFiles, subfolderName);
+            return;
+        }
+
+        // Otherwise, fetch from server as fallback
         $.ajax({
             url: '{{ route("f16_eclaim_export.export_data") }}',
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                vns: state.vns,
+                vns: JSON.stringify(state.vns),
                 claim_code: state.claimCode
             },
             success: async function(res) {
                 if (res.status === 'success') {
                     const files = res.files || {};
-                    const counts = res.counts || {};
                     const subfolderName = res.subfolder_name || ('F16_' + state.claimCode + '_' + Date.now());
-                    const createSubfolder = $('#f16CreateSubfolderSwitch').is(':checked');
-
-                    try {
-                        // 3. Determine Target Directory
-                        let targetDir = dirHandle;
-                        if (createSubfolder) {
-                            targetDir = await dirHandle.getDirectoryHandle(subfolderName, { create: true });
-                        }
-
-                        $('#f16ExportProgressText').text('⏳ กำลังเขียนไฟล์ .txt ทั้ง 11 แฟ้มลงโฟลเดอร์...');
-
-                        // 4. Write each of the 11 OP .txt files
-                        const fileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
-                        let writtenFiles = 0;
-
-                        for (const k of fileKeys) {
-                            const fileName = k + '.txt';
-                            const fileContent = files[k] || '';
-                            
-                            // Create or overwrite file
-                            const fileHandle = await targetDir.getFileHandle(fileName, { create: true });
-                            const writable = await fileHandle.createWritable();
-                            
-                            // Write UTF-8 string
-                            await writable.write(fileContent);
-                            await writable.close();
-                            writtenFiles++;
-                        }
-
-                        btn.prop('disabled', false).html(originalBtnHtml);
-                        $('#f16ExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งออกสำเร็จครบ 11 แฟ้ม</span>');
-
-                        // 5. Show Success Notification
-                        const folderDisplay = createSubfolder ? subfolderName : dirHandle.name;
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'ส่งออก 16 แฟ้ม (e-Claim) สำเร็จเรียบร้อย!',
-                                html: `
-                                    <div class="text-start p-3 bg-light rounded small mt-2">
-                                        <div class="mb-1"><b>📁 โฟลเดอร์:</b> <code class="text-primary fs-6">${folderDisplay}</code></div>
-                                        <div class="mb-1"><b>📄 จำนวนไฟล์:</b> ครบ 11 แฟ้มผู้ป่วยนอก (.txt)</div>
-                                        <div class="mb-0"><b>👥 ผู้รับบริการ:</b> ${state.vns.length} รายการ</div>
-                                    </div>
-                                    <div class="mt-3 text-muted small">
-                                        เปิดหน้า <b>e-Claim (import16)</b> แล้วกดปุ่ม <b>[ แนบไฟล์ ]</b> เพื่อเลือกไฟล์ทั้งหมดไปนำเข้าได้ทันที
-                                    </div>
-                                `,
-                                confirmButtonText: 'รับทราบ',
-                                confirmButtonColor: '#0e939a'
-                            });
-                        } else {
-                            alert('ส่งออกสำเร็จเรียบร้อยที่โฟลเดอร์: ' + folderDisplay);
-                        }
-
-                    } catch (writeErr) {
-                        console.error('File write error:', writeErr);
-                        btn.prop('disabled', false).html(originalBtnHtml);
-                        $('#f16ExportProgressText').text('');
-                        alert('เกิดข้อผิดพลาดในการเขียนไฟล์: ' + writeErr.message);
-                    }
+                    await writeFilesToDirectory(files, subfolderName);
                 } else {
                     btn.prop('disabled', false).html(originalBtnHtml);
                     $('#f16ExportProgressText').text('');
-                    alert(res.message || 'ไม่สามารถส่งออกข้อมูลได้');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถส่งออกข้อมูลได้', 'error');
+                    } else {
+                        alert(res.message || 'ไม่สามารถส่งออกข้อมูลได้');
+                    }
                 }
             },
             error: function(xhr) {
                 btn.prop('disabled', false).html(originalBtnHtml);
                 $('#f16ExportProgressText').text('');
-                let errMsg = 'เกิดข้อผิดพลาดในการส่งออกข้อมูล';
+                let errMsg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
                 }
-                alert(errMsg);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('ข้อผิดพลาด', errMsg, 'error');
+                } else {
+                    alert(errMsg);
+                }
             }
         });
     };

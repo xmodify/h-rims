@@ -107,7 +107,100 @@ class F16EclaimExportService
     }
 
     /**
-     * ประมวลผลและสร้างเนื้อหา 16 แฟ้ม จากรายการ VNs ที่เลือก
+     * Map รหัสการตรวจทางห้องปฏิบัติการ (LABTEST 2 หลัก) ตามมาตรฐาน สปสช. / e-Claim (แฟ้ม LAB / LABFU)
+     */
+    private static function mapLabTestCode($labtest, $tmltCode, $provisCode, $labName)
+    {
+        $lt = trim((string)$labtest);
+        if (!empty($lt) && is_numeric($lt) && intval($lt) > 0 && intval($lt) <= 28) {
+            return str_pad($lt, 2, '0', STR_PAD_LEFT);
+        }
+
+        $tmlt = trim((string)$tmltCode);
+        $name = strtolower(trim((string)$labName));
+        $provis = trim((string)$provisCode);
+
+        // 05 = HbA1C
+        if (str_contains($name, 'hba1c') || str_contains($name, 'a1c') || $tmlt === '320008' || $provis === '0531202') {
+            return '05';
+        }
+        // 11 = Creatinine in blood
+        if (str_contains($name, 'creatinine') && !str_contains($name, 'urine') || $tmlt === '320055' || $provis === '0581902') {
+            return '11';
+        }
+        // 15 = eGFR
+        if (str_contains($name, 'egfr') || str_contains($name, 'gfr')) {
+            return '15';
+        }
+        // 10 = BUN
+        if (str_contains($name, 'bun') || $tmlt === '320052' || $provis === '0584902') {
+            return '10';
+        }
+        // 09 = LDL Cholesterol
+        if (str_contains($name, 'ldl') || $tmlt === '320073' || $provis === '0541402') {
+            return '09';
+        }
+        // 08 = HDL Cholesterol
+        if (str_contains($name, 'hdl') || $tmlt === '320072' || $provis === '0541302') {
+            return '08';
+        }
+        // 07 = Total Cholesterol
+        if (str_contains($name, 'cholesterol') || str_contains($name, 'chol') || $tmlt === '320070' || $provis === '0541102') {
+            return '07';
+        }
+        // 06 = Triglyceride
+        if (str_contains($name, 'triglyceride') || str_contains($name, 'tg') || $tmlt === '320071' || $provis === '0541202') {
+            return '06';
+        }
+        // 01 / 04 = Blood Sugar / Glucose / DTX
+        if (str_contains($name, 'fbs') || str_contains($name, 'fasting') || str_contains($name, 'glucose')) {
+            return '01';
+        }
+        if (str_contains($name, 'dtx') || str_contains($name, 'bedside')) {
+            return '04';
+        }
+        // 12 = Microalbumin in urine
+        if (str_contains($name, 'microalbumin') || str_contains($name, 'malb')) {
+            return '12';
+        }
+        // 13 = Creatinine in urine
+        if (str_contains($name, 'urine creat') || str_contains($name, 'u-creat')) {
+            return '13';
+        }
+        // 14 = Macroalbumin in urine
+        if (str_contains($name, 'urine protein') || str_contains($name, 'macroalbumin')) {
+            return '14';
+        }
+        // 16 = Hb (Hemoglobin)
+        if (str_contains($name, 'hemoglobin') || $name === 'hb' || $tmlt === '320005') {
+            return '16';
+        }
+        // 17 = UPCR (Urine protein creatinine ratio)
+        if (str_contains($name, 'upcr')) {
+            return '17';
+        }
+        // 18 = Potassium (K)
+        if (str_contains($name, 'potassium') || $name === 'k' || $tmlt === '320033' || $provis === '0511702') {
+            return '18';
+        }
+        // 19 = Bicarbonate (CO2 / Bicarb)
+        if (str_contains($name, 'bicarbonate') || str_contains($name, 'bicarb') || str_contains($name, 'co2')) {
+            return '19';
+        }
+        // 20 = Phosphorus / Phosphate
+        if (str_contains($name, 'phosphorus') || str_contains($name, 'phosphate') || $tmlt === '320022' || $provis === '0511202') {
+            return '20';
+        }
+        // 21 = PTH (Parathyroid hormone)
+        if (str_contains($name, 'pth') || str_contains($name, 'parathyroid')) {
+            return '21';
+        }
+
+        return !empty($lt) ? str_pad($lt, 2, '0', STR_PAD_LEFT) : '';
+    }
+
+    /**
+     * ประมวลผลและสร้างเนื้อหา 16/17 แฟ้ม จากรายการ VNs ที่เลือก
      *
      * @param array $vns รายการ VN
      * @param array $options ตัวเลือกเพิ่มเติม
@@ -317,16 +410,20 @@ class F16EclaimExportService
                 Log::warning("F16 Export doctor_operation query error: " . $e->getMessage());
             }
 
+            $operSet = [];
+            foreach ($opdOpers as $item) {
+                $k = $item->vn . '_' . str_replace('.', '', trim((string)$item->icd9));
+                $operSet[$k] = true;
+            }
+
             // Also check ovstdiag for ICD-9 format (starting with digits)
             foreach ($opdDiags as $od) {
                 $isIcd9 = preg_match('/^[0-9]/', trim((string)$od->icd10));
                 if ($isIcd9) {
                     $icd9Code = str_replace('.', '', trim((string)$od->icd10));
-                    // Check if already in opdOpers
-                    $exists = $opdOpers->first(function($item) use ($od, $icd9Code) {
-                        return $item->vn == $od->vn && str_replace('.', '', trim((string)$item->icd9)) == $icd9Code;
-                    });
-                    if (!$exists) {
+                    $k = $od->vn . '_' . $icd9Code;
+                    if (!isset($operSet[$k])) {
+                        $operSet[$k] = true;
                         $opdOpers->push((object)[
                             'vn' => $od->vn,
                             'hn' => $od->hn,
@@ -406,21 +503,45 @@ class F16EclaimExportService
         }
 
         // -------------------------------------------------------------
-        // 5. Query Refer (referout / referin)
+        // 5. Query Refer (referout / referin) for both OP (VN) and IP (AN)
         // -------------------------------------------------------------
+        $allSearchKeys = array_unique(array_filter(array_merge($vnsList, $ansList)));
+        $referPlaceholders = !empty($allSearchKeys) ? implode(',', array_fill(0, count($allSearchKeys), '?')) : '';
+        
         $referOuts = collect();
-        if (!empty($vnsList)) {
+        $referIns = collect();
+
+        if (!empty($allSearchKeys)) {
             try {
                 $referRows = DB::connection('hosxp')->select("
-                    SELECT ro.vn, ro.hn, ro.refer_date, ro.refer_hospcode, ro.refer_type,
-                           ro.refer_number, o.spclty, ro.station_id
+                    SELECT ro.vn, ro.hn, ro.refer_date,
+                           TIME_FORMAT(ro.refer_time, '%H%i') as refer_time,
+                           COALESCE(NULLIF(ro.refer_hospcode, ''), ro.hospcode) as refer_hospcode,
+                           COALESCE(ro.refer_type, '2') as refer_type,
+                           ro.refer_number, o.spclty, o.vstdate
                     FROM referout ro
                     LEFT JOIN ovst o ON o.vn = ro.vn
-                    WHERE ro.vn IN ($placeholders)
-                ", $vnsList);
+                    WHERE ro.vn IN ($referPlaceholders)
+                ", $allSearchKeys);
                 $referOuts = collect($referRows);
             } catch (\Throwable $e) {
                 Log::warning("F16 Export referout query error: " . $e->getMessage());
+            }
+
+            try {
+                $referInRows = DB::connection('hosxp')->select("
+                    SELECT ri.vn, ri.hn, ri.refer_date,
+                           TIME_FORMAT(ri.refer_time, '%H%i') as refer_time,
+                           COALESCE(NULLIF(ri.refer_hospcode, ''), ri.hospcode) as refer_hospcode,
+                           COALESCE(ri.refer_type, '1') as refer_type,
+                           ri.docno as refer_number, o.spclty, o.vstdate
+                    FROM referin ri
+                    LEFT JOIN ovst o ON o.vn = ri.vn
+                    WHERE ri.vn IN ($referPlaceholders)
+                ", $allSearchKeys);
+                $referIns = collect($referInRows);
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export referin query error: " . $e->getMessage());
             }
         }
 
@@ -430,20 +551,40 @@ class F16EclaimExportService
         $aerVisits = collect();
         if (!empty($vnsList)) {
             try {
-                $aerRows = DB::connection('hosxp')->select("
-                    SELECT o.vn, o.hn, o.an, o.vstdate,
-                           er.er_emergency_type, er.er_emergency_level_id,
-                           TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time, ro.refer_time), '%H%i') as aetime,
-                           ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp,
-                           vp.nhso_ucae_type_code as ucae
-                    FROM ovst o
-                    LEFT JOIN er_regist er ON er.vn = o.vn
-                    LEFT JOIN referout ro ON ro.vn = o.vn
-                    LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-                    WHERE o.vn IN ($placeholders)
-                      AND (er.vn IS NOT NULL OR ro.vn IS NOT NULL OR (vp.nhso_ucae_type_code IN ('A', 'E', 'I', 'O', 'C', 'Z')))
-                ", $vnsList);
-                $aerVisits = collect($aerRows);
+                $erRows = collect(DB::connection('hosxp')->select("
+                    SELECT er.vn, er.er_emergency_type, er.er_emergency_level_id,
+                           TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time), '%H%i') as aetime
+                    FROM er_regist er
+                    WHERE er.vn IN ($placeholders)
+                ", $vnsList))->keyBy('vn');
+
+                $referOutByVn = $referOuts->keyBy('vn');
+                $referInByVn = $referIns->keyBy('vn');
+
+                foreach ($visits as $v) {
+                    $hasEr = $erRows->has($v->vn);
+                    $ro = $referOutByVn->get($v->vn) ?: ($v->an ? $referOutByVn->get($v->an) : null);
+                    $ri = $referInByVn->get($v->vn) ?: ($v->an ? $referInByVn->get($v->an) : null);
+                    $ucae = trim((string)($v->ucae ?? ''));
+                    $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+
+                    if ($hasEr || $ro || $ri || $isUcae) {
+                        $er = $erRows->get($v->vn);
+                        $aerVisits->push((object)[
+                            'vn' => $v->vn,
+                            'hn' => $v->hn,
+                            'an' => $v->an,
+                            'vstdate' => $v->vstdate,
+                            'er_emergency_type' => $er->er_emergency_type ?? '',
+                            'er_emergency_level_id' => $er->er_emergency_level_id ?? '',
+                            'aetime' => $er->aetime ?? ($ro->refer_time ?? ($ri->refer_time ?? self::formatTime($v->vsttime))),
+                            'refer_no' => $ro->refer_number ?? ($ri->refer_number ?? ''),
+                            'refmaino' => $ro->refer_hospcode ?? '',
+                            'refmaini' => $ri->refer_hospcode ?? '',
+                            'ucae' => $ucae
+                        ]);
+                    }
+                }
             } catch (\Throwable $e) {
                 Log::warning("F16 Export AER query error: " . $e->getMessage());
             }
@@ -497,8 +638,54 @@ class F16EclaimExportService
             }
         }
 
+        // -------------------------------------------------------------
+        // 8. Query Lab (lab_head, lab_order, lab_items) for LAB.txt / LABFU.txt
+        // -------------------------------------------------------------
+        $labOrders = collect();
+        if (!empty($vnsList)) {
+            try {
+                $labRows = DB::connection('hosxp')->select("
+                    SELECT lh.vn, lh.hn, lh.order_date, lh.order_time,
+                           lo.lab_items_code, lo.lab_order_result,
+                           li.lab_items_name, li.labtest, li.tmlt_code, li.provis_labcode,
+                           pt.cid
+                    FROM lab_head lh
+                    JOIN lab_order lo ON lo.lab_order_number = lh.lab_order_number
+                    JOIN lab_items li ON li.lab_items_code = lo.lab_items_code
+                    LEFT JOIN patient pt ON pt.hn = lh.hn
+                    WHERE lh.vn IN ($placeholders)
+                      AND lo.lab_order_result IS NOT NULL 
+                      AND lo.lab_order_result != ''
+                      AND lo.confirm = 'Y'
+                    ORDER BY lh.vn, lo.lab_items_code
+                ", $vnsList);
+                $labOrders = collect($labRows);
+            } catch (\Throwable $e) {
+                // Fallback query without confirm = 'Y'
+                try {
+                    $labRows = DB::connection('hosxp')->select("
+                        SELECT lh.vn, lh.hn, lh.order_date, lh.order_time,
+                               lo.lab_items_code, lo.lab_order_result,
+                               li.lab_items_name, li.labtest, li.tmlt_code, li.provis_labcode,
+                               pt.cid
+                        FROM lab_head lh
+                        JOIN lab_order lo ON lo.lab_order_number = lh.lab_order_number
+                        JOIN lab_items li ON li.lab_items_code = lo.lab_items_code
+                        LEFT JOIN patient pt ON pt.hn = lh.hn
+                        WHERE lh.vn IN ($placeholders)
+                          AND lo.lab_order_result IS NOT NULL 
+                          AND lo.lab_order_result != ''
+                        ORDER BY lh.vn, lo.lab_items_code
+                    ", $vnsList);
+                    $labOrders = collect($labRows);
+                } catch (\Throwable $e2) {
+                    Log::warning("F16 Export opitemrece query error: " . $e2->getMessage());
+                }
+            }
+        }
+
         // =============================================================
-        // GENERATE EACH OF THE 16 FILES (WITH OFFICIAL HEADERS)
+        // GENERATE EACH OF THE 17 FILES (WITH OFFICIAL HEADERS)
         // =============================================================
 
         // 1. INS.txt (20 columns)
@@ -683,28 +870,73 @@ class F16EclaimExportService
             $iopLines[] = "{$io->an}|{$oper}|{$optype}|{$dropid}|{$datein}|{$timein}|{$dateout}|{$timeout}";
         }
 
-        // 9. ORF.txt (6 columns)
-        // HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ
-        $orfLines = ["HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ"];
+        // 9. ORF.txt (7 columns)
+        // HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ|REFERDATE
+        $orfLines = ["HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ|REFERDATE"];
+        $visitsByVn = $visits->keyBy('vn');
+        
+        // Add Refer Out for OP
         foreach ($referOuts as $ro) {
-            $dateopd = self::formatDate($ro->refer_date);
-            $clinic = self::formatClinic($ro->spclty);
+            // Skip pure IPD records (handled in IRF)
+            if (in_array($ro->vn, $ansList)) continue;
+            
+            $v = $visitsByVn->get($ro->vn);
+            $dateopd = self::formatDate($v->vstdate ?? $ro->vstdate ?? $ro->refer_date);
+            $clinic = self::formatClinic($ro->spclty ?? ($v->spclty ?? ''));
             $refer = trim((string)$ro->refer_hospcode);
             $refertype = $ro->refer_type ?: '2';
             $seq = $ro->vn;
+            $referdate = self::formatDate($ro->refer_date);
 
-            $orfLines[] = "{$ro->hn}|{$dateopd}|{$clinic}|{$refer}|{$refertype}|{$seq}";
+            $orfLines[] = "{$ro->hn}|{$dateopd}|{$clinic}|{$refer}|{$refertype}|{$seq}|{$referdate}";
+        }
+
+        // Add Refer In for OP
+        foreach ($referIns as $ri) {
+            if (in_array($ri->vn, $ansList)) continue;
+
+            $v = $visitsByVn->get($ri->vn);
+            $dateopd = self::formatDate($v->vstdate ?? $ri->vstdate ?? $ri->refer_date);
+            $clinic = self::formatClinic($ri->spclty ?? ($v->spclty ?? ''));
+            $refer = trim((string)$ri->refer_hospcode);
+            $refertype = $ri->refer_type ?: '1';
+            $seq = $ri->vn;
+            $referdate = self::formatDate($ri->refer_date);
+
+            $orfLines[] = "{$ri->hn}|{$dateopd}|{$clinic}|{$refer}|{$refertype}|{$seq}|{$referdate}";
         }
 
         // 10. IRF.txt (3 columns)
         // AN|REFER|REFERTYPE
         $irfLines = ["AN|REFER|REFERTYPE"];
+        
+        // Refer Out for IP (Case 1: ro.vn = ipt.an, Case 2: ro.vn = ovst.vn associated with an)
         foreach ($referOuts as $ro) {
-            $v = $visits->firstWhere('vn', $ro->vn);
-            if ($v && !empty($v->an)) {
-                $refer = trim((string)$ro->refer_hospcode);
-                $refertype = $ro->refer_type ?: '2';
-                $irfLines[] = "{$v->an}|{$refer}|{$refertype}";
+            $refer = trim((string)$ro->refer_hospcode);
+            $refertype = $ro->refer_type ?: '2';
+
+            if (in_array($ro->vn, $ansList)) {
+                $irfLines[] = "{$ro->vn}|{$refer}|{$refertype}";
+            } else {
+                $v = $visitsByVn->get($ro->vn);
+                if ($v && !empty($v->an)) {
+                    $irfLines[] = "{$v->an}|{$refer}|{$refertype}";
+                }
+            }
+        }
+
+        // Refer In for IP
+        foreach ($referIns as $ri) {
+            $refer = trim((string)$ri->refer_hospcode);
+            $refertype = $ri->refer_type ?: '1';
+
+            if (in_array($ri->vn, $ansList)) {
+                $irfLines[] = "{$ri->vn}|{$refer}|{$refertype}";
+            } else {
+                $v = $visitsByVn->get($ri->vn);
+                if ($v && !empty($v->an)) {
+                    $irfLines[] = "{$v->an}|{$refer}|{$refertype}";
+                }
             }
         }
 
@@ -752,8 +984,9 @@ class F16EclaimExportService
         // HN|AN|DATE|CHRGITEM|AMOUNT|PERSON_ID|SEQ
         $chaLines = ["HN|AN|DATE|CHRGITEM|AMOUNT|PERSON_ID|SEQ"];
         $itemsByVn = $items->groupBy('vn');
+        $visitsByVn = $visits->keyBy('vn');
         foreach ($itemsByVn as $vn => $vnItems) {
-            $v = $visits->firstWhere('vn', $vn);
+            $v = $visitsByVn->get($vn);
             if (!$v) continue;
 
             $date = self::formatDate($v->vstdate);
@@ -804,9 +1037,9 @@ class F16EclaimExportService
             $aetime = $er->aetime ?: '';
             $aetype = '';
             $referno = trim((string)($er->refer_no ?: ''));
-            $refmaini = '';
-            $ireftype = '';
-            $refmaino = trim((string)($er->refer_hosp ?: ''));
+            $refmaini = trim((string)($er->refmaini ?: ''));
+            $ireftype = !empty($refmaini) ? '1' : '';
+            $refmaino = trim((string)($er->refmaino ?: ''));
             $oreftype = !empty($refmaino) ? '1100' : '';
             $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z']) ? trim((string)$er->ucae) : '';
             $emtype = '3';
@@ -865,8 +1098,29 @@ class F16EclaimExportService
             $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkkey}|{$guid}";
         }
 
+        // 17. LAB.txt / LABFU.txt (7 columns)
+        // HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT
+        $labLines = ["HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT"];
+        $seenLab = [];
+        foreach ($labOrders as $lab) {
+            $labTestCode = self::mapLabTestCode($lab->labtest, $lab->tmlt_code, $lab->provis_labcode, $lab->lab_items_name);
+            if (empty($labTestCode)) continue;
+
+            $dateserv = self::formatDate($lab->order_date);
+            $seq = $lab->vn;
+            $cid = trim((string)$lab->cid);
+            $rawResult = trim((string)$lab->lab_order_result);
+            $labResult = str_replace([',', '|'], '', $rawResult);
+
+            $key = "{$seq}_{$labTestCode}";
+            if (isset($seenLab[$key])) continue;
+            $seenLab[$key] = true;
+
+            $labLines[] = "{$hcode}|{$lab->hn}|{$cid}|{$dateserv}|{$seq}|{$labTestCode}|{$labResult}";
+        }
+
         // =============================================================
-        // COMPILE FINAL RESULT WITH ALL 16 FILES
+        // COMPILE FINAL RESULT WITH ALL 17 FILES
         // =============================================================
         $files = [
             'INS' => implode("\r\n", $insLines),
@@ -885,6 +1139,7 @@ class F16EclaimExportService
             'CHT' => implode("\r\n", $chtLines),
             'AER' => implode("\r\n", $aerLines),
             'ADP' => implode("\r\n", $adpLines),
+            'LAB' => implode("\r\n", $labLines),
         ];
 
         $counts = [
@@ -904,6 +1159,7 @@ class F16EclaimExportService
             'CHT' => count($chtLines) - 1,
             'AER' => count($aerLines) - 1,
             'ADP' => count($adpLines) - 1,
+            'LAB' => count($labLines) - 1,
         ];
 
         return [

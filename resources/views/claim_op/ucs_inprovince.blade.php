@@ -229,6 +229,7 @@
                 // Initialize Datatables
                 var dt_search = $('#t_search').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',
@@ -246,6 +247,7 @@
 
                 var dt_claim = $('#t_claim').DataTable({
                     autoWidth: false,
+                    lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
                         extend: 'excelHtml5',

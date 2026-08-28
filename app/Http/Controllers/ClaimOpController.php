@@ -2241,13 +2241,15 @@ class ClaimOpController extends Controller
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -2387,6 +2389,7 @@ class ClaimOpController extends Controller
                    op.qty, op.unitprice, op.sum_price,
                    li.ppfs, li.ems, op.paidst AS paids, ps.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name, 
+                   COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
                    COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                    COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
@@ -2403,6 +2406,7 @@ class ClaimOpController extends Controller
         $aspects = ['f16_required', 'ppfs', 'endpoint'];
         if ($request->is('*ofc*')) {
             $aspects[] = 'edc';
+            $aspects[] = 'adp_ofc';
         }
         $validation = $validator->validate($visit, $items, $aspects);
 

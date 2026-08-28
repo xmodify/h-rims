@@ -82,9 +82,8 @@
                         <thead>
                             <tr>
                                 @if($is_f16_licensed)
-                                <th class="text-center" width="40"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
                                 @endif
-                                <th class="text-center">#</th> 
                                 <th class="text-center">สถานะ</th>
                                 <th class="text-center">ประสงค์เบิก</th>
                                 <th class="text-center">วัน-เวลา | Q</th>     
@@ -103,7 +102,6 @@
                         </thead> 
                         <tbody> 
                             @php 
-                                $count = 1; 
                                 $sum_income = 0; 
                                 $sum_paid_money = 0; 
                                 $sum_rcpt_money = 0; 
@@ -118,7 +116,6 @@
                                     <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}" data-vn="{{ $row->seq }}" data-hn="{{ $row->hn }}">
                                 </td>
                                 @endif
-                                <td class="text-center text-muted small">{{ $count }}</td>
                                 <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                     @if(!$row->is_valid)
                                         <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
@@ -158,7 +155,6 @@
                                 <td class="text-end fw-bold text-primary small">{{ number_format($row->debtor,2) }}</td>         
                             </tr>
                             @php 
-                                $count++; 
                                 $sum_income += $row->income; 
                                 $sum_paid_money += $row->paid_money;
                                 $sum_rcpt_money += $row->rcpt_money; 
@@ -170,7 +166,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="{{ $is_f16_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                <th colspan="{{ $is_f16_licensed ? 9 : 8 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
@@ -190,9 +186,8 @@
                         <thead>
                             <tr>
                                 @if($is_f16_licensed)
-                                <th class="text-center" rowspan="2" width="40"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                <th class="text-center no-sort" rowspan="2" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
                                 @endif
-                                <th class="text-center" rowspan="2">#</th> 
                                 <th class="text-center" rowspan="2">สถานะ</th>
                                 <th class="text-center" rowspan="2">Error</th>
                                 <th class="text-center" rowspan="2">ประสงค์เบิก</th>
@@ -219,7 +214,6 @@
                         </thead> 
                         <tbody> 
                             @php 
-                                $count = 1; 
                                 $sum_income = 0; 
                                 $sum_paid_money = 0;
                                 $sum_rcpt_money = 0;
@@ -236,7 +230,6 @@
                                     <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}" data-vn="{{ $row->seq }}" data-hn="{{ $row->hn }}">
                                 </td>
                                 @endif
-                                <td class="text-center text-muted small">{{ $count }}</td>
                                 <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                     @if(!$row->is_valid)
                                         <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
@@ -308,7 +301,6 @@
                                 <td class="text-center small text-muted">{{ $row->repno ?: ($row->rep_repno ?: '-') }}</td> 
                             </tr>
                             @php 
-                                $count++; 
                                 $sum_income += $row->income; 
                                 $sum_paid_money += $row->paid_money;
                                 $sum_rcpt_money += $row->rcpt_money; 
@@ -322,7 +314,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="{{ $is_f16_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                <th colspan="{{ $is_f16_licensed ? 9 : 8 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>

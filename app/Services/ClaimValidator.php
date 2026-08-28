@@ -83,6 +83,13 @@ class ClaimValidator
             $endpointOk = $this->validateNhsoEndpoint($visit);
         }
 
+        // 5. ADP OFC check (adp_type = 20 requires adp_code ending in 14)
+        if (in_array('adp_ofc', $aspects)) {
+            $adpOfc = $this->validateAdpOfc((array) $billedItems);
+            $errors   = array_merge($errors, $adpOfc['errors']);
+            $warnings = array_merge($warnings, $adpOfc['warnings']);
+        }
+
         return [
             'is_valid'       => empty($errors),
             'endpoint_valid' => $endpointOk,
@@ -213,7 +220,39 @@ class ClaimValidator
 
     public function validateOfc($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'edc', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'edc', 'adp_ofc', 'endpoint']);
+    }
+
+    /**
+     * ตรวจสอบความถูกต้องของรายการ ADP สำหรับสิทธิ OFC (กรมบัญชีกลาง)
+     * - adp_type = 20 (ค่าบริการทางกายภาพบำบัดและเวชกรรมฟื้นฟู) ต้อง Map รหัส adp_code ที่ลงท้ายด้วย 14 (xxx14)
+     */
+    public function validateAdpOfc(array $billedItems): array
+    {
+        $errors = [];
+        $warnings = [];
+
+        foreach ($billedItems as $it) {
+            if (!is_object($it) && !is_array($it)) continue;
+
+            $adpType = is_object($it) ? ($it->nhso_adp_type_id ?? ($it->adp_type ?? null)) : ($it['nhso_adp_type_id'] ?? ($it['adp_type'] ?? null));
+            $adpCode = trim((string)(is_object($it) ? ($it->nhso_adp_code ?? ($it->adp_code ?? '')) : ($it['nhso_adp_code'] ?? ($it['adp_code'] ?? ''))));
+            $name    = is_object($it) ? ($it->name ?? ($it->icode ?? '')) : ($it['name'] ?? ($it['icode'] ?? ''));
+
+            // ตรวจสอบ adp_type = 20 (กายภาพบำบัดและเวชกรรมฟื้นฟู)
+            if ($adpType == 20 || $adpType === '20') {
+                if (empty($adpCode)) {
+                    $errors[] = "พบรายการกายภาพบำบัด (adp_type = 20): '{$name}' ยังไม่ได้ Map รหัส ADP Code (ต้องลงท้ายด้วย 14 เช่น xxx14)";
+                } elseif (!str_ends_with($adpCode, '14')) {
+                    $errors[] = "รายการกายภาพบำบัด (adp_type = 20): '{$name}' รหัส ADP Code [{$adpCode}] ไม่ถูกต้องสำหรับสิทธิ OFC (ต้องเป็นรหัสที่ลงท้ายด้วย 14 เช่น xxx14)";
+                }
+            }
+        }
+
+        return [
+            'errors'   => $errors,
+            'warnings' => $warnings,
+        ];
     }
 
     public function validateLgo($visit, $billedItems): array

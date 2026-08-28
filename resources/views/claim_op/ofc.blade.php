@@ -621,7 +621,17 @@
                           <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
                           <tr><th class="text-muted">EDC (HOSxP)</th><td class="fw-bold text-secondary">${visit.edc || '-'}</td></tr>
-                          <tr><th class="text-muted">EDC (นำเข้า KTB)</th><td class="fw-bold text-muted">${visit.edc_ktb || '-'}</td></tr>
+                          <tr>
+                            <th class="text-muted">EDC (นำเข้า KTB)</th>
+                            <td>
+                              <div class="d-flex align-items-center justify-content-between gap-1">
+                                <span class="fw-bold text-dark" id="modal-edc-ktb-text">${visit.edc_ktb || '-'}</span>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 rounded-pill shadow-sm" style="font-size: 0.7rem; height: 22px; line-height: 1.4;" onclick="promptUpdateEdcManual('${visit.cid}', '${visit.vstdate}', '${visit.hn}', '${encodeURIComponent(visit.ptname)}', '${visit.vn}', '${visit.income || 0}')" title="คัดลอกเลข Approve Code จากหน้าเว็บ KTB มาวางอัปเดต">
+                                  <i class="bi bi-pencil-square me-1"></i>อัปเดต EDC
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         </table>
                       </div>
                     </div>
@@ -724,6 +734,100 @@
 
                 body.innerHTML = html;
             });
+    }
+
+    // ฟังก์ชันเปิด Modal อัปเดตเลข EDC จาก KTB Online ด้วยตนเอง
+    function promptUpdateEdcManual(cid, vstdate, hn, ptnameEncoded, vn, amount) {
+        const ptname = decodeURIComponent(ptnameEncoded);
+        if (typeof Swal === 'undefined') {
+            const code = prompt(`กรอกเลข Approve Code จากหน้าเว็บ KTB สำหรับ ${ptname} (HN: ${hn}):`);
+            if (code && code.trim()) {
+                $.post('{{ url("claim_op/ofc/update_edc_manual") }}', {
+                    _token: '{{ csrf_token() }}',
+                    cid: cid,
+                    vstdate: vstdate,
+                    ptname: ptname,
+                    approve_code: code.trim(),
+                    amount: amount,
+                    vn: vn
+                }).done(function(res) {
+                    alert(res.message || 'บันทึกเรียบร้อย');
+                    showDetails(vn);
+                });
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: '<span class="fs-5 fw-bold text-primary"><i class="bi bi-credit-card-2-front me-2"></i>อัปเดตเลขอนุมัติ EDC (KTB Online)</span>',
+            html: `
+                <div class="text-start small p-3 rounded bg-light mb-3 border">
+                    <div class="mb-1"><span class="text-muted">ผู้ป่วย:</span> <b>${ptname}</b> (HN: ${hn})</div>
+                    <div class="mb-1"><span class="text-muted">วันที่รับบริการ:</span> <b>${vstdate}</b></div>
+                    <div><span class="text-muted">ยอดค่ารักษา:</span> <b class="text-primary">${parseFloat(amount || 0).toFixed(2)} บาท</b></div>
+                </div>
+                <div class="form-group text-start">
+                    <label class="form-label small fw-bold text-dark mb-1">เลข Approve Code จากหน้าเว็บ KTB (เช่น 356926196):</label>
+                    <input id="swal_edc_code_input" class="form-control text-center fw-bold text-primary fs-5" placeholder="กรอกหรือวางเลขที่นี่..." maxlength="30" autofocus>
+                    <div class="form-text small text-muted">ระบบจะบันทึกเข้าตารางไฟล์นำเข้า KTB ทันที และเคลียร์คำเตือนให้เป็นสถานะผ่านเกณฑ์</div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-check-lg me-1"></i> บันทึกข้อมูล',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            didOpen: () => {
+                const input = document.getElementById('swal_edc_code_input');
+                if (input) input.focus();
+            },
+            preConfirm: () => {
+                const code = $('#swal_edc_code_input').val().trim();
+                if (!code) {
+                    Swal.showValidationMessage('กรุณากรอกเลข Approve Code');
+                    return false;
+                }
+                return code;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                Swal.fire({
+                    title: 'กำลังบันทึก...',
+                    text: 'ระบบกำลังอัปเดตเลขอนุมัติ EDC',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.post('{{ url("claim_op/ofc/update_edc_manual") }}', {
+                    _token: '{{ csrf_token() }}',
+                    cid: cid,
+                    vstdate: vstdate,
+                    ptname: ptname,
+                    approve_code: result.value,
+                    amount: amount,
+                    vn: vn
+                }).done(function(res) {
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'บันทึกสำเร็จ!',
+                            text: res.message || 'อัปเดตเลขอนุมัติ EDC เรียบร้อยแล้ว',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        // Refresh details modal & update table status row
+                        showDetails(vn);
+                    } else {
+                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถบันทึกได้', 'error');
+                    }
+                }).fail(function(xhr) {
+                    const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+                });
+            }
+        });
     }
 
     // NHSO Endpoint Checking

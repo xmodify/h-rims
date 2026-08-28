@@ -2418,6 +2418,74 @@ class ClaimOpController extends Controller
             'validation' => $validation,
         ]);
     }
+
+    /**
+     * อัปเดตเลขอนุมัติ EDC ตรงจากหน้าเว็บ KTB เข้าตาราง edc_approve_list
+     */
+    public function update_edc_manual(Request $request)
+    {
+        $cid = trim((string)$request->input('cid', ''));
+        $vstdate = trim((string)$request->input('vstdate', ''));
+        $approveCode = trim((string)$request->input('approve_code', ''));
+        $ptname = trim((string)$request->input('ptname', ''));
+        $amount = floatval($request->input('amount', 0));
+        $vn = trim((string)$request->input('vn', ''));
+
+        if (empty($cid) || empty($vstdate) || empty($approveCode)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณากรอกข้อมูล CID, วันที่รับบริการ และเลข Approve Code ให้ครบถ้วน'
+            ], 422);
+        }
+
+        try {
+            // Check if record exists for this cid, vstdate and approve_code
+            $existing = DB::table('edc_approve_list')
+                ->where('cid', $cid)
+                ->where('vstdate', $vstdate)
+                ->where('approve_code', $approveCode)
+                ->first();
+
+            if ($existing) {
+                DB::table('edc_approve_list')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'post_date' => date('Y-m-d'),
+                        'post_time' => date('H:i:s'),
+                        'note' => 'อัปเดตตรงจากหน้าเว็บ KTB',
+                        'updated_at' => now(),
+                    ]);
+            } else {
+                DB::table('edc_approve_list')->insert([
+                    'cid' => $cid,
+                    'ptname' => $ptname,
+                    'vstdate' => $vstdate,
+                    'vsttime' => date('H:i:s'),
+                    'post_date' => date('Y-m-d'),
+                    'post_time' => date('H:i:s'),
+                    'amount' => $amount,
+                    'approve_code' => $approveCode,
+                    'app_code' => $approveCode,
+                    'edc_type' => 'MANUAL_KTB',
+                    'trans_type' => 'Payment',
+                    'note' => 'อัปเดตตรงจากหน้าเว็บ KTB',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "บันทึกเลขอนุมัติ EDC ({$approveCode}) เข้าสู่ระบบเรียบร้อยแล้ว",
+                'approve_code' => $approveCode
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการบันทึก: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc_kidney(Request $request)
     {

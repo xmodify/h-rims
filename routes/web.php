@@ -454,6 +454,7 @@ Route::match(['get', 'post'], 'claim_op/stp_outcup', [ClaimOpController::class, 
 Route::get('claim_op/stp_outcup/visit_details', [ClaimOpController::class, 'get_ucs_incup_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ofc', [ClaimOpController::class, 'ofc']);
 Route::get('claim_op/ofc/visit_details', [ClaimOpController::class, 'get_ofc_visit_details']);
+Route::post('claim_op/ofc/update_edc_manual', [ClaimOpController::class, 'update_edc_manual']);
 Route::match(['get', 'post'], 'claim_op/ofc_kidney', [ClaimOpController::class, 'ofc_kidney']);
 Route::match(['get', 'post'], 'claim_op/lgo', [ClaimOpController::class, 'lgo']);
 Route::get('claim_op/lgo/visit_details', [ClaimOpController::class, 'get_ofc_visit_details']);

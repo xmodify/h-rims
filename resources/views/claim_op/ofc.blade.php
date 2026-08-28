@@ -641,7 +641,7 @@
                             <th class="text-muted" style="vertical-align: middle;">EDC (นำเข้า KTB)</th>
                             <td>
                               <div class="d-flex align-items-center justify-content-between gap-1">
-                                <span class="fw-bold text-dark text-break pe-1" id="modal-edc-ktb-text" style="font-size: 0.8rem; word-break: break-all;">${visit.edc_ktb || '-'}</span>
+                                <span class="fw-bold text-secondary text-break pe-1" id="modal-edc-ktb-text" style="word-break: break-all;">${visit.edc_ktb || '-'}</span>
                                 ${edcKtbBtnHtml}
                               </div>
                             </td>

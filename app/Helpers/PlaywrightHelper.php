@@ -25,10 +25,22 @@ class PlaywrightHelper
 
         $candidates = [];
         if ($isWindows) {
+            // 0. Project Embedded / Portable Node.js (Highest priority for zero-setup)
+            $embeddedPaths = [
+                __DIR__ . '/Node/bin/node.exe',
+                __DIR__ . '/Node/node.exe',
+                base_path('node/node.exe'),
+            ];
+            foreach ($embeddedPaths as $emb) {
+                if (file_exists($emb)) {
+                    $candidates[] = str_replace('/', '\\', $emb);
+                }
+            }
+
             $candidates[] = 'node';
             $candidates[] = 'node.exe';
 
-            $drives = ['C:', 'D:', 'E:'];
+            $drives = ['C:', 'D:', 'E:', 'F:'];
             foreach ($drives as $d) {
                 $candidates[] = "{$d}\\Program Files\\nodejs\\node.exe";
                 $candidates[] = "{$d}\\Program Files (x86)\\nodejs\\node.exe";

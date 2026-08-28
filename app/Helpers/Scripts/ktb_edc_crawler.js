@@ -152,13 +152,35 @@ async function run() {
             ]
         });
 
+        const downloadedFiles = [];
         const context = await browser.newContext({
             viewport: { width: 1366, height: 768 },
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             acceptDownloads: true
         });
 
+        const handleDownload = async (download) => {
+            try {
+                const suggestedFilename = download.suggestedFilename() || `edc_ktb_${Date.now()}.zip`;
+                const savePath = path.join(outputDir, suggestedFilename);
+                await download.saveAs(savePath).catch(() => {});
+                if (fs.existsSync(savePath)) {
+                    const stats = fs.statSync(savePath);
+                    if (stats.size > 0 && !downloadedFiles.some(f => f.path === savePath)) {
+                        downloadedFiles.push({
+                            name: suggestedFilename,
+                            path: savePath,
+                            size: stats.size
+                        });
+                    }
+                }
+            } catch(e) {}
+        };
+
+        context.on('download', handleDownload);
+
         const page = await context.newPage();
+        page.on('download', handleDownload);
         page.setDefaultTimeout(timeoutMs);
 
         // Stealth mode & Polyfills for KTB Legacy JS
@@ -450,83 +472,71 @@ async function run() {
             process.exit(0);
         }
 
-        // Select all checkboxes in table (Header + Rows)
-        await page.evaluate(() => {
+        // Select all checkboxes and gather their values
+        const checkedValues = await page.evaluate(() => {
             if (typeof $ !== 'undefined') {
-                $('input[name="allHospitalDownload"], thead input[type="checkbox"]').prop('checked', true).trigger('change');
-                $('#search_table tbody input[type="checkbox"], input[name="hospitalDownload"]').prop('checked', true).trigger('change');
-                if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.selectAllHospitalDownload === 'function') {
-                    const allCb = $('input[name="allHospitalDownload"]')[0];
-                    if (allCb) {
-                        allCb.checked = true;
-                        hospitalInfo.selectAllHospitalDownload(allCb);
-                    }
-                }
-            } else {
-                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                    cb.checked = true;
-                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                $('input[name="allHospitalDownload"], thead input[type="checkbox"]').prop('checked', true).attr('checked', 'checked');
+                $('input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]').prop('checked', true).attr('checked', 'checked');
+                const vals = [];
+                $('input[name="hospitalDownload"]').each(function() {
+                    vals.push($(this).val());
                 });
+                return vals;
             }
+            const vals = [];
+            document.querySelectorAll('input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+                if (cb.value) vals.push(cb.value);
+            });
+            return vals;
         });
-        await page.waitForTimeout(1500);
 
-        // Trigger Download (Catch download from both context and page level)
-        const downloadedFiles = [];
-        try {
-            let downloadObj = null;
-            const dlPromise = new Promise((resolve) => {
-                page.once('download', d => { downloadObj = d; resolve(d); });
-                context.once('download', d => { downloadObj = d; resolve(d); });
-            });
-
-            // Ensure form target is _self
-            await page.evaluate(() => {
-                document.querySelectorAll('form').forEach(f => {
-                    f.target = '_self';
-                });
-            });
-
-            // Trigger click via Playwright locator first (dispatches real browser mouse event)
-            const dlLocator = page.locator('a.dt-button.orange, a.chData, #search_table_wrapper a:has-text("Download"), button:has-text("Download")').first();
-            if (await dlLocator.count() > 0) {
-                await dlLocator.click({ force: true }).catch(() => {});
-            }
-
-            // Also fallback to JS trigger if needed
-            await page.evaluate(() => {
-                if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
-                    hospitalInfo.downloadHospital();
-                } else if (typeof downloadFile === 'function') {
-                    downloadFile();
+        // Trigger Download via frmDownload submit and button click
+        await page.evaluate((vals) => {
+            const frm = document.getElementById('frmDownload');
+            if (frm) {
+                frm.target = '_self';
+                const inputData = document.getElementById('downloadData');
+                if (inputData && vals && vals.length > 0) {
+                    inputData.value = vals.join(',');
                 }
-            });
+                frm.submit();
+            } else if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
+                hospitalInfo.downloadHospital();
+            } else if (typeof $ !== 'undefined' && $('.dt-button.orange, a:contains("Download")').length) {
+                $('.dt-button.orange, a:contains("Download")').first().trigger('click');
+            } else {
+                const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim().toLowerCase() === 'download');
+                if (btn) btn.click();
+            }
+        }, checkedValues);
 
-            // Wait for download event up to 35 seconds
-            const download = await Promise.race([
-                dlPromise,
-                page.waitForTimeout(35000).then(() => downloadObj)
-            ]);
+        // Also trigger Playwright locator click as backup
+        const dlLocator = page.locator('a.dt-button.orange, a.chData, #search_table_wrapper a:has-text("Download"), button:has-text("Download")').first();
+        if (await dlLocator.count() > 0) {
+            await dlLocator.click({ force: true }).catch(() => {});
+        }
 
-            if (download) {
-                const failReason = await download.failure().catch(() => null);
-                if (!failReason) {
-                    const suggestedFilename = download.suggestedFilename() || `edc_ktb_${Date.now()}.zip`;
-                    const savePath = path.join(outputDir, suggestedFilename);
-                    await download.saveAs(savePath).catch(e => console.error('saveAs err:', e.message));
+        // Wait up to 25 seconds for downloaded file to land in outputDir
+        let waitCount = 0;
+        while (downloadedFiles.length === 0 && waitCount < 50) {
+            await page.waitForTimeout(500);
+            waitCount++;
 
-                    if (fs.existsSync(savePath)) {
-                        const stats = fs.statSync(savePath);
+            if (fs.existsSync(outputDir)) {
+                const filesInDir = fs.readdirSync(outputDir);
+                for (const file of filesInDir) {
+                    const fullP = path.join(outputDir, file);
+                    const stats = fs.statSync(fullP);
+                    if (stats.isFile() && stats.size > 0 && !downloadedFiles.some(f => f.path === fullP)) {
                         downloadedFiles.push({
-                            name: suggestedFilename,
-                            path: savePath,
+                            name: file,
+                            path: fullP,
                             size: stats.size
                         });
                     }
                 }
             }
-        } catch (dlErr) {
-            console.error('Download handling error:', dlErr.message);
         }
 
         // Also check if any files were downloaded/saved to outputDir

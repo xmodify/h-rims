@@ -241,7 +241,9 @@ class F16EclaimExportService
                            op.income, op.paidst, op.pttype, op.hos_guid,
                            d.name as drug_name, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                            d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
-                           n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type_id as nondrug_adp_type,
+                           n.name as nondrug_name,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
                            o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
@@ -263,7 +265,9 @@ class F16EclaimExportService
                                op.income, op.paidst, op.pttype, op.hos_guid,
                                d.name as drug_name, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                                d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
-                               n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type_id as nondrug_adp_type,
+                               n.name as nondrug_name,
+                               COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
+                               COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
                                o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                                op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
                         FROM opitemrece op
@@ -642,17 +646,27 @@ class F16EclaimExportService
             }
         }
 
-        // 16. ADP.txt (บริการเสริม/อุปกรณ์/PPFS/แลปพิเศษ)
+        // 16. ADP.txt (บริการเสริม/อุปกรณ์/PPFS/แลปพิเศษ และรายการยาที่มีการ map รหัส ADP)
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP|LMP|SP_ITEM
         $adpLines = [];
-        $nonDrugItems = $items->filter(function($it) {
-            return !str_starts_with((string)$it->icode, '1') && (float)$it->sum_price > 0;
+        $adpItems = $items->filter(function($it) {
+            $price = (float)$it->sum_price;
+            if ($price <= 0) return false;
+
+            $isDrug = str_starts_with((string)$it->icode, '1');
+            if (!$isDrug) {
+                // รายการที่ไม่ใช่ยา: ส่งออก ADP เสมอ
+                return true;
+            } else {
+                // รายการยา: ส่งออก ADP ด้วยหากมีการ map รหัส nhso_adp_code ไว้ใน drugitems
+                return !empty(trim((string)$it->nhso_adp_code));
+            }
         });
 
-        foreach ($nonDrugItems as $it) {
+        foreach ($adpItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = trim((string)($it->nondrug_adp_type ?: '14')); // Default 14 (ค่าบริการ)
-            $code = trim((string)($it->nondrug_adp_code ?: $it->icode));
+            $type = trim((string)($it->nhso_adp_type ?: '14')); // Default 14 (ค่าบริการ)
+            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
             $qty = intval($it->qty) ?: 1;
             $rate = number_format((float)$it->unitprice, 2, '.', '');
             $seq = $it->vn;

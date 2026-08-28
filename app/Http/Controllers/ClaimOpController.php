@@ -2383,7 +2383,8 @@ class ClaimOpController extends Controller
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
                    li.ppfs, li.ems, op.paidst AS paids, ps.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, n.nhso_adp_code AS nhso_adp_code,
+                   op.pttype, ptt.name AS pttype_name, 
+                   COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                    COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode

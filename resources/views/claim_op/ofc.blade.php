@@ -621,9 +621,13 @@
                                     return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
                                 }
                                 return drugsList.map(d => {
+                                    let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
+                                        ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
+                                        : '';
+
                                     return `<tr>
                                       <td>
-                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="fw-bold text-dark">${d.name} ${adpDrugTag}</div>
                                         <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
                                       </td>
                                       <td class="text-center fw-bold">${d.qty}</td>

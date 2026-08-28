@@ -31,26 +31,29 @@ class F16EclaimExportController extends Controller
         try {
             $result = F16EclaimExportService::generate16Files($vns);
 
-            // Create preview snippets (first 25 lines of each file) for faster rendering in modal
-            $snippets = [];
+            $tables = [];
+            $rawFiles = [];
             foreach ($result['files'] as $key => $content) {
                 if (empty($content)) {
-                    $snippets[$key] = '';
+                    $tables[$key] = [];
+                    $rawFiles[$key] = '';
                     continue;
                 }
-                $lines = explode("\r\n", $content);
-                $slice = array_slice($lines, 0, 30);
-                $snippet = implode("\n", $slice);
-                if (count($lines) > 30) {
-                    $snippet .= "\n... (แสดงตัวอย่าง 30 แถวแรก จากทั้งหมด " . count($lines) . " แถว) ...";
+                $rawFiles[$key] = $content;
+                $lines = preg_split('/\r\n|\r|\n/', trim($content));
+                $rows = [];
+                foreach ($lines as $line) {
+                    if ($line === '') continue;
+                    $rows[] = explode('|', $line);
                 }
-                $snippets[$key] = $snippet;
+                $tables[$key] = $rows;
             }
 
             return response()->json([
                 'status' => 'success',
                 'counts' => $result['counts'],
-                'snippets' => $snippets,
+                'tables' => $tables,
+                'raw_files' => $rawFiles,
                 'total_visits' => $result['total_visits'],
                 'hcode' => $result['hcode']
             ]);

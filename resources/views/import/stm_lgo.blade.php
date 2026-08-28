@@ -448,11 +448,11 @@
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" id="btnEclaimStmLgoLoginPopup">
-                                    <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบ e-Claim (ThaiD)
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" id="btnEclaimStmLgoLoginPopup">
+                                    <i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ e-Claim (ThaiD)
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="showEclaimExtensionGuide()">
-                                    <i class="bi bi-download me-1"></i> ส่วนเสริม Chrome
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="showEclaimExtensionGuide()" title="สำหรับติดตั้งหรือเปิดใช้ Extension บน Chrome">
+                                    <i class="bi bi-puzzle me-1"></i> ส่วนเสริม Chrome
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnEclaimStmLgoLogout">
                                     <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
@@ -949,54 +949,7 @@
         };
 
         $('#btnEclaimStmLgoLoginPopup').on('click', function () {
-            var loginUrl = 'https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do';
-            var popup = window.open(loginUrl, 'EclaimLoginPopup', 'width=850,height=850,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes');
-            
-            if (!popup || popup.closed || typeof popup.closed == 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'เบราว์เซอร์บล็อก Popup',
-                    text: 'กรุณาอนุญาต (Allow Pop-up) ในเบราว์เซอร์เพื่อเปิดหน้าต่างเข้าสู่ระบบ e-Claim สปสช.',
-                    confirmButtonText: 'ตกลง'
-                });
-                return;
-            }
-
-            var checkCount = 0;
-            var checkInterval = setInterval(function () {
-                checkCount++;
-                if (popup.closed) {
-                    clearInterval(checkInterval);
-                    checkEclaimStmLgoStatus();
-                    return;
-                }
-
-                if (checkCount % 3 === 0) {
-                    $.ajax({
-                        url: "{{ route('import.eclaim-bot.status') }}",
-                        method: "POST",
-                        data: { _token: "{{ csrf_token() }}" },
-                        success: function (res) {
-                            if (res && res.connected) {
-                                clearInterval(checkInterval);
-                                try { popup.close(); } catch(e) {}
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'เข้าสู่ระบบสำเร็จ!',
-                                    html: 'เชื่อมต่อกับ e-Claim สปสช. สำเร็จแล้ว: <b class="text-primary">' + res.user + '</b>',
-                                    timer: 2500,
-                                    showConfirmButton: false
-                                });
-                                checkEclaimStmLgoStatus();
-                            }
-                        }
-                    });
-                }
-
-                if (checkCount > 120) {
-                    clearInterval(checkInterval);
-                }
-            }, 1000);
+            openEclaimThaidQrModal(checkEclaimStmLgoStatus);
         });
 
         $('#btnEclaimStmLgoLogout').on('click', function () {

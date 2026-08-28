@@ -261,6 +261,177 @@ class EclaimBotController extends Controller
     }
 
     /**
+     * Start Playwright ThaiD QR Login Session
+     */
+    public function startThaidQrSession(Request $request)
+    {
+        $pwStatus = \App\Helpers\PlaywrightHelper::checkStatus();
+        if (!$pwStatus['available']) {
+            $installRes = \App\Helpers\PlaywrightHelper::autoInstall();
+            if (!$installRes['success']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ระบบ Playwright/Chromium ยังไม่พร้อมใช้งาน: ' . ($installRes['message'] ?? '')
+                ], 500);
+            }
+        }
+
+        $sessionId = uniqid('thaid_' . time() . '_');
+        $storageDir = storage_path('app');
+        $sessionFile = $storageDir . "/thaid_session_{$sessionId}.json";
+
+        file_put_contents($sessionFile, json_encode([
+            'status' => 'INITIALIZING',
+            'session_id' => $sessionId,
+            'message' => 'กำลังเริ่มต้นเบราว์เซอร์...'
+        ]));
+
+        \App\Helpers\PlaywrightHelper::startThaidLoginProcess($sessionId);
+
+        // Poll for up to 15 seconds for QR_READY
+        $maxAttempts = 30;
+        $attempt = 0;
+        while ($attempt < $maxAttempts) {
+            usleep(500000); // 0.5s
+            $attempt++;
+
+            if (file_exists($sessionFile)) {
+                $data = json_decode(file_get_contents($sessionFile), true);
+                if (is_array($data) && ($data['status'] ?? '') === 'QR_READY') {
+                    return response()->json([
+                        'status' => 'success',
+                        'session_id' => $sessionId,
+                        'qr_image' => $data['qr_image'] ?? '',
+                        'ref_code' => $data['ref_code'] ?? '',
+                        'expires_in' => $data['expires_in'] ?? 120,
+                        'message' => 'QR Code พร้อมสแกน'
+                    ]);
+                } elseif (is_array($data) && ($data['status'] ?? '') === 'FAILED') {
+                    @unlink($sessionFile);
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $data['message'] ?? 'เกิดข้อผิดพลาดในการร้องขอ QR Code'
+                    ], 500);
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => 'pending',
+            'session_id' => $sessionId,
+            'message' => 'กำลังเตรียม QR Code กรุณารอสักครู่...'
+        ]);
+    }
+
+    /**
+     * Check ThaiD QR Scan Status
+     */
+    public function checkThaidQrStatus(Request $request)
+    {
+        $sessionId = $request->query('session_id') ?: $request->input('session_id');
+        if (empty($sessionId)) {
+            return response()->json(['status' => 'error', 'message' => 'Missing session_id'], 400);
+        }
+
+        $sessionFile = storage_path("app/thaid_session_{$sessionId}.json");
+        if (!file_exists($sessionFile)) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Session'], 404);
+        }
+
+        $data = json_decode(file_get_contents($sessionFile), true);
+        if (!is_array($data)) {
+            return response()->json(['status' => 'error', 'message' => 'ข้อมูล Session ไม่ถูกต้อง'], 500);
+        }
+
+        $status = $data['status'] ?? 'WAITING_SCAN';
+
+        if ($status === 'SUCCESS') {
+            $token = $data['cookies'] ?? '';
+            $user = $data['user'] ?? 'เจ้าหน้าที่ e-Claim';
+
+            $cleanToken = $this->cleanToken($token);
+            $now = date('Y-m-d H:i:s');
+            $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+
+            DB::table('main_setting')->updateOrInsert(
+                ['name' => 'eclaim_session_token'],
+                ['name_th' => 'e-Claim Session Token', 'value' => $cleanToken]
+            );
+            DB::table('main_setting')->updateOrInsert(
+                ['name' => 'eclaim_session_user'],
+                ['name_th' => 'e-Claim Session User', 'value' => $user]
+            );
+            DB::table('main_setting')->updateOrInsert(
+                ['name' => 'eclaim_session_time'],
+                ['name_th' => 'e-Claim Session Connected Time', 'value' => $now]
+            );
+
+            \Illuminate\Support\Facades\Cache::put('eclaim_session_token_' . $hcode, $cleanToken, 7200);
+            \Illuminate\Support\Facades\Cache::put('eclaim_session_token_global', $cleanToken, 7200);
+            \Illuminate\Support\Facades\Cache::put('eclaim_session_user_' . $hcode, $user, 7200);
+            \Illuminate\Support\Facades\Cache::put('eclaim_session_time_' . $hcode, $now, 7200);
+
+            Session::put('eclaim_session_token', $cleanToken);
+            Session::put('eclaim_session_user', $user);
+            Session::put('eclaim_session_time', $now);
+            Session::put('eclaim_auth_method', 'ThaiD QR Code (Playwright)');
+
+            @unlink($sessionFile);
+
+            return response()->json([
+                'status' => 'success',
+                'state' => 'LOGGED_IN',
+                'user' => $user,
+                'message' => 'เข้าสู่ระบบสำเร็จ ยินดีต้อนรับ ' . $user
+            ]);
+        }
+
+        if ($status === 'QR_READY') {
+            return response()->json([
+                'status' => 'success',
+                'state' => 'QR_READY',
+                'qr_image' => $data['qr_image'] ?? '',
+                'ref_code' => $data['ref_code'] ?? '',
+                'expires_in' => $data['expires_in'] ?? 120,
+                'message' => 'พร้อมสแกน QR Code'
+            ]);
+        }
+
+        if ($status === 'FAILED' || $status === 'EXPIRED') {
+            @unlink($sessionFile);
+            return response()->json([
+                'status' => 'error',
+                'state' => $status,
+                'message' => $data['message'] ?? 'การเชื่อมต่อหมดอายุ หรือล้มเหลว'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'pending',
+            'state' => $status,
+            'message' => $data['message'] ?? 'กำลังดำเนินการ...'
+        ]);
+    }
+
+    /**
+     * Cancel ThaiD QR Session
+     */
+    public function cancelThaidQrSession(Request $request)
+    {
+        $sessionId = $request->input('session_id');
+        if ($sessionId) {
+            $sessionFile = storage_path("app/thaid_session_{$sessionId}.json");
+            if (file_exists($sessionFile)) {
+                file_put_contents($sessionFile, json_encode(['status' => 'CANCELLED']));
+                usleep(500000);
+                @unlink($sessionFile);
+            }
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
      * 1. ตรวจสอบสถานะการเชื่อมต่อ e-Claim / ThaiD Session (ค้นหาจาก Session -> Cache -> DB main_setting)
      */
     public function getStatus(Request $request)

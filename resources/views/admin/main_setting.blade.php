@@ -123,7 +123,8 @@
                                                 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary',
                                                 'health_id_client_id', 'health_id_client_secret',
                                                 'provider_id_client_id', 'provider_id_secret_key',
-                                                'moph_alert_client_id', 'moph_alert_client_secret'
+                                                'moph_alert_client_id', 'moph_alert_client_secret',
+                                                'ktb_password'
                                             ]);
                                         @endphp
                                         <tr>

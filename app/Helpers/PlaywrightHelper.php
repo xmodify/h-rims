@@ -1,0 +1,370 @@
+<?php
+
+namespace App\Helpers;
+
+use Illuminate\Support\Facades\Log;
+
+class PlaywrightHelper
+{
+    /**
+     * Cached node/npm executable paths
+     */
+    protected static $cachedNode = false;
+    protected static $cachedNpm = false;
+
+    /**
+     * Find working Node.js executable path.
+     */
+    public static function findNodeExecutable(): ?string
+    {
+        if (static::$cachedNode !== false) {
+            return static::$cachedNode;
+        }
+
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        $candidates = [];
+        if ($isWindows) {
+            $candidates[] = 'node';
+            $candidates[] = 'node.exe';
+
+            $drives = ['C:', 'D:', 'E:'];
+            foreach ($drives as $d) {
+                $candidates[] = "{$d}\\Program Files\\nodejs\\node.exe";
+                $candidates[] = "{$d}\\Program Files (x86)\\nodejs\\node.exe";
+                $candidates[] = "{$d}\\nodejs\\node.exe";
+                $candidates[] = "{$d}\\xampp\\nodejs\\node.exe";
+            }
+
+            $localAppData = getenv('LOCALAPPDATA');
+            if ($localAppData) {
+                $candidates[] = "{$localAppData}\\Programs\\node\\node.exe";
+                $candidates[] = "{$localAppData}\\Programs\\nodejs\\node.exe";
+            }
+
+            $userProfile = getenv('USERPROFILE');
+            if ($userProfile) {
+                $candidates[] = "{$userProfile}\\AppData\\Roaming\\nvm\\current\\node.exe";
+                $candidates[] = "{$userProfile}\\scoop\\shims\\node.exe";
+            }
+
+            $userGlob = @glob('C:/Users/*/AppData/Roaming/nvm/*/node.exe');
+            if (is_array($userGlob)) {
+                foreach ($userGlob as $found) {
+                    $candidates[] = str_replace('/', '\\', $found);
+                }
+            }
+        } else {
+            $candidates[] = '/usr/bin/node';
+            $candidates[] = '/usr/local/bin/node';
+            $candidates[] = '/opt/homebrew/bin/node';
+            $candidates[] = 'node';
+        }
+
+        foreach (array_unique($candidates) as $cmd) {
+            if (empty($cmd)) continue;
+
+            if (strpos($cmd, '\\') !== false || strpos($cmd, '/') !== false) {
+                $cleaned = trim($cmd, '"\'');
+                if (!file_exists($cleaned)) continue;
+            }
+
+            $formatted = (strpos($cmd, ' ') !== false && strpos($cmd, '"') === false) ? "\"{$cmd}\"" : $cmd;
+            $testCmd = "{$formatted} -v 2>&1";
+            $output = [];
+            $returnVar = 1;
+            @exec($testCmd, $output, $returnVar);
+
+            if ($returnVar === 0 && !empty($output) && strpos(trim($output[0]), 'v') === 0) {
+                static::$cachedNode = $formatted;
+                return $formatted;
+            }
+        }
+
+        static::$cachedNode = null;
+        return null;
+    }
+
+    /**
+     * Find working NPM / NPX executable.
+     */
+    public static function findNpmExecutable(): ?string
+    {
+        if (static::$cachedNpm !== false) {
+            return static::$cachedNpm;
+        }
+
+        $nodeExe = static::findNodeExecutable();
+        if (!$nodeExe) {
+            static::$cachedNpm = null;
+            return null;
+        }
+
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $candidates = [];
+
+        if ($isWindows) {
+            $candidates[] = 'npm.cmd';
+            $candidates[] = 'npm';
+
+            $nodeDir = dirname(trim($nodeExe, '"\''));
+            if ($nodeDir && file_exists("{$nodeDir}\\npm.cmd")) {
+                $candidates[] = "{$nodeDir}\\npm.cmd";
+            }
+
+            $candidates[] = 'C:\\Program Files\\nodejs\\npm.cmd';
+            $candidates[] = 'C:\\Program Files (x86)\\nodejs\\npm.cmd';
+        } else {
+            $candidates[] = '/usr/bin/npm';
+            $candidates[] = '/usr/local/bin/npm';
+            $candidates[] = 'npm';
+        }
+
+        foreach (array_unique($candidates) as $cmd) {
+            if (empty($cmd)) continue;
+            $formatted = (strpos($cmd, ' ') !== false && strpos($cmd, '"') === false) ? "\"{$cmd}\"" : $cmd;
+            $testCmd = "{$formatted} -v 2>&1";
+            $output = [];
+            $returnVar = 1;
+            @exec($testCmd, $output, $returnVar);
+
+            if ($returnVar === 0 && !empty($output)) {
+                static::$cachedNpm = $formatted;
+                return $formatted;
+            }
+        }
+
+        static::$cachedNpm = null;
+        return null;
+    }
+
+    /**
+     * Check if Playwright module & Chromium browser are installed.
+     */
+    public static function checkStatus(): array
+    {
+        $nodeExe = static::findNodeExecutable();
+        $isNodeAvailable = !empty($nodeExe);
+        $nodeVersion = null;
+
+        if ($isNodeAvailable) {
+            $out = [];
+            @exec("{$nodeExe} -v 2>&1", $out);
+            $nodeVersion = trim(implode('', $out));
+        }
+
+        $hasPlaywrightPackage = false;
+        $hasChromium = false;
+
+        $projectRoot = base_path();
+        $nodeModulesPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright';
+        
+        if (file_exists($nodeModulesPlaywright)) {
+            $hasPlaywrightPackage = true;
+        } else if ($isNodeAvailable) {
+            $out = [];
+            $code = 1;
+            @exec("{$nodeExe} -e \"require('playwright'); console.log('OK');\" 2>&1", $out, $code);
+            if ($code === 0 && trim(end($out) ?: '') === 'OK') {
+                $hasPlaywrightPackage = true;
+            }
+        }
+
+        // Test if Chromium can be launched in headless mode
+        if ($hasPlaywrightPackage && $isNodeAvailable) {
+            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
+            $out = [];
+            $code = 1;
+            $escapedScript = str_replace('"', '\"', $testScript);
+            @exec("{$nodeExe} -e \"{$escapedScript}\" 2>&1", $out, $code);
+            $fullOut = implode("\n", $out);
+            if (strpos($fullOut, 'CHROMIUM_OK') !== false) {
+                $hasChromium = true;
+            }
+        }
+
+        return [
+            'available' => ($isNodeAvailable && $hasPlaywrightPackage && $hasChromium),
+            'node_available' => $isNodeAvailable,
+            'node_version' => $nodeVersion,
+            'has_playwright' => $hasPlaywrightPackage,
+            'has_chromium' => $hasChromium,
+        ];
+    }
+
+    /**
+     * Auto install Playwright & Chromium browser.
+     */
+    public static function autoInstall(): array
+    {
+        $nodeExe = static::findNodeExecutable();
+        $npmExe = static::findNpmExecutable();
+
+        if (!$nodeExe || !$npmExe) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบ Node.js หรือ NPM บนเครื่องเซิร์ฟเวอร์ กรุณาติดตั้ง Node.js ก่อนใช้งาน Playwright'
+            ];
+        }
+
+        $projectRoot = base_path();
+        $logs = [];
+
+        // 1. Install playwright & adm-zip package locally in project
+        $installCmd = "cd /d \"{$projectRoot}\" && {$npmExe} install playwright adm-zip --save 2>&1";
+        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            $installCmd = "cd \"{$projectRoot}\" && {$npmExe} install playwright adm-zip --save 2>&1";
+        }
+
+        $out1 = [];
+        $code1 = 1;
+        @exec($installCmd, $out1, $code1);
+        $logs[] = "npm install: " . implode(' ', array_slice($out1, -3));
+
+        // 2. Install Chromium browser binaries
+        $npxExe = str_replace('npm', 'npx', $npmExe);
+        $browserCmd = "cd /d \"{$projectRoot}\" && {$npxExe} playwright install chromium 2>&1";
+        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            $browserCmd = "cd \"{$projectRoot}\" && {$npxExe} playwright install chromium 2>&1";
+        }
+
+        $out2 = [];
+        $code2 = 1;
+        @exec($browserCmd, $out2, $code2);
+        $logs[] = "playwright install chromium: " . implode(' ', array_slice($out2, -3));
+
+        // Check again
+        $status = static::checkStatus();
+        if ($status['available']) {
+            return [
+                'success' => true,
+                'message' => 'ติดตั้ง Playwright และ Chromium สำเร็จพร้อมใช้งาน',
+                'logs' => $logs
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'ติดตั้ง Playwright ไม่สมบูรณ์: ' . implode(' | ', $logs),
+            'status' => $status
+        ];
+    }
+
+    /**
+     * Run KTB Crawler script.
+     *
+     * @param array $params ['company_id', 'user_id', 'password', 'from_date', 'to_date', 'output_dir']
+     * @return array
+     */
+    public static function runKtbCrawler(array $params): array
+    {
+        $nodeExe = static::findNodeExecutable();
+        if (!$nodeExe) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบ Node.js บนเซิร์ฟเวอร์'
+            ];
+        }
+
+        // Auto install if not ready
+        $status = static::checkStatus();
+        if (!$status['available']) {
+            $installRes = static::autoInstall();
+            if (!$installRes['success']) {
+                return $installRes;
+            }
+        }
+
+        $scriptPath = base_path('app/Helpers/Scripts/ktb_edc_crawler.js');
+        if (!file_exists($scriptPath)) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบไฟล์สคริปต์ KTB Crawler ที่ ' . $scriptPath
+            ];
+        }
+
+        $outputDir = $params['output_dir'] ?? storage_path('app/tmp_edc_import/' . uniqid('ktb_'));
+        if (!file_exists($outputDir)) {
+            @mkdir($outputDir, 0755, true);
+        }
+
+        // Prepare JSON arguments file to avoid CLI escaping issues with passwords
+        $configToken = uniqid('crawler_cfg_');
+        $configFile = storage_path('app/' . $configToken . '.json');
+        
+        $configData = [
+            'company_id' => (string)($params['company_id'] ?? ''),
+            'user_id' => (string)($params['user_id'] ?? ''),
+            'password' => (string)($params['password'] ?? ''),
+            'from_date' => (string)($params['from_date'] ?? ''), // e.g. 21-08-2026
+            'to_date' => (string)($params['to_date'] ?? ''),     // e.g. 28-08-2026
+            'output_dir' => $outputDir,
+            'headless' => $params['headless'] ?? true,
+            'timeout' => $params['timeout'] ?? 60000,
+        ];
+
+        file_put_contents($configFile, json_encode($configData, JSON_UNESCAPED_UNICODE));
+
+        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
+
+        $output = [];
+        $returnVar = 1;
+        @exec($cmd, $output, $returnVar);
+
+        // Remove temp config file
+        @unlink($configFile);
+
+        $outputStr = implode("\n", $output);
+        
+        // Find JSON result inside output
+        $jsonData = null;
+        if (preg_match('/<<<JSON_START>>>(.*?)<<<JSON_END>>>/s', $outputStr, $m)) {
+            $jsonData = json_decode(trim($m[1]), true);
+        } else {
+            // Try direct JSON decode
+            $jsonData = json_decode($outputStr, true);
+        }
+
+        if (is_array($jsonData)) {
+            return $jsonData;
+        }
+
+        Log::error("KTB Crawler failed: " . $outputStr);
+
+        return [
+            'success' => false,
+            'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลจาก KTB: ' . ($outputStr ?: 'Unknown error'),
+            'raw_output' => $outputStr
+        ];
+    }
+
+    /**
+     * Start ThaiD Login Background Worker
+     */
+    public static function startThaidLoginProcess(string $sessionId): bool
+    {
+        $nodeExe = static::findNodeExecutable();
+        if (!$nodeExe) {
+            return false;
+        }
+
+        $scriptPath = base_path('app/Helpers/Scripts/eclaim_thaid_login.js');
+        if (!file_exists($scriptPath)) {
+            return false;
+        }
+
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $scriptEscaped = '"' . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . '"';
+
+        if ($isWindows) {
+            $cmd = "start /B \"\" {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
+            pclose(popen($cmd, "r"));
+        } else {
+            $cmd = "{$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > /dev/null 2>&1 &";
+            exec($cmd);
+        }
+
+        return true;
+    }
+}
+

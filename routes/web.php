@@ -206,6 +206,9 @@ Route::post('import/rep/delete', [ImportRepController::class, 'deleteBatch'])->n
 
 // e-Claim Bot Automation Routes
 Route::post('import/eclaim-bot/status', [EclaimBotController::class, 'getStatus'])->name('import.eclaim-bot.status');
+Route::post('import/eclaim-bot/thaid-qr/start', [EclaimBotController::class, 'startThaidQrSession'])->name('import.eclaim-bot.thaid-qr.start');
+Route::get('import/eclaim-bot/thaid-qr/check', [EclaimBotController::class, 'checkThaidQrStatus'])->name('import.eclaim-bot.thaid-qr.check');
+Route::post('import/eclaim-bot/thaid-qr/cancel', [EclaimBotController::class, 'cancelThaidQrSession'])->name('import.eclaim-bot.thaid-qr.cancel');
 Route::post('import/eclaim-bot/generate-qr', [EclaimBotController::class, 'generateThaiDQR'])->name('import.eclaim-bot.generate-qr');
 Route::post('import/eclaim-bot/verify-login', [EclaimBotController::class, 'verifyThaiDLogin'])->name('import.eclaim-bot.verify-login');
 Route::post('import/eclaim-bot/save-token', [EclaimBotController::class, 'saveSessionToken'])->name('import.eclaim-bot.save-token');
@@ -1015,6 +1018,8 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
     Route::post('import_edc_zip', [\App\Http\Controllers\ImportEdcController::class, 'importZip'])->name('api.import_edc_zip');
     Route::post('import_edc_file', [\App\Http\Controllers\ImportEdcController::class, 'importFile'])->name('api.import_edc_file');
+    Route::post('sync_edc_ktb', [\App\Http\Controllers\ImportEdcController::class, 'syncKtb'])->name('api.sync_edc_ktb');
+    Route::get('check_ktb_status', [\App\Http\Controllers\ImportEdcController::class, 'checkKtbStatus'])->name('api.check_ktb_status');
 });
 Route::get('mishos/ucs_ppfs/visit_details', [MishosController::class, 'ucs_ppfs_visit_details']);
 

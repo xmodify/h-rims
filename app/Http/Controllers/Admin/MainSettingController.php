@@ -82,6 +82,11 @@ class MainSettingController extends Controller
                 'moph_alert_client_id',
                 'moph_alert_client_secret'
             ],
+            'KTB Corporate (EDC)' => [
+                'ktb_company_id',
+                'ktb_user_id',
+                'ktb_password'
+            ],
             'License Setting' => ['rims_license_key'],
         ];
 
@@ -633,9 +638,29 @@ class MainSettingController extends Controller
                         $pythonInstallMsg = ' + python (ขัดข้อง: ' . $ex->getMessage() . ')';
                     }
 
+                    // --- 2.8: Auto-Detect & Check Playwright dependencies (for KTB Corporate EDC) ---
+                    $playwrightInstallMsg = '';
+                    try {
+                        $pwStatus = \App\Helpers\PlaywrightHelper::checkStatus();
+                        if ($pwStatus['available']) {
+                            $playwrightInstallMsg = ' + Playwright (พร้อมใช้งาน)';
+                        } elseif ($pwStatus['node_available']) {
+                            $pwInstall = \App\Helpers\PlaywrightHelper::autoInstall();
+                            if ($pwInstall['success']) {
+                                $playwrightInstallMsg = ' + Playwright (ติดตั้งสำเร็จพร้อมใช้งาน)';
+                            } else {
+                                $playwrightInstallMsg = ' + Playwright (ติดตั้งไม่สมบูรณ์: ' . ($pwInstall['message'] ?? '') . ')';
+                            }
+                        } else {
+                            $playwrightInstallMsg = ' + Playwright (ไม่พบ Node.js บนเซิร์ฟเวอร์)';
+                        }
+                    } catch (\Throwable $ex) {
+                        $playwrightInstallMsg = ' + Playwright (ขัดข้อง: ' . $ex->getMessage() . ')';
+                    }
+
                     return response()->json([
                         'success' => true,
-                        'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report) . $pythonInstallMsg
+                        'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report) . $pythonInstallMsg . $playwrightInstallMsg
                     ]);
 
                 case 3:
@@ -703,6 +728,9 @@ class MainSettingController extends Controller
                         ['name' => 'eclaim_session_token', 'name_th' => 'e-Claim Session Token', 'value' => ''],
                         ['name' => 'eclaim_session_user', 'name_th' => 'e-Claim Session User ล่าสุด', 'value' => ''],
                         ['name' => 'eclaim_session_time', 'name_th' => 'e-Claim Session เวลาเชื่อมต่อล่าสุด', 'value' => ''],
+                        ['name' => 'ktb_company_id', 'name_th' => 'KTB Corporate Company ID (EDC)', 'value' => ''],
+                        ['name' => 'ktb_user_id', 'name_th' => 'KTB Corporate User ID (EDC)', 'value' => ''],
+                        ['name' => 'ktb_password', 'name_th' => 'KTB Corporate Password (EDC)', 'value' => ''],
                     ];
 
                     // Clean up obsolete settings dynamically

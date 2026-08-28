@@ -1,4 +1,41 @@
 <!-- Modal: F16 e-Claim Export Center (Reusable 16 Files Component) -->
+<style>
+    .f16-sortable-th {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.15s ease;
+        white-space: nowrap;
+        position: relative;
+    }
+    .f16-sortable-th:hover {
+        background-color: #e2e8f0 !important;
+    }
+    .f16-table-container {
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: #fff;
+    }
+    .f16-table-container thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: #f1f5f9 !important;
+        color: #1e293b !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+        padding: 7px 10px !important;
+    }
+    .f16-table-container td {
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap;
+    }
+</style>
+
 <div class="modal fade" id="f16EclaimExportModal" tabindex="-1" aria-labelledby="f16EclaimExportModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
@@ -37,17 +74,72 @@
                             <ul class="nav nav-pills nav-fill flex-wrap gap-1" id="f16Tabs" role="tablist">
                                 @php
                                     $fileTabs = [
-                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิ'],
-                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ผู้ป่วย'],
-                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'ผู้ป่วยนอก'],
-                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อ'],
-                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัย'],
-                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ'],
-                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'ยา'],
-                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => '16 หมวด'],
-                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'การเงิน'],
-                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุ'],
-                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการเสริม'],
+                                        [
+                                            'key' => 'INS', 
+                                            'name' => 'INS', 
+                                            'desc' => 'สิทธิการรักษาพยาบาล',
+                                            'headers' => ['HN', 'INSCL', 'SUBTYPE', 'CID', 'HOSPMAIN', 'HOSPSUB', 'GOVCODE', 'GOVNAME', 'PERMITNO', 'DOCNO', 'OWNRPID', 'OWNRNAME', 'AN', 'SEQ', 'SUBINSCL', 'RELINSCL', 'HTYPE']
+                                        ],
+                                        [
+                                            'key' => 'PAT', 
+                                            'name' => 'PAT', 
+                                            'desc' => 'ข้อมูลผู้ป่วย',
+                                            'headers' => ['HCODE', 'HN', 'CHANGWAT', 'AMPHUR', 'DOB', 'SEX', 'MARRIAGE', 'OCCUPA', 'NATION', 'PERSON_ID', 'NAMEPAT', 'TITLE', 'FNAME', 'LNAME', 'IDTYPE']
+                                        ],
+                                        [
+                                            'key' => 'OPD', 
+                                            'name' => 'OPD', 
+                                            'desc' => 'ข้อมูลผู้ป่วยนอก',
+                                            'headers' => ['HN', 'CLINIC', 'DATEOPD', 'TIMEOPD', 'SEQ', 'UUC']
+                                        ],
+                                        [
+                                            'key' => 'ORF', 
+                                            'name' => 'ORF', 
+                                            'desc' => 'ส่งต่อผู้ป่วยนอก',
+                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'REFER', 'REFERTYPE', 'SEQ', 'REFERDATE']
+                                        ],
+                                        [
+                                            'key' => 'ODX', 
+                                            'name' => 'ODX', 
+                                            'desc' => 'วินิจฉัยโรค OPD',
+                                            'headers' => ['HN', 'DATEDX', 'CLINIC', 'DIAG', 'DXTYPE', 'DRDX', 'PERSON_ID', 'SEQ']
+                                        ],
+                                        [
+                                            'key' => 'OOP', 
+                                            'name' => 'OOP', 
+                                            'desc' => 'หัตถการ OPD',
+                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'OPER', 'DROPID', 'PERSON_ID', 'SEQ', 'SERVPRICE']
+                                        ],
+                                        [
+                                            'key' => 'DRU', 
+                                            'name' => 'DRU', 
+                                            'desc' => 'รายการสั่งใช้ยา',
+                                            'headers' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRIC', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'SIGCODE', 'SIGTEXT', 'PROVIDER']
+                                        ],
+                                        [
+                                            'key' => 'CHA', 
+                                            'name' => 'CHA', 
+                                            'desc' => 'ค่าบริการ 16 หมวด สปสช.',
+                                            'headers' => ['HN', 'AN', 'DATE', 'CHRGITEM', 'AMOUNT', 'PERSON_ID', 'SEQ']
+                                        ],
+                                        [
+                                            'key' => 'CHT', 
+                                            'name' => 'CHT', 
+                                            'desc' => 'สรุปยอดรวมค่าใช้จ่ายและใบเสร็จ',
+                                            'headers' => ['HN', 'AN', 'DATE', 'TOTAL', 'PAID', 'PTTYPE', 'PERSON_ID', 'SEQ']
+                                        ],
+                                        [
+                                            'key' => 'AER', 
+                                            'name' => 'AER', 
+                                            'desc' => 'อุบัติเหตุและฉุกเฉิน',
+                                            'headers' => ['HN', 'AN', 'DATEOPD', 'AUTHAE', 'AEDATE', 'AETIME', 'AETYPE', 'REFER_NO', 'REFMAINI', 'IREFTYPE', 'REFMAINO', 'OREFTYPE', 'UCAE', 'EMTYPE', 'SEQ', 'AESTATUS', 'DALERT', 'TALERT']
+                                        ],
+                                        [
+                                            'key' => 'ADP', 
+                                            'name' => 'ADP', 
+                                            'desc' => 'บริการเสริม/อุปกรณ์/PPFS',
+                                            'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP', 'LMP', 'SP_ITEM']
+                                        ],
                                     ];
                                 @endphp
 
@@ -69,21 +161,76 @@
                         </div>
                     </div>
 
-                    <!-- Tab Contents / Text Previews -->
+                    <!-- Tab Contents / Table Views & Raw Text -->
                     <div class="tab-content" id="f16TabPanes">
                         @foreach($fileTabs as $index => $tab)
                         <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" id="f16-pane-{{ $tab['key'] }}" role="tabpanel">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-header bg-dark text-light py-2 px-3 d-flex justify-content-between align-items-center">
+                            <!-- Card Container -->
+                            <div class="card border shadow-sm" style="border-color: #dee2e6; border-radius: 8px; overflow: hidden;">
+                                <div class="card-header bg-white border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
                                     <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-file-earmark-text text-warning"></i>
-                                        <span class="fw-bold">{{ $tab['name'] }}.txt</span>
-                                        <span class="text-white-50 small">({{ $tab['desc'] }})</span>
+                                        <i class="bi bi-table text-primary"></i>
+                                        <span class="fw-bold text-dark">{{ $tab['name'] }}.txt</span>
+                                        <span class="text-muted small">({{ $tab['desc'] }})</span>
+                                        <span class="text-muted small ms-2"><i class="bi bi-info-circle me-1"></i>คลิกที่หัวคอลัมน์เพื่อเรียงลำดับ (Sort)</span>
                                     </div>
-                                    <span class="badge bg-secondary" id="pane-count-{{ $tab['key'] }}">0 แถว</span>
+                                    <span class="badge bg-light text-secondary border px-2 py-1" id="pane-count-{{ $tab['key'] }}">0 แถว</span>
                                 </div>
-                                <div class="card-body p-0">
-                                    <pre class="m-0 p-3 bg-dark text-info" id="preview-content-{{ $tab['key'] }}" style="max-height: 280px; min-height: 180px; overflow-y: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;">(ไม่มีข้อมูล)</pre>
+                                <div class="card-body p-0 bg-white">
+                                    <!-- Table Area with Sortable Headers -->
+                                    <div class="f16-table-container">
+                                        <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-f16-{{ $tab['key'] }}">
+                                            <thead>
+                                                <tr>
+                                                    @foreach($tab['headers'] as $colIdx => $headerTitle)
+                                                    <th class="f16-sortable-th" onclick="sortF16Table('{{ $tab['key'] }}', {{ $colIdx }})" title="คลิกเพื่อเรียงตาม {{ $headerTitle }}">
+                                                        <div class="d-flex align-items-center justify-content-between gap-1">
+                                                            <span>{{ $headerTitle }}</span>
+                                                            <span class="sort-icon text-muted small"><i class="bi bi-arrow-down-up"></i></span>
+                                                        </div>
+                                                    </th>
+                                                    @endforeach
+                                                </tr>
+                                            </thead>
+                                            <tbody id="table-tbody-{{ $tab['key'] }}">
+                                                <tr>
+                                                    <td colspan="{{ count($tab['headers']) }}" class="text-center text-muted py-4">
+                                                        <i class="bi bi-inbox me-1"></i> ไม่มีข้อมูลสำหรับแฟ้มนี้
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Collapsible Raw Text Section (Like SSOP) -->
+                                <div class="card-footer bg-light border-top p-0">
+                                    <button class="btn btn-sm btn-light w-100 text-start d-flex justify-content-between align-items-center py-2 px-3 text-secondary border-0" 
+                                            type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#raw-{{ $tab['key'] }}-collapse" 
+                                            aria-expanded="false" 
+                                            aria-controls="raw-{{ $tab['key'] }}-collapse">
+                                        <span class="fw-bold">
+                                            <i class="bi bi-file-earmark-code text-primary me-1"></i> ดูไฟล์ข้อความดิบ {{ $tab['name'] }}.txt (Raw Text)
+                                        </span>
+                                        <i class="bi bi-chevron-down text-muted"></i>
+                                    </button>
+                                    <div class="collapse" id="raw-{{ $tab['key'] }}-collapse">
+                                        <div class="p-3 position-relative bg-white border-top">
+                                            <button class="btn btn-xs btn-outline-secondary position-absolute end-0 top-0 m-3 shadow-sm" 
+                                                    type="button"
+                                                    onclick="copyF16RawText('{{ $tab['key'] }}')" 
+                                                    style="font-size: 0.75rem; z-index: 10;">
+                                                <i class="bi bi-clipboard me-1"></i> คัดลอก Raw Text
+                                            </button>
+                                            <textarea class="form-control text-monospace bg-light text-dark p-3 small" 
+                                                      id="preview-raw-{{ $tab['key'] }}" 
+                                                      rows="6" 
+                                                      readonly 
+                                                      style="font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre;">(ไม่มีข้อมูล)</textarea>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -132,9 +279,127 @@
         vns: [],
         claimCode: 'OFC',
         claimTitle: 'OP-OFC (ข้าราชการ)',
-        fullFiles: {},
+        tables: {},
+        rawFiles: {},
         counts: {},
         subfolderName: ''
+    };
+
+    window._f16SortState = {};
+
+    function escapeHtmlF16(text) {
+        if (text === null || text === undefined) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * ฟังก์ชัน Render แถวใน Table Body ของแต่ละแฟ้ม
+     */
+    window.renderF16TableBody = function(key) {
+        const rows = window._f16ExportState.tables[key] || [];
+        const tbody = document.getElementById(`table-tbody-${key}`);
+        if (!tbody) return;
+
+        if (rows.length === 0) {
+            const colCount = $(`#table-f16-${key} thead th`).length || 1;
+            tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i> ไม่มีข้อมูลสำหรับแฟ้มนี้</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            html += '<tr>';
+            for (let c = 0; c < row.length; c++) {
+                const cell = row[c] !== null && row[c] !== undefined ? row[c] : '';
+                html += `<td>${escapeHtmlF16(cell)}</td>`;
+            }
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    };
+
+    /**
+     * ฟังก์ชันเรียงลำดับคอลัมน์ของ Table ในแต่ละแฟ้ม
+     */
+    window.sortF16Table = function(key, colIdx) {
+        const tableData = window._f16ExportState.tables[key];
+        if (!tableData || tableData.length === 0) return;
+
+        const currentSort = window._f16SortState[key] || { col: -1, dir: 'asc' };
+        let newDir = 'asc';
+        if (currentSort.col === colIdx) {
+            newDir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+        }
+        window._f16SortState[key] = { col: colIdx, dir: newDir };
+
+        // ทำการ Sort ข้อมูล
+        tableData.sort(function(a, b) {
+            let valA = (a[colIdx] !== undefined && a[colIdx] !== null) ? a[colIdx].toString().trim() : '';
+            let valB = (b[colIdx] !== undefined && b[colIdx] !== null) ? b[colIdx].toString().trim() : '';
+
+            // ตรวจสอบว่าเป็นตัวเลขหรือไม่
+            const numA = parseFloat(valA);
+            const numB = parseFloat(valB);
+            if (!isNaN(numA) && !isNaN(numB) && valA === numA.toString() && valB === numB.toString()) {
+                return newDir === 'asc' ? numA - numB : numB - numA;
+            }
+
+            // เปรียบเทียบแบบข้อความ/วันที่
+            const cmp = valA.localeCompare(valB, 'th', { numeric: true, sensitivity: 'base' });
+            return newDir === 'asc' ? cmp : -cmp;
+        });
+
+        // ปรับแต่ง Icon บน Header
+        $(`#table-f16-${key} th.f16-sortable-th`).each(function(idx) {
+            const iconEl = $(this).find('.sort-icon i');
+            if (idx === colIdx) {
+                iconEl.removeClass('bi-arrow-down-up bi-sort-down bi-sort-up text-muted')
+                      .addClass(newDir === 'asc' ? 'bi-sort-up text-primary fw-bold' : 'bi-sort-down text-primary fw-bold');
+                $(this).addClass('bg-primary-subtle');
+            } else {
+                iconEl.removeClass('bi-sort-down bi-sort-up text-primary fw-bold')
+                      .addClass('bi-arrow-down-up text-muted');
+                $(this).removeClass('bg-primary-subtle');
+            }
+        });
+
+        renderF16TableBody(key);
+    };
+
+    /**
+     * คัดลอก Raw Text
+     */
+    window.copyF16RawText = function(key) {
+        const textarea = document.getElementById('preview-raw-' + key);
+        if (!textarea || !textarea.value) return;
+
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            if (typeof Swal !== 'undefined') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1800,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'คัดลอก ' + key + '.txt สำเร็จ'
+                });
+            } else {
+                alert('คัดลอก ' + key + '.txt สำเร็จ');
+            }
+        }).catch(() => {
+            textarea.select();
+            document.execCommand('copy');
+            alert('คัดลอก ' + key + '.txt สำเร็จ');
+        });
     };
 
     /**
@@ -162,12 +427,14 @@
             return;
         }
 
-        // Save State
+        // Reset State
         window._f16ExportState.vns = vns;
         window._f16ExportState.claimCode = claimCode;
         window._f16ExportState.claimTitle = claimTitle;
-        window._f16ExportState.fullFiles = {};
+        window._f16ExportState.tables = {};
+        window._f16ExportState.rawFiles = {};
         window._f16ExportState.counts = {};
+        window._f16SortState = {};
 
         // Update Header
         $('#f16ModalClaimTitle').text(claimTitle);
@@ -206,26 +473,34 @@
 
                 if (res.status === 'success') {
                     const counts = res.counts || {};
-                    const snippets = res.snippets || {};
+                    const tables = res.tables || {};
+                    const rawFiles = res.raw_files || {};
 
-                    // Update Tab Badges and Snippets (11 OP Files)
+                    window._f16ExportState.tables = tables;
+                    window._f16ExportState.rawFiles = rawFiles;
+                    window._f16ExportState.counts = counts;
+
+                    // Update Tab Badges, Tables, and Raw Text (11 OP Files)
                     const keys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'DRU', 'CHA', 'CHT', 'AER', 'ADP'];
                     keys.forEach(function(k) {
                         const count = counts[k] || 0;
                         const badgeEl = $('#badge-count-' + k);
                         const paneCountEl = $('#pane-count-' + k);
-                        const previewEl = $('#preview-content-' + k);
+                        const rawTextarea = $('#preview-raw-' + k);
 
                         badgeEl.text(count);
                         paneCountEl.text(count + ' แถว');
 
                         if (count > 0) {
                             badgeEl.removeClass('bg-secondary').addClass('text-white').css('background-color', '#0e939a');
-                            previewEl.text(snippets[k] || '(ไม่มีข้อมูล)');
+                            rawTextarea.val(rawFiles[k] || '');
                         } else {
                             badgeEl.removeClass('text-white').addClass('bg-secondary').css('background-color', '');
-                            previewEl.text('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
+                            rawTextarea.val('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
                         }
+
+                        // Render Table
+                        renderF16TableBody(k);
                     });
 
                     // Activate First Tab

@@ -1,5 +1,11 @@
 /vendor
-/node_modules
+/node_modules/*
+!/node_modules/playwright
+!/node_modules/playwright/**
+!/node_modules/playwright-core
+!/node_modules/playwright-core/**
+!/node_modules/adm-zip
+!/node_modules/adm-zip/**
 .env
 /storage/*.key
 /public/storage

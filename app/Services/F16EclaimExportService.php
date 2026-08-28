@@ -231,7 +231,7 @@ class F16EclaimExportService
         }
 
         // -------------------------------------------------------------
-        // 4. Query Items (opitemrece, drugitems, nondrugitems)
+        // 4. Query Items (opitemrece, drugitems, nondrugitems, income, drg_chrgitem)
         // -------------------------------------------------------------
         $items = collect();
         if (!empty($vnsList)) {
@@ -244,6 +244,7 @@ class F16EclaimExportService
                            n.name as nondrug_name,
                            COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                            COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
+                           COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
                            o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
@@ -251,6 +252,8 @@ class F16EclaimExportService
                     LEFT JOIN patient pt ON pt.hn = op.hn
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN income inc ON inc.income = op.income
+                    LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                     LEFT JOIN doctor doc ON doc.code = op.doctor
                     LEFT JOIN drugusage du ON du.drugusage = op.drugusage
                     WHERE op.vn IN ($placeholders)
@@ -268,6 +271,7 @@ class F16EclaimExportService
                                n.name as nondrug_name,
                                COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                                COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
+                               COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
                                o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                                op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
                         FROM opitemrece op
@@ -275,6 +279,8 @@ class F16EclaimExportService
                         LEFT JOIN patient pt ON pt.hn = op.hn
                         LEFT JOIN drugitems d ON d.icode = op.icode
                         LEFT JOIN nondrugitems n ON n.icode = op.icode
+                        LEFT JOIN income inc ON inc.income = op.income
+                        LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                         LEFT JOIN doctor doc ON doc.code = op.doctor
                         WHERE op.vn IN ($placeholders)
                         ORDER BY op.vn, op.item_no
@@ -593,7 +599,7 @@ class F16EclaimExportService
             // Group by CHA CHRGITEM
             $chaGroups = [];
             foreach ($vnItems as $it) {
-                $chrg = self::mapIncomeToChaItem($it->income);
+                $chrg = $it->chrgitem_code ?: self::mapIncomeToChaItem($it->income);
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }

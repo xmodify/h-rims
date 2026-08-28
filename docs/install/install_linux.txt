@@ -1,13 +1,12 @@
-################## Almalinux 9.4 ###################
-1.เตรียมระบบพื้นฐาน (ถ้ายังไม่ได้ลง)
+################## Almalinux 9 / Rocky Linux / RHEL ###################
+1.เตรียมระบบพื้นฐาน และ EPEL
 	sudo dnf update -y
-	sudo dnf install -y git unzip
+	sudo dnf install -y epel-release git unzip curl
 
 2.ติดตั้ง Apache + PHP (Laravel แนะนำ PHP ≥ 8.1)
-	sudo dnf install -y epel-release
 	sudo dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
 	sudo dnf module enable -y php:remi-8.1
-	sudo dnf install -y php php-cli php-common php-mbstring php-xml php-bcmath php-curl php-zip php-mysqlnd php-pdo php-tokenizer php-opcache unzip git curl
+	sudo dnf install -y httpd php php-cli php-common php-mbstring php-xml php-bcmath php-curl php-zip php-mysqlnd php-pdo php-tokenizer php-opcache
 
 3.ติดตั้ง Composer
 	cd /tmp
@@ -28,32 +27,30 @@
 
 6.ติดตั้ง Laravel dependencies
 	cd /var/www/html/rims
-	sudo -u apache /usr/local/bin/composer install
+	sudo -u apache /usr/local/bin/composer install --no-dev --optimize-autoloader
 
 7.ตั้งค่าไฟล์ .env
 	sudo -u apache cp .env.example .env
 	sudo -u apache php artisan key:generate
 	sudo nano .env
 
-8.git pull ผ่าน User
-	sudo -u apache git -C /var/www/html/rims reset --hard
-	sudo -u apache git -C /var/www/html/rims pull origin main
-	sudo -u apache /usr/local/bin/composer install --no-dev --optimize-autoloader
-	sudo -u apache rm -f /var/www/html/rims/bootstrap/cache/*.php
-	sudo -u apache php artisan optimize:clear
-	
-9.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
-	sudo dnf install -y httpd
-	sudo systemctl enable httpd
-	sudo systemctl start httpd
-
-10.Node.js Setup:
+8.ติดตั้ง Node.js, Chromium & System Libraries (สำหรับระบบ e-Claim ThaiD & KTB EDC):
 	sudo dnf module reset nodejs -y
 	sudo dnf module enable nodejs:20 -y
 	sudo dnf install -y nodejs
+	sudo dnf install -y chromium nspr nss mesa-libgbm alsa-lib atk cups-libs
+
 	cd /var/www/html/rims
 	sudo -u apache npm install
 	sudo -u apache npm run build
+
+9.ติดตั้ง Python 3 & access-parser (สำหรับอ่านไฟล์ .mdb / .accdb ของ AIPN):
+	sudo dnf install -y python3 python3-pip
+	sudo pip3 install access-parser
+
+10.เริ่มการทำงานของ Apache
+	sudo systemctl enable httpd
+	sudo systemctl start httpd
 
 ###########################################################
 # 11. การตั้งค่าแบบ Option B (แนะนำ - เลียนแบบ /gtw/)

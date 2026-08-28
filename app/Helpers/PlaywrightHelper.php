@@ -185,26 +185,16 @@ class PlaywrightHelper
         // Test if Chromium can be launched in headless mode
         $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
-            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
+            $storageBrowsers = addslashes(str_replace('/', DIRECTORY_SEPARATOR, static::getCustomBrowsersPath()));
+            $testScript = "const fs = require('fs'); const path = require('path'); const { chromium } = require('playwright'); function findExe() { try { const def = chromium.executablePath(); if (def && fs.existsSync(def)) return def; } catch(e) {} try { const dir = '{$storageBrowsers}'; if (fs.existsSync(dir)) { const rec = (d) => { for (const f of fs.readdirSync(d)) { const fp = path.join(d, f); if (fs.statSync(fp).isDirectory()) { const r = rec(fp); if (r) return r; } else if (f === 'chrome' || f === 'chrome.exe' || f === 'chrome-headless-shell' || f === 'chrome-headless-shell.exe') { return fp; } } return null; }; const found = rec(dir); if (found) return found; } } catch(e) {} const sysList = process.platform === 'win32' ? ['C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe', 'C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe', 'C:\\\\Program Files\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe'] : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser']; for (const s of sysList) { if (fs.existsSync(s)) return s; } return null; } (async () => { const exe = findExe(); const opts = { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }; if (exe) opts.executablePath = exe; const browser = await chromium.launch(opts); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
             $escapedScript = str_replace('"', '\"', $testScript);
 
-            // 1. Try launching with Default OS Browser Path
-            $resDefault = static::runSyncCommand("{$nodeExe} -e \"{$escapedScript}\"", $projectRoot);
-            if (strpos($resDefault['output'], 'CHROMIUM_OK') !== false) {
+            $res = static::runSyncCommand("{$nodeExe} -e \"{$escapedScript}\"", $projectRoot);
+            $fullOut = $res['output'];
+            if (strpos($fullOut, 'CHROMIUM_OK') !== false) {
                 $hasChromium = true;
             } else {
-                // 2. Try launching with Project Storage Browser Path (for Linux httpd / isolated setups)
-                $customPath = static::getCustomBrowsersPath();
-                $resStorage = static::runSyncCommand(
-                    "{$nodeExe} -e \"{$escapedScript}\"",
-                    $projectRoot,
-                    ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp']
-                );
-                if (strpos($resStorage['output'], 'CHROMIUM_OK') !== false) {
-                    $hasChromium = true;
-                } else {
-                    $launchError = trim($resStorage['output'] ?: $resDefault['output']);
-                }
+                $launchError = trim($fullOut);
             }
         }
 

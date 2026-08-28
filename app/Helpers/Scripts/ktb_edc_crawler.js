@@ -60,26 +60,57 @@ function outputResult(result) {
     console.log('<<<JSON_END>>>');
 }
 
-async function launchBrowser(options) {
+function findChromiumExecutable() {
     const fs = require('fs');
     const path = require('path');
-    try {
-        const { chromium } = require('playwright');
-        if (fs.existsSync(chromium.executablePath())) {
-            return await chromium.launch(options);
-        }
-    } catch (e1) {}
-
-    try {
-        process.env.PLAYWRIGHT_BROWSERS_PATH = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
-        delete require.cache[require.resolve('playwright-core')];
-        delete require.cache[require.resolve('playwright')];
-        const { chromium: chromiumStorage } = require('playwright');
-        return await chromiumStorage.launch(options);
-    } catch (e2) {}
-
     const { chromium } = require('playwright');
-    return await chromium.launch(options);
+    try {
+        const def = chromium.executablePath();
+        if (def && fs.existsSync(def)) return def;
+    } catch(e) {}
+    try {
+        const dir = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
+        if (fs.existsSync(dir)) {
+            const rec = (d) => {
+                for (const f of fs.readdirSync(d)) {
+                    const fp = path.join(d, f);
+                    if (fs.statSync(fp).isDirectory()) {
+                        const r = rec(fp);
+                        if (r) return r;
+                    } else if (f === 'chrome' || f === 'chrome.exe' || f === 'chrome-headless-shell' || f === 'chrome-headless-shell.exe') {
+                        return fp;
+                    }
+                }
+                return null;
+            };
+            const found = rec(dir);
+            if (found) return found;
+        }
+    } catch(e) {}
+    const sysList = process.platform === 'win32' ? [
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    ] : [
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser'
+    ];
+    for (const s of sysList) {
+        if (fs.existsSync(s)) return s;
+    }
+    return null;
+}
+
+async function launchBrowser(options) {
+    const { chromium } = require('playwright');
+    const exe = findChromiumExecutable();
+    const opts = { ...options };
+    if (exe) {
+        opts.executablePath = exe;
+    }
+    return await chromium.launch(opts);
 }
 
 async function run() {

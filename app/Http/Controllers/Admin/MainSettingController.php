@@ -1212,23 +1212,19 @@ class MainSettingController extends Controller
             $git_user = 'xmodify'; // ฝังชื่อ User ไว้ในโค้ดเลยเพื่อความง่าย
 
             $base_path = base_path();
-            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-            $cdCmd = $isWindows ? "cd /d \"{$base_path}\"" : "cd \"{$base_path}\"";
 
             // หากมีการตั้งค่า Token ไว้ ให้ทำการอัปเดต Remote URL ก่อน
             if (!empty($git_token)) {
                 $remote_url = "https://{$git_user}:{$git_token}@github.com/xmodify/h-rims.git";
-                $setRemoteCmd = "{$cdCmd} && git remote set-url origin {$remote_url}";
-                if ($isWindows) {
-                    $setRemoteCmd = "cmd.exe /c \"{$setRemoteCmd}\"";
-                }
-                @shell_exec($setRemoteCmd);
+                \App\Helpers\PlaywrightHelper::runSyncCommand("git remote set-url origin {$remote_url}", $base_path);
             }
 
             // รันคำสั่งอัปเดต: Reset -> Pull -> Clear Cache
-            $rawCommand = "{$cdCmd} && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1";
-            $command = $isWindows ? "cmd.exe /c \"{$rawCommand}\"" : $rawCommand;
-            $output = shell_exec($command);
+            \App\Helpers\PlaywrightHelper::runSyncCommand("git reset --hard", $base_path);
+            $pullRes = \App\Helpers\PlaywrightHelper::runSyncCommand("git pull origin main", $base_path);
+            \App\Helpers\PlaywrightHelper::runSyncCommand("php artisan optimize:clear", $base_path);
+
+            $output = $pullRes['output'] ?? '';
 
             // --- ขั้นตอนการกรองข้อมูลเพื่อความปลอดภัย ---
             // 1. ซ่อน Token ใน Output (ถ้ามีหลุดออกมา)
@@ -1238,7 +1234,7 @@ class MainSettingController extends Controller
             $filteredOutput = preg_replace('/^From https:\/\/github\.com\/.*$/m', '', $filteredOutput);
 
             return response()->json([
-                'output' => trim($filteredOutput)
+                'output' => trim($filteredOutput) ?: 'Git Pull สำเร็จ (Already up to date)'
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

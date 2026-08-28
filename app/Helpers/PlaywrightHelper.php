@@ -212,6 +212,48 @@ class PlaywrightHelper
     /**
      * Auto install Playwright & Chromium browser.
      */
+    /**
+     * Run command synchronously in working directory and capture output.
+     */
+    public static function runSyncCommand(string $cmd, ?string $cwd = null, array $extraEnv = []): array
+    {
+        $cwd = $cwd ?: base_path();
+        $env = array_merge($_SERVER, $_ENV, $extraEnv);
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w']
+        ];
+
+        $process = @proc_open($cmd, $descriptors, $pipes, $cwd, $env);
+        if (!is_resource($process)) {
+            $out = [];
+            $code = 1;
+            @exec("{$cmd} 2>&1", $out, $code);
+            return [
+                'code' => $code,
+                'output' => trim(implode("\n", $out))
+            ];
+        }
+
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[0]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $code = proc_close($process);
+        $fullOutput = trim($stdout . "\n" . $stderr);
+
+        return [
+            'code' => $code,
+            'output' => $fullOutput
+        ];
+    }
+
+    /**
+     * Auto install Playwright & Chromium browser.
+     */
     public static function autoInstall(): array
     {
         $nodeExe = static::findNodeExecutable();
@@ -226,36 +268,28 @@ class PlaywrightHelper
 
         $projectRoot = base_path();
         $logs = [];
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $cdPrefix = $isWindows ? "cd /d \"{$projectRoot}\"" : "cd \"{$projectRoot}\"";
         $customBrowsersPath = static::getCustomBrowsersPath();
+        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customBrowsersPath];
 
         // 1. Install playwright & adm-zip package locally in project
-        $rawInstallCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
-        $installCmd = $isWindows ? "cmd.exe /c \"{$rawInstallCmd}\"" : $rawInstallCmd;
-        $out1 = [];
-        $code1 = 1;
-        @exec($installCmd, $out1, $code1);
-        $logs[] = "npm install: " . implode(' ', array_slice($out1, -2));
+        $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save", $projectRoot, $extraEnv);
+        $logs[] = "npm install: " . trim(substr($res1['output'], -150));
 
         // 2. Install Chromium browser binaries
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
-        $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . ($isWindows ? 'playwright.cmd' : 'playwright');
+        $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'playwright.cmd' : 'playwright');
 
         if (file_exists($playwrightCliJs)) {
-            $rawBrowserCmd = "{$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
+            $cmd = "{$nodeExe} \"{$playwrightCliJs}\" install chromium";
         } elseif (file_exists($binPlaywright)) {
-            $rawBrowserCmd = "{$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
+            $cmd = "\"{$binPlaywright}\" install chromium";
         } else {
-            $npxExe = $isWindows ? str_replace('npm', 'npx', $npmExe) : 'npx';
-            $rawBrowserCmd = "{$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
+            $npxExe = str_replace('npm', 'npx', $npmExe);
+            $cmd = "{$npxExe} playwright install chromium";
         }
 
-        $browserCmd = $isWindows ? "cmd.exe /c \"{$rawBrowserCmd}\"" : $rawBrowserCmd;
-        $out2 = [];
-        $code2 = 1;
-        @exec($browserCmd, $out2, $code2);
-        $logs[] = "playwright install chromium: " . implode(' ', array_slice($out2, -2));
+        $res2 = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
+        $logs[] = "playwright install chromium: " . trim(substr($res2['output'], -150));
 
         // Check again
         $status = static::checkStatus();

@@ -336,7 +336,23 @@ class F16EclaimExportService
             } catch (\Throwable $ex) {}
         }
 
-        $visits->transform(function ($v) use ($edcRows, $ktbEdcRows, $rcptDebtRows) {
+        // Check NHSO endpoint claim codes from local HRIMS DB if exists
+        $nhsoEndpoints = collect();
+        if (!empty($cids)) {
+            try {
+                $nhsoEndpoints = DB::table('nhso_endpoint')
+                    ->whereIn('cid', $cids)
+                    ->whereNotNull('claimCode')
+                    ->where('claimCode', '!=', '')
+                    ->select('cid', 'vstdate', 'claimCode')
+                    ->get()
+                    ->groupBy(function ($r) {
+                        return $r->cid . '_' . $r->vstdate;
+                    });
+            } catch (\Throwable $ex) {}
+        }
+
+        $visits->transform(function ($v) use ($edcRows, $ktbEdcRows, $rcptDebtRows, $nhsoEndpoints) {
             $hip = strtoupper(trim((string)$v->hipdata_code));
             $ptt = strtoupper(trim((string)$v->pttype));
             $isOfc = ($hip === 'OFC' || $hip === 'A2' || str_starts_with($ptt, 'O'));
@@ -359,8 +375,21 @@ class F16EclaimExportService
                 }
                 $v->permitno = $edc ?: (trim((string)($v->claim_code ?? '')));
             } else {
-                // สิทธิอื่นๆ (UCS, SSS, LGO ฯลฯ): ใช้เลข Authen ถ้าไม่พบใช้เลขปิดสิทธิ (claim_code)
-                $v->permitno = trim((string)($v->auth_code ?: ($v->claim_code ?: '')));
+                // สิทธิอื่นๆ (LGO, BKK, BMT, SRT, PVT, SSS_PPFS, UCS ฯลฯ):
+                // ลำดับที่ 1: ใช้เลข Authen จาก HOSxP (visit_pttype.auth_code)
+                // ลำดับที่ 2: หากไม่มี ให้ใช้เลขปิดสิทธิจาก HOSxP (visit_pttype.claim_code)
+                // ลำดับที่ 3: หากไม่มี ให้ค้นหาจาก hrims.nhso_endpoint (ฟิลด์ claimCode)
+                $permit = trim((string)($v->auth_code ?? ''));
+                if (empty($permit)) {
+                    $permit = trim((string)($v->claim_code ?? ''));
+                }
+                if (empty($permit)) {
+                    $key = $v->cid . '_' . $v->vstdate;
+                    if (isset($nhsoEndpoints[$key]) && count($nhsoEndpoints[$key]) > 0) {
+                        $permit = trim((string)$nhsoEndpoints[$key]->first()->claimCode);
+                    }
+                }
+                $v->permitno = $permit;
             }
             return $v;
         });

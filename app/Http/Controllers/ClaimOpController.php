@@ -165,13 +165,15 @@ class ClaimOpController extends Controller
             COALESCE(claim_items.claim_price, 0) AS claim_price,
             claim_items.project,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
-            pt.sex, v.age_y
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -230,13 +232,15 @@ class ClaimOpController extends Controller
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             claim_items.project,
             stm.receive_total,stm.repno,rep.error_code AS rep_error_code,rep.repno AS rep_repno,fdh.status_message_th AS fdh_status,
-            pt.sex, v.age_y
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -289,7 +293,9 @@ class ClaimOpController extends Controller
             $rawItems = DB::connection('hosxp')
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
-                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           li.ppfs, li.uc_cr, li.herb32,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
@@ -412,10 +418,14 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   li.ppfs, li.uc_cr, li.herb32,
+                   COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                   COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                    op.paidst AS paids, pst.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name,
-                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmt_code,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmtid,
+                   d.did, d.sks_drug_code
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -576,13 +586,15 @@ class ClaimOpController extends Controller
             COALESCE(claim_items.claim_price, 0) AS claim_price,
             claim_items.project,
             fdh.status_message_th AS fdh_status,
-            pt.sex, v.age_y
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -641,13 +653,15 @@ class ClaimOpController extends Controller
             stm.receive_total,stm.repno,rep.error_code AS rep_error_code,rep.repno AS rep_repno,fdh.status_message_th AS fdh_status,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
-            pt.sex, v.age_y
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
@@ -700,7 +714,9 @@ class ClaimOpController extends Controller
             $rawItems = DB::connection('hosxp')
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
-                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           li.ppfs, li.uc_cr, li.herb32,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
@@ -1008,7 +1024,9 @@ class ClaimOpController extends Controller
             COALESCE(op_data.other_price, 0) AS other_price,
             COALESCE(op_data.total_income, 0) - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            fdh.status_message_th AS fdh_status
+            fdh.status_message_th AS fdh_status,
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1018,6 +1036,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
@@ -1075,7 +1094,9 @@ class ClaimOpController extends Controller
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             stm.receive_total,stm.repno,
             rep.error_code AS rep_error_code,rep.repno AS rep_repno,
-            fdh.status_message_th AS fdh_status
+            fdh.status_message_th AS fdh_status,
+            pt.sex, v.age_y,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1085,6 +1106,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
@@ -1142,7 +1164,9 @@ class ClaimOpController extends Controller
             $rawItems = DB::connection('hosxp')
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
-                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code, li.kidney, li.ems,
+                           li.ppfs, li.uc_cr, li.herb32, li.kidney, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
                     LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
@@ -1265,10 +1289,14 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   li.ppfs, li.uc_cr, li.herb32,
+                   COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                   COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                    op.paidst AS paids, pst.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name,
-                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmt_code,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmtid,
+                   d.did, d.sks_drug_code
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -1605,15 +1633,23 @@ class ClaimOpController extends Controller
             IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             claim_items.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             v.income - IFNULL(rc.rcpt_money, 0) AS claim_price,
-            stm.receive_total,stm.repno
+            stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status,
+            pt.sex, v.age_y, pt.cid,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
@@ -1659,7 +1695,9 @@ class ClaimOpController extends Controller
             $rawItems = DB::connection('hosxp')
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
-                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           li.ppfs, li.uc_cr, li.herb32,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
@@ -1826,15 +1864,23 @@ class ClaimOpController extends Controller
             IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             claim_items.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             v.income - IFNULL(rc.rcpt_money, 0) AS claim_price,
-            stm.receive_total,stm.repno
+            stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status,
+            pt.sex, v.age_y, pt.cid,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
@@ -1880,7 +1926,9 @@ class ClaimOpController extends Controller
             $rawItems = DB::connection('hosxp')
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
-                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           li.ppfs, li.uc_cr, li.herb32,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
@@ -2100,7 +2148,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -2184,7 +2232,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -2391,7 +2439,9 @@ class ClaimOpController extends Controller
                    op.pttype, ptt.name AS pttype_name, 
                    COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
                    COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
-                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmt_code,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmtid,
+                   d.did, d.sks_drug_code
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -2403,10 +2453,9 @@ class ClaimOpController extends Controller
 
         // Validate
         $validator = new \App\Services\ClaimValidator();
-        $aspects = ['f16_required', 'ppfs', 'endpoint'];
+        $aspects = ['f16_required', 'ppfs', 'adp_ofc', 'endpoint'];
         if ($request->is('*ofc*')) {
             $aspects[] = 'edc';
-            $aspects[] = 'adp_ofc';
         }
         $validation = $validator->validate($visit, $items, $aspects);
 
@@ -2832,9 +2881,11 @@ class ClaimOpController extends Controller
             ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -2855,7 +2906,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_lgo
@@ -2907,9 +2958,11 @@ class ClaimOpController extends Controller
             COALESCE(rep.repno, stm.repno) AS repno,
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -2930,7 +2983,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -2977,13 +3030,15 @@ class ClaimOpController extends Controller
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -3366,9 +3421,11 @@ public function lgo_kidney(Request $request)
             ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -3389,7 +3446,7 @@ public function lgo_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_bkk
@@ -3441,9 +3498,11 @@ public function lgo_kidney(Request $request)
             COALESCE(rep.repno, stm.repno) AS repno,
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -3464,7 +3523,7 @@ public function lgo_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -3511,13 +3570,15 @@ public function lgo_kidney(Request $request)
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -3899,9 +3960,11 @@ public function bkk_kidney(Request $request)
             ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -3922,7 +3985,7 @@ public function bkk_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_bmt
@@ -3974,9 +4037,11 @@ public function bkk_kidney(Request $request)
             COALESCE(rep.repno, stm.repno) AS repno,
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -3997,7 +4062,7 @@ public function bkk_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -4044,13 +4109,15 @@ public function bkk_kidney(Request $request)
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -4063,7 +4130,7 @@ public function bkk_kidney(Request $request)
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             if ($row->debtor > 0) {
-                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $result = $validator->validateBmt($row, $itemsByVn[$row->seq] ?? []);
                 $row->is_valid           = $result['is_valid'];
                 $row->endpoint_valid     = $result['endpoint_valid'];
                 $row->validation_errors  = $result['errors'];
@@ -4074,7 +4141,7 @@ public function bkk_kidney(Request $request)
         $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateBmt($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
@@ -4430,9 +4497,11 @@ public function bmt_kidney(Request $request)
             ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -4453,7 +4522,7 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_srt
@@ -4505,9 +4574,11 @@ public function bmt_kidney(Request $request)
             COALESCE(rep.repno, stm.repno) AS repno,
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -4535,7 +4606,7 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -4582,13 +4653,15 @@ public function bmt_kidney(Request $request)
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -4601,7 +4674,7 @@ public function bmt_kidney(Request $request)
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             if ($row->debtor > 0) {
-                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $result = $validator->validateSrt($row, $itemsByVn[$row->seq] ?? []);
                 $row->is_valid           = $result['is_valid'];
                 $row->endpoint_valid     = $result['endpoint_valid'];
                 $row->validation_errors  = $result['errors'];
@@ -4612,7 +4685,7 @@ public function bmt_kidney(Request $request)
         $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateSrt($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
@@ -4776,9 +4849,11 @@ public function bmt_kidney(Request $request)
             ) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -4799,7 +4874,7 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_pvt
@@ -4851,9 +4926,11 @@ public function bmt_kidney(Request $request)
             COALESCE(rep.repno, stm.repno) AS repno,
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
             0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
@@ -4881,7 +4958,7 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -4928,13 +5005,15 @@ public function bmt_kidney(Request $request)
                 ->select('
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.ems,
+                           COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                           COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                    AND (li.ppfs = "Y" OR li.ems = "Y" OR n.nhso_adp_type_id = 20 OR d.nhso_adp_type_id = 20)',
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
@@ -4947,7 +5026,7 @@ public function bmt_kidney(Request $request)
         foreach ($search as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
             if ($row->debtor > 0) {
-                $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+                $result = $validator->validatePvt($row, $itemsByVn[$row->seq] ?? []);
                 $row->is_valid           = $result['is_valid'];
                 $row->endpoint_valid     = $result['endpoint_valid'];
                 $row->validation_errors  = $result['errors'];
@@ -4958,7 +5037,7 @@ public function bmt_kidney(Request $request)
         $search = $filtered_search;
         foreach ($claim as $row) {
             $row->debtor = floatval($row->income) - floatval($row->rcpt_money);
-            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validatePvt($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
@@ -5126,7 +5205,7 @@ public function sss_ppfs(Request $request)
                 AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -5187,7 +5266,7 @@ public function sss_ppfs(Request $request)
                 AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -5328,10 +5407,14 @@ public function sss_ppfs(Request $request)
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   li.ppfs, li.uc_cr, li.herb32,
+                   COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                   COALESCE(n.nhso_adp_code, d.nhso_adp_code, li.nhso_adp_code) AS nhso_adp_code,
                    op.paidst AS paids, ps.name AS paids_name,
                    op.pttype, ptt.name AS pttype_name,
-                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmt_code
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmt_code,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmtid,
+                   d.did, d.sks_drug_code
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode

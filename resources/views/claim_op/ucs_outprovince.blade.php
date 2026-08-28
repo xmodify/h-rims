@@ -530,19 +530,23 @@
                                     if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
                                     if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
 
-                                    let tmtDisplay = d.tmtid 
-                                        ? `<span class="badge bg-success fw-bold">${d.tmtid}</span>`
+                                    let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
+                                        ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
+                                        : '';
+
+                                    let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
+                                        ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
                                         : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
                                     return `<tr>
                                       <td>
-                                        <div class="fw-bold text-dark">${d.name} ${type}</div>
+                                        <div class="fw-bold text-dark">${d.name} ${type} ${adpDrugTag}</div>
                                         <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
                                       </td>
                                       <td class="text-center fw-bold">${d.qty}</td>
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td>${tmtDisplay}</td>
+                                      <td class="text-center">${tmtDisplay}</td>
                                     </tr>`;
                                 }).join('');
                             })()}
@@ -558,7 +562,7 @@
                               <th class="text-end" width="12%">ราคารวม (บาท)</th>
                               <th class="text-center" width="15%">ประเภทการชำระ</th>
                               <th class="text-center" width="15%">สิทธิการรักษา</th>
-                              <th>ADP / Kidney / EMS</th>
+                              <th class="text-center" width="12%">ADP CODE</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -575,9 +579,9 @@
                                     if (d.kidney === 'Y') type += '<span class="badge bg-danger text-white ms-1 fw-bold" style="font-size:0.6rem;">ฟอกไต</span>';
                                     if (d.ems === 'Y') type += '<span class="badge bg-warning text-dark ms-1 fw-bold" style="font-size:0.6rem;">EMS</span>';
 
-                                    let adpDisplay = d.nhso_adp_code 
-                                        ? `<div class="d-flex align-items-center gap-1"><span class="badge bg-primary fw-bold" style="font-size:0.75rem;">${d.nhso_adp_code}</span>${d.ins_ucs ? `<span class="badge bg-info text-white" style="font-size:0.7rem;">${d.ins_ucs}</span>` : ''}</div>`
-                                        : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส ADP</span>`;
+                                    let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
+                                        ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>${d.ins_ucs ? `<span class="badge bg-info text-white ms-1" style="font-size:0.7rem;">${d.ins_ucs}</span>` : ''}` 
+                                        : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
 
                                     return `<tr>
                                       <td>
@@ -588,7 +592,7 @@
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td>${adpDisplay}</td>
+                                      <td class="text-center">${adpBadge}</td>
                                     </tr>`;
                                 }).join('');
                             })()}

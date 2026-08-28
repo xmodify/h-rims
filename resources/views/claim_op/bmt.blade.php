@@ -114,6 +114,9 @@
     <!-- Modal Extension Info -->
     <x-extension_info_modal />
 
+    <!-- Modal ส่งออก 16 แฟ้ม (f16_eclaim_export) -->
+    <x-f16_eclaim_export_modal />
+
 @endsection
 
 @push('scripts')
@@ -123,6 +126,77 @@
   <script>
     let myChart = null;
     const VISIT_DETAILS_URL = "{{ url('claim_op/bmt/visit_details') }}";
+
+    // ฟังก์ชันรวบรวม VN ที่ถูกเลือกและเปิด Modal ส่งออก 16 แฟ้ม (แยกตาม Tab ที่กำลังเปิดดูอยู่)
+    function exportSelectedF16BMT() {
+        let checkedVns = [];
+        
+        let activeTableId = '#t_search';
+        const activeTabBtn = document.querySelector('#pills-tab .nav-link.active, #search-tab.active, #claim-tab.active');
+        if (activeTabBtn) {
+            const target = activeTabBtn.getAttribute('data-bs-target') || activeTabBtn.getAttribute('href');
+            if (target === '#claim' || activeTabBtn.id === 'claim-tab') {
+                activeTableId = '#t_claim';
+            }
+        } else if ($('#claim').hasClass('active') || $('#claim').hasClass('show')) {
+            activeTableId = '#t_claim';
+        }
+
+        if ($(activeTableId).length > 0 && $.fn.DataTable.isDataTable(activeTableId)) {
+            const dt = $(activeTableId).DataTable();
+            $(dt.$('.chk_f16_visit:checked')).each(function() {
+                const vn = $(this).val();
+                if (vn && !checkedVns.includes(vn)) {
+                    checkedVns.push(vn);
+                }
+            });
+        }
+        
+        if (checkedVns.length === 0) {
+            const paneSelector = activeTableId === '#t_claim' ? '#claim' : '#search';
+            $(`${paneSelector} .chk_f16_visit:checked`).each(function() {
+                const vn = $(this).val();
+                if (vn && !checkedVns.includes(vn)) {
+                    checkedVns.push(vn);
+                }
+            });
+        }
+
+        if (checkedVns.length === 0) {
+            const tabName = activeTableId === '#t_claim' ? 'ส่ง Claim แล้ว' : 'รอส่ง Claim';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่ได้เลือกรายการ',
+                    text: `กรุณาติ๊กเลือก Checkbox ในแท็บ "${tabName}" เพื่อส่งออก 16 แฟ้ม`,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0d6efd'
+                });
+            } else {
+                alert(`กรุณาติ๊กเลือก Checkbox ในแท็บ "${tabName}" เพื่อส่งออก 16 แฟ้ม`);
+            }
+            return;
+        }
+
+        const tabTitle = activeTableId === '#t_claim' ? 'OP-BMT ส่ง Claim แล้ว' : 'OP-BMT รอส่ง Claim';
+        window.openF16EclaimExportModal({
+            vns: checkedVns,
+            claimCode: 'BMT',
+            claimTitle: `${tabTitle} (กทม. เบิกตรง)`
+        });
+    }
+
+    // จัดการ Event Select All Checkboxes
+    $(document).on('change', '.select_all_f16', function() {
+        const isChecked = $(this).is(':checked');
+        const table = $(this).closest('table');
+        if (table.length > 0 && (table.attr('id') === 't_search' || table.attr('id') === 't_claim') && $.fn.DataTable.isDataTable(table)) {
+            const dt = table.DataTable();
+            $(dt.$('.chk_f16_visit', { page: 'current' })).prop('checked', isChecked);
+        } else {
+            table.find('.chk_f16_visit').prop('checked', isChecked);
+        }
+    });
 
     function fetchData() {
         // Fallback for legacy handlers
@@ -265,6 +339,7 @@
 
                 var dt_search = $('#t_search').DataTable({
                     autoWidth: false,
+                    columnDefs: [{ orderable: false, targets: 0 }],
                     lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
@@ -283,6 +358,7 @@
 
                 var dt_claim = $('#t_claim').DataTable({
                     autoWidth: false,
+                    columnDefs: [{ orderable: false, targets: 0 }],
                     lengthMenu: [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "ทั้งหมด"]],
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{
@@ -565,19 +641,23 @@
                                     return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
                                 }
                                 return drugsList.map(d => {
-                                    let tmtDisplay = d.tmt_code 
-                                        ? `<span class="badge bg-success fw-bold">${d.tmt_code}</span>`
+                                    let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
+                                        ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
+                                        : '';
+
+                                    let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
+                                        ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
                                         : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
                                     return `<tr>
                                       <td>
-                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="fw-bold text-dark">${d.name} ${adpDrugTag}</div>
                                         <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
                                       </td>
                                       <td class="text-center fw-bold">${parseFloat(d.qty).toFixed(0)}</td>
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td>${tmtDisplay}</td>
+                                      <td class="text-center">${tmtDisplay}</td>
                                     </tr>`;
                                 }).join('');
                             })()}
@@ -593,7 +673,7 @@
                               <th class="text-end" width="12%">ราคารวม (บาท)</th>
                               <th class="text-center" width="15%">ประเภทการชำระ</th>
                               <th class="text-center" width="15%">สิทธิการรักษา</th>
-                              <th>ADP Code</th>
+                              <th class="text-center" width="12%">ADP CODE</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -607,6 +687,10 @@
                                     if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
                                     if (d.ems === 'Y') type += '<span class="badge-type me-1" style="background:#cfe2ff;color:#084298;">EMS</span>';
                                     
+                                    let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
+                                        ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>` 
+                                        : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
+
                                     return `<tr>
                                       <td>
                                         <div class="fw-bold text-dark">${d.name ?? '-'} ${type}</div>
@@ -616,7 +700,7 @@
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td><span class="badge bg-secondary-soft text-secondary fw-bold">${d.nhso_adp_code ?? '-'}</span></td>
+                                      <td class="text-center">${adpBadge}</td>
                                     </tr>`;
                                 }).join('');
                             })()}

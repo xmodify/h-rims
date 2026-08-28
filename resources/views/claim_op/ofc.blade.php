@@ -688,6 +688,9 @@
                                         ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
                                         : '';
 
+                                    let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
+                                        ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
+                                        : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
                                     return `<tr>
                                       <td>
                                         <div class="fw-bold text-dark">${d.name} ${adpDrugTag}</div>
@@ -697,7 +700,7 @@
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td class="text-center"><span class="badge bg-secondary-soft text-secondary fw-bold">${d.tmtid || 'ไม่มีรหัส TMT'}</span></td>
+                                      <td class="text-center">${tmtDisplay}</td>
                                     </tr>`;
                                 }).join('');
                             })()}

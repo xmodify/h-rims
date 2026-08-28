@@ -593,37 +593,41 @@
                                 <th class="text-end" width="12%">ราคารวม (บาท)</th>
                                 <th class="text-center" width="15%">ประเภทการชำระ</th>
                                 <th class="text-center" width="15%">สิทธิการรักษา</th>
-                                <th>รหัสมาตรฐาน TMT</th>
+                                <th class="text-center" width="12%">TMT</th>
                               </tr>
                             </thead>
                             <tbody>
                               ${(function() {
-                                  let drugsList = items.filter(d => d.icode.startsWith('1'));
-                                  if (drugsList.length === 0) {
-                                      return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
-                                  }
-                                  return drugsList.map(d => {
-                                      let type = '';
-                                      if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
-                                      if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
-                                      if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                                    let drugsList = items.filter(d => d.icode.startsWith('1'));
+                                    if (drugsList.length === 0) {
+                                        return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
+                                    }
+                                    return drugsList.map(d => {
+                                        let type = '';
+                                        if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                        if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                                        if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
 
-                                      let tmtDisplay = d.tmtid 
-                                          ? `<span class="badge bg-success fw-bold">${d.tmtid}</span>`
-                                          : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
-                                      return `<tr>
-                                        <td>
-                                          <div class="fw-bold text-dark">${d.name} ${type}</div>
-                                          <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
-                                        </td>
-                                        <td class="text-center fw-bold">${d.qty}</td>
-                                        <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
-                                        <td class="text-center">${d.paids_name || d.paids || '-'}</td>
-                                        <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                        <td>${tmtDisplay}</td>
-                                      </tr>`;
-                                  }).join('');
-                              })()}
+                                        let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
+                                            ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
+                                            : '';
+
+                                        let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
+                                            ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
+                                            : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
+                                        return `<tr>
+                                          <td>
+                                            <div class="fw-bold text-dark">${d.name} ${type} ${adpDrugTag}</div>
+                                            <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                          </td>
+                                          <td class="text-center fw-bold">${d.qty}</td>
+                                          <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                          <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                          <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                          <td class="text-center">${tmtDisplay}</td>
+                                        </tr>`;
+                                    }).join('');
+                                })()}
                             </tbody>
                           </table>
                         </div>
@@ -636,7 +640,7 @@
                                 <th class="text-end" width="12%">ราคารวม (บาท)</th>
                                 <th class="text-center" width="15%">ประเภทการชำระ</th>
                                 <th class="text-center" width="15%">สิทธิการรักษา</th>
-                                <th>ADP</th>
+                                <th class="text-center" width="12%">ADP CODE</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -655,6 +659,10 @@
                                           ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${d.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
                                           : '';
                                       
+                                      let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
+                                          ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>` 
+                                          : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
+
                                       return `<tr class="${(d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code) ? 'table-warning' : ''}">
                                         <td>
                                           <div class="fw-bold text-dark">${d.name ?? '-'}${insWarn} ${type}</div>
@@ -664,7 +672,7 @@
                                         <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                         <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                         <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                        <td><span class="badge bg-secondary-soft text-secondary fw-bold">${d.nhso_adp_code ?? '-'}</span></td>
+                                        <td class="text-center">${adpBadge}</td>
                                       </tr>`;
                                   }).join('');
                               })()}

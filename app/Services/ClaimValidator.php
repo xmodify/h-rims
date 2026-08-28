@@ -244,7 +244,7 @@ class ClaimValidator
                 if (empty($adpCode)) {
                     $errors[] = "พบรายการกายภาพบำบัด (adp_type = 20): '{$name}' ยังไม่ได้ Map รหัส ADP Code (ต้องลงท้ายด้วย 14 เช่น xxx14)";
                 } elseif (!str_ends_with($adpCode, '14')) {
-                    $errors[] = "รายการกายภาพบำบัด (adp_type = 20): '{$name}' รหัส ADP Code [{$adpCode}] ไม่ถูกต้องสำหรับสิทธิ OFC (ต้องเป็นรหัสที่ลงท้ายด้วย 14 เช่น xxx14)";
+                    $errors[] = "รายการกายภาพบำบัด (adp_type = 20): '{$name}' รหัส ADP Code [{$adpCode}] ไม่ถูกต้อง (ต้องเป็นรหัสที่ลงท้ายด้วย 14 เช่น xxx14)";
                 }
             }
         }
@@ -257,12 +257,27 @@ class ClaimValidator
 
     public function validateLgo($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'adp_ofc', 'endpoint']);
     }
 
     public function validateBkk($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'adp_ofc', 'endpoint']);
+    }
+
+    public function validateBmt($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'adp_ofc', 'endpoint']);
+    }
+
+    public function validateSrt($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'adp_ofc', 'endpoint']);
+    }
+
+    public function validatePvt($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'adp_ofc', 'endpoint']);
     }
 
     // =========================================================================

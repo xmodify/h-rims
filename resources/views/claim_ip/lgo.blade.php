@@ -86,11 +86,162 @@
     <!-- Modal Extension Info -->
     <x-extension_info_modal />
 
+    <!-- Modal ส่งออก 16 แฟ้ม e-Claim -->
+    <x-f16_eclaim_export_modal />
+
 @endsection
 
 @push('scripts')
-  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
-  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}">
+    
+    window.toggleSelectAllF16 = function(masterCheckbox, tableSelector) {
+        const isChecked = $(masterCheckbox).is(':checked');
+        if ($.fn.DataTable.isDataTable(tableSelector)) {
+            const dt = $(tableSelector).DataTable();
+            $(dt.$('.chk_f16_visit', { page: 'current' })).prop('checked', isChecked);
+        } else {
+            $(tableSelector + ' .chk_f16_visit').prop('checked', isChecked);
+        }
+    };
+
+window.exportSelectedF16IP = function(claimCode) {
+        claimCode = claimCode || 'LGO';
+        let checkedAns = [];
+        let activeTableId = '#t_search';
+        const activeTabBtn = document.querySelector('#pills-tab .nav-link.active, #search-tab.active, #claim-tab.active');
+        if (activeTabBtn) {
+            const target = activeTabBtn.getAttribute('data-bs-target') || activeTabBtn.getAttribute('href');
+            if (target === '#claim' || activeTabBtn.id === 'claim-tab') {
+                activeTableId = '#t_claim';
+            }
+        } else if ($('#claim').hasClass('active') || $('#claim').hasClass('show')) {
+            activeTableId = '#t_claim';
+        }
+
+        if ($(activeTableId).length > 0 && $.fn.DataTable.isDataTable(activeTableId)) {
+            const dt = $(activeTableId).DataTable();
+            $(dt.$('.chk_f16_visit:checked')).each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            const paneSelector = activeTableId === '#t_claim' ? '#claim' : '#search';
+            $(paneSelector + ' .chk_f16_visit:checked').each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม',
+                    confirmButtonText: 'ตกลง',
+                    customClass: { confirmButton: 'btn btn-primary px-4' },
+                    buttonsStyling: false
+                });
+            } else {
+                alert('กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม');
+            }
+            return;
+        }
+
+        if (typeof window.openF16EclaimExportModal === 'function') {
+            window.openF16EclaimExportModal({
+                vns: checkedAns,
+                ans: checkedAns,
+                type: 'ip',
+                isIp: true,
+                is_ip: true,
+                claimCode: claimCode,
+                claimTitle: 'IP-' + claimCode + ' (ผู้ป่วยใน - DRG)'
+            });
+        }
+    };
+</script>
+  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}">
+    
+    window.toggleSelectAllF16 = function(masterCheckbox, tableSelector) {
+        const isChecked = $(masterCheckbox).is(':checked');
+        if ($.fn.DataTable.isDataTable(tableSelector)) {
+            const dt = $(tableSelector).DataTable();
+            $(dt.$('.chk_f16_visit', { page: 'current' })).prop('checked', isChecked);
+        } else {
+            $(tableSelector + ' .chk_f16_visit').prop('checked', isChecked);
+        }
+    };
+
+window.exportSelectedF16IP = function(claimCode) {
+        claimCode = claimCode || 'LGO';
+        let checkedAns = [];
+        let activeTableId = '#t_search';
+        const activeTabBtn = document.querySelector('#pills-tab .nav-link.active, #search-tab.active, #claim-tab.active');
+        if (activeTabBtn) {
+            const target = activeTabBtn.getAttribute('data-bs-target') || activeTabBtn.getAttribute('href');
+            if (target === '#claim' || activeTabBtn.id === 'claim-tab') {
+                activeTableId = '#t_claim';
+            }
+        } else if ($('#claim').hasClass('active') || $('#claim').hasClass('show')) {
+            activeTableId = '#t_claim';
+        }
+
+        if ($(activeTableId).length > 0 && $.fn.DataTable.isDataTable(activeTableId)) {
+            const dt = $(activeTableId).DataTable();
+            $(dt.$('.chk_f16_visit:checked')).each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            const paneSelector = activeTableId === '#t_claim' ? '#claim' : '#search';
+            $(paneSelector + ' .chk_f16_visit:checked').each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม',
+                    confirmButtonText: 'ตกลง',
+                    customClass: { confirmButton: 'btn btn-primary px-4' },
+                    buttonsStyling: false
+                });
+            } else {
+                alert('กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม');
+            }
+            return;
+        }
+
+        if (typeof window.openF16EclaimExportModal === 'function') {
+            window.openF16EclaimExportModal({
+                vns: checkedAns,
+                ans: checkedAns,
+                type: 'ip',
+                isIp: true,
+                is_ip: true,
+                claimCode: claimCode,
+                claimTitle: 'IP-' + claimCode + ' (ผู้ป่วยใน - DRG)'
+            });
+        }
+    };
+</script>
   <script>
     window.currentChartData = null;
     window.patientItems = [];
@@ -493,5 +644,78 @@
           });
       });
     });
-  </script>
+
+    window.toggleSelectAllF16 = function(masterCheckbox, tableSelector) {
+        const isChecked = $(masterCheckbox).is(':checked');
+        if ($.fn.DataTable.isDataTable(tableSelector)) {
+            const dt = $(tableSelector).DataTable();
+            $(dt.$('.chk_f16_visit', { page: 'current' })).prop('checked', isChecked);
+        } else {
+            $(tableSelector + ' .chk_f16_visit').prop('checked', isChecked);
+        }
+    };
+
+window.exportSelectedF16IP = function(claimCode) {
+        claimCode = claimCode || 'LGO';
+        let checkedAns = [];
+        let activeTableId = '#t_search';
+        const activeTabBtn = document.querySelector('#pills-tab .nav-link.active, #search-tab.active, #claim-tab.active');
+        if (activeTabBtn) {
+            const target = activeTabBtn.getAttribute('data-bs-target') || activeTabBtn.getAttribute('href');
+            if (target === '#claim' || activeTabBtn.id === 'claim-tab') {
+                activeTableId = '#t_claim';
+            }
+        } else if ($('#claim').hasClass('active') || $('#claim').hasClass('show')) {
+            activeTableId = '#t_claim';
+        }
+
+        if ($(activeTableId).length > 0 && $.fn.DataTable.isDataTable(activeTableId)) {
+            const dt = $(activeTableId).DataTable();
+            $(dt.$('.chk_f16_visit:checked')).each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            const paneSelector = activeTableId === '#t_claim' ? '#claim' : '#search';
+            $(paneSelector + ' .chk_f16_visit:checked').each(function() {
+                const an = $(this).val();
+                if (an && !checkedAns.includes(an)) {
+                    checkedAns.push(an);
+                }
+            });
+        }
+
+        if (checkedAns.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม',
+                    confirmButtonText: 'ตกลง',
+                    customClass: { confirmButton: 'btn btn-primary px-4' },
+                    buttonsStyling: false
+                });
+            } else {
+                alert('กรุณาติ๊กเลือกรายการผู้ป่วยใน (AN) อย่างน้อย 1 รายการเพื่อส่งออก 16 แฟ้ม');
+            }
+            return;
+        }
+
+        if (typeof window.openF16EclaimExportModal === 'function') {
+            window.openF16EclaimExportModal({
+                vns: checkedAns,
+                ans: checkedAns,
+                type: 'ip',
+                isIp: true,
+                is_ip: true,
+                claimCode: claimCode,
+                claimTitle: 'IP-' + claimCode + ' (ผู้ป่วยใน - DRG)'
+            });
+        }
+    };
+</script>
 @endpush

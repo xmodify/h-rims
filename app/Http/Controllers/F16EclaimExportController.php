@@ -20,13 +20,20 @@ class F16EclaimExportController extends Controller
             ], 403);
         }
 
-        $vns = $request->input('vns', []);
-        if (is_string($vns)) {
-            $decoded = json_decode($vns, true);
-            $vns = is_array($decoded) ? $decoded : explode(',', $vns);
+        $type = $request->input('type');
+        $isIp = $type === 'ip' || $request->boolean('is_ip');
+        if (!$type && !$request->has('is_ip')) {
+            $isIp = $request->has('ans') && !$request->has('vns');
         }
-        $vns = array_values(array_filter(array_unique((array)$vns)));
-        if (empty($vns)) {
+        $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
+        if (is_string($rawKeys)) {
+            $decoded = json_decode($rawKeys, true);
+            $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);
+        } else {
+            $keys = (array)$rawKeys;
+        }
+        $keys = array_values(array_filter(array_unique((array)$keys)));
+        if (empty($keys)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งออก'
@@ -37,7 +44,11 @@ class F16EclaimExportController extends Controller
         @ini_set('memory_limit', '512M');
 
         try {
-            $result = F16EclaimExportService::generate16Files($vns);
+            if ($isIp) {
+                $result = F16EclaimExportService::generate16FilesIp($keys);
+            } else {
+                $result = F16EclaimExportService::generate16Files($keys);
+            }
 
             $headers = [];
             $tables = [];
@@ -90,14 +101,21 @@ class F16EclaimExportController extends Controller
             ], 403);
         }
 
-        $vns = $request->input('vns', []);
-        $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
-        if (is_string($vns)) {
-            $decoded = json_decode($vns, true);
-            $vns = is_array($decoded) ? $decoded : explode(',', $vns);
+        $type = $request->input('type');
+        $isIp = $type === 'ip' || $request->boolean('is_ip');
+        if (!$type && !$request->has('is_ip')) {
+            $isIp = $request->has('ans') && !$request->has('vns');
         }
-        $vns = array_values(array_filter(array_unique((array)$vns)));
-        if (empty($vns)) {
+        $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
+        $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
+        if (is_string($rawKeys)) {
+            $decoded = json_decode($rawKeys, true);
+            $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);
+        } else {
+            $keys = (array)$rawKeys;
+        }
+        $keys = array_values(array_filter(array_unique((array)$keys)));
+        if (empty($keys)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งออก'
@@ -108,7 +126,11 @@ class F16EclaimExportController extends Controller
         @ini_set('memory_limit', '512M');
 
         try {
-            $result = F16EclaimExportService::generate16Files($vns);
+            if ($isIp) {
+                $result = F16EclaimExportService::generate16FilesIp($keys);
+            } else {
+                $result = F16EclaimExportService::generate16Files($keys);
+            }
             
             // Format Thai year (e.g. 2569) + MMDD_HHMM
             $thYear = date('Y') + 543;

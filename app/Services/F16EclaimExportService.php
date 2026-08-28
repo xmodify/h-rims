@@ -1200,4 +1200,520 @@ class F16EclaimExportService
             'hcode' => $hcode
         ];
     }
+
+    /**
+     * ประมวลผลและสร้างเนื้อหา 16/17 แฟ้ม จากรายการ ANs (ผู้ป่วยใน IPD - DRG) ที่เลือก
+     *
+     * @param array $ans รายการ AN
+     * @param array $options ตัวเลือกเพิ่มเติม
+     * @return array [ 'files' => [ 'INS' => '...', 'PAT' => '...', ... ], 'counts' => [ 'INS' => 45, ... ], 'hcode' => '10989' ]
+     */
+    public static function generate16FilesIp(array $ans, array $options = []): array
+    {
+        if (empty($ans)) {
+            return [
+                'files' => [],
+                'counts' => [],
+                'total_visits' => 0,
+                'hcode' => self::getHcode()
+            ];
+        }
+
+        $hcode = self::getHcode();
+        $placeholders = implode(',', array_fill(0, count($ans), '?'));
+
+        // -------------------------------------------------------------
+        // 1. Query IPT Admissions (ipt, an_stat, patient, pttype, ipt_pttype, doctor)
+        // -------------------------------------------------------------
+        $admissions = collect();
+        try {
+            $admRows = DB::connection('hosxp')->select("
+                SELECT ipt.an, ipt.vn, ipt.hn, ipt.regdate, ipt.regtime, ipt.dchdate, ipt.dchtime,
+                       ipt.dchstts as dischs, ipt.dchtype as discht, ipt.ward as warddsc,
+                       ipt.spclty as dept, ipt.bw as adm_w, '' as svctype,
+                       ipt.pttype,
+                       a.pdx, a.dx_doctor, a.income, a.paid_money, a.rcpt_money, a.uc_money,
+                       pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
+                       pt.chwpart, pt.amppart, pt.tmbpart,
+                       p.hipdata_code,
+                       COALESCE(p.nhso_code, ipt.pttype, 'O1') as pttype_nhso_code,
+                       doc.licenseno as doctor_license, doc.name as doctor_name,
+                       COALESCE(ip.hospmain, '') as hospmain,
+                       COALESCE(ip.hospsub, '') as hospsub,
+                       COALESCE(ip.claim_code, ip.auth_code, '') as permitno
+                FROM ipt
+                LEFT JOIN an_stat a ON a.an = ipt.an
+                LEFT JOIN patient pt ON pt.hn = ipt.hn
+                LEFT JOIN ipt_pttype ip ON ip.an = ipt.an
+                LEFT JOIN pttype p ON p.pttype = COALESCE(ip.pttype, ipt.pttype)
+                LEFT JOIN doctor doc ON doc.code = ipt.admdoctor
+                WHERE ipt.an IN ($placeholders)
+            ", $ans);
+            $ansOrderMap = array_flip($ans);
+            $admissions = collect($admRows)->sortBy(fn($a) => $ansOrderMap[$a->an] ?? 999999)->values();
+        } catch (\Throwable $e) {
+            Log::error("F16 IPD Export main admission query error: " . $e->getMessage());
+            throw $e;
+        }
+
+        // -------------------------------------------------------------
+        // 2. Query IPD Diag (iptdiag)
+        // -------------------------------------------------------------
+        $ipdDiags = collect();
+        try {
+            $diagRows = DB::connection('hosxp')->select("
+                SELECT id.an, id.icd10, id.diagtype, doc.licenseno as drdx
+                FROM iptdiag id
+                LEFT JOIN doctor doc ON doc.code = id.doctor
+                WHERE id.an IN ($placeholders)
+                ORDER BY id.an, id.diagtype, id.ipt_diag_id
+            ", $ans);
+            $ipdDiags = collect($diagRows);
+        } catch (\Throwable $e) {
+            Log::warning("F16 IPD Export iptdiag query error: " . $e->getMessage());
+        }
+
+        // -------------------------------------------------------------
+        // 3. Query IPD Operations (iptoprt)
+        // -------------------------------------------------------------
+        $ipdOpers = collect();
+        try {
+            $operRows = DB::connection('hosxp')->select("
+                SELECT io.an, io.icd9 as oper, io.oper_type as optype, doc.licenseno as dropid,
+                       io.opdate as datein, io.optime as timein, io.enddate as dateout, io.endtime as timeout
+                FROM iptoprt io
+                LEFT JOIN doctor doc ON doc.code = io.doctor
+                WHERE io.an IN ($placeholders)
+                ORDER BY io.an, io.oper_type
+            ", $ans);
+            $ipdOpers = collect($operRows);
+        } catch (\Throwable $e) {
+            Log::warning("F16 IPD Export iptoprt query error: " . $e->getMessage());
+        }
+
+        // -------------------------------------------------------------
+        // 4. Query Refer (referout / referin)
+        // -------------------------------------------------------------
+        $ipdRefers = collect();
+        try {
+            $referRows = DB::connection('hosxp')->select("
+                SELECT r.vn as an, COALESCE(NULLIF(r.refer_hospcode,''), r.hospcode) as refer, COALESCE(r.refer_type, 2) as refertype
+                FROM referout r
+                WHERE r.vn IN ($placeholders)
+            ", $ans);
+            $ipdRefers = collect($referRows);
+        } catch (\Throwable $e) {
+            Log::warning("F16 IPD Export referout query error: " . $e->getMessage());
+        }
+
+        // -------------------------------------------------------------
+        // 5. Query Leaves (ipt_leave)
+        // -------------------------------------------------------------
+        $ipdLeaves = collect();
+        try {
+            $leaveRows = DB::connection('hosxp')->select("
+                SELECT l.an, l.leave_date as dateout, l.leave_time as timeout, l.back_date as datein, l.back_time as timein
+                FROM ipt_leave l
+                WHERE l.an IN ($placeholders)
+            ", $ans);
+            $ipdLeaves = collect($leaveRows);
+        } catch (\Throwable $e) {
+            // ipt_leave might not exist in all databases
+        }
+
+        // -------------------------------------------------------------
+        // 6. Query Billed Items (opitemrece for IPD)
+        // -------------------------------------------------------------
+        $items = collect();
+        try {
+            $itemRows = DB::connection('hosxp')->select("
+                SELECT o.an, o.vn, o.hn, o.icode, o.qty, o.unitprice, o.sum_price, o.vstdate, o.rxdate, o.rxtime,
+                       o.income, o.paidst,
+                       d.did, d.name as drug_name, d.units, d.packqty, d.usage_code,
+                       COALESCE(NULLIF(d.sks_drug_code,''), NULLIF(d.tmt_tp_code,''), NULLIF(d.tmt_gp_code,''), NULLIF(d.ttmt_code,''), NULLIF(d.did,'')) as didstd,
+                       d.unitcost, d.unitprice as drug_price,
+                       COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
+                       COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
+                       doc.licenseno as doctor_license
+                FROM opitemrece o
+                LEFT JOIN drugitems d ON d.icode = o.icode
+                LEFT JOIN nondrugitems n ON n.icode = o.icode
+                LEFT JOIN doctor doc ON doc.code = o.doctor
+                WHERE o.an IN ($placeholders)
+                ORDER BY o.an, o.item_no
+            ", $ans);
+            $items = collect($itemRows);
+        } catch (\Throwable $e) {
+            Log::error("F16 IPD Export opitemrece query error: " . $e->getMessage());
+            throw $e;
+        }
+
+        // -------------------------------------------------------------
+        // 7. Query Lab (lab_head, lab_order, lab_items) for IPD if needed
+        // -------------------------------------------------------------
+        $labOrders = collect();
+        $vnsList = $admissions->pluck('vn')->filter()->unique()->toArray();
+        if (!empty($vnsList)) {
+            $vPlaceholders = implode(',', array_fill(0, count($vnsList), '?'));
+            try {
+                $labRows = DB::connection('hosxp')->select("
+                    SELECT lh.vn, lh.hn, lh.order_date, lh.order_time,
+                           lo.lab_items_code, lo.lab_order_result,
+                           li.lab_items_name, li.labtest, li.tmlt_code, li.provis_labcode,
+                           pt.cid
+                    FROM lab_head lh
+                    JOIN lab_order lo ON lo.lab_order_number = lh.lab_order_number
+                    JOIN lab_items li ON li.lab_items_code = lo.lab_items_code
+                    LEFT JOIN patient pt ON pt.hn = lh.hn
+                    WHERE lh.vn IN ($vPlaceholders)
+                      AND lo.lab_order_result IS NOT NULL 
+                      AND lo.lab_order_result != ''
+                    ORDER BY lh.vn, lo.lab_items_code
+                ", $vnsList);
+                $labOrders = collect($labRows);
+            } catch (\Throwable $e) {}
+        }
+
+        // =============================================================
+        // GENERATE EACH OF THE 17 FILES FOR IPD
+        // =============================================================
+
+        // 1. INS.txt (20 columns)
+        $insLines = ["HN|INSCL|SUBTYPE|CID|HCODE|DATEIN|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE"];
+        foreach ($admissions as $v) {
+            $hip = strtoupper(trim((string)$v->hipdata_code));
+            $ptt = strtoupper(trim((string)$v->pttype));
+            $inscl = $hip ?: (str_starts_with($ptt, 'O') ? 'OFC' : (str_starts_with($ptt, 'L') ? 'LGO' : (str_starts_with($ptt, 'U') ? 'UCS' : 'OFC')));
+            $subtype = trim((string)$v->pttype_nhso_code) ?: 'O1';
+            $cid = trim((string)$v->cid);
+            $datein = '';
+            $dateexp = '';
+            $hospmain = $v->hospmain ?: '';
+            $hospsub = $v->hospsub ?: '';
+            $govcode = '';
+            $govname = '';
+            $permitno = $v->permitno ?: '';
+            $docno = '';
+            $ownrpid = '';
+            $ownrname = '';
+            $an = $v->an;
+            $seq = '';
+            $subinscl = '';
+            $relinscl = '';
+            $htype = '1';
+
+            $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$datein}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownrname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
+        }
+
+        // 2. PAT.txt (15 columns)
+        $patLines = ["HCODE|HN|CHANGWAT|AMPHUR|DOB|SEX|MARRIAGE|OCCUPA|NATION|PERSON_ID|NAMEPAT|TITLE|FNAME|LNAME|IDTYPE"];
+        $seenHnPat = [];
+        foreach ($admissions as $v) {
+            if (isset($seenHnPat[$v->hn])) continue;
+            $seenHnPat[$v->hn] = true;
+
+            $chw = str_pad(trim((string)$v->chwpart), 2, '0', STR_PAD_LEFT);
+            $amp = str_pad(trim((string)$v->amppart), 2, '0', STR_PAD_LEFT);
+            $dob = self::formatDate($v->birthday);
+            $sex = $v->sex == '1' ? '1' : ($v->sex == '2' ? '2' : '1');
+            $marry = $v->marrystatus ?: '1';
+            $occupa = str_pad(trim((string)$v->occupation), 3, '0', STR_PAD_LEFT) ?: '000';
+            $nation = str_pad(trim((string)($v->nationality ?: '99')), 3, '0', STR_PAD_LEFT);
+            $cid = trim((string)$v->cid);
+            $title = trim((string)$v->pname);
+            $fname = trim((string)$v->fname);
+            $lname = trim((string)$v->lname);
+            $namepat = "{$fname}  {$lname} , {$title}";
+            $idtype = '1';
+
+            $patLines[] = "{$hcode}|{$v->hn}|{$chw}|{$amp}|{$dob}|{$sex}|{$marry}|{$occupa}|{$nation}|{$cid}|{$namepat}|{$title}|{$fname}|{$lname}|{$idtype}";
+        }
+
+        // 3. OPD.txt (6 columns)
+        $opdLines = ["HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC"];
+
+        // 4. IPD.txt (13 columns)
+        $ipdLines = ["HN|AN|DATEADM|TIMEADM|DATEDSC|TIMEDSC|DISCHS|DISCHT|WARDDSC|DEPT|ADM_W|UUC|SVCTYPE"];
+        foreach ($admissions as $ip) {
+            $dateadm = self::formatDate($ip->regdate);
+            $timeadm = self::formatTime($ip->regtime);
+            $datedsc = self::formatDate($ip->dchdate);
+            $timedsc = self::formatTime($ip->dchtime);
+            $dischs = intval($ip->dischs ?: '1');
+            $discht = intval($ip->discht ?: '1');
+            $ward = str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
+            $dept = str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT) ?: '01';
+            $admwKg = floatval($ip->adm_w) > 500 ? floatval($ip->adm_w) / 1000 : floatval($ip->adm_w ?: 50);
+            $admw = number_format($admwKg, 3, '.', '');
+            $uuc = '1';
+            $svctype = $ip->svctype ?: '';
+
+            $ipdLines[] = "{$ip->hn}|{$ip->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$ward}|{$dept}|{$admw}|{$uuc}|{$svctype}";
+        }
+
+        // 5. ODX.txt (8 columns)
+        $odxLines = ["HN|DATEDX|CLINIC|DIAG|DXTYPE|DRDX|PERSON_ID|SEQ"];
+
+        // 6. OOP.txt (7 columns)
+        $oopLines = ["HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ"];
+
+        // 7. IDX.txt (4 columns)
+        $idxLines = ["AN|DIAG|DXTYPE|DRDX"];
+        foreach ($ipdDiags as $id) {
+            $diag = strtoupper(str_replace('.', '', trim((string)$id->icd10)));
+            if (empty($diag)) continue;
+            $dxtype = $id->diagtype ?: '1';
+            $drdx = $id->drdx ?: 'ว00000';
+
+            $idxLines[] = "{$id->an}|{$diag}|{$dxtype}|{$drdx}";
+        }
+
+        // 8. IOP.txt (8 columns)
+        $iopLines = ["AN|OPER|OPTYPE|DROPID|DATEIN|TIMEIN|DATEOUT|TIMEOUT"];
+        foreach ($ipdOpers as $io) {
+            $oper = str_replace('.', '', trim((string)$io->oper));
+            if (empty($oper)) continue;
+            $optype = $io->optype ?: '1';
+            $dropid = $io->dropid ?: 'ว00000';
+            $datein = self::formatDate($io->datein);
+            $timein = self::formatTime($io->timein);
+            $dateout = self::formatDate($io->dateout);
+            $timeout = self::formatTime($io->timeout);
+
+            $iopLines[] = "{$io->an}|{$oper}|{$optype}|{$dropid}|{$datein}|{$timein}|{$dateout}|{$timeout}";
+        }
+
+        // 9. ORF.txt (6 columns)
+        $orfLines = ["HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ|REFERDATE"];
+
+        // 10. IRF.txt (3 columns)
+        $irfLines = ["AN|REFER|REFERTYPE"];
+        foreach ($ipdRefers as $ir) {
+            $refer = trim((string)$ir->refer);
+            if (empty($refer)) continue;
+            $refertype = $ir->refertype ?: '2';
+            $irfLines[] = "{$ir->an}|{$refer}|{$refertype}";
+        }
+
+        // 11. LVD.txt (6 columns)
+        $lvdLines = ["SEQLVD|AN|DATEOUT|TIMEOUT|DATEIN|TIMEIN"];
+        $seqLvd = 1;
+        foreach ($ipdLeaves as $lv) {
+            $dateout = self::formatDate($lv->dateout);
+            $timeout = self::formatTime($lv->timeout);
+            $datein = self::formatDate($lv->datein);
+            $timein = self::formatTime($lv->timein);
+            $lvdLines[] = "{$seqLvd}|{$lv->an}|{$dateout}|{$timeout}|{$datein}|{$timein}";
+            $seqLvd++;
+        }
+
+        // 12. DRU.txt (23 columns)
+        $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRIC|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER"];
+        $drugItems = $items->filter(function($it) {
+            return str_starts_with((string)$it->icode, '1') && (float)$it->sum_price >= 0;
+        });
+
+        // Group by an, icode, unitprice (matching HOSxP IPD DRU aggregation)
+        $groupedDrugs = [];
+        foreach ($drugItems as $it) {
+            $key = $it->an . '_' . $it->icode . '_' . $it->unitprice;
+            if (!isset($groupedDrugs[$key])) {
+                $groupedDrugs[$key] = clone $it;
+                $groupedDrugs[$key]->qty = 0;
+                $groupedDrugs[$key]->sum_price = 0;
+            }
+            $groupedDrugs[$key]->qty += (float)$it->qty;
+            $groupedDrugs[$key]->sum_price += (float)$it->sum_price;
+            if (!empty($it->rxdate)) {
+                $groupedDrugs[$key]->rxdate = $it->rxdate;
+            }
+        }
+
+        $admissionsByAn = $admissions->keyBy('an');
+
+        foreach ($groupedDrugs as $it) {
+            $adm = $admissionsByAn->get($it->an);
+            $cid = $adm ? trim((string)$adm->cid) : '';
+            $clinic = self::formatClinic($adm ? $adm->dept : '01');
+            $dateserv = self::formatDate($it->rxdate ?: ($it->vstdate ?: ($adm ? $adm->dchdate : '')));
+            $did = trim((string)$it->icode);
+            $didname = str_replace('|', '', trim((string)$it->drug_name));
+            $amount = intval($it->qty);
+            $drugprice = number_format((float)($it->unitprice ?: ($it->drug_price ?: 0.0)), 2, '.', '');
+            $drugcost = number_format((float)($it->unitcost ?: 0.0), 2, '.', '');
+            $didstd = trim((string)$it->didstd) ?: $did;
+            $unit = trim((string)$it->units) ?: 'เม็ด';
+            $unitpack = trim((string)$it->packqty) ? "1x{$it->packqty}" : "1x{$unit}";
+            $seq = $it->an;
+            $provider = $it->doctor_license ?: 'ว00000';
+
+            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|||||||{$provider}";
+        }
+
+        // 13. CHA.txt (7 columns)
+        $chaLines = ["HN|AN|DATE|CHRGITEM|AMOUNT|PERSON_ID|SEQ"];
+        $itemsByAn = $items->groupBy('an');
+
+        foreach ($itemsByAn as $anKey => $anItems) {
+            $adm = $admissionsByAn->get($anKey);
+            if (!$adm) continue;
+
+            $date = self::formatDate($adm->dchdate ?: $adm->regdate);
+            $cid = trim((string)$adm->cid);
+            $seq = $anKey;
+
+            // Group by CHA CHRGITEM
+            $chaGroups = [];
+            foreach ($anItems as $it) {
+                $chrg = self::mapIncomeToChaItem($it->income);
+                if (!isset($chaGroups[$chrg])) {
+                    $chaGroups[$chrg] = 0.0;
+                }
+                $chaGroups[$chrg] += (float)$it->sum_price;
+            }
+
+            ksort($chaGroups);
+
+            foreach ($chaGroups as $chrg => $sumAmt) {
+                $amtStr = number_format($sumAmt, 2, '.', '');
+                $chaLines[] = "{$adm->hn}|{$anKey}|{$date}|{$chrg}|{$amtStr}|{$cid}|{$seq}";
+            }
+        }
+
+        // 14. CHT.txt (8 columns)
+        $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ"];
+        foreach ($admissions as $v) {
+            $date = self::formatDate($v->dchdate ?: $v->regdate);
+            $total = number_format((float)$v->income, 2, '.', '');
+            $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
+            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $cid = trim((string)$v->cid);
+            $an = $v->an;
+            $seq = $v->an;
+
+            $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}";
+        }
+
+        // 15. AER.txt (18 columns)
+        $aerLines = ["HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT"];
+
+        // 16. ADP.txt (29 columns)
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
+        $adpItems = $items->filter(function($it) {
+            $isDrug = str_starts_with((string)$it->icode, '1');
+            if (!$isDrug) {
+                return (float)$it->sum_price >= 0;
+            } else {
+                return !empty(trim((string)$it->nhso_adp_code));
+            }
+        });
+
+        // Group by an, type, code, unitprice (matching HOSxP IPD ADP aggregation for multi-day stays)
+        $groupedAdp = [];
+        foreach ($adpItems as $it) {
+            $adm = $admissionsByAn->get($it->an);
+            $type = trim((string)($it->nhso_adp_type ?: '17'));
+            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
+            $rate = floatval($it->unitprice ?: 0.0);
+            $key = $it->an . '_' . $type . '_' . $code . '_' . $rate;
+
+            if (!isset($groupedAdp[$key])) {
+                $groupedAdp[$key] = clone $it;
+                $groupedAdp[$key]->adp_type = $type;
+                $groupedAdp[$key]->adp_code = $code;
+                $groupedAdp[$key]->qty = 0;
+                $groupedAdp[$key]->sum_price = 0;
+                $groupedAdp[$key]->admit_date = $adm ? $adm->regdate : $it->vstdate;
+            }
+            $groupedAdp[$key]->qty += (float)($it->qty ?: 1);
+            $groupedAdp[$key]->sum_price += (float)($it->sum_price ?: 0.0);
+        }
+
+        foreach ($groupedAdp as $it) {
+            $adm = $admissionsByAn->get($it->an);
+            $dateopd = self::formatDate($it->admit_date ?: ($adm ? $adm->regdate : $it->vstdate));
+            $type = $it->adp_type;
+            $code = $it->adp_code;
+            $qty = number_format((float)$it->qty, 0, '.', '');
+            $rate = number_format((float)($it->unitprice ?: 0.0), 2, '.', '');
+            $seq = $it->an;
+            $total = number_format((float)$it->sum_price, 2, '.', '');
+            $clinic = self::formatClinic($adm ? $adm->dept : '01');
+            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
+
+            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||||{$total}|||||{$clinic}||{$provider}|||||||";
+        }
+
+        // 17. LAB.txt (7 columns)
+        $labLines = ["HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT"];
+        $seenLab = [];
+        foreach ($labOrders as $lab) {
+            $labTestCode = self::mapLabTestCode($lab->labtest, $lab->tmlt_code, $lab->provis_labcode, $lab->lab_items_name);
+            if (empty($labTestCode)) continue;
+
+            $dateserv = self::formatDate($lab->order_date);
+            $seq = $lab->vn;
+            $cid = trim((string)$lab->cid);
+            $rawResult = trim((string)$lab->lab_order_result);
+            $labResult = str_replace([',', '|'], '', $rawResult);
+
+            $key = "{$seq}_{$labTestCode}";
+            if (isset($seenLab[$key])) continue;
+            $seenLab[$key] = true;
+
+            $labLines[] = "{$hcode}|{$lab->hn}|{$cid}|{$dateserv}|{$seq}|{$labTestCode}|{$labResult}";
+        }
+
+        // =============================================================
+        // COMPILE FINAL RESULT WITH ALL 17 FILES FOR IPD
+        // =============================================================
+        $files = [
+            'INS' => implode("\r\n", $insLines),
+            'PAT' => implode("\r\n", $patLines),
+            'OPD' => implode("\r\n", $opdLines),
+            'IPD' => implode("\r\n", $ipdLines),
+            'ODX' => implode("\r\n", $odxLines),
+            'OOP' => implode("\r\n", $oopLines),
+            'IDX' => implode("\r\n", $idxLines),
+            'IOP' => implode("\r\n", $iopLines),
+            'ORF' => implode("\r\n", $orfLines),
+            'IRF' => implode("\r\n", $irfLines),
+            'LVD' => implode("\r\n", $lvdLines),
+            'DRU' => implode("\r\n", $druLines),
+            'CHA' => implode("\r\n", $chaLines),
+            'CHT' => implode("\r\n", $chtLines),
+            'AER' => implode("\r\n", $aerLines),
+            'ADP' => implode("\r\n", $adpLines),
+            'LAB' => implode("\r\n", $labLines),
+        ];
+
+        $counts = [
+            'INS' => count($insLines) - 1,
+            'PAT' => count($patLines) - 1,
+            'OPD' => count($opdLines) - 1,
+            'IPD' => count($ipdLines) - 1,
+            'ODX' => count($odxLines) - 1,
+            'OOP' => count($oopLines) - 1,
+            'IDX' => count($idxLines) - 1,
+            'IOP' => count($iopLines) - 1,
+            'ORF' => count($orfLines) - 1,
+            'IRF' => count($irfLines) - 1,
+            'LVD' => count($lvdLines) - 1,
+            'DRU' => count($druLines) - 1,
+            'CHA' => count($chaLines) - 1,
+            'CHT' => count($chtLines) - 1,
+            'AER' => count($aerLines) - 1,
+            'ADP' => count($adpLines) - 1,
+            'LAB' => count($labLines) - 1,
+        ];
+
+        return [
+            'status' => 'success',
+            'files' => $files,
+            'counts' => $counts,
+            'total_visits' => count($admissions),
+            'hcode' => $hcode
+        ];
+    }
 }
+

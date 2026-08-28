@@ -1,3 +1,6 @@
+@php
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim');
+@endphp
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
         <div class="px-4 pt-2 pb-0 border-bottom">
@@ -40,6 +43,11 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
+                            @if($is_f16_licensed)
+                            <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16IP('BKK')">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -65,6 +73,11 @@
                         <table id="t_search" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <th class="text-center" style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input check-all-f16" onclick="toggleSelectAllF16(this, '#t_search')">
+                                    </th>
+                                    @endif
                                     <th class="text-center">ความพร้อม</th>                      
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
@@ -90,6 +103,11 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->an }}">
+                                    </td>
+                                    @endif
                                     <td class="text-start ps-3" data-order="{{ $row->auth_code == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
@@ -150,7 +168,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 12 : 11 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -165,6 +183,11 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <th class="text-center" rowspan="2" style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input check-all-f16" onclick="toggleSelectAllF16(this, '#t_claim')">
+                                    </th>
+                                    @endif
                                     <th class="text-center" rowspan="2">E-Claim</th>
                                     <th class="text-center" rowspan="2">Error</th>
                                     <th class="text-center" rowspan="2">ตึก</th>
@@ -201,6 +224,11 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->an }}">
+                                    </td>
+                                    @endif
                                     <td class="text-center">
                                         @if(substr($row->ec_status, 0, 1) == '0')
                                             <span class="badge bg-secondary-soft text-secondary py-0 text-truncate" style="font-size: 0.65rem; max-width: 75px; display: inline-block;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
@@ -259,7 +287,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 12 : 11 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

@@ -516,15 +516,24 @@
             $('#f16EclaimExportModal').modal('show');
         }
 
+        const isIp = !!(config.isIp || config.is_ip || config.type === 'ip');
+        const postData = {
+            _token: '{{ csrf_token() }}',
+            type: isIp ? 'ip' : 'op',
+            is_ip: isIp ? 1 : 0,
+            claim_code: claimCode
+        };
+        if (isIp) {
+            postData.ans = JSON.stringify(vns);
+        } else {
+            postData.vns = JSON.stringify(vns);
+        }
+
         // AJAX Request for Preview & Generation
         $.ajax({
             url: '{{ route("f16_eclaim_export.preview") }}',
             type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                vns: JSON.stringify(vns),
-                claim_code: claimCode
-            },
+            data: postData,
             success: function(res) {
                 $('#f16LoadingOverlay').hide();
                 $('#f16MainContent').show();

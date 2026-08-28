@@ -331,8 +331,22 @@ async function run() {
                     }
                 };
 
-                setField('input[name="postDateFrom"]', dates.from);
-                setField('input[name="postDateTo"]', dates.to);
+                // Auto select company code and service type if unselected
+                const selComp = document.querySelector('select[name="searchCompanyCode"], #companyCode');
+                if (selComp && selComp.options.length > 0 && selComp.selectedIndex <= 0) {
+                    if (selComp.options[0].value === '' && selComp.options.length > 1) {
+                        selComp.selectedIndex = 1;
+                        selComp.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+
+                const selService = document.querySelector('select[name="searchServiceTypeCode"], #serviceType');
+                if (selService && selService.options.length > 0 && selService.selectedIndex <= 0) {
+                    if (selService.options[0].value === '' && selService.options.length > 1) {
+                        selService.selectedIndex = 1;
+                        selService.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
             }, { from: actualFromDate, to: actualToDate });
         }
 
@@ -365,6 +379,17 @@ async function run() {
         await page.waitForSelector('#loadingBox', { state: 'hidden', timeout: 30000 }).catch(() => {});
         await page.waitForTimeout(4000);
 
+        // Check for any visible validation errors on KTB page
+        const pageErrorText = await page.evaluate(() => {
+            const errorLabels = Array.from(document.querySelectorAll('label.error, .text-danger, .alert-danger, #errorBox, p.error, span.error'));
+            const visibleErrors = errorLabels.filter(el => el.offsetParent !== null && (el.innerText || '').trim().length > 0);
+            return visibleErrors.map(el => el.innerText.trim()).join(' | ');
+        });
+
+        if (pageErrorText) {
+            console.error('KTB_PAGE_ERROR:', pageErrorText);
+        }
+
         // Save debug screenshot after search
         try {
             const debugImgPath = path.resolve(__dirname, '../../../storage/app/ktb_edc_debug.png');
@@ -378,9 +403,13 @@ async function run() {
         const hasEmptyCell = (await emptyCell.count()) > 0;
 
         if (hasEmptyCell || checkboxCount === 0) {
+            let msg = `เข้าสู่ระบบสำเร็จ แต่ไม่พบรายการไฟล์รายงาน EDC ในช่วงวันที่ ${fromDateStr || 'ที่เลือก'} ถึง ${toDateStr || 'ที่เลือก'}`;
+            if (pageErrorText) {
+                msg = `ธนาคารกรุงไทยแจ้ง: ${pageErrorText} (กรุณาปรับช่วงวันที่ไม่เกิน 7 วัน)`;
+            }
             outputResult({
                 success: true,
-                message: `เข้าสู่ระบบสำเร็จ แต่ไม่พบรายการไฟล์รายงาน EDC ในช่วงวันที่ ${fromDateStr || 'ที่เลือก'} ถึง ${toDateStr || 'ที่เลือก'}`,
+                message: msg,
                 downloaded_files: []
             });
             await browser.close();

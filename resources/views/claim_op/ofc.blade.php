@@ -576,7 +576,12 @@
 
                 const edcHosxp = String(visit.edc || '').trim();
                 const edcKtb = String(visit.edc_ktb || '').trim();
-                const ktbList = edcKtb ? edcKtb.split(',').map(s => s.trim()) : [];
+                const ktbList = edcKtb ? edcKtb.split(',').map(s => s.trim()).filter(Boolean) : [];
+                const hosxpList = edcHosxp ? edcHosxp.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                const primaryEdcHosxp = hosxpList.length > 0 ? hosxpList[0] : '-';
+                const primaryEdcKtb = ktbList.length > 0 ? ktbList[0] : '-';
+                const edcKtbTooltip = ktbList.length > 1 ? `title="ประวัติรูดบัตรทั้งหมด: ${ktbList.join(', ')}"` : '';
 
                 // แสดงปุ่มอัปเดต EDC เฉพาะกรณีที่มีเลขทั้ง 2 ฝั่งแล้วไม่ตรงกัน (Mismatch) เพื่อความปลอดภัยสูงสุด
                 const showEdcBtn = (edcHosxp !== '' && edcKtb !== '' && !ktbList.includes(edcHosxp));
@@ -636,12 +641,12 @@
                           <tr><th class="text-muted">ชดเชย OFC</th><td class="text-success fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
-                          <tr><th class="text-muted">EDC (HOSxP)</th><td class="fw-bold text-secondary">${visit.edc || '-'}</td></tr>
+                          <tr><th class="text-muted">EDC (HOSxP)</th><td class="fw-bold text-secondary">${primaryEdcHosxp}</td></tr>
                           <tr>
                             <th class="text-muted" style="vertical-align: middle;">EDC (นำเข้า KTB)</th>
                             <td>
                               <div class="d-flex align-items-center justify-content-between gap-1">
-                                <span class="fw-bold text-secondary text-break pe-1" id="modal-edc-ktb-text" style="word-break: break-all;">${visit.edc_ktb || '-'}</span>
+                                <span class="fw-bold text-secondary" id="modal-edc-ktb-text" ${edcKtbTooltip}>${primaryEdcKtb}</span>
                                 ${edcKtbBtnHtml}
                               </div>
                             </td>

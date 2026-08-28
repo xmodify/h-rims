@@ -229,28 +229,29 @@ class PlaywrightHelper
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $cdPrefix = $isWindows ? "cd /d \"{$projectRoot}\"" : "cd \"{$projectRoot}\"";
         $customBrowsersPath = static::getCustomBrowsersPath();
-        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH={$customBrowsersPath} &&" : "export PLAYWRIGHT_BROWSERS_PATH=\"{$customBrowsersPath}\" &&";
 
         // 1. Install playwright & adm-zip package locally in project
-        $installCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
+        $rawInstallCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
+        $installCmd = $isWindows ? "cmd.exe /c \"{$rawInstallCmd}\"" : $rawInstallCmd;
         $out1 = [];
         $code1 = 1;
         @exec($installCmd, $out1, $code1);
         $logs[] = "npm install: " . implode(' ', array_slice($out1, -2));
 
-        // 2. Install Chromium browser binaries inside storage_path('app/playwright_browsers')
+        // 2. Install Chromium browser binaries
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
         $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . ($isWindows ? 'playwright.cmd' : 'playwright');
 
         if (file_exists($playwrightCliJs)) {
-            $browserCmd = "{$envPrefix} {$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
+            $rawBrowserCmd = "{$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
         } elseif (file_exists($binPlaywright)) {
-            $browserCmd = "{$envPrefix} {$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
+            $rawBrowserCmd = "{$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
         } else {
             $npxExe = $isWindows ? str_replace('npm', 'npx', $npmExe) : 'npx';
-            $browserCmd = "{$envPrefix} {$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
+            $rawBrowserCmd = "{$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
         }
 
+        $browserCmd = $isWindows ? "cmd.exe /c \"{$rawBrowserCmd}\"" : $rawBrowserCmd;
         $out2 = [];
         $code2 = 1;
         @exec($browserCmd, $out2, $code2);

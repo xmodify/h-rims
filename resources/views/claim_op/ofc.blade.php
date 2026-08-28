@@ -574,6 +574,22 @@
                     </div>`;
                 }
 
+                const edcHosxp = String(visit.edc || '').trim();
+                const edcKtb = String(visit.edc_ktb || '').trim();
+                const ktbList = edcKtb ? edcKtb.split(',').map(s => s.trim()) : [];
+
+                // แสดงปุ่มอัปเดต EDC เฉพาะกรณีที่มีเลขทั้ง 2 ฝั่งแล้วไม่ตรงกัน (Mismatch) เพื่อความปลอดภัยสูงสุด
+                const showEdcBtn = (edcHosxp !== '' && edcKtb !== '' && !ktbList.includes(edcHosxp));
+
+                let edcKtbBtnHtml = '';
+                if (showEdcBtn) {
+                    edcKtbBtnHtml = `
+                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 rounded-pill shadow-sm text-nowrap flex-shrink-0" style="font-size: 0.68rem; height: 23px; line-height: 1.3;" onclick="promptUpdateEdcManual('${visit.cid}', '${visit.vstdate}', '${visit.hn}', '${encodeURIComponent(visit.ptname)}', '${visit.vn}', '${visit.income || 0}')" title="คัดลอกเลข Approve Code จากหน้าเว็บ KTB มาวางอัปเดต">
+                            <i class="bi bi-pencil-square me-1"></i>อัปเดต EDC
+                        </button>
+                    `;
+                }
+
                 let html = `
                 <div class="row g-3">
                   ${statusHtml}
@@ -622,13 +638,11 @@
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
                           <tr><th class="text-muted">EDC (HOSxP)</th><td class="fw-bold text-secondary">${visit.edc || '-'}</td></tr>
                           <tr>
-                            <th class="text-muted">EDC (นำเข้า KTB)</th>
+                            <th class="text-muted" style="vertical-align: middle;">EDC (นำเข้า KTB)</th>
                             <td>
                               <div class="d-flex align-items-center justify-content-between gap-1">
-                                <span class="fw-bold text-dark" id="modal-edc-ktb-text">${visit.edc_ktb || '-'}</span>
-                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 rounded-pill shadow-sm" style="font-size: 0.7rem; height: 22px; line-height: 1.4;" onclick="promptUpdateEdcManual('${visit.cid}', '${visit.vstdate}', '${visit.hn}', '${encodeURIComponent(visit.ptname)}', '${visit.vn}', '${visit.income || 0}')" title="คัดลอกเลข Approve Code จากหน้าเว็บ KTB มาวางอัปเดต">
-                                  <i class="bi bi-pencil-square me-1"></i>อัปเดต EDC
-                                </button>
+                                <span class="fw-bold text-dark text-break pe-1" id="modal-edc-ktb-text" style="font-size: 0.8rem; word-break: break-all;">${visit.edc_ktb || '-'}</span>
+                                ${edcKtbBtnHtml}
                               </div>
                             </td>
                           </tr>
@@ -758,7 +772,11 @@
             return;
         }
 
+        // ปลดล็อค focus trap ของ Bootstrap modal ชั่วคราวเพื่อให้พิมพ์ใน SweetAlert ได้
+        $('#detailsModal').removeAttr('tabindex');
+
         Swal.fire({
+            target: '#detailsModal',
             title: '<span class="fs-5 fw-bold text-primary"><i class="bi bi-credit-card-2-front me-2"></i>อัปเดตเลขอนุมัติ EDC (KTB Online)</span>',
             html: `
                 <div class="text-start small p-3 rounded bg-light mb-3 border">
@@ -768,7 +786,7 @@
                 </div>
                 <div class="form-group text-start">
                     <label class="form-label small fw-bold text-dark mb-1">เลข Approve Code จากหน้าเว็บ KTB (เช่น 356926196):</label>
-                    <input id="swal_edc_code_input" class="form-control text-center fw-bold text-primary fs-5" placeholder="กรอกหรือวางเลขที่นี่..." maxlength="30" autofocus>
+                    <input id="swal_edc_code_input" type="text" class="form-control text-center fw-bold text-primary fs-5" placeholder="กรอกหรือวางเลขที่นี่..." maxlength="30">
                     <div class="form-text small text-muted">ระบบจะบันทึกเข้าตารางไฟล์นำเข้า KTB ทันที และเคลียร์คำเตือนให้เป็นสถานะผ่านเกณฑ์</div>
                 </div>
             `,
@@ -778,8 +796,16 @@
             confirmButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d',
             didOpen: () => {
-                const input = document.getElementById('swal_edc_code_input');
-                if (input) input.focus();
+                setTimeout(() => {
+                    const input = document.getElementById('swal_edc_code_input');
+                    if (input) {
+                        input.focus();
+                        input.select();
+                    }
+                }, 100);
+            },
+            willClose: () => {
+                $('#detailsModal').attr('tabindex', '-1');
             },
             preConfirm: () => {
                 const code = $('#swal_edc_code_input').val().trim();
@@ -792,6 +818,7 @@
         }).then((result) => {
             if (result.isConfirmed && result.value) {
                 Swal.fire({
+                    target: '#detailsModal',
                     title: 'กำลังบันทึก...',
                     text: 'ระบบกำลังอัปเดตเลขอนุมัติ EDC',
                     allowOutsideClick: false,
@@ -811,6 +838,7 @@
                 }).done(function(res) {
                     if (res.status === 'success') {
                         Swal.fire({
+                            target: '#detailsModal',
                             icon: 'success',
                             title: 'บันทึกสำเร็จ!',
                             text: res.message || 'อัปเดตเลขอนุมัติ EDC เรียบร้อยแล้ว',
@@ -820,11 +848,21 @@
                         // Refresh details modal & update table status row
                         showDetails(vn);
                     } else {
-                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถบันทึกได้', 'error');
+                        Swal.fire({
+                            target: '#detailsModal',
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: res.message || 'ไม่สามารถบันทึกได้'
+                        });
                     }
                 }).fail(function(xhr) {
                     const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
-                    Swal.fire('เกิดข้อผิดพลาด', msg, 'error');
+                    Swal.fire({
+                        target: '#detailsModal',
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: msg
+                    });
                 });
             }
         });

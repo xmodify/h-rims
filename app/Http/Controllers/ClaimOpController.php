@@ -2439,22 +2439,35 @@ class ClaimOpController extends Controller
         }
 
         try {
-            // Check if record exists for this cid, vstdate and approve_code
+            // Find existing record(s) for this cid and vstdate
             $existing = DB::table('edc_approve_list')
                 ->where('cid', $cid)
                 ->where('vstdate', $vstdate)
-                ->where('approve_code', $approveCode)
-                ->first();
+                ->orderBy('id', 'asc')
+                ->get();
 
-            if ($existing) {
+            if ($existing->isNotEmpty()) {
+                // Update the primary record with the new approve_code (ทับเลขเดิม)
+                $primaryId = $existing->first()->id;
                 DB::table('edc_approve_list')
-                    ->where('id', $existing->id)
+                    ->where('id', $primaryId)
                     ->update([
+                        'approve_code' => $approveCode,
+                        'app_code' => $approveCode,
                         'post_date' => date('Y-m-d'),
                         'post_time' => date('H:i:s'),
+                        'amount' => $amount ?: $existing->first()->amount,
                         'note' => 'อัปเดตตรงจากหน้าเว็บ KTB',
                         'updated_at' => now(),
                     ]);
+
+                // ลบรายการซ้ำซ้อนเดิมของวันรับบริการนั้นออก เพื่อให้เหลือเฉพาะเลขใหม่ที่อัปเดต
+                if ($existing->count() > 1) {
+                    $otherIds = $existing->pluck('id')->filter(function($id) use ($primaryId) {
+                        return $id != $primaryId;
+                    })->toArray();
+                    DB::table('edc_approve_list')->whereIn('id', $otherIds)->delete();
+                }
             } else {
                 DB::table('edc_approve_list')->insert([
                     'cid' => $cid,
@@ -2476,7 +2489,7 @@ class ClaimOpController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => "บันทึกเลขอนุมัติ EDC ({$approveCode}) เข้าสู่ระบบเรียบร้อยแล้ว",
+                'message' => "อัปเดตเลขอนุมัติ EDC ({$approveCode}) เรียบร้อยแล้ว",
                 'approve_code' => $approveCode
             ]);
         } catch (\Throwable $e) {

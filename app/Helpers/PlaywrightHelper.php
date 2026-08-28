@@ -185,15 +185,26 @@ class PlaywrightHelper
         // Test if Chromium can be launched in headless mode
         $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
-            $customPath = addslashes(str_replace('/', DIRECTORY_SEPARATOR, static::getCustomBrowsersPath()));
-            $testScript = "const fs = require('fs'); const path = require('path'); async function testLaunch() { try { const { chromium } = require('playwright'); if (fs.existsSync(chromium.executablePath())) { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); return; } } catch (e1) {} try { process.env.PLAYWRIGHT_BROWSERS_PATH = '{$customPath}'; delete require.cache[require.resolve('playwright-core')]; delete require.cache[require.resolve('playwright')]; const { chromium: chromiumStorage } = require('playwright'); const browser = await chromiumStorage.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); return; } catch (e2) { console.log('FAIL:' + e2.message); } } testLaunch();";
+            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
             $escapedScript = str_replace('"', '\"', $testScript);
-            $res = static::runSyncCommand("{$nodeExe} -e \"{$escapedScript}\"", $projectRoot);
-            $fullOut = $res['output'];
-            if (strpos($fullOut, 'CHROMIUM_OK') !== false) {
+
+            // 1. Try launching with Default OS Browser Path
+            $resDefault = static::runSyncCommand("{$nodeExe} -e \"{$escapedScript}\"", $projectRoot);
+            if (strpos($resDefault['output'], 'CHROMIUM_OK') !== false) {
                 $hasChromium = true;
             } else {
-                $launchError = trim($fullOut);
+                // 2. Try launching with Project Storage Browser Path (for Linux httpd / isolated setups)
+                $customPath = static::getCustomBrowsersPath();
+                $resStorage = static::runSyncCommand(
+                    "{$nodeExe} -e \"{$escapedScript}\"",
+                    $projectRoot,
+                    ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp']
+                );
+                if (strpos($resStorage['output'], 'CHROMIUM_OK') !== false) {
+                    $hasChromium = true;
+                } else {
+                    $launchError = trim($resStorage['output'] ?: $resDefault['output']);
+                }
             }
         }
 
@@ -264,7 +275,7 @@ class PlaywrightHelper
         $projectRoot = base_path();
         $logs = [];
         $customBrowsersPath = static::getCustomBrowsersPath();
-        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customBrowsersPath];
+        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customBrowsersPath, 'HOME' => '/tmp'];
 
         // 1. Install playwright & adm-zip package locally in project
         $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save", $projectRoot);
@@ -283,13 +294,13 @@ class PlaywrightHelper
             $cmd = "{$npxExe} playwright install chromium";
         }
 
-        // Install default
-        $res2 = static::runSyncCommand($cmd, $projectRoot);
-        $logs[] = "playwright install: " . trim(substr($res2['output'], -150));
+        // Install to custom storage path (guaranteed writable by web server on Linux)
+        $resStorage = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
+        $logs[] = "playwright install (storage): " . trim(substr($resStorage['output'], -150));
 
-        // Install to custom storage path as well
-        $res3 = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
-        $logs[] = "playwright install (storage): " . trim(substr($res3['output'], -150));
+        // Also try install to default path
+        $resDefault = static::runSyncCommand($cmd, $projectRoot);
+        $logs[] = "playwright install (default): " . trim(substr($resDefault['output'], -150));
 
         // Check again
         $status = static::checkStatus();
@@ -365,16 +376,16 @@ class PlaywrightHelper
 
         file_put_contents($configFile, json_encode($configData, JSON_UNESCAPED_UNICODE));
 
-        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
+        $customPath = static::getCustomBrowsersPath();
+        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
+        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\"";
 
-        $output = [];
-        $returnVar = 1;
-        @exec($cmd, $output, $returnVar);
+        $res = static::runSyncCommand($cmd, base_path(), $extraEnv);
 
         // Remove temp config file
         @unlink($configFile);
 
-        $outputStr = implode("\n", $output);
+        $outputStr = $res['output'];
         
         // Find JSON result inside output
         $jsonData = null;
@@ -421,7 +432,8 @@ class PlaywrightHelper
             pclose(popen($cmd, "r"));
         } else {
             $logFile = storage_path('logs/thaid_bot_' . $sessionId . '.log');
-            $cmd = "{$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
+            $customPath = static::getCustomBrowsersPath();
+            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=\"{$customPath}\" && export HOME=/tmp && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
             exec($cmd);
         }
 

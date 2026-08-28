@@ -139,6 +139,18 @@ class PlaywrightHelper
     }
 
     /**
+     * Get dedicated writable browsers path in project storage.
+     */
+    public static function getCustomBrowsersPath(): string
+    {
+        $path = storage_path('app/playwright_browsers');
+        if (!file_exists($path)) {
+            @mkdir($path, 0755, true);
+        }
+        return $path;
+    }
+
+    /**
      * Check if Playwright module & Chromium browser are installed.
      */
     public static function checkStatus(): array
@@ -173,7 +185,8 @@ class PlaywrightHelper
         // Test if Chromium can be launched in headless mode
         $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
-            $testScript = "process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0'; const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
+            $customPath = addslashes(str_replace('/', DIRECTORY_SEPARATOR, static::getCustomBrowsersPath()));
+            $testScript = "const fs = require('fs'); const { chromium } = require('playwright'); let hasDef = false; try { if (fs.existsSync(chromium.executablePath())) hasDef = true; } catch(e) {} if (!hasDef) { process.env.PLAYWRIGHT_BROWSERS_PATH = '{$customPath}'; } (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
             $out = [];
             $code = 1;
             $escapedScript = str_replace('"', '\"', $testScript);
@@ -215,16 +228,17 @@ class PlaywrightHelper
         $logs = [];
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $cdPrefix = $isWindows ? "cd /d \"{$projectRoot}\"" : "cd \"{$projectRoot}\"";
-        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH=0 &&" : "export PLAYWRIGHT_BROWSERS_PATH=0 &&";
+        $customBrowsersPath = static::getCustomBrowsersPath();
+        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH={$customBrowsersPath} &&" : "export PLAYWRIGHT_BROWSERS_PATH=\"{$customBrowsersPath}\" &&";
 
         // 1. Install playwright & adm-zip package locally in project
-        $installCmd = "{$envPrefix} {$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
+        $installCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
         $out1 = [];
         $code1 = 1;
         @exec($installCmd, $out1, $code1);
         $logs[] = "npm install: " . implode(' ', array_slice($out1, -2));
 
-        // 2. Install Chromium browser binaries inside local project directory
+        // 2. Install Chromium browser binaries inside storage_path('app/playwright_browsers')
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
         $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . ($isWindows ? 'playwright.cmd' : 'playwright');
 

@@ -1,4 +1,20 @@
-process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0';
+try {
+    const fs = require('fs');
+    const path = require('path');
+    const { chromium } = require('playwright');
+    let hasValidDefault = false;
+    try {
+        if (fs.existsSync(chromium.executablePath())) {
+            hasValidDefault = true;
+        }
+    } catch (e) {}
+
+    if (!hasValidDefault) {
+        const storageBrowserPath = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
+        process.env.PLAYWRIGHT_BROWSERS_PATH = storageBrowserPath;
+    }
+} catch (e) {}
+
 /**
  * E-Claim ThaiD Login Worker (Playwright Script)
  * Automates opening NHSO IAM -> DOPA ThaiD QR Code -> Capturing QR Code -> Waiting for Mobile Scan -> Extracting Cookies.

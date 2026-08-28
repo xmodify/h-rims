@@ -13,6 +13,7 @@
         "vite": "^6.3.5"
     },
     "dependencies": {
+        "adm-zip": "^0.6.0",
         "autoprefixer": "10.4.5",
         "playwright": "^1.62.1"
     }

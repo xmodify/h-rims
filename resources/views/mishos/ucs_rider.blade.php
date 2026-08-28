@@ -137,6 +137,18 @@
 
 
 
+    <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
+    <x-import_hub_modal 
+        :rep-url="url('import/rep_ucs')" 
+        :stm-url="url('import/stm_ucs')" 
+        :has-edc="false" 
+        :has-fdh="true"
+        claim-title="MIS Hospital - รายชื่อผู้บริการจัดส่งยาทางไปรษณีย์" 
+    />
+
+    <!-- Modal Extension Info -->
+    <x-extension_info_modal />
+
 @endsection
 
 

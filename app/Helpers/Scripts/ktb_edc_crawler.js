@@ -133,10 +133,6 @@ async function run() {
         process.exit(1);
     }
 
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
-
     let browser = null;
     try {
         browser = await launchBrowser({
@@ -147,6 +143,7 @@ async function run() {
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--disable-blink-features=AutomationControlled',
+                '--disable-popup-blocking',
                 '--disable-infobars',
                 '--window-size=1366,768'
             ]
@@ -182,6 +179,15 @@ async function run() {
         const page = await context.newPage();
         page.on('download', handleDownload);
         page.setDefaultTimeout(timeoutMs);
+
+        // Native CDP Download Handler (Guarantees Chromium saves downloads directly to outputDir)
+        try {
+            const client = await context.newCDPSession(page);
+            await client.send('Page.setDownloadBehavior', {
+                behavior: 'allow',
+                downloadPath: outputDir
+            });
+        } catch(cdpErr) {}
 
         // Stealth mode & Polyfills for KTB Legacy JS
         await page.addInitScript(() => {
@@ -353,6 +359,9 @@ async function run() {
                     }
                 };
 
+                setField('input[name="postDateFrom"]', dates.from);
+                setField('input[name="postDateTo"]', dates.to);
+
                 // Auto select company code and service type if unselected
                 const selComp = document.querySelector('select[name="searchCompanyCode"], #companyCode');
                 if (selComp && selComp.options.length > 0 && selComp.selectedIndex <= 0) {
@@ -472,69 +481,81 @@ async function run() {
             process.exit(0);
         }
 
-        // Select all checkboxes and gather their values
-        const checkedValues = await page.evaluate(() => {
-            if (typeof $ !== 'undefined') {
-                $('input[name="allHospitalDownload"], thead input[type="checkbox"]').prop('checked', true).attr('checked', 'checked');
-                $('input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]').prop('checked', true).attr('checked', 'checked');
-                const vals = [];
-                $('input[name="hospitalDownload"]').each(function() {
-                    vals.push($(this).val());
-                });
-                return vals;
+        // Download ZIP directly via in-browser fetch() with authenticated cookies
+        const zipBase64 = await page.evaluate(async () => {
+            const master = $('input[name="allHospitalDownload"]')[0] || document.querySelector('input[name="allHospitalDownload"]');
+            if (master) {
+                master.checked = true;
+                if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.selectAllHospitalDownload === 'function') {
+                    hospitalInfo.selectAllHospitalDownload(master);
+                }
             }
-            const vals = [];
-            document.querySelectorAll('input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-                if (cb.value) vals.push(cb.value);
+            $(':checkbox[name^="chBoxDownload"]').prop('checked', true);
+
+            const formData = new URLSearchParams();
+            formData.append('tab', 'HOSPITAL');
+            $(':checkbox[name^="chBoxDownload"]:checked').each(function() {
+                const val = $(this).val();
+                if (val && val !== '1') {
+                    formData.append('chBoxDownload', val);
+                }
             });
-            return vals;
+
+            const actionUrl = $('#serviceType').val() === 'H2' ? 'HealthcareDownloadNhso' : 'HealthcareDownload';
+
+            try {
+                const response = await fetch(actionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+
+                if (!response.ok) {
+                    return { success: false, error: `HTTP ${response.status} ${response.statusText}` };
+                }
+
+                const buffer = await response.arrayBuffer();
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const b64 = btoa(binary);
+
+                // Get suggested filename from Content-Disposition header if present
+                const disp = response.headers.get('content-disposition') || '';
+                let fname = '';
+                const m = disp.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (m && m[1]) {
+                    fname = m[1].replace(/['"]/g, '').trim();
+                }
+
+                return {
+                    success: true,
+                    filename: fname || `DWN_HOSPITAL_${Date.now()}.zip`,
+                    base64: b64,
+                    byteLength: len
+                };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
         });
 
-        // Trigger Download via frmDownload submit and button click
-        await page.evaluate((vals) => {
-            const frm = document.getElementById('frmDownload');
-            if (frm) {
-                frm.target = '_self';
-                const inputData = document.getElementById('downloadData');
-                if (inputData && vals && vals.length > 0) {
-                    inputData.value = vals.join(',');
-                }
-                frm.submit();
-            } else if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
-                hospitalInfo.downloadHospital();
-            } else if (typeof $ !== 'undefined' && $('.dt-button.orange, a:contains("Download")').length) {
-                $('.dt-button.orange, a:contains("Download")').first().trigger('click');
-            } else {
-                const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim().toLowerCase() === 'download');
-                if (btn) btn.click();
-            }
-        }, checkedValues);
-
-        // Also trigger Playwright locator click as backup
-        const dlLocator = page.locator('a.dt-button.orange, a.chData, #search_table_wrapper a:has-text("Download"), button:has-text("Download")').first();
-        if (await dlLocator.count() > 0) {
-            await dlLocator.click({ force: true }).catch(() => {});
-        }
-
-        // Wait up to 25 seconds for downloaded file to land in outputDir
-        let waitCount = 0;
-        while (downloadedFiles.length === 0 && waitCount < 50) {
-            await page.waitForTimeout(500);
-            waitCount++;
-
-            if (fs.existsSync(outputDir)) {
-                const filesInDir = fs.readdirSync(outputDir);
-                for (const file of filesInDir) {
-                    const fullP = path.join(outputDir, file);
-                    const stats = fs.statSync(fullP);
-                    if (stats.isFile() && stats.size > 0 && !downloadedFiles.some(f => f.path === fullP)) {
-                        downloadedFiles.push({
-                            name: file,
-                            path: fullP,
-                            size: stats.size
-                        });
-                    }
+        if (zipBase64 && zipBase64.success && zipBase64.base64 && zipBase64.byteLength > 0) {
+            const fileName = zipBase64.filename || `DWN_HOSPITAL_${Date.now()}.zip`;
+            const savePath = path.join(outputDir, fileName);
+            fs.writeFileSync(savePath, Buffer.from(zipBase64.base64, 'base64'));
+            if (fs.existsSync(savePath)) {
+                const stats = fs.statSync(savePath);
+                if (stats.size > 0) {
+                    downloadedFiles.push({
+                        name: fileName,
+                        path: savePath,
+                        size: stats.size
+                    });
                 }
             }
         }
@@ -543,16 +564,14 @@ async function run() {
         if (fs.existsSync(outputDir)) {
             const filesInDir = fs.readdirSync(outputDir);
             for (const file of filesInDir) {
-                if (!downloadedFiles.some(f => f.name === file)) {
-                    const fullP = path.join(outputDir, file);
-                    const stats = fs.statSync(fullP);
-                    if (stats.isFile() && stats.size > 0) {
-                        downloadedFiles.push({
-                            name: file,
-                            path: fullP,
-                            size: stats.size
-                        });
-                    }
+                const fullP = path.join(outputDir, file);
+                const stats = fs.statSync(fullP);
+                if (stats.isFile() && stats.size > 0 && !downloadedFiles.some(f => f.path === fullP)) {
+                    downloadedFiles.push({
+                        name: file,
+                        path: fullP,
+                        size: stats.size
+                    });
                 }
             }
         }

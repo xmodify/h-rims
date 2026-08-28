@@ -373,7 +373,8 @@ class PlaywrightHelper
             $cmd = "start /B \"\" set PLAYWRIGHT_BROWSERS_PATH=0 && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
-            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=0 && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > /dev/null 2>&1 &";
+            $logFile = storage_path('logs/thaid_bot_' . $sessionId . '.log');
+            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=0 && export HOME=/tmp && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
             exec($cmd);
         }
 

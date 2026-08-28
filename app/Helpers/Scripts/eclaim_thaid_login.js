@@ -51,6 +51,8 @@ async function run() {
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-infobars',
                 '--window-size=1366,768'
@@ -228,4 +230,16 @@ async function run() {
     }
 }
 
-run();
+run().catch(err => {
+    console.error('Fatal ThaiD Runner error:', err);
+    try {
+        const { sessionId } = parseArgs();
+        const storageDir = path.resolve(__dirname, '../../../storage/app');
+        const sessionFile = path.join(storageDir, `thaid_session_${sessionId}.json`);
+        updateSessionState(sessionFile, {
+            status: 'FAILED',
+            message: 'เกิดข้อผิดพลาดในการรันบอท: ' + err.message
+        });
+    } catch (e) {}
+    process.exit(1);
+});

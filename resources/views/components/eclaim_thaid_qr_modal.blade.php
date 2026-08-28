@@ -256,11 +256,16 @@ function startThaidPolling(sessionId) {
                 clearInterval(thaidPollingInterval);
                 clearInterval(thaidCountdownInterval);
                 showThaidFailed('การล็อกอินล้มเหลว', data.message);
+            } else if (data.message) {
+                const loadingText = document.getElementById('thaidQrLoadingText');
+                if (loadingText && document.getElementById('thaidQrLoadingState').style.display !== 'none') {
+                    loadingText.innerText = data.message;
+                }
             }
         } catch (e) {
             console.error('Polling error:', e);
         }
-    }, 2000);
+    }, 1500);
 }
 
 // Success State

@@ -98,7 +98,7 @@ class ClaimValidator
             $errors[] = "ไม่พบเลขอนุมัติ EDC ทั้งใน HOSxP และไฟล์นำเข้า KTB (กรุณาตรวจสอบการรูดบัตรหรือนำเข้าไฟล์ EDC)";
         } elseif (empty($edc_hosxp_list) && !empty($edc_ktb_list)) {
             // มีในไฟล์นำเข้า KTB แต่ไม่มีใน HOSxP -> ให้ผ่านเกณฑ์แบบเตือน (ตาเหลือง)
-            $warnings[] = "พบเลขอนุมัติในไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ") แต่ไม่พบใน HOSxP (ระบบจะใช้เลขจาก KTB ส่งออก)";
+            $warnings[] = "พบเลขอนุมัติในไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ") แต่ไม่พบใน HOSxP";
         } elseif (!empty($edc_hosxp_list) && empty($edc_ktb_list)) {
             $warnings[] = "พบเลขอนุมัติใน HOSxP (" . implode(',', $edc_hosxp_list) . ") แต่ยังไม่พบในไฟล์นำเข้า KTB";
         } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {

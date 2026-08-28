@@ -452,41 +452,27 @@ async function run() {
 
         // Select all checkboxes in table (Header + Rows)
         await page.evaluate(() => {
-            const selectAll = document.querySelector('input[name="allHospitalDownload"], thead input[type="checkbox"], th input[type="checkbox"]');
-            if (selectAll) {
-                selectAll.checked = true;
-                selectAll.dispatchEvent(new Event('click', { bubbles: true }));
-                selectAll.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            const itemChecks = document.querySelectorAll('#search_table tbody input[type="checkbox"], input[name="hospitalDownload"]');
-            itemChecks.forEach(cb => {
-                if (!cb.checked) {
-                    cb.checked = true;
-                    cb.dispatchEvent(new Event('click', { bubbles: true }));
-                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof $ !== 'undefined') {
+                $('input[name="allHospitalDownload"], thead input[type="checkbox"]').prop('checked', true).trigger('change');
+                $('#search_table tbody input[type="checkbox"], input[name="hospitalDownload"]').prop('checked', true).trigger('change');
+                if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.selectAllHospitalDownload === 'function') {
+                    const allCb = $('input[name="allHospitalDownload"]')[0];
+                    if (allCb) {
+                        allCb.checked = true;
+                        hospitalInfo.selectAllHospitalDownload(allCb);
+                    }
                 }
-            });
-            if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.selectAllHospitalDownload === 'function') {
-                hospitalInfo.selectAllHospitalDownload(selectAll || { checked: true });
+            } else {
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             }
         });
         await page.waitForTimeout(1500);
 
-        // Find and click Download button
-        const downloadedFiles = [];
-        const dlBtnInfo = await page.evaluate(() => {
-            const btns = [];
-            document.querySelectorAll('a, button, input[type="button"]').forEach(el => {
-                const text = (el.innerText || el.value || '').trim();
-                if (text.toLowerCase() === 'download' || el.id.toLowerCase().includes('download')) {
-                    btns.push({ tag: el.tagName, id: el.id, cls: el.className, onclick: el.getAttribute('onclick') });
-                }
-            });
-            return btns;
-        });
-        fs.writeFileSync(path.resolve(__dirname, '../../../storage/app/download_btn.json'), JSON.stringify(dlBtnInfo, null, 2));
-
         // Trigger Download (Ensure target="_self" to avoid new tab popup issues in headless mode)
+        const downloadedFiles = [];
         try {
             const [download] = await Promise.all([
                 page.waitForEvent('download', { timeout: 35000 }).catch(() => null),
@@ -495,12 +481,14 @@ async function run() {
                         if (f.target === '_blank') f.target = '_self';
                     });
 
-                    if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
+                    if (typeof $ !== 'undefined' && $('.dt-button.orange, a:contains("Download")').length) {
+                        $('.dt-button.orange, a:contains("Download")').first().trigger('click');
+                    } else if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
                         hospitalInfo.downloadHospital();
                     } else if (typeof downloadFile === 'function') {
                         downloadFile();
                     } else {
-                        const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim() === 'Download');
+                        const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim().toLowerCase() === 'download');
                         if (btn) btn.click();
                     }
                 })

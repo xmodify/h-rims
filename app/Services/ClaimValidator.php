@@ -41,14 +41,21 @@ class ClaimValidator
      */
     public function validate($visit, $billedItems, array $aspects = []): array
     {
-        // Default to UCS aspects for backward compatibility if none specified
+        // Default to standard aspects if none specified
         if (empty($aspects)) {
-            $aspects = ['ppfs', 'ins_ucs', 'endpoint'];
+            $aspects = ['f16_required', 'ppfs', 'ins_ucs', 'endpoint'];
         }
 
         $errors   = [];
         $warnings = [];
         $endpointOk = true;
+
+        // 0. Core e-Claim 16-File Required Fields (CID, PDX, etc.)
+        if (in_array('f16_required', $aspects)) {
+            $req = $this->validateF16Required($visit, (array) $billedItems);
+            $errors   = array_merge($errors, $req['errors']);
+            $warnings = array_merge($warnings, $req['warnings']);
+        }
 
         // 1. PPFS validation
         if (in_array('ppfs', $aspects)) {
@@ -81,6 +88,63 @@ class ClaimValidator
             'endpoint_valid' => $endpointOk,
             'errors'         => $errors,
             'warnings'       => $warnings,
+        ];
+    }
+
+    /**
+     * ตรวจสอบฟิลด์บังคับตามมาตรฐานโครงสร้าง 16 แฟ้ม e-Claim (Required = Y)
+     */
+    public function validateF16Required($visit, array $billedItems = []): array
+    {
+        $errors = [];
+        $warnings = [];
+
+        // 1. CID (เลขประจำตัวประชาชน 13 หลัก - Required = Y ใน PAT/INS/ODX/CHA/CHT)
+        $cid = trim((string)($visit->cid ?? ''));
+        if (empty($cid)) {
+            $errors[] = "ไม่พบเลขประจำตัวประชาชน (CID) ของผู้ป่วย (ฟิลด์บังคับ Required ในแฟ้ม PAT/INS)";
+        } elseif (strlen($cid) !== 13) {
+            $errors[] = "เลขประจำตัวประชาชน (CID) ไม่ครบ 13 หลัก [{$cid}] (ฟิลด์บังคับ Required)";
+        }
+
+        // 2. PDX (การวินิจฉัยหลัก - Required = Y ใน ODX/IDX)
+        $pdx = trim((string)($visit->pdx ?? ''));
+        if (empty($pdx)) {
+            $errors[] = "ไม่พบรหัสการวินิจฉัยโรคหลัก (PDX) ใน HOSxP (ฟิลด์บังคับ Required ในแฟ้ม ODX/IDX)";
+        }
+
+        // 3. แพทย์ผู้ตรวจ / เลขที่ใบประกอบวิชาชีพ (DRDX - Required ใน ODX/IDX)
+        $doctorLicense = trim((string)($visit->doctor_license ?? ($visit->dx_doctor ?? '')));
+        if (empty($doctorLicense)) {
+            $warnings[] = "ไม่พบเลขที่ใบอนุญาตประกอบวิชาชีพของแพทย์ผู้ตรวจ (ฟิลด์ DRDX ในแฟ้ม ODX/IDX)";
+        }
+
+        // 4. ตรวจสอบรายการค่าบริการที่ไม่มียอด 0 แต่ไม่พบรหัส ADP (Required ในแฟ้ม ADP)
+        if (!empty($billedItems)) {
+            $unmappedAdpNames = [];
+            foreach ($billedItems as $it) {
+                if (is_object($it)) {
+                    $icode = (string)($it->icode ?? '');
+                    $price = floatval($it->sum_price ?? ($it->unitprice ?? 0));
+                    $adpCode = trim((string)($it->nhso_adp_code ?? ''));
+                    // Non-drug items with price > 0 and no ADP code
+                    if ($price > 0 && !str_starts_with($icode, '1') && empty($adpCode) && isset($it->nhso_adp_code)) {
+                        $unmappedAdpNames[] = $it->name ?? $icode;
+                    }
+                }
+            }
+            if (!empty($unmappedAdpNames)) {
+                $namesSample = implode(', ', array_slice($unmappedAdpNames, 0, 3));
+                if (count($unmappedAdpNames) > 3) {
+                    $namesSample .= ' และอีก ' . (count($unmappedAdpNames) - 3) . ' รายการ';
+                }
+                $errors[] = "พบรายการค่าบริการที่ยังไม่ได้ผูกรหัส ADP Code ({$namesSample})";
+            }
+        }
+
+        return [
+            'errors'   => $errors,
+            'warnings' => $warnings,
         ];
     }
 
@@ -129,7 +193,7 @@ class ClaimValidator
 
     public function validateUcs($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['ppfs', 'ins_ucs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'ins_ucs', 'endpoint']);
     }
 
     public function validatePpfsOnly($visit, $billedItems): array
@@ -139,27 +203,27 @@ class ClaimValidator
         } elseif (is_array($visit)) {
             $visit['is_sss'] = true;
         }
-        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'endpoint']);
     }
 
     public function validateInsUcsOnly($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['ins_ucs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ins_ucs', 'endpoint']);
     }
 
     public function validateOfc($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['ppfs', 'edc', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'edc', 'endpoint']);
     }
 
     public function validateLgo($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'endpoint']);
     }
 
     public function validateBkk($visit, $billedItems): array
     {
-        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
+        return $this->validate($visit, $billedItems, ['f16_required', 'ppfs', 'endpoint']);
     }
 
     // =========================================================================

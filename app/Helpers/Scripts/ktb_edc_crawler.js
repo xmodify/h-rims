@@ -29,14 +29,14 @@ function parseArgs() {
 
 function formatDateForKtb(dateStr) {
     if (!dateStr) return '';
-    // If YYYY-MM-DD -> DD/MM/YYYY
+    // If YYYY-MM-DD -> DD-MM-YYYY
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         const [y, m, d] = dateStr.split('-');
-        return `${d}/${m}/${y}`;
+        return `${d}-${m}-${y}`;
     }
-    // If DD-MM-YYYY -> DD/MM/YYYY
-    if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
-        return dateStr.replace(/-/g, '/');
+    // If DD/MM/YYYY -> DD-MM-YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        return dateStr.replace(/\//g, '-');
     }
     return dateStr;
 }
@@ -161,11 +161,23 @@ async function run() {
         const page = await context.newPage();
         page.setDefaultTimeout(timeoutMs);
 
-        // Stealth mode
+        // Stealth mode & Polyfills for KTB Legacy JS
         await page.addInitScript(() => {
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             });
+
+            // Polyfill String.prototype.padLeft / padRight required by KTB validator
+            if (!String.prototype.padLeft) {
+                String.prototype.padLeft = function (length, character) {
+                    return String(this).padStart(length, character || '0');
+                };
+            }
+            if (!String.prototype.padRight) {
+                String.prototype.padRight = function (length, character) {
+                    return String(this).padEnd(length, character || '0');
+                };
+            }
         });
 
         // 1. Navigate to KTB Login Page
@@ -234,6 +246,20 @@ async function run() {
         });
         await page.waitForTimeout(3000);
 
+        // Inspect all validator methods on the page
+        const validatorCode = await page.evaluate(() => {
+            const methods = {};
+            if (typeof $ !== 'undefined' && $.validator && $.validator.methods) {
+                for (const k of Object.keys($.validator.methods)) {
+                    if (k.includes('date') || k.includes('period') || k.includes('range')) {
+                        methods[k] = $.validator.methods[k].toString();
+                    }
+                }
+            }
+            return methods;
+        });
+        fs.writeFileSync(path.resolve(__dirname, '../../../storage/app/fn_code.json'), JSON.stringify(validatorCode, null, 2));
+
         // Auto-detect if KTB uses Buddhist Era (พ.ศ.) or Christian Era (ค.ศ.)
         let actualFromDate = fromDateStr;
         let actualToDate = toDateStr;
@@ -249,10 +275,10 @@ async function run() {
         });
 
         const convertToBuddhistYear = (dStr) => {
-            if (/^(\d{2})\/(\d{2})\/(\d{4})$/.test(dStr)) {
-                const [d, m, y] = dStr.split('/');
-                const num = parseInt(y, 10);
-                if (num < 2500) return `${d}/${m}/${num + 543}`;
+            if (/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.test(dStr)) {
+                const parts = dStr.split(/[\/\-]/);
+                const num = parseInt(parts[2], 10);
+                if (num < 2500) return `${parts[0]}-${parts[1]}-${num + 543}`;
             }
             return dStr;
         };
@@ -265,48 +291,81 @@ async function run() {
         // 3. Fill Search Criteria using DOM and jQuery
         if (actualFromDate || actualToDate) {
             await page.evaluate((dates) => {
-                const fillDateInput = (selectors, val) => {
-                    if (!val) return;
-                    for (const sel of selectors) {
-                        const el = document.querySelector(sel);
-                        if (el) {
-                            el.value = val;
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            el.dispatchEvent(new Event('change', { bubbles: true }));
-                            if (typeof $ !== 'undefined' && $(sel).length) {
-                                try { $(sel).val(val).trigger('change'); } catch(e) {}
-                            }
-                        }
+                if (!String.prototype.padLeft) {
+                    String.prototype.padLeft = function (length, character) {
+                        return String(this).padStart(length, character || '0');
+                    };
+                }
+                if (!String.prototype.padRight) {
+                    String.prototype.padRight = function (length, character) {
+                        return String(this).padEnd(length, character || '0');
+                    };
+                }
+
+                window._getyyyyMMddFromStrFormat = function(c, b) {
+                    if (!c) return '';
+                    var a = c.split(/[\/\-]/);
+                    if (a.length < 3) return '';
+                    var d = String(a[0]).padStart(2, '0');
+                    var m = String(a[1]).padStart(2, '0');
+                    var y = String(a[2]).padStart(4, '0');
+                    return y + m + d;
+                };
+
+                // Update via bootstrap-datepicker if available
+                if (typeof $ !== 'undefined') {
+                    try {
+                        $('.from-date').datepicker('update', dates.from);
+                        $('.to-date').datepicker('update', dates.to);
+                    } catch(e) {}
+                }
+
+                const setField = (sel, val) => {
+                    const el = document.querySelector(sel);
+                    if (el && val) {
+                        el.removeAttribute('readonly');
+                        el.value = val;
+                        el.setAttribute('value', val);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 };
 
-                fillDateInput(['input[name="postDateFrom"]', 'input#postDateFrom', 'input[name="dateFrom"]', 'input[name="fromDate"]'], dates.from);
-                fillDateInput(['input[name="postDateTo"]', 'input#postDateTo', 'input[name="dateTo"]', 'input[name="toDate"]'], dates.to);
-
-                // Auto select account dropdown if unselected
-                const selects = document.querySelectorAll('select');
-                selects.forEach(sel => {
-                    if (sel.options.length > 1 && sel.selectedIndex <= 0) {
-                        for (let i = 0; i < sel.options.length; i++) {
-                            if (sel.options[i].value && sel.options[i].value !== '-1' && sel.options[i].value !== '') {
-                                sel.selectedIndex = i;
-                                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                                break;
-                            }
-                        }
-                    }
-                });
+                setField('input[name="postDateFrom"]', dates.from);
+                setField('input[name="postDateTo"]', dates.to);
             }, { from: actualFromDate, to: actualToDate });
         }
 
-        // Click Search Button
-        const searchBtn = page.locator('button#doSearch, button:has-text("Search"), input[value="Search"], #btnSearch, .btn-search').first();
+        // Click Search Button (#doSearch)
+        await page.evaluate(() => {
+            window._getyyyyMMddFromStrFormat = function(c, b) {
+                if (!c) return '';
+                var a = c.split(/[\/\-]/);
+                if (a.length < 3) return '';
+                var d = String(a[0]).padStart(2, '0');
+                var m = String(a[1]).padStart(2, '0');
+                var y = String(a[2]).padStart(4, '0');
+                return y + m + d;
+            };
+
+            if (typeof $ !== 'undefined' && $('#doSearch').length) {
+                $('#doSearch').trigger('click');
+            } else {
+                document.getElementById('doSearch')?.click();
+            }
+        });
+
+        const searchBtn = page.locator('button#doSearch').first();
         if (await searchBtn.count() > 0) {
-            await searchBtn.click();
-            await page.waitForTimeout(4000);
+            await searchBtn.click({ force: true }).catch(() => {});
         }
 
-        // Save debug screenshot
+        // Wait for KTB Loading Box to appear and then disappear
+        await page.waitForTimeout(2000);
+        await page.waitForSelector('#loadingBox', { state: 'hidden', timeout: 30000 }).catch(() => {});
+        await page.waitForTimeout(4000);
+
+        // Save debug screenshot after search
         try {
             const debugImgPath = path.resolve(__dirname, '../../../storage/app/ktb_edc_debug.png');
             await page.screenshot({ path: debugImgPath, fullPage: true });
@@ -328,18 +387,15 @@ async function run() {
             process.exit(0);
         }
 
-        // Select all checkboxes in table
+        // Select all checkboxes in table (Header + Rows)
         await page.evaluate(() => {
-            const selectAll = document.querySelector('input[name="allHospitalDownload"]');
+            const selectAll = document.querySelector('input[name="allHospitalDownload"], thead input[type="checkbox"], th input[type="checkbox"]');
             if (selectAll) {
                 selectAll.checked = true;
                 selectAll.dispatchEvent(new Event('click', { bubbles: true }));
                 selectAll.dispatchEvent(new Event('change', { bubbles: true }));
-                if (typeof hospitalInfo !== 'undefined' && hospitalInfo.selectAllHospitalDownload) {
-                    hospitalInfo.selectAllHospitalDownload(selectAll);
-                }
             }
-            const itemChecks = document.querySelectorAll('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
+            const itemChecks = document.querySelectorAll('#search_table tbody input[type="checkbox"], input[name="hospitalDownload"]');
             itemChecks.forEach(cb => {
                 if (!cb.checked) {
                     cb.checked = true;
@@ -347,40 +403,61 @@ async function run() {
                     cb.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             });
+            if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.selectAllHospitalDownload === 'function') {
+                hospitalInfo.selectAllHospitalDownload(selectAll || { checked: true });
+            }
         });
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(1500);
 
-        // 5. Click Download button inside dataTable wrapper & intercept download file
+        // Find and click Download button
         const downloadedFiles = [];
-        const downloadBtn = page.locator('#search_table_wrapper .dt-buttons a.dt-button:has-text("Download"), button:has-text("Download"), a:has-text("Download")').first();
+        const dlBtnInfo = await page.evaluate(() => {
+            const btns = [];
+            document.querySelectorAll('a, button, input[type="button"]').forEach(el => {
+                const text = (el.innerText || el.value || '').trim();
+                if (text.toLowerCase() === 'download' || el.id.toLowerCase().includes('download')) {
+                    btns.push({ tag: el.tagName, id: el.id, cls: el.className, onclick: el.getAttribute('onclick') });
+                }
+            });
+            return btns;
+        });
+        fs.writeFileSync(path.resolve(__dirname, '../../../storage/app/download_btn.json'), JSON.stringify(dlBtnInfo, null, 2));
 
-        if (await downloadBtn.count() > 0) {
-            try {
-                const [download] = await Promise.all([
-                    page.waitForEvent('download', { timeout: 25000 }).catch(() => null),
-                    downloadBtn.click()
-                ]);
+        // Trigger Download
+        try {
+            const [download] = await Promise.all([
+                page.waitForEvent('download', { timeout: 30000 }).catch(() => null),
+                page.evaluate(() => {
+                    if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
+                        hospitalInfo.downloadHospital();
+                    } else if (typeof downloadFile === 'function') {
+                        downloadFile();
+                    } else {
+                        const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim() === 'Download');
+                        if (btn) btn.click();
+                    }
+                })
+            ]);
 
-                if (download) {
-                    const failReason = await download.failure().catch(() => null);
-                    if (!failReason) {
-                        const suggestedFilename = download.suggestedFilename() || `edc_ktb_${Date.now()}.zip`;
-                        const savePath = path.join(outputDir, suggestedFilename);
-                        await download.saveAs(savePath).catch(e => console.error('saveAs err:', e.message));
+            if (download) {
+                const failReason = await download.failure().catch(() => null);
+                if (!failReason) {
+                    const suggestedFilename = download.suggestedFilename() || `edc_ktb_${Date.now()}.zip`;
+                    const savePath = path.join(outputDir, suggestedFilename);
+                    await download.saveAs(savePath).catch(e => console.error('saveAs err:', e.message));
 
-                        if (fs.existsSync(savePath)) {
-                            const stats = fs.statSync(savePath);
-                            downloadedFiles.push({
-                                name: suggestedFilename,
-                                path: savePath,
-                                size: stats.size
-                            });
-                        }
+                    if (fs.existsSync(savePath)) {
+                        const stats = fs.statSync(savePath);
+                        downloadedFiles.push({
+                            name: suggestedFilename,
+                            path: savePath,
+                            size: stats.size
+                        });
                     }
                 }
-            } catch (dlErr) {
-                console.error('Download handling error:', dlErr.message);
             }
+        } catch (dlErr) {
+            console.error('Download handling error:', dlErr.message);
         }
 
         // Also check if any files were downloaded/saved to outputDir

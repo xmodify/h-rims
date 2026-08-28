@@ -1,3 +1,4 @@
+process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0';
 /**
  * KTB Corporate Online EDC Crawler (Playwright Script)
  * Automates login, navigation, report search, and downloading text/zip files.

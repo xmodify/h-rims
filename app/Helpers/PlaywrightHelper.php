@@ -173,7 +173,7 @@ class PlaywrightHelper
         // Test if Chromium can be launched in headless mode
         $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
-            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
+            $testScript = "process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0'; const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
             $out = [];
             $code = 1;
             $escapedScript = str_replace('"', '\"', $testScript);
@@ -215,26 +215,26 @@ class PlaywrightHelper
         $logs = [];
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $cdPrefix = $isWindows ? "cd /d \"{$projectRoot}\"" : "cd \"{$projectRoot}\"";
+        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH=0 &&" : "export PLAYWRIGHT_BROWSERS_PATH=0 &&";
 
         // 1. Install playwright & adm-zip package locally in project
-        $installCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
+        $installCmd = "{$envPrefix} {$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
         $out1 = [];
         $code1 = 1;
         @exec($installCmd, $out1, $code1);
         $logs[] = "npm install: " . implode(' ', array_slice($out1, -2));
 
-        // 2. Install Chromium browser binaries
-        // Locate local cli.js in node_modules/playwright/cli.js
+        // 2. Install Chromium browser binaries inside local project directory
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
         $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . ($isWindows ? 'playwright.cmd' : 'playwright');
 
         if (file_exists($playwrightCliJs)) {
-            $browserCmd = "{$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
+            $browserCmd = "{$envPrefix} {$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
         } elseif (file_exists($binPlaywright)) {
-            $browserCmd = "{$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
+            $browserCmd = "{$envPrefix} {$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
         } else {
             $npxExe = $isWindows ? str_replace('npm', 'npx', $npmExe) : 'npx';
-            $browserCmd = "{$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
+            $browserCmd = "{$envPrefix} {$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
         }
 
         $out2 = [];
@@ -316,7 +316,9 @@ class PlaywrightHelper
 
         file_put_contents($configFile, json_encode($configData, JSON_UNESCAPED_UNICODE));
 
-        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH=0 &&" : "export PLAYWRIGHT_BROWSERS_PATH=0 &&";
+        $cmd = "{$envPrefix} {$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
 
         $output = [];
         $returnVar = 1;
@@ -368,10 +370,10 @@ class PlaywrightHelper
         $scriptEscaped = '"' . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . '"';
 
         if ($isWindows) {
-            $cmd = "start /B \"\" {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
+            $cmd = "start /B \"\" set PLAYWRIGHT_BROWSERS_PATH=0 && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
-            $cmd = "{$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > /dev/null 2>&1 &";
+            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=0 && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > /dev/null 2>&1 &";
             exec($cmd);
         }
 

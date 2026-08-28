@@ -1,3 +1,4 @@
+process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0';
 /**
  * E-Claim ThaiD Login Worker (Playwright Script)
  * Automates opening NHSO IAM -> DOPA ThaiD QR Code -> Capturing QR Code -> Waiting for Mobile Scan -> Extracting Cookies.

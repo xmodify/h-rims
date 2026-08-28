@@ -63,7 +63,8 @@ class NhsoEndpointController extends Controller
 
             foreach ($chunk as $cid) {
                 try {
-                    $response = Http::timeout(5)
+                    $response = Http::withoutVerifying()
+                        ->timeout(10)
                         ->withToken($token)
                         ->acceptJson()
                         ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
@@ -197,12 +198,18 @@ class NhsoEndpointController extends Controller
 
         $localHcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
 
-        $response = Http::withToken($token)
-            ->acceptJson()
-            ->get("https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status", [
-                'personalId' => $cid,
-                'serviceDate' => $vstdate
-            ]);
+        try {
+            $response = Http::withoutVerifying()
+                ->timeout(15)
+                ->withToken($token)
+                ->acceptJson()
+                ->get("https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status", [
+                    'personalId' => $cid,
+                    'serviceDate' => $vstdate
+                ]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่สามารถเชื่อมต่อกับ สปสช. ได้: ' . $e->getMessage()], 500);
+        }
 
         if ($response->failed()) {
             return response()->json(['status' => 'error', 'message' => 'NHSO API request failed', 'raw' => $response->body()], 500);
@@ -364,7 +371,8 @@ class NhsoEndpointController extends Controller
 
             foreach ($chunk as $cid) {
                 try {
-                    $response = Http::timeout(5)
+                    $response = Http::withoutVerifying()
+                        ->timeout(10)
                         ->withToken($token)
                         ->acceptJson()
                         ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
@@ -647,7 +655,8 @@ class NhsoEndpointController extends Controller
         }
 
         try {
-            $response = Http::timeout(10)
+            $response = Http::withoutVerifying()
+                ->timeout(10)
                 ->withToken($token)
                 ->acceptJson()
                 ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
@@ -751,7 +760,8 @@ class NhsoEndpointController extends Controller
 
         foreach ($cids as $cid) {
             try {
-                $response = Http::timeout(5)
+                $response = Http::withoutVerifying()
+                    ->timeout(10)
                     ->withToken($token)
                     ->acceptJson()
                     ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [

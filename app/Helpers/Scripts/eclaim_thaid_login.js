@@ -51,27 +51,31 @@ function findChromiumExecutable() {
     const path = require('path');
     const { chromium } = require('playwright');
     try {
-        const def = chromium.executablePath();
-        if (def && fs.existsSync(def)) return def;
-    } catch(e) {}
-    try {
         const dir = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
         if (fs.existsSync(dir)) {
-            const rec = (d) => {
+            const rec = (d, target) => {
                 for (const f of fs.readdirSync(d)) {
                     const fp = path.join(d, f);
                     if (fs.statSync(fp).isDirectory()) {
-                        const r = rec(fp);
+                        const r = rec(fp, target);
                         if (r) return r;
-                    } else if (f === 'chrome' || f === 'chrome.exe' || f === 'chrome-headless-shell' || f === 'chrome-headless-shell.exe') {
+                    } else if (f === target) {
                         return fp;
                     }
                 }
                 return null;
             };
-            const found = rec(dir);
-            if (found) return found;
+            const hTarget = process.platform === 'win32' ? 'chrome-headless-shell.exe' : 'chrome-headless-shell';
+            const cTarget = process.platform === 'win32' ? 'chrome.exe' : 'chrome';
+            const fH = rec(dir, hTarget);
+            if (fH) return fH;
+            const fC = rec(dir, cTarget);
+            if (fC) return fC;
         }
+    } catch(e) {}
+    try {
+        const def = chromium.executablePath();
+        if (def && fs.existsSync(def)) return def;
     } catch(e) {}
     const sysList = process.platform === 'win32' ? [
         'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -122,6 +126,10 @@ async function run() {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
+                '--disable-crash-reporter',
+                '--disable-breakpad',
+                '--no-zygote',
+                '--single-process',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-infobars',
                 '--window-size=1366,768'

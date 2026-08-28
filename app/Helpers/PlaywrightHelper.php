@@ -186,12 +186,10 @@ class PlaywrightHelper
         $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
             $customPath = addslashes(str_replace('/', DIRECTORY_SEPARATOR, static::getCustomBrowsersPath()));
-            $testScript = "const fs = require('fs'); const { chromium } = require('playwright'); let hasDef = false; try { if (fs.existsSync(chromium.executablePath())) hasDef = true; } catch(e) {} if (!hasDef) { process.env.PLAYWRIGHT_BROWSERS_PATH = '{$customPath}'; } (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
-            $out = [];
-            $code = 1;
+            $testScript = "const fs = require('fs'); const path = require('path'); async function testLaunch() { try { const { chromium } = require('playwright'); if (fs.existsSync(chromium.executablePath())) { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); return; } } catch (e1) {} try { process.env.PLAYWRIGHT_BROWSERS_PATH = '{$customPath}'; delete require.cache[require.resolve('playwright-core')]; delete require.cache[require.resolve('playwright')]; const { chromium: chromiumStorage } = require('playwright'); const browser = await chromiumStorage.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] }); await browser.close(); console.log('CHROMIUM_OK'); return; } catch (e2) { console.log('FAIL:' + e2.message); } } testLaunch();";
             $escapedScript = str_replace('"', '\"', $testScript);
-            @exec("{$nodeExe} -e \"{$escapedScript}\" 2>&1", $out, $code);
-            $fullOut = implode("\n", $out);
+            $res = static::runSyncCommand("{$nodeExe} -e \"{$escapedScript}\"", $projectRoot);
+            $fullOut = $res['output'];
             if (strpos($fullOut, 'CHROMIUM_OK') !== false) {
                 $hasChromium = true;
             } else {
@@ -209,9 +207,6 @@ class PlaywrightHelper
         ];
     }
 
-    /**
-     * Auto install Playwright & Chromium browser.
-     */
     /**
      * Run command synchronously in working directory and capture output.
      */
@@ -272,10 +267,10 @@ class PlaywrightHelper
         $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customBrowsersPath];
 
         // 1. Install playwright & adm-zip package locally in project
-        $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save", $projectRoot, $extraEnv);
+        $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save", $projectRoot);
         $logs[] = "npm install: " . trim(substr($res1['output'], -150));
 
-        // 2. Install Chromium browser binaries
+        // 2. Install Chromium browser binaries (try default + storage path)
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
         $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'playwright.cmd' : 'playwright');
 
@@ -288,8 +283,13 @@ class PlaywrightHelper
             $cmd = "{$npxExe} playwright install chromium";
         }
 
-        $res2 = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
-        $logs[] = "playwright install chromium: " . trim(substr($res2['output'], -150));
+        // Install default
+        $res2 = static::runSyncCommand($cmd, $projectRoot);
+        $logs[] = "playwright install: " . trim(substr($res2['output'], -150));
+
+        // Install to custom storage path as well
+        $res3 = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
+        $logs[] = "playwright install (storage): " . trim(substr($res3['output'], -150));
 
         // Check again
         $status = static::checkStatus();

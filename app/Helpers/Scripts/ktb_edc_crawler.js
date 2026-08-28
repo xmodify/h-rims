@@ -60,6 +60,28 @@ function outputResult(result) {
     console.log('<<<JSON_END>>>');
 }
 
+async function launchBrowser(options) {
+    const fs = require('fs');
+    const path = require('path');
+    try {
+        const { chromium } = require('playwright');
+        if (fs.existsSync(chromium.executablePath())) {
+            return await chromium.launch(options);
+        }
+    } catch (e1) {}
+
+    try {
+        process.env.PLAYWRIGHT_BROWSERS_PATH = path.resolve(__dirname, '../../../storage/app/playwright_browsers');
+        delete require.cache[require.resolve('playwright-core')];
+        delete require.cache[require.resolve('playwright')];
+        const { chromium: chromiumStorage } = require('playwright');
+        return await chromiumStorage.launch(options);
+    } catch (e2) {}
+
+    const { chromium } = require('playwright');
+    return await chromium.launch(options);
+}
+
 async function run() {
     const config = parseArgs();
     const companyId = (config.company_id || '').trim();
@@ -85,7 +107,7 @@ async function run() {
 
     let browser = null;
     try {
-        browser = await chromium.launch({
+        browser = await launchBrowser({
             headless: isHeadless,
             args: [
                 '--no-sandbox',

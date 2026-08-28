@@ -2074,7 +2074,9 @@ class ClaimOpController extends Controller
             COALESCE(op_data.ems_price, 0) AS ems_price,
             0 AS debtor,
             ec.status AS ec_status,
-            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2084,6 +2086,8 @@ class ClaimOpController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN (
                 SELECT op.vn,
                     SUM(op.sum_price) AS total_income,
@@ -2156,7 +2160,9 @@ class ClaimOpController extends Controller
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
             rep_eclaim.error_code AS rep_error_code, rep_eclaim.repno AS rep_repno,
-            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2166,6 +2172,8 @@ class ClaimOpController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
+            LEFT JOIN doctor doc ON doc.code = o.doctor
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN (
                 SELECT op.vn,
                     SUM(op.sum_price) AS total_income,

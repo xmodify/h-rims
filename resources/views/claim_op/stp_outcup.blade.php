@@ -96,6 +96,15 @@
         </div>
     </div>
 
+    <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
+    <x-import_hub_modal 
+        :has-fdh="true"
+        claim-title="สิทธิบุคคลผู้มีปัญหาสถานะฯ (STP) นอก CUP" 
+    />
+
+    <!-- Modal Extension Info -->
+    <x-extension_info_modal />
+
 @endsection
 
 @push('scripts')

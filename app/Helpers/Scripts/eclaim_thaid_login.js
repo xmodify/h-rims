@@ -130,34 +130,27 @@ async function run() {
                 message: 'กำลังเข้าสู่ระบบยืนยันตัวตนกลาง (NHSO SSO)...'
             });
 
-            await Promise.all([
-                page.waitForNavigation({ timeout: 45000 }).catch(() => {}),
-                ossBtn.click()
-            ]);
+            await ossBtn.click();
+            await page.waitForURL(url => !url.href.includes('MainWebAction.do') || url.href.includes('iam.nhso.go.th'), { timeout: 15000 }).catch(() => {});
         }
-
-        await page.waitForTimeout(2000);
 
         // 3. Click "ThaiD" Button on IAM page
         const thaidBtn = page.locator(':text("ThaiD"), button:has-text("ThaiD"), a:has-text("ThaiD")').first();
+        await thaidBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
         if (await thaidBtn.count() > 0) {
             updateSessionState(sessionFile, {
                 status: 'REQUESTING_THAID_QR',
                 message: 'กำลังร้องขอ QR Code จากระบบ ThaiD (กรมการปกครอง)...'
             });
 
-            await Promise.all([
-                page.waitForNavigation({ timeout: 45000 }).catch(() => {}),
-                thaidBtn.click()
-            ]);
+            await thaidBtn.click();
+            await page.waitForURL(url => url.href.includes('imauth.bora.dopa.go.th') || url.href.includes('dopa'), { timeout: 20000 }).catch(() => {});
         }
 
         // 4. On DOPA ThaiD QR Code Page (imauth.bora.dopa.go.th)
-        await page.waitForTimeout(2000);
-
         // Find QR Code image
         const qrImg = page.locator('img[src^="data:image"]').first();
-        await qrImg.waitFor({ state: 'visible', timeout: 30000 });
+        await qrImg.waitFor({ state: 'visible', timeout: 20000 });
 
         const qrSrc = await qrImg.getAttribute('src');
         const currentUrl = page.url();

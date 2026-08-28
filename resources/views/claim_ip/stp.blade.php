@@ -49,7 +49,15 @@
             </div>
         </div>
     </div>
-  
+
+    <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
+    <x-import_hub_modal 
+        :has-fdh="true" 
+        claim-title="สิทธิบุคคลผู้มีปัญหาสถานะฯ (IP-STP)" 
+    />
+
+    <!-- Modal Extension Info -->
+    <x-extension_info_modal />
 
 @endsection
 

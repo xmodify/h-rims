@@ -40,8 +40,8 @@
                             <button type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
-                            <button type="button" class="btn btn-outline-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importFeedbackModal">
-                                <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
+                            <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importFeedbackModal">
+                                <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
                             @if($is_aipn_licensed)
                             <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedAIPN()">

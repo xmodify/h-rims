@@ -75,7 +75,7 @@
         </div>
     </div>
 
-@endsection
+    @endsection
 
 @push('scripts')
   <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>

@@ -75,6 +75,17 @@
         </div>
     </div>
 
+    <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
+    <x-import_hub_modal 
+        :rep-url="url('import/rep_ucs')" 
+        :stm-url="url('import/stm_ucs')" 
+        :has-fdh="true" 
+        claim-title="สิทธิ IP-UCS นอก CUP" 
+    />
+
+    <!-- Modal Extension Info -->
+    <x-extension_info_modal />
+
 @endsection
 
 @push('scripts')

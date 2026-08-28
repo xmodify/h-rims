@@ -429,6 +429,17 @@
         </div>
     </div>
 
+    <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
+    <x-import_hub_modal 
+        :rep-url="url('import/rep_sss')" 
+        :stm-url="url('import/stm_sss')" 
+        :has-edc="false" 
+        claim-title="สิทธิ IP-SSS (ประกันสังคม)" 
+    />
+
+    <!-- Modal Extension Info -->
+    <x-extension_info_modal />
+
 @endsection
 
 @push('scripts')

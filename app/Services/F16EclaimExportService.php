@@ -152,9 +152,9 @@ class F16EclaimExportService
                 throw $e2;
             }
         }
-        $vnsList = $visits->pluck('vn')->toArray();
-        $hnsList = $visits->pluck('hn')->unique()->toArray();
-        $ansList = $visits->pluck('an')->filter()->unique()->toArray();
+        $vnsList = array_values($visits->pluck('vn')->toArray());
+        $hnsList = array_values($visits->pluck('hn')->unique()->toArray());
+        $ansList = array_values($visits->pluck('an')->filter()->unique()->toArray());
 
         // -------------------------------------------------------------
         // PERMITNO Logic:
@@ -327,25 +327,25 @@ class F16EclaimExportService
         }
 
         // -------------------------------------------------------------
-        // 6. Query ER (er_regist) for AER.txt
+        // 6. Query ER & Refer for AER.txt (Accident, Emergency, Refer)
         // -------------------------------------------------------------
-        $erVisits = collect();
+        $aerVisits = collect();
         if (!empty($vnsList)) {
             try {
-                $erRows = DB::connection('hosxp')->select("
-                    SELECT er.vn, o.hn, o.vstdate, er.enter_time, er.er_emergency_type,
-                           er.er_accident_type_id, er.accident_place_type_id,
-                           er.er_pt_type, er.accident_transport_type_id,
-                           er.er_accident_airway_type_id, er.er_accident_alcohol_type_id,
+                $aerRows = DB::connection('hosxp')->select("
+                    SELECT o.vn, o.hn, o.an, o.vstdate,
+                           er.er_emergency_type, er.er_emergency_level_id,
+                           TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time, ro.refer_time), '%H%i') as aetime,
                            ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp
-                    FROM er_regist er
-                    LEFT JOIN ovst o ON o.vn = er.vn
-                    LEFT JOIN referout ro ON ro.vn = er.vn
-                    WHERE er.vn IN ($placeholders)
+                    FROM ovst o
+                    LEFT JOIN er_regist er ON er.vn = o.vn
+                    LEFT JOIN referout ro ON ro.vn = o.vn
+                    WHERE o.vn IN ($placeholders)
+                      AND (er.vn IS NOT NULL OR ro.vn IS NOT NULL)
                 ", $vnsList);
-                $erVisits = collect($erRows)->keyBy('vn');
+                $aerVisits = collect($aerRows);
             } catch (\Throwable $e) {
-                Log::warning("F16 Export er_regist query error: " . $e->getMessage());
+                Log::warning("F16 Export AER query error: " . $e->getMessage());
             }
         }
 
@@ -360,29 +360,41 @@ class F16EclaimExportService
         if (!empty($ansList)) {
             $anPlaceholders = implode(',', array_fill(0, count($ansList), '?'));
             
-            $ipdVisits = collect(DB::connection('hosxp')->select("
-                SELECT ipt.an, ipt.hn, ipt.regdate, ipt.regtime, ipt.dchdate, ipt.dchtime,
-                       ipt.dchstts as dischs, ipt.dchtype as discht, ipt.ward as warddsc,
-                       ipt.spclty as dept, ipt.bw as adm_w, ipt.svctype
-                FROM ipt
-                WHERE ipt.an IN ($anPlaceholders)
-            ", $ansList))->keyBy('an');
+            try {
+                $ipdVisits = collect(DB::connection('hosxp')->select("
+                    SELECT ipt.an, ipt.hn, ipt.regdate, ipt.regtime, ipt.dchdate, ipt.dchtime,
+                           ipt.dchstts as dischs, ipt.dchtype as discht, ipt.ward as warddsc,
+                           ipt.spclty as dept, ipt.bw as adm_w, '' as svctype
+                    FROM ipt
+                    WHERE ipt.an IN ($anPlaceholders)
+                ", $ansList))->keyBy('an');
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export ipt query error: " . $e->getMessage());
+            }
 
-            $ipdDiags = collect(DB::connection('hosxp')->select("
-                SELECT id.an, id.icd10, id.diagtype, doc.licenseno as drdx
-                FROM iptdiag id
-                LEFT JOIN doctor doc ON doc.code = id.doctor
-                WHERE id.an IN ($anPlaceholders)
-                ORDER BY id.an, id.diagtype
-            ", $ansList));
+            try {
+                $ipdDiags = collect(DB::connection('hosxp')->select("
+                    SELECT id.an, id.icd10, id.diagtype, doc.licenseno as drdx
+                    FROM iptdiag id
+                    LEFT JOIN doctor doc ON doc.code = id.doctor
+                    WHERE id.an IN ($anPlaceholders)
+                    ORDER BY id.an, id.diagtype
+                ", $ansList));
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export iptdiag query error: " . $e->getMessage());
+            }
 
-            $ipdOpers = collect(DB::connection('hosxp')->select("
-                SELECT io.an, io.icd9 as oper, io.opertype, doc.licenseno as dropid,
-                       io.opdate as datein, io.optime as timein, io.enddate as dateout, io.endtime as timeout
-                FROM ipt_operation io
-                LEFT JOIN doctor doc ON doc.code = io.doctor
-                WHERE io.an IN ($anPlaceholders)
-            ", $ansList));
+            try {
+                $ipdOpers = collect(DB::connection('hosxp')->select("
+                    SELECT io.an, io.icd9 as oper, io.opertype, doc.licenseno as dropid,
+                           io.opdate as datein, io.optime as timein, io.enddate as dateout, io.endtime as timeout
+                    FROM iptoprt io
+                    LEFT JOIN doctor doc ON doc.code = io.doctor
+                    WHERE io.an IN ($anPlaceholders)
+                ", $ansList));
+            } catch (\Throwable $e) {
+                Log::warning("F16 Export iptoprt query error: " . $e->getMessage());
+            }
         }
 
         // =============================================================
@@ -642,29 +654,26 @@ class F16EclaimExportService
             $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}";
         }
 
-        // 15. AER.txt (อุบัติเหตุและฉุกเฉิน)
+        // 15. AER.txt (อุบัติเหตุ ฉุกเฉิน และส่งต่อ)
         // HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT
         $aerLines = [];
-        foreach ($visits as $v) {
-            $er = $erVisits->get($v->vn);
-            if ($er) {
-                $dateopd = self::formatDate($v->vstdate);
-                $authae = '';
-                $aedate = $dateopd;
-                $aetime = self::formatTime($er->enter_time);
-                $aetype = '';
-                $referno = $er->refer_no ?: '';
-                $refmaini = '';
-                $ireftype = '';
-                $refmaino = $er->refer_hosp ?: '';
-                $oreftype = '1100';
-                $ucae = '';
-                $emtype = '3';
-                $seq = $v->vn;
-                $an = $v->an ?: '';
+        foreach ($aerVisits as $er) {
+            $dateopd = self::formatDate($er->vstdate);
+            $authae = '';
+            $aedate = $dateopd;
+            $aetime = $er->aetime ?: '';
+            $aetype = '';
+            $referno = trim((string)($er->refer_no ?: ''));
+            $refmaini = '';
+            $ireftype = '';
+            $refmaino = trim((string)($er->refer_hosp ?: ''));
+            $oreftype = !empty($refmaino) ? '1100' : '';
+            $ucae = '';
+            $emtype = '3';
+            $seq = $er->vn;
+            $an = $er->an ?: '';
 
-                $aerLines[] = "{$v->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
-            }
+            $aerLines[] = "{$er->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
         }
 
         // 16. ADP.txt (บริการเสริม/อุปกรณ์/PPFS/แลปพิเศษ และรายการยาที่มีการ map รหัส ADP)

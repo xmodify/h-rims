@@ -232,10 +232,38 @@ async function run() {
                 loadPortal.call(downloadMenu, "DL", "DL001");
             }
         });
-        await page.waitForTimeout(2500);
+        await page.waitForTimeout(3000);
+
+        // Auto-detect if KTB uses Buddhist Era (พ.ศ.) or Christian Era (ค.ศ.)
+        let actualFromDate = fromDateStr;
+        let actualToDate = toDateStr;
+
+        const pageYearType = await page.evaluate(() => {
+            const inps = Array.from(document.querySelectorAll('input[type="text"]'));
+            for (const el of inps) {
+                const v = (el.value || el.getAttribute('placeholder') || '').trim();
+                if (/25\d{2}/.test(v)) return 'BE';
+                if (/20\d{2}/.test(v)) return 'CE';
+            }
+            return 'AUTO';
+        });
+
+        const convertToBuddhistYear = (dStr) => {
+            if (/^(\d{2})\/(\d{2})\/(\d{4})$/.test(dStr)) {
+                const [d, m, y] = dStr.split('/');
+                const num = parseInt(y, 10);
+                if (num < 2500) return `${d}/${m}/${num + 543}`;
+            }
+            return dStr;
+        };
+
+        if (pageYearType === 'BE') {
+            actualFromDate = convertToBuddhistYear(actualFromDate);
+            actualToDate = convertToBuddhistYear(actualToDate);
+        }
 
         // 3. Fill Search Criteria using DOM and jQuery
-        if (fromDateStr || toDateStr) {
+        if (actualFromDate || actualToDate) {
             await page.evaluate((dates) => {
                 const fillDateInput = (selectors, val) => {
                     if (!val) return;
@@ -254,7 +282,21 @@ async function run() {
 
                 fillDateInput(['input[name="postDateFrom"]', 'input#postDateFrom', 'input[name="dateFrom"]', 'input[name="fromDate"]'], dates.from);
                 fillDateInput(['input[name="postDateTo"]', 'input#postDateTo', 'input[name="dateTo"]', 'input[name="toDate"]'], dates.to);
-            }, { from: fromDateStr, to: toDateStr });
+
+                // Auto select account dropdown if unselected
+                const selects = document.querySelectorAll('select');
+                selects.forEach(sel => {
+                    if (sel.options.length > 1 && sel.selectedIndex <= 0) {
+                        for (let i = 0; i < sel.options.length; i++) {
+                            if (sel.options[i].value && sel.options[i].value !== '-1' && sel.options[i].value !== '') {
+                                sel.selectedIndex = i;
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                                break;
+                            }
+                        }
+                    }
+                });
+            }, { from: actualFromDate, to: actualToDate });
         }
 
         // Click Search Button
@@ -263,6 +305,12 @@ async function run() {
             await searchBtn.click();
             await page.waitForTimeout(4000);
         }
+
+        // Save debug screenshot
+        try {
+            const debugImgPath = path.resolve(__dirname, '../../../storage/app/ktb_edc_debug.png');
+            await page.screenshot({ path: debugImgPath, fullPage: true });
+        } catch(e) {}
 
         // 4. Check results table (Handle DataTables empty states)
         const emptyCell = page.locator('#search_table tbody td.dataTables_empty, #search_table tbody td:has-text("No data"), #search_table tbody td:has-text("ไม่พบข้อมูล")');

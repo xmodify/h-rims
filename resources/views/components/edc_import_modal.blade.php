@@ -50,13 +50,15 @@
                                     <label class="form-label small fw-bold text-muted mb-1">
                                         <i class="bi bi-calendar3 me-1"></i> จากวันที่ (From Date)
                                     </label>
-                                    <input type="date" class="form-control form-control-sm" id="edc_from_date">
+                                    <input type="hidden" id="edc_from_date" name="from_date" value="">
+                                    <input type="text" id="edc_from_date_picker" class="form-control form-control-sm datepicker_th text-center" readonly style="cursor: pointer; background-color: #fff;">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted mb-1">
                                         <i class="bi bi-calendar3 me-1"></i> ถึงวันที่ (To Date)
                                     </label>
-                                    <input type="date" class="form-control form-control-sm" id="edc_to_date">
+                                    <input type="hidden" id="edc_to_date" name="to_date" value="">
+                                    <input type="text" id="edc_to_date_picker" class="form-control form-control-sm datepicker_th text-center" readonly style="cursor: pointer; background-color: #fff;">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted mb-1">ช่วงวันด่วน</label>
@@ -239,28 +241,66 @@ function formatIsoDate(d) {
     return `${year}-${month}-${day}`;
 }
 
+// Initialize Thai Datepicker for EDC Modal
+function initEdcDatepickers() {
+    if (typeof $.fn.datepicker !== 'undefined') {
+        $('#edc_from_date_picker, #edc_to_date_picker').datepicker({
+            format: 'd M yyyy',
+            todayBtn: "linked",
+            todayHighlight: true,
+            autoclose: true,
+            language: 'th-th',
+            thaiyear: true,
+            zIndexOffset: 1060
+        });
+
+        $('#edc_from_date_picker').on('changeDate', function(e) {
+            if (e.date) {
+                $('#edc_from_date').val(formatIsoDate(e.date));
+            }
+        });
+
+        $('#edc_to_date_picker').on('changeDate', function(e) {
+            if (e.date) {
+                $('#edc_to_date').val(formatIsoDate(e.date));
+            }
+        });
+    }
+}
+
 // Quick Date Range Setter
 function setEdcDateRange(days) {
     const today = new Date();
-    const toDateStr = formatIsoDate(today);
-    
     let fromDate = new Date();
+    let toDate = new Date();
+    
     if (days === 1) {
         // Today
         fromDate = today;
+        toDate = today;
     } else if (days === 2) {
         // Yesterday
         fromDate.setDate(today.getDate() - 1);
-        document.getElementById('edc_from_date').value = formatIsoDate(fromDate);
-        document.getElementById('edc_to_date').value = formatIsoDate(fromDate);
-        return;
+        toDate.setDate(today.getDate() - 1);
     } else {
         // e.g. 7 days
         fromDate.setDate(today.getDate() - (days - 1));
+        toDate = today;
     }
 
-    document.getElementById('edc_from_date').value = formatIsoDate(fromDate);
-    document.getElementById('edc_to_date').value = toDateStr;
+    const fromIso = formatIsoDate(fromDate);
+    const toIso = formatIsoDate(toDate);
+
+    document.getElementById('edc_from_date').value = fromIso;
+    document.getElementById('edc_to_date').value = toIso;
+
+    if (typeof $.fn.datepicker !== 'undefined') {
+        $('#edc_from_date_picker').datepicker('setDate', fromDate);
+        $('#edc_to_date_picker').datepicker('setDate', toDate);
+    } else {
+        document.getElementById('edc_from_date_picker').value = fromIso;
+        document.getElementById('edc_to_date_picker').value = toIso;
+    }
 }
 
 // Check KTB Main Setting & Playwright Status
@@ -640,6 +680,7 @@ async function importAllSelectedEdcFiles() {
 
 // Document Ready Initialization
 document.addEventListener('DOMContentLoaded', function () {
+    initEdcDatepickers();
     // Set default date range to last 7 days
     setEdcDateRange(7);
 
@@ -647,6 +688,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('{{ $modalId }}');
     if (modalEl) {
         modalEl.addEventListener('show.bs.modal', function () {
+            initEdcDatepickers();
             checkKtbSetupStatus();
         });
     }

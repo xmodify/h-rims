@@ -397,10 +397,44 @@ async function run() {
         } catch(e) {}
 
         // 4. Check results table (Handle DataTables empty states)
-        const emptyCell = page.locator('#search_table tbody td.dataTables_empty, #search_table tbody td:has-text("No data"), #search_table tbody td:has-text("ไม่พบข้อมูล")');
-        const itemCheckboxes = page.locator('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
-        const checkboxCount = await itemCheckboxes.count();
-        const hasEmptyCell = (await emptyCell.count()) > 0;
+        let emptyCell = page.locator('#search_table tbody td.dataTables_empty, #search_table tbody td:has-text("No data"), #search_table tbody td:has-text("ไม่พบข้อมูล")');
+        let itemCheckboxes = page.locator('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
+        let checkboxCount = await itemCheckboxes.count();
+        let hasEmptyCell = (await emptyCell.count()) > 0;
+
+        // If no records found with Data Date, automatically retry searching with Loaded Date (Option 1)
+        if (hasEmptyCell || checkboxCount === 0) {
+            console.log('No records found with Data Date. Retrying search with Loaded Date...');
+            await page.evaluate((dates) => {
+                const dt = document.querySelector('select[name="searchDate"], #dateType');
+                if (dt && dt.value !== '1') {
+                    dt.value = '1';
+                    dt.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (typeof $ !== 'undefined') $(dt).val('1').trigger('change');
+                }
+
+                const f = document.querySelector('input[name="postDateFrom"]');
+                const t = document.querySelector('input[name="postDateTo"]');
+                if (f) { f.removeAttribute('readonly'); f.value = dates.from; f.setAttribute('value', dates.from); }
+                if (t) { t.removeAttribute('readonly'); t.value = dates.to; t.setAttribute('value', dates.to); }
+
+                if (typeof $ !== 'undefined' && $('#doSearch').length) {
+                    $('#doSearch').trigger('click');
+                } else {
+                    document.getElementById('doSearch')?.click();
+                }
+            }, { from: actualFromDate, to: actualToDate });
+
+            await page.waitForTimeout(2000);
+            await page.waitForSelector('#loadingBox', { state: 'hidden', timeout: 30000 }).catch(() => {});
+            await page.waitForTimeout(4000);
+
+            // Re-evaluate table results
+            emptyCell = page.locator('#search_table tbody td.dataTables_empty, #search_table tbody td:has-text("No data"), #search_table tbody td:has-text("ไม่พบข้อมูล")');
+            itemCheckboxes = page.locator('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
+            checkboxCount = await itemCheckboxes.count();
+            hasEmptyCell = (await emptyCell.count()) > 0;
+        }
 
         if (hasEmptyCell || checkboxCount === 0) {
             let msg = `เข้าสู่ระบบสำเร็จ แต่ไม่พบรายการไฟล์รายงาน EDC ในช่วงวันที่ ${fromDateStr || 'ที่เลือก'} ถึง ${toDateStr || 'ที่เลือก'}`;

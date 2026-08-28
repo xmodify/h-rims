@@ -31,10 +31,12 @@ class F16EclaimExportController extends Controller
         try {
             $result = F16EclaimExportService::generate16Files($vns);
 
+            $headers = [];
             $tables = [];
             $rawFiles = [];
             foreach ($result['files'] as $key => $content) {
                 if (empty($content)) {
+                    $headers[$key] = [];
                     $tables[$key] = [];
                     $rawFiles[$key] = '';
                     continue;
@@ -46,12 +48,14 @@ class F16EclaimExportController extends Controller
                     if ($line === '') continue;
                     $rows[] = explode('|', $line);
                 }
-                $tables[$key] = $rows;
+                $headers[$key] = count($rows) > 0 ? $rows[0] : [];
+                $tables[$key] = count($rows) > 1 ? array_slice($rows, 1) : [];
             }
 
             return response()->json([
                 'status' => 'success',
                 'counts' => $result['counts'],
+                'headers' => $headers,
                 'tables' => $tables,
                 'raw_files' => $rawFiles,
                 'total_visits' => $result['total_visits'],

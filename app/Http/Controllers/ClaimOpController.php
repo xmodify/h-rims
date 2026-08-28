@@ -2075,8 +2075,7 @@ class ClaimOpController extends Controller
             0 AS debtor,
             ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            fdh.status_message_th AS fdh_status
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2087,7 +2086,6 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN (
                 SELECT op.vn,
                     SUM(op.sum_price) AS total_income,
@@ -2161,8 +2159,7 @@ class ClaimOpController extends Controller
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
             rep_eclaim.error_code AS rep_error_code, rep_eclaim.repno AS rep_repno,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            fdh.status_message_th AS fdh_status
+            doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2173,7 +2170,6 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN (
                 SELECT op.vn,
                     SUM(op.sum_price) AS total_income,
@@ -2317,12 +2313,12 @@ class ClaimOpController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
                    pt.hn, pt.sex, v.age_y, pt.cid,
                    CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
-                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
+                   p.name AS pttype, vp.hospmain, os.cc,
+                   COALESCE((SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1), v.pdx) AS pdx,
                    v.income, IFNULL(v.paid_money,0) AS paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
                    ep.claim_status,
-                   fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
                    vp.request_funds,
                    IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
@@ -2337,7 +2333,6 @@ class ClaimOpController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN ovst_seq oq ON oq.vn = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
@@ -2405,7 +2400,7 @@ class ClaimOpController extends Controller
 
         // Validate
         $validator = new \App\Services\ClaimValidator();
-        $aspects = ['ppfs', 'endpoint'];
+        $aspects = ['f16_required', 'ppfs', 'endpoint'];
         if ($request->is('*ofc*')) {
             $aspects[] = 'edc';
         }

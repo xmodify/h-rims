@@ -78,7 +78,7 @@
                                             'key' => 'INS', 
                                             'name' => 'INS', 
                                             'desc' => 'สิทธิการรักษาพยาบาล',
-                                            'headers' => ['HN', 'INSCL', 'SUBTYPE', 'CID', 'HOSPMAIN', 'HOSPSUB', 'GOVCODE', 'GOVNAME', 'PERMITNO', 'DOCNO', 'OWNRPID', 'OWNRNAME', 'AN', 'SEQ', 'SUBINSCL', 'RELINSCL', 'HTYPE']
+                                            'headers' => ['HN', 'INSCL', 'SUBTYPE', 'CID', 'HCODE', 'DATEIN', 'DATEEXP', 'HOSPMAIN', 'HOSPSUB', 'GOVCODE', 'GOVNAME', 'PERMITNO', 'DOCNO', 'OWNRPID', 'OWNNAME', 'AN', 'SEQ', 'SUBINSCL', 'RELINSCL', 'HTYPE']
                                         ],
                                         [
                                             'key' => 'PAT', 
@@ -96,7 +96,7 @@
                                             'key' => 'ORF', 
                                             'name' => 'ORF', 
                                             'desc' => 'ส่งต่อผู้ป่วยนอก',
-                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'REFER', 'REFERTYPE', 'SEQ', 'REFERDATE']
+                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'REFER', 'REFERTYPE', 'SEQ']
                                         ],
                                         [
                                             'key' => 'ODX', 
@@ -108,13 +108,13 @@
                                             'key' => 'OOP', 
                                             'name' => 'OOP', 
                                             'desc' => 'หัตถการ OPD',
-                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'OPER', 'DROPID', 'PERSON_ID', 'SEQ', 'SERVPRICE']
+                                            'headers' => ['HN', 'DATEOPD', 'CLINIC', 'OPER', 'DROPID', 'PERSON_ID', 'SEQ']
                                         ],
                                         [
                                             'key' => 'DRU', 
                                             'name' => 'DRU', 
                                             'desc' => 'รายการสั่งใช้ยา',
-                                            'headers' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRIC', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'SIGCODE', 'SIGTEXT', 'PROVIDER']
+                                            'headers' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRICE', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGTYPE', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL']
                                         ],
                                         [
                                             'key' => 'CHA', 
@@ -138,7 +138,7 @@
                                             'key' => 'ADP', 
                                             'name' => 'ADP', 
                                             'desc' => 'บริการเสริม/อุปกรณ์/PPFS',
-                                            'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP', 'LMP', 'SP_ITEM']
+                                            'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM', 'CHECK_KEY', 'GUID']
                                         ],
                                     ];
                                 @endphp
@@ -279,6 +279,7 @@
         vns: [],
         claimCode: 'OFC',
         claimTitle: 'OP-OFC (ข้าราชการ)',
+        headers: {},
         tables: {},
         rawFiles: {},
         counts: {},
@@ -296,6 +297,28 @@
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
+
+    /**
+     * ฟังก์ชัน Render หัวคอลัมน์ (Thead) ตาม Headers ของแต่ละแฟ้มจริง
+     */
+    window.renderF16TableHead = function(key) {
+        const headers = window._f16ExportState.headers[key] || [];
+        const thead = document.querySelector(`#table-f16-${key} thead`);
+        if (!thead || headers.length === 0) return;
+
+        let html = '<tr>';
+        for (let colIdx = 0; colIdx < headers.length; colIdx++) {
+            const h = headers[colIdx];
+            html += `<th class="f16-sortable-th" onclick="sortF16Table('${key}', ${colIdx})" title="คลิกเพื่อเรียงตาม ${escapeHtmlF16(h)}">
+                <div class="d-flex align-items-center justify-content-between gap-1">
+                    <span>${escapeHtmlF16(h)}</span>
+                    <span class="sort-icon text-muted small"><i class="bi bi-arrow-down-up"></i></span>
+                </div>
+            </th>`;
+        }
+        html += '</tr>';
+        thead.innerHTML = html;
+    };
 
     /**
      * ฟังก์ชัน Render แถวใน Table Body ของแต่ละแฟ้ม
@@ -473,9 +496,11 @@
 
                 if (res.status === 'success') {
                     const counts = res.counts || {};
+                    const headers = res.headers || {};
                     const tables = res.tables || {};
                     const rawFiles = res.raw_files || {};
 
+                    window._f16ExportState.headers = headers;
                     window._f16ExportState.tables = tables;
                     window._f16ExportState.rawFiles = rawFiles;
                     window._f16ExportState.counts = counts;
@@ -499,7 +524,8 @@
                             rawTextarea.val('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
                         }
 
-                        // Render Table
+                        // Render Dynamic Table Header and Body
+                        renderF16TableHead(k);
                         renderF16TableBody(k);
                     });
 

@@ -166,7 +166,7 @@ class ClaimValidator
         } elseif (!empty($edc_hosxp_list) && empty($edc_ktb_list)) {
             $warnings[] = "พบเลขอนุมัติใน HOSxP (" . implode(',', $edc_hosxp_list) . ") แต่ยังไม่พบในไฟล์นำเข้า KTB";
         } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
-            $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
+            $warnings[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
         return [

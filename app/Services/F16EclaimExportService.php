@@ -336,12 +336,14 @@ class F16EclaimExportService
                     SELECT o.vn, o.hn, o.an, o.vstdate,
                            er.er_emergency_type, er.er_emergency_level_id,
                            TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time, ro.refer_time), '%H%i') as aetime,
-                           ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp
+                           ro.refer_number as refer_no, ro.refer_hospcode as refer_hosp,
+                           vp.nhso_ucae_type_code as ucae
                     FROM ovst o
                     LEFT JOIN er_regist er ON er.vn = o.vn
                     LEFT JOIN referout ro ON ro.vn = o.vn
+                    LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                     WHERE o.vn IN ($placeholders)
-                      AND (er.vn IS NOT NULL OR ro.vn IS NOT NULL)
+                      AND (er.vn IS NOT NULL OR ro.vn IS NOT NULL OR (vp.nhso_ucae_type_code IN ('A', 'E', 'I', 'O', 'C', 'Z')))
                 ", $vnsList);
                 $aerVisits = collect($aerRows);
             } catch (\Throwable $e) {
@@ -668,7 +670,7 @@ class F16EclaimExportService
             $ireftype = '';
             $refmaino = trim((string)($er->refer_hosp ?: ''));
             $oreftype = !empty($refmaino) ? '1100' : '';
-            $ucae = '';
+            $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z']) ? trim((string)$er->ucae) : '';
             $emtype = '3';
             $seq = $er->vn;
             $an = $er->an ?: '';

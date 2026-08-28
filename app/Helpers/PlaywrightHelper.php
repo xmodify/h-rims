@@ -330,9 +330,7 @@ class PlaywrightHelper
 
         file_put_contents($configFile, json_encode($configData, JSON_UNESCAPED_UNICODE));
 
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $envPrefix = $isWindows ? "set PLAYWRIGHT_BROWSERS_PATH=0 &&" : "export PLAYWRIGHT_BROWSERS_PATH=0 &&";
-        $cmd = "{$envPrefix} {$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
+        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --config \"" . str_replace('/', DIRECTORY_SEPARATOR, $configFile) . "\" 2>&1";
 
         $output = [];
         $returnVar = 1;
@@ -384,11 +382,11 @@ class PlaywrightHelper
         $scriptEscaped = '"' . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . '"';
 
         if ($isWindows) {
-            $cmd = "start /B \"\" set PLAYWRIGHT_BROWSERS_PATH=0 && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
+            $cmd = "start /B \"\" {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
             $logFile = storage_path('logs/thaid_bot_' . $sessionId . '.log');
-            $cmd = "export PLAYWRIGHT_BROWSERS_PATH=0 && export HOME=/tmp && {$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
+            $cmd = "{$nodeExe} {$scriptEscaped} --sessionId={$sessionId} > \"{$logFile}\" 2>&1 &";
             exec($cmd);
         }
 

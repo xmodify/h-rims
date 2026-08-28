@@ -149,10 +149,6 @@ async function run() {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--disable-crash-reporter',
-                '--disable-breakpad',
-                '--no-zygote',
-                '--single-process',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-infobars',
                 '--window-size=1366,768'

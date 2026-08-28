@@ -2122,8 +2122,8 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
             LEFT JOIN (
                 SELECT cid, vstdate, 
-                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
-                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ", ") AS edc_ktb_with_time
                 FROM hrims.edc_approve_list
                 GROUP BY cid, vstdate
             ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
@@ -2219,8 +2219,8 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
             LEFT JOIN (
                 SELECT cid, vstdate, 
-                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
-                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ", ") AS edc_ktb_with_time
                 FROM hrims.edc_approve_list
                 GROUP BY cid, vstdate
             ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
@@ -2339,8 +2339,8 @@ class ClaimOpController extends Controller
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
                 SELECT cid, vstdate, 
-                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
-                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY post_date DESC, post_time DESC, id DESC SEPARATOR ", ") AS edc_ktb_with_time
                 FROM hrims.edc_approve_list
                 GROUP BY cid, vstdate
             ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate

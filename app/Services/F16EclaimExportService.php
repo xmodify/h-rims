@@ -303,7 +303,10 @@ class F16EclaimExportService
             try {
                 $edcRows = DB::table('edc_approve_list')
                     ->whereIn('cid', $cids)
-                    ->select('cid', 'vstdate', 'approve_code')
+                    ->select('cid', 'vstdate', 'approve_code', 'post_date', 'post_time', 'id')
+                    ->orderBy('post_date', 'desc')
+                    ->orderBy('post_time', 'desc')
+                    ->orderBy('id', 'desc')
                     ->get()
                     ->groupBy(function ($r) {
                         return $r->cid . '_' . $r->vstdate;
@@ -339,9 +342,13 @@ class F16EclaimExportService
             $isOfc = ($hip === 'OFC' || $hip === 'A2' || str_starts_with($ptt, 'O'));
 
             if ($isOfc) {
-                // OFC: ใช้เลข EDC
+                // OFC: ใช้เลข EDC โดยดึงอันล่าสุดจากไฟล์นำเข้า KTB ก่อน หากไม่มีให้ดึงจาก HOSxP
                 $edc = '';
-                if ($ktbEdcRows->has($v->vn)) {
+                $key = $v->cid . '_' . $v->vstdate;
+                if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
+                    $edc = trim((string)$edcRows[$key]->first()->approve_code);
+                }
+                if (empty($edc) && $ktbEdcRows->has($v->vn)) {
                     $edc = trim((string)$ktbEdcRows->get($v->vn)->approve_code);
                 }
                 if (empty($edc) && $rcptDebtRows->has($v->vn)) {
@@ -349,12 +356,6 @@ class F16EclaimExportService
                 }
                 if (empty($edc)) {
                     $edc = trim((string)($v->edc_approve_list_text ?? ''));
-                }
-                if (empty($edc)) {
-                    $key = $v->cid . '_' . $v->vstdate;
-                    if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
-                        $edc = $edcRows[$key]->first()->approve_code;
-                    }
                 }
                 $v->permitno = $edc ?: (trim((string)($v->claim_code ?? '')));
             } else {

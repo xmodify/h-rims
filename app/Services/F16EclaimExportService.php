@@ -238,11 +238,11 @@ class F16EclaimExportService
             try {
                 $itemRows = DB::connection('hosxp')->select("
                     SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                           op.income, op.nhso_adp_code, op.nhso_adp_type, op.nhso_sub_code, op.claim_code, op.hos_guid,
-                           d.name as drug_name, d.units as drug_unit, d.packing as drug_pack, d.did as drug_did,
-                           d.tmt_tp_code, d.tmt_gp_code, d.nhso_tmt_id, d.therapeutic,
-                           n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type as nondrug_adp_type,
-                           o.cur_dep as clinic, pt.cid, doc.licenseno as doctor_license,
+                           op.income, op.paidst, op.pttype, op.hos_guid,
+                           d.name as drug_name, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
+                           d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
+                           n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type_id as nondrug_adp_type,
+                           o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
                     LEFT JOIN ovst o ON o.vn = op.vn
@@ -260,11 +260,11 @@ class F16EclaimExportService
                 try {
                     $itemRows = DB::connection('hosxp')->select("
                         SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                               op.income, op.nhso_adp_code, op.nhso_adp_type, op.nhso_sub_code, op.claim_code, op.hos_guid,
-                               d.name as drug_name, d.units as drug_unit, d.packing as drug_pack, d.did as drug_did,
-                               d.tmt_tp_code, d.tmt_gp_code, d.nhso_tmt_id, d.therapeutic,
-                               n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type as nondrug_adp_type,
-                               o.cur_dep as clinic, pt.cid, doc.licenseno as doctor_license,
+                               op.income, op.paidst, op.pttype, op.hos_guid,
+                               d.name as drug_name, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
+                               d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
+                               n.name as nondrug_name, n.nhso_adp_code as nondrug_adp_code, n.nhso_adp_type_id as nondrug_adp_type,
+                               o.cur_dep as clinic, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                                op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
                         FROM opitemrece op
                         LEFT JOIN ovst o ON o.vn = op.vn
@@ -555,7 +555,7 @@ class F16EclaimExportService
             $amountStr = $amount == floor($amount) ? (string)intval($amount) : number_format($amount, 2, '.', '');
             $drugpric = number_format((float)$it->unitprice, 2, '.', '');
             $drugcost = number_format((float)$it->cost, 2, '.', '');
-            $didstd = $it->nhso_tmt_id ?: ($it->tmt_tp_code ?: ($it->tmt_gp_code ?: ($it->drug_did ?: '')));
+            $didstd = $it->tmt_tp_code ?: ($it->tmt_gp_code ?: ($it->ttmt_code ?: ($it->sks_drug_code ?: ($it->drug_did ?: ''))));
             $unit = trim((string)$it->drug_unit) ?: 'เม็ด';
             $unitpack = trim((string)$it->drug_pack) ?: "1x{$unit}";
             $seq = $it->vn;
@@ -646,13 +646,13 @@ class F16EclaimExportService
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP|LMP|SP_ITEM
         $adpLines = [];
         $nonDrugItems = $items->filter(function($it) {
-            return !str_starts_with($it->icode, '1');
+            return !str_starts_with((string)$it->icode, '1') && (float)$it->sum_price > 0;
         });
 
         foreach ($nonDrugItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = $it->nhso_adp_type ?: ($it->nondrug_adp_type ?: '14'); // Default 14 (ค่าบริการ)
-            $code = $it->nhso_adp_code ?: ($it->nondrug_adp_code ?: $it->icode);
+            $type = trim((string)($it->nondrug_adp_type ?: '14')); // Default 14 (ค่าบริการ)
+            $code = trim((string)($it->nondrug_adp_code ?: $it->icode));
             $qty = intval($it->qty) ?: 1;
             $rate = number_format((float)$it->unitprice, 2, '.', '');
             $seq = $it->vn;

@@ -660,6 +660,10 @@
                                     if (d.ppfs === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
                                     if (d.ems === 'Y') type += '<span class="badge-type badge-ems me-1">EMS</span>';
 
+                                    let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
+                                        ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>` 
+                                        : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
+
                                     return `<tr>
                                       <td>
                                         <div class="fw-bold text-dark">${d.name}</div>
@@ -669,7 +673,7 @@
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td class="text-center"><span class="badge bg-secondary-soft text-secondary fw-bold">${d.nhso_adp_code ?? '-'}</span></td>
+                                      <td class="text-center">${adpBadge}</td>
                                     </tr>`;
                                 }).join('');
                             })()}

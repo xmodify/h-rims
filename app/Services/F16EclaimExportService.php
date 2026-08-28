@@ -157,9 +157,12 @@ class F16EclaimExportService
         $ansList = $visits->pluck('an')->filter()->unique()->toArray();
 
         // -------------------------------------------------------------
-        // Fallback permitno from local hrims.edc_approve_list (for OFC EDC)
+        // PERMITNO Logic:
+        // - สิทธิ OFC: ใช้เลข EDC (HOSxP ovst_seq หรือ KTB edc_approve_list หรือ claim_code)
+        // - สิทธิอื่น (UCS, SSS, LGO ฯลฯ): ใช้เลข Authen (auth_code) หากไม่พบให้ใช้เลขปิดสิทธิ (claim_code)
         // -------------------------------------------------------------
         $cids = $visits->pluck('cid')->filter()->unique()->toArray();
+        $edcRows = collect();
         if (!empty($cids)) {
             try {
                 $edcRows = DB::table('edc_approve_list')
@@ -169,20 +172,32 @@ class F16EclaimExportService
                     ->groupBy(function ($r) {
                         return $r->cid . '_' . $r->vstdate;
                     });
-
-                $visits->transform(function ($v) use ($edcRows) {
-                    if (empty($v->permitno)) {
-                        $key = $v->cid . '_' . $v->vstdate;
-                        if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
-                            $v->permitno = $edcRows[$key]->first()->approve_code;
-                        }
-                    }
-                    return $v;
-                });
             } catch (\Throwable $ex) {
-                Log::warning("Could not fallback EDC approve code from local DB: " . $ex->getMessage());
+                Log::warning("Could not load EDC approve list from local DB: " . $ex->getMessage());
             }
         }
+
+        $visits->transform(function ($v) use ($edcRows) {
+            $hip = strtoupper(trim((string)$v->hipdata_code));
+            $ptt = strtoupper(trim((string)$v->pttype));
+            $isOfc = ($hip === 'OFC' || $hip === 'A2' || str_starts_with($ptt, 'O'));
+
+            if ($isOfc) {
+                // OFC: ใช้เลข EDC
+                $edc = trim((string)($v->edc_approve_list_text ?? ''));
+                if (empty($edc)) {
+                    $key = $v->cid . '_' . $v->vstdate;
+                    if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
+                        $edc = $edcRows[$key]->first()->approve_code;
+                    }
+                }
+                $v->permitno = $edc ?: (trim((string)($v->claim_code ?? '')));
+            } else {
+                // สิทธิอื่นๆ (UCS, SSS, LGO ฯลฯ): ใช้เลข Authen ถ้าไม่พบใช้เลขปิดสิทธิ (claim_code)
+                $v->permitno = trim((string)($v->auth_code ?: ($v->claim_code ?: '')));
+            }
+            return $v;
+        });
 
         // -------------------------------------------------------------
         // 2. Query OPD Diag (ovstdiag)

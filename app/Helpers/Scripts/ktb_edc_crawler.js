@@ -29,10 +29,14 @@ function parseArgs() {
 
 function formatDateForKtb(dateStr) {
     if (!dateStr) return '';
-    // If YYYY-MM-DD -> DD-MM-YYYY
+    // If YYYY-MM-DD -> DD/MM/YYYY
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         const [y, m, d] = dateStr.split('-');
-        return `${d}-${m}-${y}`;
+        return `${d}/${m}/${y}`;
+    }
+    // If DD-MM-YYYY -> DD/MM/YYYY
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+        return dateStr.replace(/-/g, '/');
     }
     return dateStr;
 }
@@ -230,26 +234,31 @@ async function run() {
         });
         await page.waitForTimeout(2500);
 
-        // 3. Fill Search Criteria using DOM
+        // 3. Fill Search Criteria using DOM and jQuery
         if (fromDateStr || toDateStr) {
             await page.evaluate((dates) => {
-                const fromEl = document.querySelector('input[name="postDateFrom"]');
-                const toEl = document.querySelector('input[name="postDateTo"]');
-                if (fromEl && dates.from) {
-                    fromEl.value = dates.from;
-                    fromEl.dispatchEvent(new Event('input', { bubbles: true }));
-                    fromEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                if (toEl && dates.to) {
-                    toEl.value = dates.to;
-                    toEl.dispatchEvent(new Event('input', { bubbles: true }));
-                    toEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
+                const fillDateInput = (selectors, val) => {
+                    if (!val) return;
+                    for (const sel of selectors) {
+                        const el = document.querySelector(sel);
+                        if (el) {
+                            el.value = val;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                            if (typeof $ !== 'undefined' && $(sel).length) {
+                                try { $(sel).val(val).trigger('change'); } catch(e) {}
+                            }
+                        }
+                    }
+                };
+
+                fillDateInput(['input[name="postDateFrom"]', 'input#postDateFrom', 'input[name="dateFrom"]', 'input[name="fromDate"]'], dates.from);
+                fillDateInput(['input[name="postDateTo"]', 'input#postDateTo', 'input[name="dateTo"]', 'input[name="toDate"]'], dates.to);
             }, { from: fromDateStr, to: toDateStr });
         }
 
         // Click Search Button
-        const searchBtn = page.locator('button#doSearch, button:has-text("Search"), input[value="Search"]').first();
+        const searchBtn = page.locator('button#doSearch, button:has-text("Search"), input[value="Search"], #btnSearch, .btn-search').first();
         if (await searchBtn.count() > 0) {
             await searchBtn.click();
             await page.waitForTimeout(4000);

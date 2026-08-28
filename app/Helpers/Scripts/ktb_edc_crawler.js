@@ -255,67 +255,103 @@ async function run() {
             await page.waitForTimeout(4000);
         }
 
-        // 4. Check results table
-        const tableRows = page.locator('#search_table tbody tr');
-        const rowCount = await tableRows.count();
+        // 4. Check results table (Handle DataTables empty states)
+        const emptyCell = page.locator('#search_table tbody td.dataTables_empty, #search_table tbody td:has-text("No data"), #search_table tbody td:has-text("ไม่พบข้อมูล")');
+        const itemCheckboxes = page.locator('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
+        const checkboxCount = await itemCheckboxes.count();
+        const hasEmptyCell = (await emptyCell.count()) > 0;
 
-        if (rowCount === 0) {
+        if (hasEmptyCell || checkboxCount === 0) {
             outputResult({
                 success: true,
-                message: `ไม่พบรายการไฟล์รายงาน EDC ในช่วงวันที่ ${fromDateStr} ถึง ${toDateStr}`,
+                message: `เข้าสู่ระบบสำเร็จ แต่ไม่พบรายการไฟล์รายงาน EDC ในช่วงวันที่ ${fromDateStr || 'ที่เลือก'} ถึง ${toDateStr || 'ที่เลือก'}`,
                 downloaded_files: []
             });
             await browser.close();
             process.exit(0);
         }
 
-        // Select all checkboxes in table header
+        // Select all checkboxes in table
         await page.evaluate(() => {
             const selectAll = document.querySelector('input[name="allHospitalDownload"]');
             if (selectAll) {
                 selectAll.checked = true;
+                selectAll.dispatchEvent(new Event('click', { bubbles: true }));
+                selectAll.dispatchEvent(new Event('change', { bubbles: true }));
                 if (typeof hospitalInfo !== 'undefined' && hospitalInfo.selectAllHospitalDownload) {
                     hospitalInfo.selectAllHospitalDownload(selectAll);
                 }
             }
+            const itemChecks = document.querySelectorAll('#search_table tbody input[name="hospitalDownload"], #search_table tbody input[type="checkbox"]');
+            itemChecks.forEach(cb => {
+                if (!cb.checked) {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('click', { bubbles: true }));
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
         });
         await page.waitForTimeout(1000);
 
         // 5. Click Download button inside dataTable wrapper & intercept download file
         const downloadedFiles = [];
-        const downloadBtn = page.locator('#search_table_wrapper .dt-buttons a.dt-button:has-text("Download")').first();
+        const downloadBtn = page.locator('#search_table_wrapper .dt-buttons a.dt-button:has-text("Download"), button:has-text("Download"), a:has-text("Download")').first();
 
         if (await downloadBtn.count() > 0) {
-            const [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: 30000 }).catch(() => null),
-                downloadBtn.click()
-            ]);
+            try {
+                const [download] = await Promise.all([
+                    page.waitForEvent('download', { timeout: 25000 }).catch(() => null),
+                    downloadBtn.click()
+                ]);
 
-            if (download) {
-                const suggestedFilename = download.suggestedFilename();
-                const savePath = path.join(outputDir, suggestedFilename);
-                await download.saveAs(savePath);
+                if (download) {
+                    const failReason = await download.failure().catch(() => null);
+                    if (!failReason) {
+                        const suggestedFilename = download.suggestedFilename() || `edc_ktb_${Date.now()}.zip`;
+                        const savePath = path.join(outputDir, suggestedFilename);
+                        await download.saveAs(savePath).catch(e => console.error('saveAs err:', e.message));
 
-                const stats = fs.statSync(savePath);
-                downloadedFiles.push({
-                    name: suggestedFilename,
-                    path: savePath,
-                    size: stats.size
-                });
+                        if (fs.existsSync(savePath)) {
+                            const stats = fs.statSync(savePath);
+                            downloadedFiles.push({
+                                name: suggestedFilename,
+                                path: savePath,
+                                size: stats.size
+                            });
+                        }
+                    }
+                }
+            } catch (dlErr) {
+                console.error('Download handling error:', dlErr.message);
             }
         }
 
         // Also check if any files were downloaded/saved to outputDir
-        const filesInDir = fs.readdirSync(outputDir);
-        for (const file of filesInDir) {
-            if (!downloadedFiles.some(f => f.name === file)) {
-                const fullP = path.join(outputDir, file);
-                downloadedFiles.push({
-                    name: file,
-                    path: fullP,
-                    size: fs.statSync(fullP).size
-                });
+        if (fs.existsSync(outputDir)) {
+            const filesInDir = fs.readdirSync(outputDir);
+            for (const file of filesInDir) {
+                if (!downloadedFiles.some(f => f.name === file)) {
+                    const fullP = path.join(outputDir, file);
+                    const stats = fs.statSync(fullP);
+                    if (stats.isFile() && stats.size > 0) {
+                        downloadedFiles.push({
+                            name: file,
+                            path: fullP,
+                            size: stats.size
+                        });
+                    }
+                }
             }
+        }
+
+        if (downloadedFiles.length === 0) {
+            outputResult({
+                success: true,
+                message: `เข้าสู่ระบบสำเร็จ แต่ไม่พบไฟล์รายงานให้ดาวน์โหลดในช่วงวันที่เลือก (อาจยังไม่มีการทำรายการในวันดังกล่าว)`,
+                downloaded_files: []
+            });
+            await browser.close();
+            process.exit(0);
         }
 
         outputResult({

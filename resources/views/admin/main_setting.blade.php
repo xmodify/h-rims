@@ -544,12 +544,19 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({ step: step.num })
                 });
 
-                const data = await response.json();
+                let rawText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${response.status}): ${rawText.substring(0, 150)}`);
+                }
                 
                 if (data.success) {
                     if (logDiv) {

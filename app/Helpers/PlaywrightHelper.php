@@ -267,11 +267,24 @@ class PlaywrightHelper
         $customBrowsersPath = static::getCustomBrowsersPath();
         $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customBrowsersPath, 'HOME' => '/tmp'];
 
-        // 1. Install playwright & adm-zip package locally in project
-        $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save", $projectRoot);
-        $logs[] = "npm install: " . trim(substr($res1['output'], -150));
+        // 1. Check if playwright package is already present
+        $hasPlaywrightPkg = file_exists($projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright');
+        if (!$hasPlaywrightPkg) {
+            // Install playwright & adm-zip package locally with fetch timeout
+            $res1 = static::runSyncCommand("{$npmExe} install playwright adm-zip --save --fetch-timeout=20000", $projectRoot);
+            $logs[] = "npm install: " . trim(substr($res1['output'], -150));
+            
+            // If failed to download package, return early without hanging
+            if (!file_exists($projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright')) {
+                return [
+                    'success' => false,
+                    'message' => 'NPM ไม่สามารถดาวน์โหลดแพ็กเกจ Playwright ได้ (เซิร์ฟเวอร์อาจไม่มีเน็ต หรือติด Firewall ของโรงพยาบาล)',
+                    'logs' => $logs
+                ];
+            }
+        }
 
-        // 2. Install Chromium browser binaries (try default + storage path)
+        // 2. Install Chromium browser binaries (try storage path first)
         $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
         $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'playwright.cmd' : 'playwright');
 
@@ -288,11 +301,7 @@ class PlaywrightHelper
         $resStorage = static::runSyncCommand($cmd, $projectRoot, $extraEnv);
         $logs[] = "playwright install (storage): " . trim(substr($resStorage['output'], -150));
 
-        // Also try install to default path
-        $resDefault = static::runSyncCommand($cmd, $projectRoot);
-        $logs[] = "playwright install (default): " . trim(substr($resDefault['output'], -150));
-
-        // Check again
+        // Check if ready
         $status = static::checkStatus();
         if ($status['available']) {
             return [
@@ -302,11 +311,25 @@ class PlaywrightHelper
             ];
         }
 
+        // Try default install on Windows only if storage didn't succeed
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $resDefault = static::runSyncCommand($cmd, $projectRoot);
+            $logs[] = "playwright install (default): " . trim(substr($resDefault['output'], -150));
+            $status = static::checkStatus();
+            if ($status['available']) {
+                return [
+                    'success' => true,
+                    'message' => 'ติดตั้ง Playwright และ Chromium สำเร็จพร้อมใช้งาน',
+                    'logs' => $logs
+                ];
+            }
+        }
+
         $errDetail = $status['launch_error'] ?: implode(' | ', $logs);
 
         return [
             'success' => false,
-            'message' => 'ติดตั้ง Playwright ไม่สมบูรณ์: ' . $errDetail,
+            'message' => 'ติดตั้ง Playwright ไม่สำเร็จ (อาจติด Firewall หรือการจำกัดสิทธิ์ของเซิร์ฟเวอร์): ' . $errDetail,
             'status' => $status
         ];
     }

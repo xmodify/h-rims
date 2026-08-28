@@ -471,27 +471,41 @@ async function run() {
         });
         await page.waitForTimeout(1500);
 
-        // Trigger Download (Ensure target="_self" to avoid new tab popup issues in headless mode)
+        // Trigger Download (Catch download from both context and page level)
         const downloadedFiles = [];
         try {
-            const [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: 35000 }).catch(() => null),
-                page.evaluate(() => {
-                    document.querySelectorAll('form').forEach(f => {
-                        if (f.target === '_blank') f.target = '_self';
-                    });
+            let downloadObj = null;
+            const dlPromise = new Promise((resolve) => {
+                page.once('download', d => { downloadObj = d; resolve(d); });
+                context.once('download', d => { downloadObj = d; resolve(d); });
+            });
 
-                    if (typeof $ !== 'undefined' && $('.dt-button.orange, a:contains("Download")').length) {
-                        $('.dt-button.orange, a:contains("Download")').first().trigger('click');
-                    } else if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
-                        hospitalInfo.downloadHospital();
-                    } else if (typeof downloadFile === 'function') {
-                        downloadFile();
-                    } else {
-                        const btn = Array.from(document.querySelectorAll('a, button, input[type="button"]')).find(e => (e.innerText || e.value || '').trim().toLowerCase() === 'download');
-                        if (btn) btn.click();
-                    }
-                })
+            // Ensure form target is _self
+            await page.evaluate(() => {
+                document.querySelectorAll('form').forEach(f => {
+                    f.target = '_self';
+                });
+            });
+
+            // Trigger click via Playwright locator first (dispatches real browser mouse event)
+            const dlLocator = page.locator('a.dt-button.orange, a.chData, #search_table_wrapper a:has-text("Download"), button:has-text("Download")').first();
+            if (await dlLocator.count() > 0) {
+                await dlLocator.click({ force: true }).catch(() => {});
+            }
+
+            // Also fallback to JS trigger if needed
+            await page.evaluate(() => {
+                if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
+                    hospitalInfo.downloadHospital();
+                } else if (typeof downloadFile === 'function') {
+                    downloadFile();
+                }
+            });
+
+            // Wait for download event up to 35 seconds
+            const download = await Promise.race([
+                dlPromise,
+                page.waitForTimeout(35000).then(() => downloadObj)
             ]);
 
             if (download) {

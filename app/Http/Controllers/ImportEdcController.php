@@ -262,7 +262,7 @@ class ImportEdcController extends Controller
             File::deleteDirectory($outputDir);
             return response()->json([
                 'success' => true,
-                'message' => $hasFiles ? 'ดาวน์โหลดไฟล์รายงานจาก KTB แล้ว แต่ไม่พบข้อมูล Text รายการรูดบัตรในช่วงวันที่เลือก' : 'ไม่พบไฟล์รายงาน EDC ในช่วงวันที่ระบุ',
+                'message' => $hasFiles ? 'ดาวน์โหลดไฟล์รายงานจาก KTB แล้ว แต่ไม่พบข้อมูล Text รายการรูดบัตรในช่วงวันที่เลือก' : ($crawlResult['message'] ?? 'ไม่พบไฟล์รายงาน EDC ในช่วงวันที่ระบุ'),
                 'unique_id' => $uniqueId,
                 'files' => [],
                 'total_files' => 0,

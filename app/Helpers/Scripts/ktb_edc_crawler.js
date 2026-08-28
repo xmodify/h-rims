@@ -486,11 +486,15 @@ async function run() {
         });
         fs.writeFileSync(path.resolve(__dirname, '../../../storage/app/download_btn.json'), JSON.stringify(dlBtnInfo, null, 2));
 
-        // Trigger Download
+        // Trigger Download (Ensure target="_self" to avoid new tab popup issues in headless mode)
         try {
             const [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: 30000 }).catch(() => null),
+                page.waitForEvent('download', { timeout: 35000 }).catch(() => null),
                 page.evaluate(() => {
+                    document.querySelectorAll('form').forEach(f => {
+                        if (f.target === '_blank') f.target = '_self';
+                    });
+
                     if (typeof hospitalInfo !== 'undefined' && typeof hospitalInfo.downloadHospital === 'function') {
                         hospitalInfo.downloadHospital();
                     } else if (typeof downloadFile === 'function') {

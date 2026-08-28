@@ -226,10 +226,18 @@ class ImportEdcController extends Controller
         $allFiles = File::allFiles($outputDir);
         foreach ($allFiles as $zf) {
             if (strtolower($zf->getExtension()) === 'zip') {
-                $zip = new \ZipArchive;
-                if ($zip->open($zf->getPathname()) === TRUE) {
-                    $zip->extractTo($outputDir);
-                    $zip->close();
+                $zipPath = $zf->getPathname();
+                $extracted = false;
+                if (class_exists('\ZipArchive')) {
+                    $zip = new \ZipArchive;
+                    if ($zip->open($zipPath) === TRUE) {
+                        $zip->extractTo($outputDir);
+                        $zip->close();
+                        $extracted = true;
+                    }
+                }
+                if (!$extracted) {
+                    @exec("unzip -o " . escapeshellarg($zipPath) . " -d " . escapeshellarg($outputDir));
                 }
             }
         }
@@ -250,10 +258,11 @@ class ImportEdcController extends Controller
         }
 
         if (empty($filesSummary)) {
+            $hasFiles = count($allFiles) > 0;
             File::deleteDirectory($outputDir);
             return response()->json([
                 'success' => true,
-                'message' => 'ไม่พบไฟล์รายงาน EDC ในช่วงวันที่ระบุ',
+                'message' => $hasFiles ? 'ดาวน์โหลดไฟล์รายงานจาก KTB แล้ว แต่ไม่พบข้อมูล Text รายการรูดบัตรในช่วงวันที่เลือก' : 'ไม่พบไฟล์รายงาน EDC ในช่วงวันที่ระบุ',
                 'unique_id' => $uniqueId,
                 'files' => [],
                 'total_files' => 0,

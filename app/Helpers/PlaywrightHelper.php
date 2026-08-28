@@ -209,7 +209,7 @@ class PlaywrightHelper
                 $rawErr = trim($fullOut);
                 if (preg_match('/error while loading shared libraries:\s*([^\s:]+)/i', $rawErr, $mLib)) {
                     $missingLib = $mLib[1];
-                    $launchError = "ขาด System Library บนเซิร์ฟเวอร์ Linux ({$missingLib}): แนะนำให้ Admin รันคำสั่ง 'sudo dnf install -y nspr nss mesa-libgbm' (AlmaLinux/CentOS) หรือ 'sudo apt-get install -y libnspr4 libnss3 libgbm1' (Ubuntu/Debian) เพียงครั้งเดียว";
+                    $launchError = "ขาด System Library บนเซิร์ฟเวอร์ Linux ({$missingLib}): แนะนำให้ Admin รันคำสั่ง 'sudo dnf install -y chromium' (AlmaLinux/CentOS/RHEL) หรือ 'sudo apt-get install -y chromium-browser' (Ubuntu/Debian) เพียงครั้งเดียว";
                 } else {
                     $launchError = $rawErr;
                 }

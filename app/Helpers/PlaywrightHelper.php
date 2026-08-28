@@ -171,8 +171,9 @@ class PlaywrightHelper
         }
 
         // Test if Chromium can be launched in headless mode
+        $launchError = null;
         if ($hasPlaywrightPackage && $isNodeAvailable) {
-            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
+            $testScript = "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }); await browser.close(); console.log('CHROMIUM_OK'); })().catch(e => console.log('FAIL:' + e.message));";
             $out = [];
             $code = 1;
             $escapedScript = str_replace('"', '\"', $testScript);
@@ -180,6 +181,8 @@ class PlaywrightHelper
             $fullOut = implode("\n", $out);
             if (strpos($fullOut, 'CHROMIUM_OK') !== false) {
                 $hasChromium = true;
+            } else {
+                $launchError = trim($fullOut);
             }
         }
 
@@ -189,6 +192,7 @@ class PlaywrightHelper
             'node_version' => $nodeVersion,
             'has_playwright' => $hasPlaywrightPackage,
             'has_chromium' => $hasChromium,
+            'launch_error' => $launchError,
         ];
     }
 
@@ -209,29 +213,34 @@ class PlaywrightHelper
 
         $projectRoot = base_path();
         $logs = [];
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $cdPrefix = $isWindows ? "cd /d \"{$projectRoot}\"" : "cd \"{$projectRoot}\"";
 
         // 1. Install playwright & adm-zip package locally in project
-        $installCmd = "cd /d \"{$projectRoot}\" && {$npmExe} install playwright adm-zip --save 2>&1";
-        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-            $installCmd = "cd \"{$projectRoot}\" && {$npmExe} install playwright adm-zip --save 2>&1";
-        }
-
+        $installCmd = "{$cdPrefix} && {$npmExe} install playwright adm-zip --save 2>&1";
         $out1 = [];
         $code1 = 1;
         @exec($installCmd, $out1, $code1);
-        $logs[] = "npm install: " . implode(' ', array_slice($out1, -3));
+        $logs[] = "npm install: " . implode(' ', array_slice($out1, -2));
 
         // 2. Install Chromium browser binaries
-        $npxExe = str_replace('npm', 'npx', $npmExe);
-        $browserCmd = "cd /d \"{$projectRoot}\" && {$npxExe} playwright install chromium 2>&1";
-        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-            $browserCmd = "cd \"{$projectRoot}\" && {$npxExe} playwright install chromium 2>&1";
+        // Locate local cli.js in node_modules/playwright/cli.js
+        $playwrightCliJs = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . 'playwright' . DIRECTORY_SEPARATOR . 'cli.js';
+        $binPlaywright = $projectRoot . DIRECTORY_SEPARATOR . 'node_modules' . DIRECTORY_SEPARATOR . '.bin' . DIRECTORY_SEPARATOR . ($isWindows ? 'playwright.cmd' : 'playwright');
+
+        if (file_exists($playwrightCliJs)) {
+            $browserCmd = "{$cdPrefix} && {$nodeExe} \"{$playwrightCliJs}\" install chromium 2>&1";
+        } elseif (file_exists($binPlaywright)) {
+            $browserCmd = "{$cdPrefix} && \"{$binPlaywright}\" install chromium 2>&1";
+        } else {
+            $npxExe = $isWindows ? str_replace('npm', 'npx', $npmExe) : 'npx';
+            $browserCmd = "{$cdPrefix} && {$npxExe} playwright install chromium 2>&1";
         }
 
         $out2 = [];
         $code2 = 1;
         @exec($browserCmd, $out2, $code2);
-        $logs[] = "playwright install chromium: " . implode(' ', array_slice($out2, -3));
+        $logs[] = "playwright install chromium: " . implode(' ', array_slice($out2, -2));
 
         // Check again
         $status = static::checkStatus();
@@ -243,9 +252,11 @@ class PlaywrightHelper
             ];
         }
 
+        $errDetail = $status['launch_error'] ?: implode(' | ', $logs);
+
         return [
             'success' => false,
-            'message' => 'ติดตั้ง Playwright ไม่สมบูรณ์: ' . implode(' | ', $logs),
+            'message' => 'ติดตั้ง Playwright ไม่สมบูรณ์: ' . $errDetail,
             'status' => $status
         ];
     }

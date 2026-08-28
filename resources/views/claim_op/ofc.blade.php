@@ -726,7 +726,19 @@
                     timer: 1500,
                     showConfirmButton: false
                 }).then(() => {
-                    if (vn) showDetails(vn);
+                    if (vn) {
+                        showDetails(vn);
+                        const tdSearch = $(`#td-status-search-${vn}`);
+                        if (tdSearch.length) {
+                            tdSearch.html(`<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`);
+                            tdSearch.attr('data-order', '2');
+                        }
+                        const tdClaim = $(`#td-status-claim-${vn}`);
+                        if (tdClaim.length) {
+                            tdClaim.html(`<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`);
+                            tdClaim.attr('data-order', '2');
+                        }
+                    }
                     else loadDashboard({ budget_year: $('#form_budget_year select[name="budget_year"]').val(), start_date: $('#start_date').val(), end_date: $('#end_date').val(), skip_chart: 1 });
                 });
             } else {

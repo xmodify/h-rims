@@ -1212,15 +1212,22 @@ class MainSettingController extends Controller
             $git_user = 'xmodify'; // ฝังชื่อ User ไว้ในโค้ดเลยเพื่อความง่าย
 
             $base_path = base_path();
+            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+            $cdCmd = $isWindows ? "cd /d \"{$base_path}\"" : "cd \"{$base_path}\"";
 
             // หากมีการตั้งค่า Token ไว้ ให้ทำการอัปเดต Remote URL ก่อน
             if (!empty($git_token)) {
                 $remote_url = "https://{$git_user}:{$git_token}@github.com/xmodify/h-rims.git";
-                shell_exec("cd {$base_path} && git remote set-url origin {$remote_url}");
+                $setRemoteCmd = "{$cdCmd} && git remote set-url origin {$remote_url}";
+                if ($isWindows) {
+                    $setRemoteCmd = "cmd.exe /c \"{$setRemoteCmd}\"";
+                }
+                @shell_exec($setRemoteCmd);
             }
 
             // รันคำสั่งอัปเดต: Reset -> Pull -> Clear Cache
-            $command = "cd {$base_path} && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1";
+            $rawCommand = "{$cdCmd} && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1";
+            $command = $isWindows ? "cmd.exe /c \"{$rawCommand}\"" : $rawCommand;
             $output = shell_exec($command);
 
             // --- ขั้นตอนการกรองข้อมูลเพื่อความปลอดภัย ---

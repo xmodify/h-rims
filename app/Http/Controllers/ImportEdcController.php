@@ -505,37 +505,6 @@ class ImportEdcController extends Controller
                     ]);
                     $importedCount++;
                 }
-
-                // Sync/Update HOSxP connection (ovst_seq.edc_approve_list_text & visit_pttype.claim_code)
-                if (!empty($cid) && !empty($vstdate) && !empty($finalCode)) {
-                    try {
-                        $vns = DB::connection('hosxp')->table('ovst')
-                            ->join('patient', 'patient.hn', '=', 'ovst.hn')
-                            ->where('patient.cid', $cid)
-                            ->where('ovst.vstdate', $vstdate)
-                            ->pluck('ovst.vn');
-
-                        foreach ($vns as $vn) {
-                            DB::connection('hosxp')->table('ovst_seq')
-                                ->updateOrInsert(
-                                    ['vn' => $vn],
-                                    ['edc_approve_list_text' => $finalCode]
-                                );
-
-                            DB::connection('hosxp')->table('visit_pttype')
-                                ->where('vn', $vn)
-                                ->where(function($q) {
-                                    $q->whereNull('claim_code')->orWhere('claim_code', '');
-                                })
-                                ->update([
-                                    'claim_code' => $finalCode
-                                ]);
-                            $matchedCount++;
-                        }
-                    } catch (\Throwable $ex) {
-                        Log::warning("Could not update HOSxP ovst_seq / visit_pttype: " . $ex->getMessage());
-                    }
-                }
             }
 
             fclose($handle);

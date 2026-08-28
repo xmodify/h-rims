@@ -157,6 +157,34 @@ class F16EclaimExportService
         $ansList = $visits->pluck('an')->filter()->unique()->toArray();
 
         // -------------------------------------------------------------
+        // Fallback permitno from local hrims.edc_approve_list (for OFC EDC)
+        // -------------------------------------------------------------
+        $cids = $visits->pluck('cid')->filter()->unique()->toArray();
+        if (!empty($cids)) {
+            try {
+                $edcRows = DB::table('edc_approve_list')
+                    ->whereIn('cid', $cids)
+                    ->select('cid', 'vstdate', 'approve_code')
+                    ->get()
+                    ->groupBy(function ($r) {
+                        return $r->cid . '_' . $r->vstdate;
+                    });
+
+                $visits->transform(function ($v) use ($edcRows) {
+                    if (empty($v->permitno)) {
+                        $key = $v->cid . '_' . $v->vstdate;
+                        if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
+                            $v->permitno = $edcRows[$key]->first()->approve_code;
+                        }
+                    }
+                    return $v;
+                });
+            } catch (\Throwable $ex) {
+                Log::warning("Could not fallback EDC approve code from local DB: " . $ex->getMessage());
+            }
+        }
+
+        // -------------------------------------------------------------
         // 2. Query OPD Diag (ovstdiag)
         // -------------------------------------------------------------
         $opdDiags = collect();

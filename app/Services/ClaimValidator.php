@@ -68,6 +68,7 @@ class ClaimValidator
         if (in_array('edc', $aspects)) {
             $edc = $this->validateEdc($visit);
             $errors   = array_merge($errors, $edc['errors']);
+            $warnings = array_merge($warnings, $edc['warnings'] ?? []);
         }
 
         // 4. Endpoint closure check
@@ -89,18 +90,25 @@ class ClaimValidator
     public function validateEdc($visit): array
     {
         $errors = [];
+        $warnings = [];
         $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
         $edc_ktb_list = array_filter(array_map('trim', explode(',', $visit->edc_ktb ?? '')));
 
-        if (empty($edc_hosxp_list)) {
-            $errors[] = "ไม่พบเลขอนุมัติ EDC ใน HOSxP";
-        } elseif (empty($edc_ktb_list)) {
-            $errors[] = "ไม่พบเลขอนุมัติ EDC ในไฟล์นำเข้า KTB (กรุณานำเข้าไฟล์ EDC)";
+        if (empty($edc_hosxp_list) && empty($edc_ktb_list)) {
+            $errors[] = "ไม่พบเลขอนุมัติ EDC ทั้งใน HOSxP และไฟล์นำเข้า KTB (กรุณาตรวจสอบการรูดบัตรหรือนำเข้าไฟล์ EDC)";
+        } elseif (empty($edc_hosxp_list) && !empty($edc_ktb_list)) {
+            // มีในไฟล์นำเข้า KTB แต่ไม่มีใน HOSxP -> ให้ผ่านเกณฑ์แบบเตือน (ตาเหลือง)
+            $warnings[] = "พบเลขอนุมัติในไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ") แต่ไม่พบใน HOSxP (ระบบจะใช้เลขจาก KTB ส่งออก)";
+        } elseif (!empty($edc_hosxp_list) && empty($edc_ktb_list)) {
+            $warnings[] = "พบเลขอนุมัติใน HOSxP (" . implode(',', $edc_hosxp_list) . ") แต่ยังไม่พบในไฟล์นำเข้า KTB";
         } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
             $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
-        return ['errors' => $errors];
+        return [
+            'errors' => $errors,
+            'warnings' => $warnings
+        ];
     }
 
     /**

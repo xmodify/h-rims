@@ -1379,7 +1379,8 @@ class F16EclaimExportService
                        doc.licenseno as doctor_license, doc.name as doctor_name,
                        COALESCE(ip.hospmain, '') as hospmain,
                        COALESCE(ip.hospsub, '') as hospsub,
-                       COALESCE(ip.claim_code, ip.auth_code, '') as permitno
+                       COALESCE(ip.claim_code, ip.auth_code, '') as permitno,
+                       ia.ac_ae as ipt_ac_ae, ia.ac_emtype as ipt_ac_emtype
                 FROM ipt
                 LEFT JOIN an_stat a ON a.an = ipt.an
                 LEFT JOIN patient pt ON pt.hn = ipt.hn
@@ -1388,6 +1389,7 @@ class F16EclaimExportService
                 LEFT JOIN doctor doc ON doc.code = ipt.admdoctor
                 LEFT JOIN dchstts dst ON dst.dchstts = ipt.dchstts
                 LEFT JOIN dchtype dt ON dt.dchtype = ipt.dchtype
+                LEFT JOIN ipt_accident ia ON ia.an = ipt.an
                 WHERE ipt.an IN ($placeholders)
             ", $ans);
             $ansOrderMap = array_flip($ans);
@@ -1853,10 +1855,10 @@ class F16EclaimExportService
         foreach ($admissions as $v) {
             $ro = $referOutByAn->get($v->an);
             $ri = $referInByAn->get($v->an);
-            $ucae = trim((string)($v->nhso_ucae_type_code ?? ''));
+            $ucae = !empty($v->ipt_ac_ae) ? strtoupper(trim((string)$v->ipt_ac_ae)) : trim((string)($v->nhso_ucae_type_code ?? ''));
             $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
 
-            if ($ro || $ri || $isUcae) {
+            if ($ro || $ri || $isUcae || !empty($v->ipt_ac_ae)) {
                 $dateopd = self::formatDate($v->regdate);
                 $authae = '';
                 $aedate = $dateopd;
@@ -1867,8 +1869,8 @@ class F16EclaimExportService
                 $ireftype = !empty($refmaini) ? '1' : '';
                 $refmaino = !empty($ro->refer_hospcode) ? self::formatHospcode($ro->refer_hospcode) : '';
                 $oreftype = !empty($refmaino) ? '1100' : '';
-                $ucaeVal = $isUcae ? $ucae : 'N';
-                $emtype = '3';
+                $ucaeVal = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z', 'N']) ? $ucae : 'N';
+                $emtype = !empty($v->ipt_ac_emtype) ? trim((string)$v->ipt_ac_emtype) : '3';
                 $seq = $v->an;
                 $an = $v->an;
 

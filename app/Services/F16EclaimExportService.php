@@ -1039,9 +1039,10 @@ class F16EclaimExportService
             $cid = trim((string)$it->cid);
             $drugremark = '';
             $pano = '';
-            $totcopay = '0';
+            $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
+            $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = !empty($it->an) ? '1' : '2'; // 1=In-hospital, 2=Home
-            $total = number_format((float)$it->sum_price, 2, '.', '');
+            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $sigcode = trim((string)($it->sigcode ?? ''));
             $sigtextParts = array_filter([trim((string)($it->sigtext1 ?? '')), trim((string)($it->sigtext2 ?? '')), trim((string)($it->sigtext3 ?? ''))]);
             $sigtext = str_replace('|', ' ', implode(' ', $sigtextParts));
@@ -1148,9 +1149,10 @@ class F16EclaimExportService
             $dose = '';
             $catype = '';
             $serialno = '';
-            $totcopay = '0';
+            $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
+            $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = '';
-            $total = number_format((float)$it->sum_price, 2, '.', '');
+            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';
@@ -1272,6 +1274,8 @@ class F16EclaimExportService
                        ipt.spclty as dept, ipt.bw as adm_w, '' as svctype,
                        ipt.pttype,
                        a.pdx, a.dx_doctor, a.income, a.paid_money, a.rcpt_money, a.uc_money,
+                       a.dx0, a.dx1, a.dx2, a.dx3, a.dx4, a.dx5,
+                       a.op0, a.op1, a.op2, a.op3, a.op4, a.op5,
                        pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                        pt.chwpart, pt.amppart, pt.tmbpart,
                        p.hipdata_code,
@@ -1305,11 +1309,37 @@ class F16EclaimExportService
                 FROM iptdiag id
                 LEFT JOIN doctor doc ON doc.code = id.doctor
                 WHERE id.an IN ($placeholders)
-                ORDER BY id.an, id.diagtype, id.ipt_diag_id
+                ORDER BY id.an, id.diagtype
             ", $ans);
             $ipdDiags = collect($diagRows);
         } catch (\Throwable $e) {
             Log::warning("F16 IPD Export iptdiag query error: " . $e->getMessage());
+        }
+
+        // Fallback from an_stat pdx, dx0..dx5 if iptdiag is empty for an AN
+        $existingAnsWithDiag = $ipdDiags->pluck('an')->unique()->toArray();
+        foreach ($admissions as $adm) {
+            if (!in_array($adm->an, $existingAnsWithDiag)) {
+                if (!empty($adm->pdx)) {
+                    $ipdDiags->push((object)[
+                        'an' => $adm->an,
+                        'icd10' => $adm->pdx,
+                        'diagtype' => '1',
+                        'drdx' => $adm->doctor_license ?: 'ว00000',
+                    ]);
+                }
+                for ($i = 0; $i <= 5; $i++) {
+                    $dxField = "dx{$i}";
+                    if (!empty($adm->$dxField)) {
+                        $ipdDiags->push((object)[
+                            'an' => $adm->an,
+                            'icd10' => $adm->$dxField,
+                            'diagtype' => '2',
+                            'drdx' => $adm->doctor_license ?: 'ว00000',
+                        ]);
+                    }
+                }
+            }
         }
 
         // -------------------------------------------------------------
@@ -1318,16 +1348,38 @@ class F16EclaimExportService
         $ipdOpers = collect();
         try {
             $operRows = DB::connection('hosxp')->select("
-                SELECT io.an, io.icd9 as oper, io.oper_type as optype, doc.licenseno as dropid,
+                SELECT io.an, io.icd9 as oper, COALESCE(io.oper_type, io.ovst_oper_type, '1') as optype, doc.licenseno as dropid,
                        io.opdate as datein, io.optime as timein, io.enddate as dateout, io.endtime as timeout
                 FROM iptoprt io
                 LEFT JOIN doctor doc ON doc.code = io.doctor
                 WHERE io.an IN ($placeholders)
-                ORDER BY io.an, io.oper_type
+                ORDER BY io.an
             ", $ans);
             $ipdOpers = collect($operRows);
         } catch (\Throwable $e) {
             Log::warning("F16 IPD Export iptoprt query error: " . $e->getMessage());
+        }
+
+        // Fallback from an_stat op0..op5 if iptoprt is empty for an AN
+        $existingAnsWithOper = $ipdOpers->pluck('an')->unique()->toArray();
+        foreach ($admissions as $adm) {
+            if (!in_array($adm->an, $existingAnsWithOper)) {
+                for ($i = 0; $i <= 5; $i++) {
+                    $opField = "op{$i}";
+                    if (!empty($adm->$opField)) {
+                        $ipdOpers->push((object)[
+                            'an' => $adm->an,
+                            'oper' => $adm->$opField,
+                            'opertype' => ($i == 0 ? '1' : '2'),
+                            'dropid' => $adm->doctor_license ?: 'ว00000',
+                            'datein' => $adm->regdate,
+                            'timein' => $adm->regtime,
+                            'dateout' => $adm->dchdate ?: $adm->regdate,
+                            'timeout' => $adm->dchtime ?: $adm->regtime,
+                        ]);
+                    }
+                }
+            }
         }
 
         // -------------------------------------------------------------
@@ -1585,9 +1637,13 @@ class F16EclaimExportService
             $unit = trim((string)$it->units) ?: 'เม็ด';
             $unitpack = trim((string)$it->packqty) ? "1x{$it->packqty}" : "1x1";
             $seq = $it->an;
+            $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
+            $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
+            $usestatus = '1';
+            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $provider = $it->doctor_license ?: 'ว00000';
 
-            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}||||||||{$provider}|";
+            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|||{$totcopay}|{$usestatus}|{$total}|||{$provider}|";
         }
 
         // 13. CHA.txt (7 columns)
@@ -1679,11 +1735,13 @@ class F16EclaimExportService
             $qty = number_format((float)$it->qty, 0, '.', '');
             $rate = number_format((float)($it->unitprice ?: 0.0), 2, '.', '');
             $seq = $it->an;
-            $total = number_format((float)$it->sum_price, 2, '.', '');
+            $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
+            $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
+            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
             $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
 
-            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||||{$total}|||||{$clinic}|1|{$provider}|||||";
+            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||{$totcopay}||{$total}|||||{$clinic}|1|{$provider}|||||";
         }
 
         // 17. LABFU.txt (7 columns)

@@ -73,6 +73,10 @@ class F16FdhExportController extends Controller
 
             $claimType = $isIp ? 'IP' : 'OP';
             $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
+            $claimCode = str_replace('_IP_', '_', $claimCode);
+            if (str_starts_with($claimCode, 'IP_')) {
+                $claimCode = substr($claimCode, 3);
+            }
             $thYear = date('Y') + 543;
             $subfolderName = "F16_FDH_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
 
@@ -114,6 +118,10 @@ class F16FdhExportController extends Controller
         $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
         $claimType = $isIp ? 'IP' : 'OP';
         $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
+        $claimCode = str_replace('_IP_', '_', $claimCode);
+        if (str_starts_with($claimCode, 'IP_')) {
+            $claimCode = substr($claimCode, 3);
+        }
         if (is_string($rawKeys)) {
             $decoded = json_decode($rawKeys, true);
             $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);

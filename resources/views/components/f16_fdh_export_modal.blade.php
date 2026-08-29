@@ -321,8 +321,11 @@
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal" data-dismiss="modal" onclick="closeFdhModal()">
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
-                    <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnExecuteF16FdhExport" onclick="executeF16FdhDirectoryExport()" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;">
-                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16FdhExportText">เลือกโฟลเดอร์และส่งออก (17 แฟ้ม FDH .txt)</span>
+                    <button type="button" class="btn btn-outline-secondary px-3 fw-bold" id="btnExecuteF16FdhExport" onclick="executeF16FdhDirectoryExport()">
+                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16FdhExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                    </button>
+                    <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnSendF16FdhApi" onclick="sendF16ToFdhApi()" style="background: linear-gradient(135deg, #198754 0%, #20c997 100%); border: none;">
+                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16FdhApiText">🚀 ส่งข้อมูลเข้า FDH ผ่าน API</span>
                     </button>
                 </div>
             </div>
@@ -848,4 +851,259 @@
             });
         }
     }
+
+    /**
+     * =========================================================================
+     * DIRECT SEND 16 FILES TO MOPH FDH API GATEWAY
+     * =========================================================================
+     */
+    window.sendF16ToFdhApi = function() {
+        const state = window._f16FdhExportState;
+        if (!state.keys || state.keys.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งข้อมูล', 'warning');
+            } else {
+                alert('กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งข้อมูล');
+            }
+            return;
+        }
+
+        const totalItems = state.keys.length;
+        const claimTitle = state.claimTitle || state.claimCode;
+
+        let currentCsrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+        const updateCsrfToken = function(newToken) {
+            if (newToken) {
+                currentCsrfToken = newToken;
+                $('meta[name="csrf-token"]').attr('content', newToken);
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': newToken
+                    }
+                });
+            }
+        };
+
+        // 1. ฟังก์ชันส่ง API เข้าสู่ FDH
+        const executeApiSend = function(customToken = null) {
+            const btn = $('#btnSendF16FdhApi');
+            const originalBtnHtml = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง FDH...');
+            $('#f16FdhExportProgressText').html('<span class="text-success"><i class="bi bi-arrow-repeat spin me-1"></i>กำลังเชื่อมต่อ Server FDH และส่งชุดข้อมูล 16 แฟ้ม...</span>');
+
+            const tokenToSend = currentCsrfToken || $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+            $.ajax({
+                url: '{{ route("f16_fdh_export.send_api") }}',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': tokenToSend
+                },
+                data: {
+                    _token: tokenToSend,
+                    vns: state.isIp ? [] : state.keys,
+                    ans: state.isIp ? state.keys : [],
+                    is_ip: state.isIp ? 1 : 0,
+                    claim_code: state.claimCode,
+                    token: customToken
+                },
+                success: function(res) {
+                    btn.prop('disabled', false).html(originalBtnHtml);
+                    $('#f16FdhExportProgressText').text('');
+
+                    if (res.status === 'success') {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '<span class="text-success fw-bold">ส่งข้อมูลเข้า FDH สำเร็จ!</span>',
+                                html: `
+                                    <div class="text-start p-3 bg-light rounded border mt-2">
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">รหัสการเคลม (Transaction ID / Claim ID):</small>
+                                            <strong class="text-primary fs-6 font-monospace">${res.transaction_id || '-'}</strong>
+                                        </div>
+                                        <div class="row g-2 pt-2 border-top">
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">จำนวนรายการ:</small>
+                                                <span class="badge bg-success fs-6">${res.total} รายการ</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">ผู้นำเข้า:</small>
+                                                <strong class="text-dark">${res.sender_name || '-'}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 pt-2 border-top small text-muted">
+                                            <i class="bi bi-shield-check text-success me-1"></i> ประเภท Token: ${res.token_type || '-'}
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0">ระบบได้บันทึกสถานะ "ส่งแล้ว" ลงในฐานข้อมูลเรียบร้อยแล้ว</p>
+                                `,
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> ตกลง'
+                            }).then(() => {
+                                closeFdhModal();
+
+                                // Auto refresh datatables on parent page
+                                if (typeof loadData === 'function') {
+                                    loadData();
+                                } else if (typeof searchData === 'function') {
+                                    searchData();
+                                } else if (typeof fetchData === 'function') {
+                                    fetchData();
+                                } else if (typeof fetchClaims === 'function') {
+                                    fetchClaims();
+                                } else {
+                                    const searchForm = $('form#searchForm, form#filterForm, form.filter-form');
+                                    if (searchForm.length > 0) {
+                                        searchForm.first().submit();
+                                    }
+                                }
+                            });
+                        } else {
+                            alert('ส่งข้อมูลเข้า FDH สำเร็จ! รหัสการเคลม: ' + (res.transaction_id || '-'));
+                            closeFdhModal();
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถส่งข้อมูลได้', 'error');
+                        } else {
+                            alert(res.message || 'ไม่สามารถส่งข้อมูลได้');
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html(originalBtnHtml);
+                    $('#f16FdhExportProgressText').text('');
+
+                    const res = xhr.responseJSON || {};
+                    const errMsg = res.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ FDH';
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ส่งข้อมูลไม่สำเร็จ',
+                            text: errMsg,
+                            confirmButtonColor: '#dc3545'
+                        });
+                    } else {
+                        alert('ส่งข้อมูลไม่สำเร็จ: ' + errMsg);
+                    }
+                }
+            });
+        };
+
+        // 2. ฟังก์ชันแสดงกล่องยืนยันการส่ง
+        const promptSendConfirmation = function(tokenData) {
+            updateCsrfToken(tokenData.csrf_token);
+
+            const senderName = tokenData.user_name || 'ผู้ให้บริการ';
+            const tokenType = tokenData.token_type || 'Provider ID';
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '<span class="fw-bold">ยืนยันส่งข้อมูลเข้า FDH ผ่าน API?</span>',
+                    html: `
+                        <div class="p-3 bg-light rounded border text-start">
+                            <div class="mb-2"><strong>สิทธิการรักษา:</strong> <span class="badge bg-info text-dark">${claimTitle}</span></div>
+                            <div class="mb-2"><strong>จำนวนที่เลือก:</strong> <span class="badge bg-primary fs-6">${totalItems} รายการ</span></div>
+                            <div class="mb-2"><strong>ผู้นำเข้า (Provider ID):</strong> <span class="text-success fw-bold">${senderName}</span></div>
+                            <div class="text-muted small">
+                                <i class="bi bi-shield-check text-success me-1"></i> เชื่อมต่อ ${tokenType} พร้อมส่งข้อมูล
+                            </div>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="bi bi-send-fill me-1"></i> 🚀 ยืนยันส่งข้อมูลทันที',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeApiSend();
+                    }
+                });
+            } else {
+                if (confirm(`ยืนยันส่งข้อมูล 16 แฟ้ม จำนวน ${totalItems} รายการ เข้าสู่ FDH ผ่าน API? (ผู้นำเข้า: ${senderName})`)) {
+                    executeApiSend();
+                }
+            }
+        };
+
+        // 3. ฟังก์ชันเปิดหน้าต่าง Login Provider ID ทันทีแบบไม่ต้องผ่านกล่องเตือน
+        const promptProviderLogin = function(loginUrl) {
+            const loginWindow = window.open(loginUrl, 'ProviderIdLogin', 'width=700,height=800,menubar=no,toolbar=no,location=no');
+
+            if (typeof Swal !== 'undefined') {
+                // แสดง Loading รอการ Login ในหน้าต่าง Pop-up ทันที
+                Swal.fire({
+                    title: '<span class="fw-bold text-primary">กำลังรอการยืนยันตัวตน...</span>',
+                    html: `
+                        <p class="text-muted small mb-2">ระบบได้เปิดหน้าต่างเข้าสู่ระบบ Provider ID ให้เรียบร้อยแล้ว</p>
+                        <div class="p-2 bg-light rounded text-muted small border">
+                            <i class="bi bi-info-circle text-primary me-1"></i> กรุณาเข้าสู่ระบบในหน้าต่าง Provider ID เมื่อเสร็จสิ้นจะเข้าสู่ขั้นตอนส่งข้อมูลทันที
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonColor: '#6c757d',
+                    cancelButtonText: 'ยกเลิก',
+                    didOpen: () => {
+                        Swal.showLoading();
+
+                        const checkInterval = setInterval(() => {
+                            if (loginWindow.closed) {
+                                clearInterval(checkInterval);
+                                // Pop-up ปิดแล้ว -> ตรวจสอบ Token ใหม่อีกครั้ง
+                                $.get('{{ route("f16_fdh_export.check_token") }}', function(recheckRes) {
+                                    updateCsrfToken(recheckRes.csrf_token);
+                                    if (recheckRes.has_token && recheckRes.is_personal) {
+                                        Swal.close();
+                                        promptSendConfirmation(recheckRes);
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'การยืนยันตัวตนไม่สำเร็จ',
+                                            text: 'ไม่พบ Token ของ Provider ID กรุณาลองใหม่อีกครั้ง',
+                                            confirmButtonColor: '#dc3545'
+                                        });
+                                    }
+                                }).fail(function() {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'ข้อผิดพลาด',
+                                        text: 'ไม่สามารถตรวจสอบสถานะ Token ได้',
+                                        confirmButtonColor: '#dc3545'
+                                    });
+                                });
+                            }
+                        }, 1000);
+                    }
+                }).then((result) => {
+                    if (result.isDismissed && loginWindow && !loginWindow.closed) {
+                        loginWindow.close();
+                    }
+                });
+            }
+        };
+
+        // 4. เริ่มต้น: ตรวจสอบ Token ก่อนเสมอ
+        $('#f16FdhExportProgressText').html('<span class="text-info"><i class="bi bi-shield-lock me-1"></i>กำลังตรวจสอบสิทธิ Provider ID...</span>');
+        
+        $.get('{{ route("f16_fdh_export.check_token") }}', function(res) {
+            $('#f16FdhExportProgressText').text('');
+            updateCsrfToken(res.csrf_token);
+            if (res.has_token && res.is_personal) {
+                // มี Token พร้อมแล้ว -> แสดงกล่องยืนยันส่งทันที
+                promptSendConfirmation(res);
+            } else {
+                // ยังไม่มี Token -> เด้งให้ Login Provider ID ก่อน
+                promptProviderLogin(res.provider_login_url);
+            }
+        }).fail(function() {
+            $('#f16FdhExportProgressText').text('');
+            promptProviderLogin('{{ route("auth.health-id.redirect") }}');
+        });
+    };
 </script>

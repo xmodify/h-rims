@@ -98,12 +98,12 @@ class ProviderIdAuthController extends Controller
             ]);
 
             if ($providerResponse->status() === 400) {
-                return redirect()->route('login')->with('error', 'บัญชีนี้ยังไม่ได้รับสิทธิ์หรือไม่มีข้อมูลเลขผู้ให้บริการ (Provider ID) ในระบบกระทรวงสาธารณสุข');
+                return $this->returnAuthResponse(false, 'บัญชีนี้ยังไม่ได้รับสิทธิ์หรือไม่มีข้อมูลเลขผู้ให้บริการ (Provider ID) ในระบบกระทรวงสาธารณสุข');
             }
 
             if ($providerResponse->failed()) {
                 Log::error('Provider ID Exchange Token Failed: ' . $providerResponse->body());
-                return redirect()->route('login')->with('error', 'ไม่สามารถตรวจสอบสิทธิ์ผู้ให้บริการกับทางกระทรวงฯ ได้');
+                return $this->returnAuthResponse(false, 'ไม่สามารถตรวจสอบสิทธิ์ผู้ให้บริการกับทางกระทรวงฯ ได้');
             }
 
             $providerToken = $providerResponse->json('data.access_token');
@@ -119,14 +119,14 @@ class ProviderIdAuthController extends Controller
 
             if ($profileResponse->failed()) {
                 Log::error('Get Provider Profile Failed: ' . $profileResponse->body());
-                return redirect()->route('login')->with('error', 'ไม่สามารถเชื่อมต่อเพื่อดึงประวัติผู้ให้บริการได้');
+                return $this->returnAuthResponse(false, 'ไม่สามารถเชื่อมต่อเพื่อดึงประวัติผู้ให้บริการได้');
             }
 
             $profileData = $profileResponse->json('data');
             $hashCid = $profileData['hash_cid'] ?? null;
 
             if (empty($hashCid)) {
-                return redirect()->route('login')->with('error', 'ข้อมูลเลขบัตรประชาชนที่เข้ารหัสไม่ถูกต้อง');
+                return $this->returnAuthResponse(false, 'ข้อมูลเลขบัตรประชาชนที่เข้ารหัสไม่ถูกต้อง');
             }
 
             // 6. Match user via SHA2(cid, 256) in H-RiMS users database
@@ -136,26 +136,96 @@ class ProviderIdAuthController extends Controller
                 ->first();
 
             if (!$user) {
-                return redirect()->route('login')->with('error', 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
+                return $this->returnAuthResponse(false, 'ไม่พบรายชื่อหรือผู้ใช้งานนี้ในระบบ RiMS (เลขบัตรประชาชนของท่านยังไม่ผ่านการลงทะเบียนประวัติในระบบ)');
             }
 
             // 7. Log in the user into Laravel session
             Auth::loginUsingId($user->id);
 
-            // Store FDH token in session for hospital claims API calls if available
+            // Store FDH token in session and database for hospital claims API calls if available
             $orgData = $profileData['organization'] ?? [];
+            $mophFdhToken = null;
             if (!empty($orgData) && is_array($orgData)) {
-                $mophFdhToken = $orgData[0]['moph_access_token_idp_fdh'] ?? null;
-                if (!empty($mophFdhToken)) {
-                    session(['moph_fdh_token' => $mophFdhToken]);
+                foreach ($orgData as $org) {
+                    if (!empty($org['moph_access_token_idp_fdh'])) {
+                        $mophFdhToken = $org['moph_access_token_idp_fdh'];
+                        break;
+                    }
                 }
             }
 
-            return redirect()->route('home')->with('provider_login_success', 'ยินดีต้อนรับคุณ ' . $user->name);
+            // Fallback to Provider ID Access Token or Health ID Token
+            if (empty($mophFdhToken)) {
+                $mophFdhToken = $providerToken ?? ($healthIdToken ?? null);
+            }
+
+            if (!empty($mophFdhToken)) {
+                session(['moph_fdh_token' => $mophFdhToken]);
+            }
+
+            // Update user record with provider details and token
+            try {
+                DB::table('users')->where('id', $user->id)->update([
+                    'provider_id' => $profileData['provider_id'] ?? ($profileData['id'] ?? ($user->provider_id ?? null)),
+                    'moph_token' => $mophFdhToken,
+                    'moph_token_expire' => now()->addHours(12),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Could not update moph_token in users table: ' . $e->getMessage());
+            }
+
+            return $this->returnAuthResponse(true, 'ยินดีต้อนรับคุณ ' . $user->name, route('home'));
 
         } catch (\Exception $e) {
             Log::error('Provider ID Authentication Exception: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return redirect()->route('login')->with('error', 'ระบบขัดข้องชั่วคราวในการยืนยันตัวตนกับทางกระทรวงฯ');
+            return $this->returnAuthResponse(false, 'ระบบขัดข้องชั่วคราวในการยืนยันตัวตนกับทางกระทรวงฯ');
         }
+    }
+
+    /**
+     * ส่งคำตอบกลับที่ฉลาด: หากเปิดในหน้าต่าง Pop-up ให้ปิดตัวเองและแจ้ง Parent ทันที
+     */
+    private function returnAuthResponse(bool $isSuccess, string $message, ?string $redirectUrl = null)
+    {
+        $redirectUrl = $redirectUrl ?: ($isSuccess ? route('home') : route('login'));
+        $statusStr = $isSuccess ? 'success' : 'error';
+        $titleStr = $isSuccess ? 'ยืนยันตัวตน Provider ID สำเร็จ' : 'การยืนยันตัวตนไม่สำเร็จ';
+        $color = $isSuccess ? '#0b7379' : '#dc2626';
+
+        return response()->make('
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>' . $titleStr . '</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; text-align: center; }
+                    .card { background: white; padding: 2rem; border-radius: 14px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); max-width: 420px; width: 90%; }
+                    .spinner { border: 3px solid #e2e8f0; border-top: 3px solid ' . $color . '; border-radius: 50%; width: 28px; height: 28px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    ' . ($isSuccess ? '<div class="spinner"></div>' : '') . '
+                    <h3 style="color: ' . $color . '; margin: 0 0 0.5rem; font-size: 1.25rem;">' . $titleStr . '</h3>
+                    <p style="color: #64748b; font-size: 0.95rem; margin: 0 0 1rem;">' . htmlspecialchars($message) . '</p>
+                    <p style="color: #94a3b8; font-size: 0.8rem; margin: 0;">กำลังปิดหน้าต่างนี้อัตโนมัติ...</p>
+                </div>
+                <script>
+                    if (window.opener && !window.opener.closed) {
+                        try {
+                            window.opener.postMessage({ status: "' . $statusStr . '", type: "PROVIDER_ID_AUTH_' . strtoupper($statusStr) . '", message: "' . addslashes($message) . '" }, "*");
+                        } catch(e) {}
+                        setTimeout(() => window.close(), 1000);
+                    } else {
+                        window.location.href = "' . $redirectUrl . '";
+                    }
+                </script>
+            </body>
+            </html>
+        ');
     }
 }

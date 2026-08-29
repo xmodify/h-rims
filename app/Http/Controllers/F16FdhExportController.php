@@ -164,4 +164,91 @@ class F16FdhExportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ตรวจสอบความพร้อมของ MOPH Provider ID Token ของผู้ใช้งานปัจจุบัน
+     */
+    public function checkToken(Request $request)
+    {
+        $tokenInfo = F16FdhExportService::resolveFdhToken();
+        $isPersonal = ($tokenInfo['type'] === 'Provider ID (Personal Session)' || $tokenInfo['type'] === 'Provider ID (Database)' || $tokenInfo['type'] === 'Custom Token');
+        $hasToken = !empty($tokenInfo['token']);
+
+        return response()->json([
+            'status' => 'success',
+            'has_token' => $hasToken,
+            'is_personal' => $isPersonal,
+            'token_type' => $tokenInfo['type'],
+            'user_name' => $tokenInfo['user_name'],
+            'csrf_token' => csrf_token(),
+            'provider_login_url' => route('auth.health-id.redirect')
+        ]);
+    }
+
+    /**
+     * ส่งชุดข้อมูล 16 แฟ้มมาตรฐาน FDH เข้าสู่ MOPH FDH API Gateway โดยตรง
+     */
+    public function sendApi(Request $request)
+    {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
+            ], 403);
+        }
+
+        $type = $request->input('type');
+        $isIp = $type === 'ip' || $request->boolean('is_ip');
+        if (!$type && !$request->has('is_ip')) {
+            $isIp = $request->has('ans') && !$request->has('vns');
+        }
+        $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
+        $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
+
+        if (is_string($rawKeys)) {
+            $decoded = json_decode($rawKeys, true);
+            $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);
+        } else {
+            $keys = (array)$rawKeys;
+        }
+        $keys = array_values(array_filter(array_unique((array)$keys)));
+        if (empty($keys)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งข้อมูล'
+            ], 422);
+        }
+
+        $customToken = $request->input('token');
+
+        @ini_set('max_execution_time', 0);
+        @ini_set('memory_limit', '512M');
+
+        try {
+            $result = F16FdhExportService::sendToFdhApi($keys, $isIp, $claimCode, $customToken);
+
+            if ($result['success']) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $result['message'],
+                    'transaction_id' => $result['transaction_id'],
+                    'total' => $result['total'],
+                    'token_type' => $result['token_type'],
+                    'sender_name' => $result['sender_name']
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'need_login' => $result['need_login'] ?? false,
+                    'provider_login_url' => route('auth.health-id.redirect'),
+                    'message' => $result['message']
+                ], ($result['need_login'] ?? false) ? 401 : 400);
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการส่งข้อมูลเข้า FDH API: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

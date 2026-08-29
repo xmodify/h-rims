@@ -39,6 +39,9 @@ class User extends Authenticatable
         'allow_aopod_death',
         'allow_check_right',
         'allow_hosfin',
+        'provider_id',
+        'moph_token',
+        'moph_token_expire',
     ];
 
     /**

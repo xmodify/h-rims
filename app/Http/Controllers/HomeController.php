@@ -131,7 +131,13 @@ class HomeController extends Controller
                 WHERE h.service_date = DATE(NOW())
                 GROUP BY h.vn
             ) hms ON hms.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE o.vstdate = DATE(NOW()) AND (o.an = "" OR o.an IS NULL)
             GROUP BY o.vn
         ) AS a');
@@ -284,7 +290,13 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) ppfs ON ppfs.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
         LEFT JOIN (
             SELECT cid, vstdate, GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
                     GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
@@ -369,7 +381,13 @@ class HomeController extends Controller
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn    
         LEFT JOIN vn_stat v ON v.vn = o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE (o.an ="" OR o.an IS NULL) 
         AND o.vstdate BETWEEN ? AND ?
@@ -408,7 +426,13 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
         AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
@@ -447,7 +471,13 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
         AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
@@ -482,7 +512,13 @@ class HomeController extends Controller
             INNER JOIN health_med_operation_item h2 ON h2.health_med_operation_item_id=h1.health_med_operation_item_id
             WHERE h.service_date BETWEEN ? AND ?
         ) hm ON hm.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
         WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
         GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
@@ -519,7 +555,13 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE (o.an IS NULL OR o.an ="") AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
@@ -556,7 +598,13 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
         AND (o.an IS NULL OR o.an ="") 
@@ -583,7 +631,13 @@ class HomeController extends Controller
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype				
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
         WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN ? AND ?
 		GROUP BY o.vn ORDER BY o.vsttime', [$start_date, $end_date]);
 

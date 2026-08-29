@@ -52,42 +52,132 @@ class F16EclaimExportService
     }
 
     /**
-     * Map รหัสหมวดรายได้ HOSxP (income) ให้เป็นรหัส 16 หมวด สปสช. (CHA CHRGITEM)
+     * Map รหัสหมวดรายได้ HOSxP (income) ให้เป็นรหัส 20 หมวด สปสช. (CHA CHRGITEM: 2 หลัก เช่น D1, C1, I1, J2)
      */
-    private static function mapIncomeToChaItem($income)
+    public static function mapIncomeToChaItem($income, $paidst = '02'): string
     {
         $inc = str_pad(trim((string)$income), 2, '0', STR_PAD_LEFT);
-        switch ($inc) {
-            case '01': return '11'; // ค่าห้อง/ค่าอาหาร
-            case '02': return '11'; // ค่าอาหาร
-            case '03': return '41'; // ค่ายาในบัญชี
-            case '04': return '42'; // ค่ายานอกบัญชี
-            case '17': return '41'; // ยาอื่นๆ
-            case '05': return '51'; // ค่าเวชภัณฑ์มิใช่ยา
-            case '06': return '31'; // ค่าบริการโลหิต
-            case '07': return '71'; // ค่าตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา
-            case '08': return '81'; // ค่าตรวจวินิจฉัยและรักษาทางรังสีวิทยา
-            case '09': return '91'; // ค่าตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ
-            case '10': return 'A1'; // ค่าอุปกรณ์ของใช้และเครื่องมือทางการแพทย์
-            case '11': return 'B1'; // ค่าทำหัตถการและวิสัญญี
-            case '12': return 'C1'; // ค่าบริการทางการพยาบาล
-            case '18': return 'C1'; // ค่าบริการทางการพยาบาล
-            case '13': return 'D1'; // ค่าบริการทางทันตกรรม
-            case '14': return 'E1'; // ค่าบริการทางกายภาพบำบัด
-            case '15': return 'F1'; // ค่าบริการการแพทย์แผนไทย
-            case '16': return 'G1'; // ค่าบริการอื่นๆ
-            default:   return 'H1'; // เบ็ดเตล็ด
-        }
+        $isPaidSelf = in_array(trim((string)$paidst), ['01', '03']); // จ่ายเอง / ส่วนเกิน
+        $suffix = $isPaidSelf ? '2' : '1';
+
+        $baseMap = [
+            '01' => '1',  // ค่าห้อง/ค่าอาหาร -> 11 (เบิกได้) / 12 (ส่วนเกิน)
+            '02' => '2',  // ค่าอวัยวะเทียม/อุปกรณ์ -> 21 / 22
+            '03' => '3',  // ค่ายาและสารอาหารทางเส้นเลือดใน รพ. -> 31 / 32
+            '04' => '4',  // ค่ายากลับบ้าน -> 41 / 42
+            '05' => '5',  // ค่าเวชภัณฑ์ที่มิใช่ยา -> 51 / 52
+            '06' => '6',  // ค่าบริการโลหิตและส่วนประกอบ -> 61 / 62
+            '07' => '7',  // ค่าตรวจวินิจฉัยทางเทคนิคการแพทย์/พยาธิ -> 71 / 72
+            '08' => '8',  // ค่าตรวจวินิจฉัยและรักษาทางรังสีวิทยา -> 81 / 82
+            '09' => '9',  // ค่าตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ -> 91 / 92
+            '10' => 'A',  // ค่าอุปกรณ์ของใช้และเครื่องมือทางการแพทย์ -> A1 / A2
+            '11' => 'B',  // ค่าทำหัตถการและวิสัญญี -> B1 / B2
+            '12' => 'C',  // ค่าบริการทางการพยาบาล -> C1 / C2
+            '13' => 'D',  // ค่าบริการทางทันตกรรม -> D1 / D2
+            '14' => 'E',  // ค่าบริการทางกายภาพบำบัด/เวชกรรมฟื้นฟู -> E1 / E2
+            '15' => 'F',  // ค่าบริการการแพทย์แผนไทย/ฝังเข็ม -> F1 / F2
+            '16' => 'J',  // ค่าบริการอื่นๆที่ไม่เกี่ยวกับการรักษาพยาบาลโดยตรง -> J1 / J2
+            '17' => '4',  // ยานอกบัญชียาหลักแห่งชาติ -> 41 / 42
+            '18' => 'H',  // ค่าธรรมเนียมทางการแพทย์ -> H1 / H2
+            '19' => 'I',  // บริการอื่น ๆ และส่งเสริมป้องกันโรค -> I1 / I2
+            '20' => '8',  // X-Ray -> 81 / 82
+        ];
+
+        $prefix = $baseMap[$inc] ?? 'J';
+        return $prefix . $suffix;
     }
 
     /**
-     * Map fund code to CHT PTTYPE (A2, A7, UC, SS, etc.)
+     * แปลงหมวดรายได้ของ HOSxP (income) ให้เป็นรหัสหมวดค่ารักษาพยาบาลสำหรับ ADP.txt (TYPE: 1-20 ตาม 16แฟ้มFDH.xlsx)
      */
-    private static function mapChtPttype($hipdataCode, $pttype)
+    public static function mapIncomeToAdpType($income, $nhsoAdpType = null): string
+    {
+        $type = trim((string)$nhsoAdpType);
+        if (!empty($type) && is_numeric($type) && intval($type) > 0 && intval($type) <= 20) {
+            return (string)intval($type);
+        }
+
+        $inc = str_pad(trim((string)$income), 2, '0', STR_PAD_LEFT);
+        $map = [
+            '01' => '10', // ค่าห้อง/ค่าอาหาร
+            '02' => '2',  // อวัยวะเทียม/อุปกรณ์ (Instrument)
+            '05' => '11', // เวชภัณฑ์ที่ไม่ใช่ยา
+            '06' => '14', // บริการโลหิตและส่วนประกอบ
+            '07' => '15', // ตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา (Lab)
+            '08' => '16', // ตรวจวินิจฉัยและรักษาทางรังสีวิทยา (X-Ray)
+            '09' => '9',  // ตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ
+            '10' => '18', // อุปกรณ์ของใช้และเครื่องมือทางการแพทย์
+            '11' => '19', // ทำหัตถการและวิสัญญี
+            '12' => '17', // ค่าบริการทางการพยาบาล
+            '13' => '12', // ค่าบริการทางทันตกรรม
+            '14' => '20', // ค่าบริการทางกายภาพบำบัดและเวชกรรมฟื้นฟู
+            '15' => '13', // ค่าบริการฝังเข็ม/แพทย์แผนไทย
+            '16' => '3',  // ค่าบริการอื่นๆ ที่ยังไม่ได้จัดหมวด
+            '18' => '3',  // ค่าธรรมเนียมทางการแพทย์
+            '19' => '4',  // ค่าส่งเสริมป้องกัน/บริการเฉพาะ (F6)
+        ];
+
+        return $map[$inc] ?? '3';
+    }
+
+    /**
+     * Map fund code to INS INSCL (UCS, OFC, SSS, LGO, PVT, etc. 3 characters)
+     */
+    public static function mapInscl($hipdataCode, $pttype): string
     {
         $hip = strtoupper(trim((string)$hipdataCode));
         $ptt = strtoupper(trim((string)$pttype));
 
+        if ($hip === 'UCS' || $hip === 'UC' || str_starts_with($ptt, '1') || str_starts_with($ptt, '2') || str_starts_with($ptt, '7') || str_starts_with($ptt, '8') || str_starts_with($ptt, '9')) {
+            return 'UCS';
+        }
+        if ($hip === 'OFC' || $hip === 'A2' || str_starts_with($ptt, 'O')) {
+            return 'OFC';
+        }
+        if ($hip === 'SSS' || $hip === 'SS' || str_starts_with($ptt, '3')) {
+            return 'SSS';
+        }
+        if ($hip === 'LGO' || str_starts_with($ptt, 'L')) {
+            return 'LGO';
+        }
+        if ($hip === 'SSI') {
+            return 'SSI';
+        }
+        if ($hip === 'PVT' || str_starts_with($ptt, 'P')) {
+            return 'PVT';
+        }
+        if ($hip === 'BKK') {
+            return 'BKK';
+        }
+        if ($hip === 'BMT') {
+            return 'BMT';
+        }
+        if ($hip === 'SRT') {
+            return 'SRT';
+        }
+        if ($hip === 'STP') {
+            return 'STP';
+        }
+
+        return 'UCS';
+    }
+
+    /**
+     * Map fund code to CHT PTTYPE (Max 2 characters: 10, 89, 01, 30, A2, UC, SS, etc.)
+     */
+    public static function mapChtPttype($hipdataCode, $pttype, $subtype = null): string
+    {
+        $sub = trim((string)$subtype);
+        if (!empty($sub) && strlen($sub) <= 2) {
+            return str_pad($sub, 2, '0', STR_PAD_LEFT);
+        }
+
+        $ptt = trim((string)$pttype);
+        if (!empty($ptt) && strlen($ptt) <= 2 && is_numeric($ptt)) {
+            return str_pad($ptt, 2, '0', STR_PAD_LEFT);
+        }
+
+        $hip = strtoupper(trim((string)$hipdataCode));
         if ($hip === 'OFC' || str_starts_with($ptt, 'O') || $hip === 'A2') {
             return 'A2';
         }
@@ -95,7 +185,7 @@ class F16EclaimExportService
             return 'A7';
         }
         if ($hip === 'UCS' || $hip === 'UC' || str_starts_with($ptt, 'U')) {
-            return 'UC';
+            return '10';
         }
         if ($hip === 'SSS' || $hip === 'SS' || str_starts_with($ptt, 'S')) {
             return 'SS';
@@ -103,7 +193,11 @@ class F16EclaimExportService
         if ($hip === 'PRO' || $hip === 'B1') {
             return 'B1';
         }
-        return $hip ?: 'A2';
+        if ($hip === 'STP') {
+            return '71';
+        }
+
+        return strlen($hip) <= 2 ? $hip : '10';
     }
 
     /**
@@ -228,6 +322,8 @@ class F16EclaimExportService
             $visitRows = DB::connection('hosxp')->select("
                 SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
                        o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                       COALESCE(ost.export_code, o.ovstist, '1') as typein_code,
+                       COALESCE(oos.export_code, o.ovstost, '1') as typeout_code,
                        v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                        pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                        pt.chwpart, pt.amppart, pt.tmbpart,
@@ -258,6 +354,8 @@ class F16EclaimExportService
                 LEFT JOIN patient pt ON pt.hn = o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                 LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                LEFT JOIN ovstist ost ON ost.ovstist = o.ovstist
+                LEFT JOIN ovstost oos ON oos.ovstost = o.ovstost
                 LEFT JOIN opdscreen os ON os.vn = o.vn
                 LEFT JOIN ovst_seq oq ON oq.vn = o.vn
                 LEFT JOIN doctor doc ON doc.code = o.doctor
@@ -271,6 +369,8 @@ class F16EclaimExportService
                 $visitRows = DB::connection('hosxp')->select("
                     SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
                            o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                           COALESCE(ost.export_code, o.ovstist, '1') as typein_code,
+                           COALESCE(oos.export_code, o.ovstost, '1') as typeout_code,
                            v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                            pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                            pt.chwpart, pt.amppart, pt.tmbpart,
@@ -301,6 +401,8 @@ class F16EclaimExportService
                     LEFT JOIN patient pt ON pt.hn = o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                     LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                    LEFT JOIN ovstist ost ON ost.ovstist = o.ovstist
+                    LEFT JOIN ovstost oos ON oos.ovstost = o.ovstost
                     LEFT JOIN opdscreen os ON os.vn = o.vn
                     LEFT JOIN doctor doc ON doc.code = o.doctor
                     WHERE o.vn IN ($placeholders)
@@ -509,7 +611,7 @@ class F16EclaimExportService
                            n.name as nondrug_name,
                            COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                            COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
-                           COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
+                           drg.chrgitem_code1, drg.chrgitem_code2,
                            o.spclty, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
@@ -536,7 +638,7 @@ class F16EclaimExportService
                                n.name as nondrug_name,
                                COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                                COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
-                               COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
+                               drg.chrgitem_code1, drg.chrgitem_code2,
                                o.spclty, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                                op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
                         FROM opitemrece op
@@ -749,7 +851,7 @@ class F16EclaimExportService
         foreach ($visits as $v) {
             $hip = strtoupper(trim((string)$v->hipdata_code));
             $ptt = strtoupper(trim((string)$v->pttype));
-            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
             $dateexp = self::formatDate($v->dateexp ?? '');
@@ -810,12 +912,18 @@ class F16EclaimExportService
             $dbp = !empty($v->dbp) ? (string)intval($v->dbp) : '';
             $pr = !empty($v->pr) ? (string)intval($v->pr) : '';
             $rr = !empty($v->rr) ? (string)intval($v->rr) : '';
-            $optype = trim((string)($v->pt_subtype ?: '1'));
-            if (!in_array($optype, ['1', '2', '3', '4', '5'])) $optype = '1';
-            $typein = trim((string)($v->ovstist ?: '1'));
-            if (!in_array($typein, ['1', '2', '3', '4'])) $typein = '1';
-            $typeout = trim((string)($v->ovstost ?: '1'));
-            if (!in_array($typeout, ['1', '2', '3', '4', '5'])) $typeout = '1';
+            $optype = '';
+            $typein = (string)intval($v->typein_code ?: ($v->ovstist ?: '1'));
+            if (!in_array($typein, ['1', '2', '3', '4'])) {
+                $typein = '1';
+            }
+            $typeout = (string)intval($v->typeout_code ?: ($v->ovstost ?: '1'));
+            if ($typeout === '9') {
+                $typeout = '7'; // ปฏิเสธการรักษา
+            }
+            if (!in_array($typeout, ['1', '2', '3', '4', '5', '6', '7', '8'])) {
+                $typeout = '1';
+            }
 
             $opdLines[] = "{$v->hn}|{$clinic}|{$dateopd}|{$timeopd}|{$seq}|{$uuc}|{$detail}|{$btemp}|{$sbp}|{$dbp}|{$pr}|{$rr}|{$optype}|{$typein}|{$typeout}";
         }
@@ -929,6 +1037,9 @@ class F16EclaimExportService
             if (empty($oper)) continue;
             $optype = $io->opertype ?: '1';
             $dropid = $io->dropid ?: 'ว00000';
+            if (str_starts_with($dropid, '-') && strlen($dropid) > 6) {
+                $dropid = substr($dropid, 0, 6);
+            }
             $datein = self::formatDate($io->datein);
             $timein = self::formatTime($io->timein);
             $dateout = self::formatDate($io->dateout);
@@ -1069,7 +1180,10 @@ class F16EclaimExportService
             // Group by CHA CHRGITEM
             $chaGroups = [];
             foreach ($vnItems as $it) {
-                $chrg = self::mapIncomeToChaItem($it->income);
+                $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+                $chrg = $isPaidSelf 
+                    ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
+                    : (trim((string)($it->chrgitem_code1 ?? '')) ?: self::mapIncomeToChaItem($it->income, '02'));
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }
@@ -1091,7 +1205,7 @@ class F16EclaimExportService
             $date = self::formatDate($v->vstdate);
             $total = number_format((float)$v->income, 2, '.', '');
             $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
-            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype, $v->pttype_nhso_code);
             $cid = trim((string)$v->cid);
             $an = $v->an ?: '';
             $seq = !empty($v->an) ? $v->an : ($v->seq ?: $v->vn);
@@ -1138,7 +1252,7 @@ class F16EclaimExportService
 
         foreach ($adpItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = trim((string)($it->nhso_adp_type ?: '17'));
+            $type = self::mapIncomeToAdpType($it->income, $it->nhso_adp_type);
             $code = trim((string)($it->nhso_adp_code ?: $it->icode));
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
@@ -1566,6 +1680,9 @@ class F16EclaimExportService
             if (empty($oper)) continue;
             $optype = $io->optype ?: '1';
             $dropid = $io->dropid ?: 'ว00000';
+            if (str_starts_with($dropid, '-') && strlen($dropid) > 6) {
+                $dropid = substr($dropid, 0, 6);
+            }
             $datein = self::formatDate($io->datein);
             $timein = self::formatTime($io->timein);
             $dateout = self::formatDate($io->dateout);

@@ -206,7 +206,13 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn 
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -275,7 +281,13 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")                
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -406,7 +418,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
@@ -661,7 +679,13 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn           
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -730,7 +754,13 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")                
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -1347,7 +1377,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn = ?', [$vn]);
@@ -1780,7 +1816,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn            
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
@@ -2022,7 +2064,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn            
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
@@ -2280,7 +2328,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -2364,7 +2418,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -2514,7 +2574,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN ovst_seq oq ON oq.vn = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN (
@@ -3060,7 +3126,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_lgo
@@ -3137,7 +3209,13 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -3621,7 +3699,13 @@ public function lgo_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_bkk
@@ -3698,7 +3782,13 @@ public function lgo_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -4181,7 +4271,13 @@ public function bkk_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_bmt
@@ -4258,7 +4354,13 @@ public function bkk_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -4739,7 +4841,13 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_srt
@@ -4823,7 +4931,13 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -5102,7 +5216,13 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5
                 FROM hrims.rep_pvt
@@ -5186,7 +5306,13 @@ public function bmt_kidney(Request $request)
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime, 5) AS vsttime5,
                        SUM(net_compensate_nhso) AS net_compensate_nhso,
@@ -5444,7 +5570,13 @@ public function sss_ppfs(Request $request)
                 AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -5505,7 +5637,13 @@ public function sss_ppfs(Request $request)
                 AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -6645,7 +6783,13 @@ public function sss_ppfs(Request $request)
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
@@ -7126,7 +7270,13 @@ public function sss_ppfs(Request $request)
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE o.vn = ?
         ', [$vn]);
 
@@ -7521,7 +7671,13 @@ public function sss_ppfs(Request $request)
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE o.vn = ?
         ', [$vn]);
 
@@ -8340,7 +8496,13 @@ public function sss_ppfs(Request $request)
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.pttype IN (' . $csop_pttypes_str . ')
             AND (o.an = "" OR o.an IS NULL)
             AND o.vstdate BETWEEN ? AND ?

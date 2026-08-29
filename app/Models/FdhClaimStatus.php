@@ -20,5 +20,11 @@ class FdhClaimStatus extends Model
         'process_status',
         'status_message_th',
         'stm_period',
+        'transaction_id',
+        'send_channel',
+        'send_date',
+        'send_user',
+        'send_user_cid',
+        'api_response',
     ];
 }

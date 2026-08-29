@@ -4,6 +4,9 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
+use ZipArchive;
 
 /**
  * Class F16FdhExportService
@@ -63,9 +66,9 @@ class F16FdhExportService
     }
 
     /**
-     * แปลงรหัสสิทธิการรักษาสำหรับ CHT.txt และ INS.txt
+     * แปลงรหัสสิทธิการรักษาสำหรับ INS.txt (INSCL: UCS, OFC, SSS, LGO, PVT, ฯลฯ ความยาว 3 ตัวอักษร)
      */
-    public static function mapChtPttype($hipdataCode, $pttype): string
+    public static function mapInscl($hipdataCode, $pttype): string
     {
         $hip = strtoupper(trim((string)$hipdataCode));
         $ptt = strtoupper(trim((string)$pttype));
@@ -105,34 +108,98 @@ class F16FdhExportService
     }
 
     /**
-     * แปลงหมวดรายได้ของ HOSxP (income) ให้เป็นรหัสหมวดค่าบริการ 16 หมวด สปสช./FDH (CHRGITEM ใน CHA.txt)
+     * แปลงรหัสสิทธิการรักษาสำหรับ CHT.txt (PTTYPE: รหัสสิทธิ 2 หลัก เช่น 10, 89, 01, 30 ความยาวสูงสุดไม่เกิน 2 ตัวอักษร)
      */
-    public static function mapIncomeToChaItem($income): string
+    public static function mapChtPttype($hipdataCode, $pttype, $subtype = null): string
+    {
+        $sub = trim((string)$subtype);
+        if (!empty($sub) && strlen($sub) <= 2) {
+            return str_pad($sub, 2, '0', STR_PAD_LEFT);
+        }
+
+        $ptt = trim((string)$pttype);
+        if (!empty($ptt) && strlen($ptt) <= 2 && is_numeric($ptt)) {
+            return str_pad($ptt, 2, '0', STR_PAD_LEFT);
+        }
+
+        $hip = strtoupper(trim((string)$hipdataCode));
+        if ($hip === 'UCS' || $hip === 'UC') return '10';
+        if ($hip === 'OFC' || $hip === 'A2') return '01';
+        if ($hip === 'SSS' || $hip === 'SS') return '30';
+        if ($hip === 'LGO') return '20';
+        if ($hip === 'STP') return '71';
+        if ($hip === 'PVT') return '10';
+
+        return '10';
+    }
+
+    /**
+     * แปลงหมวดรายได้ของ HOSxP (income) ให้เป็นรหัสหมวดค่าบริการ 20 หมวด สปสช./FDH (CHRGITEM ใน CHA.txt: 2 หลัก เช่น D1, C1, I1, J2)
+     */
+    public static function mapIncomeToChaItem($income, $paidst = '02'): string
     {
         $inc = str_pad(trim((string)$income), 2, '0', STR_PAD_LEFT);
-        $map = [
-            '01' => '1',  // ค่าห้อง/ค่าอาหาร
-            '02' => '2',  // ค่าอวัยวะเทียม/อุปกรณ์
-            '03' => '3',  // ค่ายาในบัญชียาหลัก
-            '04' => '4',  // ค่ายานอกบัญชียาหลัก
-            '05' => '5',  // ค่าเวชภัณฑ์ที่มิใช่ยา
-            '06' => '6',  // ค่าบริการโลหิตและส่วนประกอบ
-            '07' => '7',  // ค่าตรวจวินิจฉัยทางเทคนิคการแพทย์/พยาธิ
-            '08' => '8',  // ค่าตรวจวินิจฉัยและรักษาทางรังสีวิทยา
-            '09' => '9',  // ค่าตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ
-            '10' => 'A',  // ค่าอุปกรณ์ของใช้และเครื่องมือทางการแพทย์
-            '11' => 'B',  // ค่าทำหัตถการและวิสัญญี
-            '12' => 'C',  // ค่าบริการทางการพยาบาล
-            '13' => 'D',  // ค่าบริการทางทันตกรรม
-            '14' => 'E',  // ค่าบริการทางกายภาพบำบัด/เวชกรรมฟื้นฟู
-            '15' => 'F',  // ค่าบริการฝังเข็ม/การบำบัดรักษาทางเลือก
-            '16' => 'G',  // ค่าบริการอื่นๆ
-            '17' => '3',  // ยา
-            '18' => '5',  // วัสดุ
-            '19' => '7',  // Lab
-            '20' => '8',  // X-Ray
+        $isPaidSelf = in_array(trim((string)$paidst), ['01', '03']); // จ่ายเอง / ส่วนเกิน
+        $suffix = $isPaidSelf ? '2' : '1';
+
+        $baseMap = [
+            '01' => '1',  // ค่าห้อง/ค่าอาหาร -> 11 (เบิกได้) / 12 (ส่วนเกิน)
+            '02' => '2',  // ค่าอวัยวะเทียม/อุปกรณ์ -> 21 / 22
+            '03' => '3',  // ค่ายาและสารอาหารทางเส้นเลือดใน รพ. -> 31 / 32
+            '04' => '4',  // ค่ายากลับบ้าน -> 41 / 42
+            '05' => '5',  // ค่าเวชภัณฑ์ที่มิใช่ยา -> 51 / 52
+            '06' => '6',  // ค่าบริการโลหิตและส่วนประกอบ -> 61 / 62
+            '07' => '7',  // ค่าตรวจวินิจฉัยทางเทคนิคการแพทย์/พยาธิ -> 71 / 72
+            '08' => '8',  // ค่าตรวจวินิจฉัยและรักษาทางรังสีวิทยา -> 81 / 82
+            '09' => '9',  // ค่าตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ -> 91 / 92
+            '10' => 'A',  // ค่าอุปกรณ์ของใช้และเครื่องมือทางการแพทย์ -> A1 / A2
+            '11' => 'B',  // ค่าทำหัตถการและวิสัญญี -> B1 / B2
+            '12' => 'C',  // ค่าบริการทางการพยาบาล -> C1 / C2
+            '13' => 'D',  // ค่าบริการทางทันตกรรม -> D1 / D2
+            '14' => 'E',  // ค่าบริการทางกายภาพบำบัด/เวชกรรมฟื้นฟู -> E1 / E2
+            '15' => 'F',  // ค่าบริการการแพทย์แผนไทย/ฝังเข็ม -> F1 / F2
+            '16' => 'J',  // ค่าบริการอื่นๆที่ไม่เกี่ยวกับการรักษาพยาบาลโดยตรง -> J1 / J2
+            '17' => '4',  // ยานอกบัญชียาหลักแห่งชาติ -> 41 / 42
+            '18' => 'H',  // ค่าธรรมเนียมทางการแพทย์ -> H1 / H2
+            '19' => 'I',  // บริการอื่น ๆ และส่งเสริมป้องกันโรค -> I1 / I2
+            '20' => '8',  // X-Ray -> 81 / 82
         ];
-        return $map[$inc] ?? 'G';
+
+        $prefix = $baseMap[$inc] ?? 'J';
+        return $prefix . $suffix;
+    }
+
+    /**
+     * แปลงหมวดรายได้ของ HOSxP (income) ให้เป็นรหัสหมวดค่ารักษาพยาบาลสำหรับ ADP.txt (TYPE: 1-20 ตาม 16แฟ้มFDH.xlsx)
+     */
+    public static function mapIncomeToAdpType($income, $nhsoAdpType = null): string
+    {
+        $type = trim((string)$nhsoAdpType);
+        if (!empty($type) && is_numeric($type) && intval($type) > 0 && intval($type) <= 20) {
+            return (string)intval($type);
+        }
+
+        $inc = str_pad(trim((string)$income), 2, '0', STR_PAD_LEFT);
+        $map = [
+            '01' => '10', // ค่าห้อง/ค่าอาหาร
+            '02' => '2',  // อวัยวะเทียม/อุปกรณ์ (Instrument)
+            '05' => '11', // เวชภัณฑ์ที่ไม่ใช่ยา
+            '06' => '14', // บริการโลหิตและส่วนประกอบ
+            '07' => '15', // ตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา (Lab)
+            '08' => '16', // ตรวจวินิจฉัยและรักษาทางรังสีวิทยา (X-Ray)
+            '09' => '9',  // ตรวจวินิจฉัยโดยวิธีพิเศษอื่นๆ
+            '10' => '18', // อุปกรณ์ของใช้และเครื่องมือทางการแพทย์
+            '11' => '19', // ทำหัตถการและวิสัญญี
+            '12' => '17', // ค่าบริการทางการพยาบาล
+            '13' => '12', // ค่าบริการทางทันตกรรม
+            '14' => '20', // ค่าบริการทางกายภาพบำบัดและเวชกรรมฟื้นฟู
+            '15' => '13', // ค่าบริการฝังเข็ม/แพทย์แผนไทย
+            '16' => '3',  // ค่าบริการอื่นๆ ที่ยังไม่ได้จัดหมวด
+            '18' => '3',  // ค่าธรรมเนียมทางการแพทย์
+            '19' => '4',  // ค่าส่งเสริมป้องกัน/บริการเฉพาะ (F6)
+        ];
+
+        return $map[$inc] ?? '3';
     }
 
     /**
@@ -259,6 +326,8 @@ class F16FdhExportService
             $visitRows = DB::connection('hosxp')->select("
                 SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
                        o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                       COALESCE(ost.export_code, o.ovstist, '1') as typein_code,
+                       COALESCE(oos.export_code, o.ovstost, '1') as typeout_code,
                        v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                        pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                        pt.chwpart, pt.amppart, pt.tmbpart,
@@ -289,6 +358,8 @@ class F16FdhExportService
                 LEFT JOIN patient pt ON pt.hn = o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                 LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                LEFT JOIN ovstist ost ON ost.ovstist = o.ovstist
+                LEFT JOIN ovstost oos ON oos.ovstost = o.ovstost
                 LEFT JOIN opdscreen os ON os.vn = o.vn
                 LEFT JOIN doctor doc ON doc.code = o.doctor
                 WHERE o.vn IN ($placeholders)
@@ -434,7 +505,7 @@ class F16FdhExportService
                            n.name as nondrug_name,
                            COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                            COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
-                           COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
+                           drg.chrgitem_code1, drg.chrgitem_code2,
                            o.spclty, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
@@ -461,7 +532,7 @@ class F16FdhExportService
                                n.name as nondrug_name,
                                COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                                COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
-                               COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
+                               drg.chrgitem_code1, drg.chrgitem_code2,
                                o.spclty, pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                                op.drugusage, '' as sigcode, '' as sigtext1, '' as sigtext2, '' as sigtext3
                         FROM opitemrece op
@@ -626,7 +697,7 @@ class F16FdhExportService
         foreach ($visits as $v) {
             $cid = trim((string)$v->cid);
             $permitno = trim((string)$v->permitno);
-            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = $v->pttype_nhso_code ?: '10';
             $dateexp = self::formatDate($v->dateexp ?? '');
             $hospmain = trim((string)$v->hospmain) ?: $hcode;
@@ -687,12 +758,18 @@ class F16FdhExportService
             $dbp = !empty($v->dbp) ? (string)intval($v->dbp) : '';
             $pr = !empty($v->pr) ? (string)intval($v->pr) : '';
             $rr = !empty($v->rr) ? (string)intval($v->rr) : '';
-            $optype = trim((string)($v->pt_subtype ?: '1'));
-            if (!in_array($optype, ['1', '2', '3', '4', '5'])) $optype = '1';
-            $typein = trim((string)($v->ovstist ?: '1'));
-            if (!in_array($typein, ['1', '2', '3', '4'])) $typein = '1';
-            $typeout = trim((string)($v->ovstost ?: '1'));
-            if (!in_array($typeout, ['1', '2', '3', '4', '5'])) $typeout = '1';
+            $optype = '';
+            $typein = (string)intval($v->typein_code ?: ($v->ovstist ?: '1'));
+            if (!in_array($typein, ['1', '2', '3', '4'])) {
+                $typein = '1';
+            }
+            $typeout = (string)intval($v->typeout_code ?: ($v->ovstost ?: '1'));
+            if ($typeout === '9') {
+                $typeout = '7'; // ปฏิเสธการรักษา
+            }
+            if (!in_array($typeout, ['1', '2', '3', '4', '5', '6', '7', '8'])) {
+                $typeout = '1';
+            }
 
             $opdLines[] = "{$v->hn}|{$clinic}|{$dateopd}|{$timeopd}|{$seq}|{$uuc}|{$detail}|{$btemp}|{$sbp}|{$dbp}|{$pr}|{$rr}|{$optype}|{$typein}|{$typeout}";
         }
@@ -737,9 +814,6 @@ class F16FdhExportService
             if (preg_match('/^[0-9]/', $diag)) continue; // รหัสตัวเลขเป็น ICD-9 หัตถการ ข้ามไปแฟ้ม OOP
             $dxtype = $d->diagtype ?: '1';
             $drdx = $d->doctor_license ?: ($d->doctor ?: 'ว00000');
-            if (str_starts_with($drdx, '-') && strlen($drdx) > 6) {
-                $drdx = substr($drdx, 0, 6);
-            }
             $cid = trim((string)$d->cid);
             $seq = $d->vn;
 
@@ -793,7 +867,7 @@ class F16FdhExportService
             $date = self::formatDate($v->vstdate);
             $total = number_format((float)$v->income, 2, '.', '');
             $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
-            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype, $v->pttype_nhso_code);
             $cid = trim((string)$v->cid);
             $an = '';
             $seq = $v->vn;
@@ -823,7 +897,10 @@ class F16FdhExportService
 
             $chaGroups = [];
             foreach ($vnItems as $it) {
-                $chrg = self::mapIncomeToChaItem($it->income);
+                $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+                $chrg = $isPaidSelf 
+                    ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
+                    : (trim((string)($it->chrgitem_code1 ?? '')) ?: self::mapIncomeToChaItem($it->income, '02'));
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }
@@ -874,7 +951,7 @@ class F16FdhExportService
 
         foreach ($adpItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = trim((string)($it->nhso_adp_type ?: '17'));
+            $type = self::mapIncomeToAdpType($it->income, $it->nhso_adp_type);
             $code = trim((string)($it->nhso_adp_code ?: $it->icode));
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
@@ -1256,7 +1333,7 @@ class F16FdhExportService
                            n.name as nondrug_name,
                            COALESCE(n.nhso_adp_code, d.nhso_adp_code) as nhso_adp_code,
                            COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) as nhso_adp_type,
-                           COALESCE(drg.chrgitem_code1, 'H1') as chrgitem_code,
+                           drg.chrgitem_code1, drg.chrgitem_code2,
                            pt.cid, COALESCE(doc.licenseno, '') as doctor_license,
                            op.drugusage, du.code as sigcode, du.name1 as sigtext1, du.name2 as sigtext2, du.name3 as sigtext3
                     FROM opitemrece op
@@ -1283,7 +1360,7 @@ class F16FdhExportService
         foreach ($admissions as $v) {
             $cid = trim((string)$v->cid);
             $permitno = trim((string)$v->permitno);
-            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = $v->pttype_nhso_code ?: '10';
             $dateexp = '';
             $hospmain = trim((string)$v->hospmain) ?: $hcode;
@@ -1412,6 +1489,9 @@ class F16FdhExportService
             if (empty($oper)) continue;
             $optype = $io->opertype ?: '1';
             $dropid = $io->dropid ?: 'ว00000';
+            if (str_starts_with($dropid, '-') && strlen($dropid) > 6) {
+                $dropid = substr($dropid, 0, 6);
+            }
             $datein = self::formatDate($io->datein);
             $timein = self::formatTime($io->timein);
             $dateout = self::formatDate($io->dateout);
@@ -1427,7 +1507,7 @@ class F16FdhExportService
             $date = self::formatDate($v->dchdate ?: $v->regdate);
             $total = number_format((float)$v->income, 2, '.', '');
             $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
-            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype, $v->pttype_nhso_code);
             $cid = trim((string)$v->cid);
             $an = $v->an;
             $seq = $v->an;
@@ -1450,7 +1530,10 @@ class F16FdhExportService
 
             $chaGroups = [];
             foreach ($anItems as $it) {
-                $chrg = self::mapIncomeToChaItem($it->income);
+                $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+                $chrg = $isPaidSelf 
+                    ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
+                    : (trim((string)($it->chrgitem_code1 ?? '')) ?: self::mapIncomeToChaItem($it->income, '02'));
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }
@@ -1612,6 +1695,372 @@ class F16FdhExportService
             'counts' => $counts,
             'total_visits' => count($admissions),
             'hcode' => $hcode
+        ];
+    }
+
+    /**
+     * ดึง Hospital Central Token (get_moph_access_token)
+     */
+    public static function getHospitalCentralToken(): ?string
+    {
+        $settings = DB::table('main_setting')
+            ->pluck('value', 'name')
+            ->toArray();
+
+        $user      = $settings['fdh_user'] ?? null;
+        $password  = $settings['fdh_pass'] ?? null;
+        $secretKey = $settings['fdh_secretKey'] ?? null;
+        $hcode     = $settings['hospital_code'] ?? null;
+
+        if (!$user || !$password || !$secretKey || !$hcode) {
+            return null;
+        }
+
+        $hash = hash_hmac('sha256', $password, $secretKey);
+        $passwordHash = strtoupper($hash);
+        $apiUrl = 'https://fdh.moph.go.th/token?Action=get_moph_access_token';
+
+        try {
+            $response = Http::withOptions([
+                'verify' => false
+            ])->withHeaders([
+                "Accept" => "application/json",
+                "Content-Type" => "application/json"
+            ])->post($apiUrl, [
+                'user'          => $user,
+                'password_hash' => $passwordHash,
+                'hospital_code' => $hcode
+            ]);
+
+            if ($response->successful()) {
+                return trim($response->body());
+            }
+        } catch (\Throwable $e) {
+            Log::error("FDH Hospital Token error: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * สกัดชื่อผู้ให้บริการ (Provider Name) จากก้อน JWT Token Payload ของกระทรวงฯ โดยตรง
+     */
+    public static function extractSenderNameFromToken(?string $token): ?string
+    {
+        if (empty($token)) return null;
+
+        $parts = explode('.', $token);
+        if (count($parts) >= 2) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (!empty($payload['client']['name'])) {
+                return trim($payload['client']['name']);
+            }
+            if (!empty($payload['name'])) {
+                return trim($payload['name']);
+            }
+            if (!empty($payload['client']['login'])) {
+                return trim($payload['client']['login']);
+            }
+            // ถ้า sub เป็นชื่อหรืออีเมล (ไม่ใช่ตัวเลขล้วน) ให้ใช้ sub ได้
+            if (!empty($payload['sub']) && !is_numeric($payload['sub'])) {
+                return trim($payload['sub']);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ตรวจสอบว่า JWT Token หมดอายุแล้วหรือไม่ โดยอ่านค่า exp จาก Payload โดยตรง
+     */
+    public static function isJwtExpired(?string $token): bool
+    {
+        if (empty($token)) return true;
+
+        $parts = explode('.', $token);
+        if (count($parts) >= 2) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (isset($payload['exp'])) {
+                // เผื่อเวลาล่วงหน้า 60 วินาที เพื่อป้องกัน Token ขาดช่วงระหว่างส่ง
+                return time() >= ((int)$payload['exp'] - 60);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * ค้นหา Token ที่เหมาะสมสำหรับส่งข้อมูล (Personal Provider ID Token -> User Token -> Hospital Token)
+     */
+    public static function resolveFdhToken(?string $customToken = null): array
+    {
+        // 1. Explicit Custom Token
+        if (!empty($customToken) && !self::isJwtExpired($customToken)) {
+            $tokenName = self::extractSenderNameFromToken($customToken) ?: (Auth::user()->name ?? 'Provider ID');
+            return [
+                'token' => trim($customToken),
+                'type' => 'Custom Token',
+                'user_name' => $tokenName
+            ];
+        }
+
+        // 2. Session Token (จาก MOPH Provider ID Login)
+        $sessionToken = session('moph_fdh_token');
+        if (!empty($sessionToken) && !self::isJwtExpired($sessionToken)) {
+            $tokenName = self::extractSenderNameFromToken($sessionToken) ?: (Auth::user()->name ?? 'Provider ID');
+            return [
+                'token' => trim($sessionToken),
+                'type' => 'Provider ID (Personal Session)',
+                'user_name' => $tokenName
+            ];
+        }
+
+        // 3. Token จาก Database ของ User ปัจจุบัน
+        if (Auth::check()) {
+            $user = Auth::user();
+            if (!empty($user->moph_token)) {
+                $isExpired = self::isJwtExpired($user->moph_token);
+                if (!empty($user->moph_token_expire)) {
+                    $isExpired = $isExpired || (strtotime($user->moph_token_expire) <= time());
+                }
+                if (!$isExpired) {
+                    $tokenName = self::extractSenderNameFromToken($user->moph_token) ?: $user->name;
+                    return [
+                        'token' => trim($user->moph_token),
+                        'type' => 'Provider ID (Database)',
+                        'user_name' => $tokenName
+                    ];
+                }
+            }
+        }
+
+        // 4. Fallback: Hospital Central Token
+        $hospitalToken = self::getHospitalCentralToken();
+        if (!empty($hospitalToken)) {
+            $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
+            return [
+                'token' => $hospitalToken,
+                'type' => 'Hospital Central Token',
+                'user_name' => $tokenName
+            ];
+        }
+
+        return [
+            'token' => null,
+            'type' => 'None',
+            'user_name' => Auth::user()->name ?? 'Unknown'
+        ];
+    }
+
+    /**
+     * =========================================================================
+     * SEND 16 FILES DIRECTLY TO MOPH FDH API GATEWAY
+     * =========================================================================
+     */
+    public static function sendToFdhApi(array $keys, bool $isIp, string $claimCode, ?string $customToken = null): array
+    {
+        if (empty($keys)) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบรายการที่เลือกส่ง'
+            ];
+        }
+
+        // 1. Resolve Token
+        $tokenInfo = self::resolveFdhToken($customToken);
+        $token = $tokenInfo['token'];
+        $tokenType = $tokenInfo['type'];
+        $senderName = $tokenInfo['user_name'] ?? (Auth::user()->name ?? 'System');
+
+        if (empty($token)) {
+            return [
+                'success' => false,
+                'need_login' => true,
+                'message' => 'ยังไม่ได้เชื่อมต่อ Provider ID หรือ Token หมดอายุ กรุณาเข้าสู่ระบบด้วย Provider ID ก่อนส่งข้อมูล'
+            ];
+        }
+
+        // 2. Generate 16/17 Files
+        $exportData = $isIp 
+            ? self::generate16FilesIp($keys) 
+            : self::generate16Files($keys);
+
+        if (empty($exportData['files'])) {
+            return [
+                'success' => false,
+                'message' => 'ไม่สามารถสร้างชุดข้อมูล 16 แฟ้มได้'
+            ];
+        }
+
+        $files = $exportData['files'];
+        $hcode = $exportData['hcode'] ?: self::getHcode();
+
+        // 3. กรองไฟล์ให้เหมาะสมกับประเภทผู้ป่วย (OPD / IPD) และไม่เกิน 16 ไฟล์ตามมาตรฐาน FDH
+        $filesToSend = [];
+        foreach ($files as $name => $content) {
+            // สำหรับผู้ป่วยนอก (OPD) ตัดแฟ้มเฉพาะทางของ IPD ที่ว่างเปล่าออก
+            if (!$isIp && in_array($name, ['IPD', 'IRF', 'IDX', 'IOP', 'LVD'])) {
+                $lines = explode("\n", trim($content));
+                if (count($lines) <= 1) continue;
+            }
+            // สำหรับผู้ป่วยใน (IPD) ตัดแฟ้มเฉพาะทางของ OPD ที่ว่างเปล่าออก
+            if ($isIp && in_array($name, ['OPD', 'ORF', 'ODX', 'OOP'])) {
+                $lines = explode("\n", trim($content));
+                if (count($lines) <= 1) continue;
+            }
+            $filesToSend[$name] = $content;
+        }
+
+        // 4. ส่งไฟล์ 16 แฟ้มแบบ multipart/form-data เข้าสู่ FDH API Gateway ตามคู่มือ Ver.3
+        $apiUrl = 'https://fdh.moph.go.th/api/v2/data_hub/16_files';
+        $transactionId = null;
+        $isSuccess = false;
+        $responseMessage = '';
+        $rawResponse = null;
+
+        $makeRequest = function($authToken) use ($apiUrl, $filesToSend) {
+            $http = Http::withOptions([
+                'verify' => false,
+                'http_errors' => false
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $authToken,
+                'Accept' => 'application/json'
+            ])->asMultipart();
+
+            $http->attach('type', 'txt');
+            foreach ($filesToSend as $filename => $content) {
+                $http->attach('file', $content, "{$filename}.txt");
+            }
+
+            return $http->timeout(180)->post($apiUrl);
+        };
+
+        try {
+            $response = $makeRequest($token);
+            $status = $response->status();
+            $rawResponse = $response->body();
+            $json = $response->json();
+
+            // หาก Token ไม่ผ่าน (401/403) ให้ลองส่งด้วย Hospital Gateway Token จาก Account Center
+            if ($status === 401 || $status === 403) {
+                $hospitalToken = self::getHospitalCentralToken();
+                if (!empty($hospitalToken) && $hospitalToken !== $token) {
+                    $response = $makeRequest($hospitalToken);
+                    $status = $response->status();
+                    $rawResponse = $response->body();
+                    $json = $response->json();
+                }
+            }
+
+            if ($status === 200 || $status === 201 || (isset($json['status']) && $json['status'] == 200)) {
+                $isSuccess = true;
+                $transactionId = $json['data']['transaction_id'] 
+                    ?? ($json['data']['claim_id'] 
+                    ?? ($json['data']['batch_number'] 
+                    ?? ($json['transaction_id'] ?? ('FDH-' . date('YmdHis') . '-' . substr(uniqid(), -4)))));
+                $responseMessage = $json['message_th'] ?? ($json['message'] ?? 'ส่งข้อมูลเข้า FDH สำเร็จ');
+            } elseif ($status === 401 || $status === 403) {
+                return [
+                    'success' => false,
+                    'need_login' => true,
+                    'message' => 'Token ของ Provider ID หมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบ Provider ID อีกครั้ง'
+                ];
+            } else {
+                $responseMessage = $json['message_th'] ?? ($json['message'] ?? ($json['error'] ?? "FDH ตอบกลับ HTTP Status $status"));
+            }
+        } catch (\Throwable $e) {
+            Log::error("FDH Send API Exception: " . $e->getMessage());
+            $responseMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย: ' . $e->getMessage();
+        }
+
+        // 5. If Success -> Upsert into fdh_claim_status table
+        if ($isSuccess) {
+            $now = now();
+            $upsertData = [];
+
+            $senderCid = Auth::user()->cid ?? null;
+
+            // Query items to extract HN and visit identifier
+            if ($isIp) {
+                $admList = DB::connection('hosxp')
+                    ->table('ipt')
+                    ->whereIn('an', $keys)
+                    ->select('an', 'hn', 'vn')
+                    ->get();
+
+                foreach ($admList as $adm) {
+                    $upsertData[] = [
+                        'hn' => $adm->hn,
+                        'seq' => null,
+                        'an' => $adm->an,
+                        'hcode' => $hcode,
+                        'status' => 'WAIT',
+                        'process_status' => '0',
+                        'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
+                        'stm_period' => null,
+                        'transaction_id' => $transactionId,
+                        'send_channel' => 'API',
+                        'send_date' => $now,
+                        'send_user' => $senderName,
+                        'send_user_cid' => $senderCid,
+                        'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            } else {
+                $ovstList = DB::connection('hosxp')
+                    ->table('ovst')
+                    ->whereIn('vn', $keys)
+                    ->select('vn', 'hn')
+                    ->get();
+
+                foreach ($ovstList as $o) {
+                    $upsertData[] = [
+                        'hn' => $o->hn,
+                        'seq' => $o->vn,
+                        'an' => null,
+                        'hcode' => $hcode,
+                        'status' => 'WAIT',
+                        'process_status' => '0',
+                        'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
+                        'stm_period' => null,
+                        'transaction_id' => $transactionId,
+                        'send_channel' => 'API',
+                        'send_date' => $now,
+                        'send_user' => $senderName,
+                        'send_user_cid' => $senderCid,
+                        'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+
+            if (!empty($upsertData)) {
+                try {
+                    DB::table('fdh_claim_status')->upsert(
+                        $upsertData,
+                        ['hn', 'seq', 'an'],
+                        ['hcode', 'status', 'process_status', 'status_message_th', 'transaction_id', 'send_channel', 'send_date', 'send_user', 'send_user_cid', 'api_response', 'updated_at']
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning("Could not upsert fdh_claim_status: " . $e->getMessage());
+                }
+            }
+
+            return [
+                'success' => true,
+                'transaction_id' => $transactionId,
+                'total' => count($keys),
+                'token_type' => $tokenType,
+                'sender_name' => $senderName,
+                'message' => $responseMessage ?: 'ส่งข้อมูล 16 แฟ้มเข้าสู่ระบบ FDH ผ่าน API สำเร็จเรียบร้อยแล้ว'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => $responseMessage ?: 'ไม่สามารถส่งข้อมูลเข้า FDH ได้ กรุณาตรวจสอบการเชื่อมต่อ',
+            'raw_response' => $rawResponse
         ];
     }
 }

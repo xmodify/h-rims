@@ -10216,6 +10216,42 @@
                 "default": null,
                 "extra": ""
             },
+            "transaction_id": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "send_channel": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "send_date": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "send_user": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "send_user_cid": {
+                "type": "varchar(13)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "api_response": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "created_at": {
                 "type": "timestamp",
                 "nullable": true,
@@ -10251,6 +10287,18 @@
             "idx_seq": [
                 {
                     "column": "seq",
+                    "unique": false
+                }
+            ],
+            "idx_transaction_id": [
+                {
+                    "column": "transaction_id",
+                    "unique": false
+                }
+            ],
+            "idx_send_user_cid": [
+                {
+                    "column": "send_user_cid",
                     "unique": false
                 }
             ]
@@ -32481,6 +32529,24 @@
                 "type": "varchar(1)",
                 "nullable": false,
                 "default": "N",
+                "extra": ""
+            },
+            "provider_id": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "moph_token": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "moph_token_expire": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
                 "extra": ""
             }
         },

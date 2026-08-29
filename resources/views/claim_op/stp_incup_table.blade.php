@@ -1,3 +1,7 @@
+@php
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh');
+@endphp
+
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
     <!-- Section 1: Chart -->
     <div class="px-4 pt-2 pb-0 border-bottom">
@@ -45,6 +49,11 @@
                         <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                             <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                         </button>
+                        @if($is_f16_licensed)
+                        <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16FDH('STP_INCUP')">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                        </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -56,6 +65,9 @@
             <table id="t_visits" class="table table-modern w-100">
                 <thead>
                     <tr>
+                        @if($is_f16_licensed)
+                        <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                        @endif
                         <th class="text-center">#</th> 
                         <th class="text-center">สถานะ</th>
                         <th class="text-center">สถานะส่งเคลม</th>
@@ -81,6 +93,11 @@
                     @endphp
                     @foreach($visits as $row) 
                     <tr>
+                        @if($is_f16_licensed)
+                        <td class="text-center" style="vertical-align: middle;">
+                            <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->vn ?? $row->seq }}" data-vn="{{ $row->vn ?? $row->seq }}">
+                        </td>
+                        @endif
                         <td class="text-center text-muted small">{{ $count }}</td>
                         <td class="text-center" id="td-status-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                             @if(!$row->is_valid)
@@ -101,32 +118,21 @@
                                 </button>
                             @endif
                         </td>
-                        <td class="text-center" data-order="{{ $row->is_sent == 'Y' ? 1 : 0 }}">
+                        <td class="text-center" id="td-is-sent-{{ $row->seq }}">
                             @if($row->is_sent == 'Y')
-                                <span class="badge bg-success py-1 px-2"><i class="bi bi-send-check me-1"></i>ส่งเคลมแล้ว</span>
+                                <span class="badge bg-success-soft text-success"><i class="bi bi-check-circle me-1"></i>ส่งแล้ว</span>
                             @else
-                                <span class="badge bg-warning text-dark py-1 px-2"><i class="bi bi-clock-history me-1"></i>รอส่งเคลม</span>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>รอส่ง</span>
                             @endif
                         </td>
-                        <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
-                            <div class="d-flex flex-column align-items-start gap-1">
-                                <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                    <span class="text-muted">ประสงค์เบิก:</span>
-                                    @if($row->request_funds == 'Y')
-                                        <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
-                                    @else
-                                        <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
-                                    @endif
-                                </div>
-                                <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                    <span class="text-muted">พร้อมส่ง:</span>
-                                    @if($row->confirm_and_locked == 'Y')
-                                        <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                    @else
-                                        <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
-                                    @endif
-                                </div>
-                            </div>
+                        <td class="text-center">
+                            @if($row->confirm_and_locked == 'Y')
+                                <span class="badge bg-danger-soft text-danger">เบิก</span>
+                            @elseif($row->request_funds == 'Y')
+                                <span class="badge bg-success-soft text-success">ส่ง</span>
+                            @else
+                                <span class="badge bg-secondary-soft text-secondary">-</span>
+                            @endif
                         </td>
                         <td class="text-start">
                             <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
@@ -134,8 +140,8 @@
                         </td>            
                         <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
                         <td class="text-start">
-                            <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                            <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
+                            <div class="text-dark fw-bold small text-truncate" style="max-width: 130px;">{{$row->ptname}}</div>
+                            <div class="small text-muted text-truncate" style="max-width: 130px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                         </td> 
                         <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                         <td class="text-end small">{{ number_format($row->income,2) }}</td>              
@@ -157,7 +163,7 @@
                 </tbody>
                 <tfoot class="bg-light-soft">
                     <tr>
-                        <th colspan="8" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
+                        <th colspan="{{ $is_f16_licensed ? 9 : 8 }}" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
                         <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                         <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                         <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>

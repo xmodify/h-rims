@@ -1,3 +1,7 @@
+@php
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh');
+@endphp
+
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
         <div class="px-4 pt-2 pb-0 border-bottom">
@@ -40,6 +44,11 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
+                            @if($is_f16_licensed)
+                            <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16FDH('STP_IP')">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -51,6 +60,9 @@
                 <table id="t_visits" class="table table-modern w-100">
                     <thead>
                         <tr>
+                            @if($is_f16_licensed)
+                            <th class="text-center no-sort" rowspan="2" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                            @endif
                             <th class="text-center" rowspan="2">FDH</th>
                             <th class="text-center" rowspan="2">E-Claim</th>
                             <th class="text-center" rowspan="2">Error</th>
@@ -90,6 +102,11 @@
                         @endphp
                         @foreach($visits as $row) 
                         <tr>
+                            @if($is_f16_licensed)
+                            <td class="text-center" style="vertical-align: middle;">
+                                <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->an }}" data-an="{{ $row->an }}">
+                            </td>
+                            @endif
                             <td class="text-center">
                                 <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
                             </td>    
@@ -175,7 +192,7 @@
                             <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->fund_ip_payrate) ? number_format($row->fund_ip_payrate,2) : '-' }}</td>        
                             <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->receive_ip_compensate_pay) ? number_format($row->receive_ip_compensate_pay,2) : '-' }}</td>
                             <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->receive_total) && isset($row->receive_ip_compensate_pay) ? number_format($row->receive_total - $row->receive_ip_compensate_pay,2) : '-' }}</td>
-                            <td class="text-end small fw-bold {{ $row->is_sent == 'Y' && ($row->receive_total ?? 0) > 0 ? 'text-success' : 'text-danger' }}">
+                            <td class="text-end small fw-bold text-success">
                                 {{ $row->is_sent == 'Y' && isset($row->receive_total) ? number_format($row->receive_total,2) : '-' }}
                             </td>
                             <td class="text-end small fw-bold {{ $row->is_sent == 'Y' && (($row->receive_total ?? 0) - $row->claim_price) > 0 ? 'text-success' : 'text-danger' }}">
@@ -195,7 +212,7 @@
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="13" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
+                            <th colspan="{{ $is_f16_licensed ? 14 : 13 }}" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -211,3 +228,13 @@
             </div>          
         </div>
     </div>
+
+<script>
+    window.patientItems = {!! json_encode(array_map(function($row) {
+        return [
+            'hn' => $row->hn,
+            'seq' => $row->an,
+            'an' => $row->an
+        ];
+    }, $visits)) !!};
+</script>

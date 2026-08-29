@@ -97,6 +97,9 @@ class F16FdhExportService
         if ($hip === 'SRT') {
             return 'SRT';
         }
+        if ($hip === 'STP') {
+            return 'STP';
+        }
 
         return 'UCS';
     }

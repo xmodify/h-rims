@@ -13,7 +13,7 @@ class F16FdhExportController extends Controller
      */
     public function preview(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') && !LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
@@ -103,7 +103,7 @@ class F16FdhExportController extends Controller
      */
     public function exportData(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') && !LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'

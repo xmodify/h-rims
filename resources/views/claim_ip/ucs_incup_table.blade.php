@@ -1,5 +1,5 @@
 @php
-    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh') || \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim');
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh');
 @endphp
 
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">

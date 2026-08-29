@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Services\F16FdhExportService;
 use App\Services\LicenseVerificationService;
 
@@ -170,16 +171,16 @@ class F16FdhExportController extends Controller
      */
     public function checkToken(Request $request)
     {
-        $tokenInfo = F16FdhExportService::resolveFdhToken(null, false);
+        $tokenInfo = F16FdhExportService::resolveFdhToken();
         $isPersonal = ($tokenInfo['type'] === 'Provider ID (Personal Session)' || $tokenInfo['type'] === 'Provider ID (Database)' || $tokenInfo['type'] === 'Custom Token');
-        $hasToken = !empty($tokenInfo['token']) && $isPersonal;
+        $hasToken = !empty($tokenInfo['token']);
 
         return response()->json([
             'status' => 'success',
             'has_token' => $hasToken,
             'is_personal' => $isPersonal,
             'token_type' => $tokenInfo['type'],
-            'user_name' => $tokenInfo['user_name'],
+            'user_name' => Auth::user()->name ?? ($tokenInfo['user_name'] ?? 'ผู้ให้บริการ'),
             'csrf_token' => csrf_token(),
             'provider_login_url' => route('auth.health-id.redirect')
         ]);

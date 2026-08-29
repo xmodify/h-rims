@@ -1805,17 +1805,15 @@ class F16FdhExportService
             }
         }
 
-        // 4. Fallback: Hospital Central Token (ใช้เฉพาะกรณีที่อนุญาต เช่น Background Sync)
-        if ($allowHospitalFallback) {
-            $hospitalToken = self::getHospitalCentralToken();
-            if (!empty($hospitalToken)) {
-                $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
-                return [
-                    'token' => $hospitalToken,
-                    'type' => 'Hospital Central Token',
-                    'user_name' => $tokenName
-                ];
-            }
+        // 4. Fallback: Hospital Central Token
+        $hospitalToken = self::getHospitalCentralToken();
+        if (!empty($hospitalToken)) {
+            $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
+            return [
+                'token' => $hospitalToken,
+                'type' => 'Hospital Central Token',
+                'user_name' => $tokenName
+            ];
         }
 
         return [
@@ -1839,11 +1837,11 @@ class F16FdhExportService
             ];
         }
 
-        // 1. Resolve Token (บังคับ Personal Provider ID Token เสมอ เพื่อระบุตัวตนผู้ส่ง)
-        $tokenInfo = self::resolveFdhToken($customToken, false);
+        // 1. Resolve Token
+        $tokenInfo = self::resolveFdhToken($customToken, true);
         $token = $tokenInfo['token'];
         $tokenType = $tokenInfo['type'];
-        $senderName = $tokenInfo['user_name'] ?? (Auth::user()->name ?? 'System');
+        $senderName = Auth::user()->name ?? ($tokenInfo['user_name'] ?? 'System');
 
         if (empty($token)) {
             return [
@@ -1914,13 +1912,15 @@ class F16FdhExportService
             $rawResponse = $response->body();
             $json = $response->json();
 
-            // หาก Token ไม่ผ่าน (401/403) ให้แจ้งเตือนให้เข้าสู่ระบบ Provider ID ใหม่อีกครั้ง
+            // หาก Token ไม่ผ่าน (401/403) ให้ลองส่งด้วย Hospital Gateway Token จาก Account Center
             if ($status === 401 || $status === 403) {
-                return [
-                    'success' => false,
-                    'need_login' => true,
-                    'message' => 'Provider ID Token หมดอายุหรือไม่ได้รับสิทธิ์ในการส่งเคลม กรุณาเข้าสู่ระบบด้วย Provider ID ใหม่อีกครั้ง'
-                ];
+                $hospitalToken = self::getHospitalCentralToken();
+                if (!empty($hospitalToken) && $hospitalToken !== $token) {
+                    $response = $makeRequest($hospitalToken);
+                    $status = $response->status();
+                    $rawResponse = $response->body();
+                    $json = $response->json();
+                }
             }
 
             if ($status === 200 || $status === 201 || (isset($json['status']) && $json['status'] == 200)) {

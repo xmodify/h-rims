@@ -145,11 +145,25 @@ class ProviderIdAuthController extends Controller
             // Store FDH token in session and database for hospital claims API calls if available
             $orgData = $profileData['organization'] ?? [];
             $mophFdhToken = null;
+            $currentHcode = DB::table('main_setting')->where('name', 'hcode')->value('value') 
+                ?? (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?? '10989');
+
             if (!empty($orgData) && is_array($orgData)) {
+                // 1. ค้นหาองค์กรที่ตรงกับรหัสโรงพยาบาลปัจจุบันก่อน
                 foreach ($orgData as $org) {
-                    if (!empty($org['moph_access_token_idp_fdh'])) {
+                    $orgHcode = $org['hospital_code'] ?? ($org['hcode'] ?? ($org['unit_code'] ?? null));
+                    if ($orgHcode == $currentHcode && !empty($org['moph_access_token_idp_fdh'])) {
                         $mophFdhToken = $org['moph_access_token_idp_fdh'];
                         break;
+                    }
+                }
+                // 2. ถ้าไม่พบที่ตรง hcode ให้เอาองค์กรแรกที่มี FDH Token
+                if (empty($mophFdhToken)) {
+                    foreach ($orgData as $org) {
+                        if (!empty($org['moph_access_token_idp_fdh'])) {
+                            $mophFdhToken = $org['moph_access_token_idp_fdh'];
+                            break;
+                        }
                     }
                 }
             }

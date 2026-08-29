@@ -1058,7 +1058,7 @@
                                 // Pop-up ปิดแล้ว -> ตรวจสอบ Token ใหม่อีกครั้ง
                                 $.get('{{ route("f16_fdh_export.check_token") }}', function(recheckRes) {
                                     updateCsrfToken(recheckRes.csrf_token);
-                                    if (recheckRes.has_token && recheckRes.is_personal) {
+                                    if (recheckRes.has_token) {
                                         Swal.close();
                                         promptSendConfirmation(recheckRes);
                                     } else {
@@ -1094,7 +1094,7 @@
         $.get('{{ route("f16_fdh_export.check_token") }}', function(res) {
             $('#f16FdhExportProgressText').text('');
             updateCsrfToken(res.csrf_token);
-            if (res.has_token && res.is_personal) {
+            if (res.has_token) {
                 // มี Token พร้อมแล้ว -> แสดงกล่องยืนยันส่งทันที
                 promptSendConfirmation(res);
             } else {

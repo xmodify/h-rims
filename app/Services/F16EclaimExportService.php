@@ -123,43 +123,10 @@ class F16EclaimExportService
     /**
      * Map fund code to INS INSCL (UCS, OFC, SSS, LGO, PVT, etc. 3 characters)
      */
-    public static function mapInscl($hipdataCode, $pttype): string
+    public static function mapInscl($hipdataCode, $pttype = null): string
     {
         $hip = strtoupper(trim((string)$hipdataCode));
-        $ptt = strtoupper(trim((string)$pttype));
-
-        if ($hip === 'UCS' || $hip === 'UC' || str_starts_with($ptt, '1') || str_starts_with($ptt, '2') || str_starts_with($ptt, '7') || str_starts_with($ptt, '8') || str_starts_with($ptt, '9')) {
-            return 'UCS';
-        }
-        if ($hip === 'OFC' || $hip === 'A2' || str_starts_with($ptt, 'O')) {
-            return 'OFC';
-        }
-        if ($hip === 'SSS' || $hip === 'SS' || str_starts_with($ptt, '3')) {
-            return 'SSS';
-        }
-        if ($hip === 'LGO' || str_starts_with($ptt, 'L')) {
-            return 'LGO';
-        }
-        if ($hip === 'SSI') {
-            return 'SSI';
-        }
-        if ($hip === 'PVT' || str_starts_with($ptt, 'P')) {
-            return 'PVT';
-        }
-        if ($hip === 'BKK') {
-            return 'BKK';
-        }
-        if ($hip === 'BMT') {
-            return 'BMT';
-        }
-        if ($hip === 'SRT') {
-            return 'SRT';
-        }
-        if ($hip === 'STP') {
-            return 'STP';
-        }
-
-        return 'UCS';
+        return !empty($hip) ? $hip : 'UCS';
     }
 
     /**
@@ -321,7 +288,7 @@ class F16EclaimExportService
         try {
             $visitRows = DB::connection('hosxp')->select("
                 SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
-                       o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                       COALESCE(vp.pttype, o.pttype) as pttype, o.pt_subtype, o.ovstist, o.ovstost,
                        COALESCE(ost.export_code, o.ovstist, '1') as typein_code,
                        COALESCE(oos.export_code, o.ovstost, '1') as typeout_code,
                        v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,

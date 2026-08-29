@@ -1397,13 +1397,12 @@ class F16FdhExportService
             $datedsc = self::formatDate($v->dchdate);
             $timedsc = self::formatTime($v->dchtime);
             $dischs = substr((string)intval($v->dischs ?: '1'), 0, 1);
-            $discht = substr((string)intval($v->discht ?: '1'), 0, 1);
-            $warddsc = str_pad(trim((string)$v->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
-            $dept = self::formatClinic($v->dept);
+            $warddsc = substr(str_pad(trim((string)$v->warddsc), 2, '0', STR_PAD_LEFT), 0, 4) ?: '01';
+            $dept = substr(str_pad(trim((string)$v->dept), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
             $admwKg = floatval($v->adm_w) > 500 ? floatval($v->adm_w) / 1000 : floatval($v->adm_w ?: 50);
             $admw = number_format($admwKg, 2, '.', '');
             $uuc = '1';
-            $svctype = '';
+            $svctype = '1';
 
             $ipdLines[] = "{$v->hn}|{$v->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$warddsc}|{$dept}|{$admw}|{$uuc}|{$svctype}";
         }
@@ -1671,18 +1670,30 @@ class F16FdhExportService
     }
 
     /**
-     * ดึง Hospital Central Token (get_moph_access_token)
+     * ดึง FDH Access Token จาก MOPH Gateway (get_moph_access_token)
+     * ลำดับการใช้งาน:
+     * 1. ใช้ FDH Credentials ประจำตัวของผู้ใช้ที่ล็อกอิน (หากมีการตั้งค่าไว้ใน Edit Profile)
+     * 2. ใช้ FDH Credentials กลางของโรงพยาบาล (จาก main_setting)
      */
-    public static function getHospitalCentralToken(): ?string
+    public static function getHospitalCentralToken(?object $customUser = null): ?string
     {
         $settings = DB::table('main_setting')
             ->pluck('value', 'name')
             ->toArray();
 
-        $user      = $settings['fdh_user'] ?? null;
-        $password  = $settings['fdh_pass'] ?? null;
-        $secretKey = $settings['fdh_secretKey'] ?? null;
-        $hcode     = $settings['hospital_code'] ?? null;
+        $userObj = $customUser ?: (Auth::check() ? Auth::user() : null);
+
+        // หากผู้ใช้ปัจจุบันมีการตั้งค่า FDH ประจำตัวไว้ในโปรไฟล์ ให้ใช้ของผู้นั้นเป็นอันดับแรก
+        $user      = (!empty($userObj->fdh_user) && !empty($userObj->fdh_pass) && !empty($userObj->fdh_secretKey))
+                     ? $userObj->fdh_user
+                     : ($settings['fdh_user'] ?? null);
+        $password  = (!empty($userObj->fdh_user) && !empty($userObj->fdh_pass) && !empty($userObj->fdh_secretKey))
+                     ? $userObj->fdh_pass
+                     : ($settings['fdh_pass'] ?? null);
+        $secretKey = (!empty($userObj->fdh_user) && !empty($userObj->fdh_pass) && !empty($userObj->fdh_secretKey))
+                     ? $userObj->fdh_secretKey
+                     : ($settings['fdh_secretKey'] ?? null);
+        $hcode     = $settings['hospital_code'] ?? ($settings['hcode'] ?? null);
 
         if (!$user || !$password || !$secretKey || !$hcode) {
             return null;

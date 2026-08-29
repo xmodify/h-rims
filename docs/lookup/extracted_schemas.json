@@ -10216,6 +10216,18 @@
                 "default": null,
                 "extra": ""
             },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": "current_timestamp()",
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": "current_timestamp()",
+                "extra": "on update current_timestamp()"
+            },
             "transaction_id": {
                 "type": "varchar(100)",
                 "nullable": true,
@@ -10251,18 +10263,6 @@
                 "nullable": true,
                 "default": null,
                 "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": "current_timestamp()",
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": "current_timestamp()",
-                "extra": "on update current_timestamp()"
             }
         },
         "indexes": {
@@ -10330,12 +10330,6 @@
                 "default": null,
                 "extra": ""
             },
-            "account_name": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
             "created_at": {
                 "type": "timestamp",
                 "nullable": true,
@@ -10344,6 +10338,12 @@
             },
             "updated_at": {
                 "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -32533,6 +32533,24 @@
             },
             "provider_id": {
                 "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fdh_user": {
+                "type": "varchar(191)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fdh_pass": {
+                "type": "varchar(191)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fdh_secretKey": {
+                "type": "varchar(191)",
                 "nullable": true,
                 "default": null,
                 "extra": ""

@@ -1498,6 +1498,115 @@
     @stack('scripts')
 
     @auth
+        <!-- Edit Profile Modal -->
+        <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <form method="POST" action="{{ route('profile.update') }}" class="modal-content border-0 shadow-lg"
+                    id="editProfileForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header bg-success text-white py-3 border-0">
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-person-gear me-2"></i> แก้ไขข้อมูลส่วนตัว (Edit Profile)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control bg-light @error('name') is-invalid @enderror"
+                                    name="name" value="{{ old('name', auth()->user()->name) }}" required placeholder="กรอกชื่อ-นามสกุล">
+                                @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">อีเมล (Email) <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control bg-light @error('email') is-invalid @enderror"
+                                    name="email" value="{{ old('email', auth()->user()->email) }}" required placeholder="example@email.com">
+                                @error('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-muted">เลขบัตรประชาชน (CID)</label>
+                                <input type="text" class="form-control bg-light @error('cid') is-invalid @enderror"
+                                    name="cid" value="{{ old('cid', auth()->user()->cid) }}" maxlength="13" placeholder="เลขบัตรประชาชน 13 หลัก">
+                                @error('cid')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Card ตั้งค่าบัญชี FDH ประจำตัว -->
+                        <div class="card mt-4 border-0 shadow-sm" style="background-color: #f8fafc; border-left: 4px solid #0d9488 !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-shield-lock-fill text-teal fs-5 me-2" style="color: #0d9488;"></i>
+                                    <h6 class="fw-bold mb-0" style="color: #0f766e;">ตั้งค่าบัญชี Claim (FDH) ประจำตัว</h6>
+                                </div>
+                                <p class="text-muted small mb-3">
+                                    หากกรอกข้อมูลส่วนนี้ ระบบจะใช้บัญชี FDH ของท่านในการยิงส่ง 16 แฟ้ม (ชื่อผู้นำเข้าบนเว็บกระทรวงฯ จะเป็นชื่อของท่าน) <br>
+                                    <span class="text-secondary fst-italic">* หากเว้นว่างไว้ ระบบจะใช้บัญชีกลางของโรงพยาบาลจาก Main Setting โดยอัตโนมัติ</span>
+                                </p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small text-muted">FDH User</label>
+                                        <input type="text" class="form-control bg-white" name="fdh_user"
+                                            value="{{ old('fdh_user', auth()->user()->fdh_user) }}" placeholder="เช่น ratanachai.10987">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small text-muted">FDH Pass</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control bg-white" id="profile_fdh_pass" name="fdh_pass"
+                                                value="{{ old('fdh_pass', auth()->user()->fdh_pass) }}" placeholder="รหัสผ่าน FDH">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassVisibility('profile_fdh_pass', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small text-muted">FDH Secret Key</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control bg-white" id="profile_fdh_secretKey" name="fdh_secretKey"
+                                                value="{{ old('fdh_secretKey', auth()->user()->fdh_secretKey) }}" placeholder="Secret Key เช่น $jwt@moph#">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassVisibility('profile_fdh_secretKey', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-success px-4 rounded-pill">
+                            <i class="bi bi-check-circle me-1"></i> บันทึกข้อมูลส่วนตัว
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function togglePassVisibility(inputId, btn) {
+                const input = document.getElementById(inputId);
+                const icon = btn.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            }
+        </script>
+
         <!-- Change Password Modal -->
         <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">

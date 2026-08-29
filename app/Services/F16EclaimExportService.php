@@ -909,11 +909,11 @@ class F16EclaimExportService
             $timedsc = self::formatTime($ip->dchtime);
             $dischs = substr((string)intval($ip->dischs ?: '1'), 0, 1);
             $discht = substr((string)intval($ip->discht ?: '1'), 0, 1);
-            $ward = str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
-            $dept = str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT) ?: '01';
+            $ward = substr(str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT), 0, 4) ?: '01';
+            $dept = substr(str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
             $admw = number_format((float)($ip->adm_w ?: 50), 3, '.', '');
             $uuc = '1';
-            $svctype = $ip->svctype ?: 'I';
+            $svctype = $ip->svctype ?: '1';
 
             $ipdLines[] = "{$v->hn}|{$v->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$ward}|{$dept}|{$admw}|{$uuc}|{$svctype}";
         }
@@ -1617,12 +1617,12 @@ class F16EclaimExportService
             $timedsc = self::formatTime($ip->dchtime);
             $dischs = substr((string)intval($ip->dischs ?: '1'), 0, 1);
             $discht = substr((string)intval($ip->discht ?: '1'), 0, 1);
-            $ward = str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
-            $dept = str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT) ?: '01';
+            $ward = substr(str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT), 0, 4) ?: '01';
+            $dept = substr(str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
             $admwKg = floatval($ip->adm_w) > 500 ? floatval($ip->adm_w) / 1000 : floatval($ip->adm_w ?: 50);
             $admw = number_format($admwKg, 3, '.', '');
             $uuc = '1';
-            $svctype = $ip->svctype ?: '';
+            $svctype = $ip->svctype ?: '1';
 
             $ipdLines[] = "{$ip->hn}|{$ip->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$ward}|{$dept}|{$admw}|{$uuc}|{$svctype}";
         }

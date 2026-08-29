@@ -40,6 +40,9 @@ class User extends Authenticatable
         'allow_check_right',
         'allow_hosfin',
         'provider_id',
+        'fdh_user',
+        'fdh_pass',
+        'fdh_secretKey',
         'moph_token',
         'moph_token_expire',
     ];

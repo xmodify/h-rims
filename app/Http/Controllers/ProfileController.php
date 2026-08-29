@@ -30,4 +30,34 @@ class ProfileController extends Controller
 
         return back()->with('success', 'เปลี่ยนรหัสผ่านสำเร็จแล้ว!');
     }
+
+    /**
+     * Update the user's profile information and personal FDH credentials.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'cid' => ['nullable', 'string', 'max:13'],
+            'fdh_user' => ['nullable', 'string', 'max:255'],
+            'fdh_pass' => ['nullable', 'string', 'max:255'],
+            'fdh_secretKey' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'cid' => $request->cid ? trim($request->cid) : null,
+            'fdh_user' => $request->fdh_user ? trim($request->fdh_user) : null,
+            'fdh_pass' => $request->fdh_pass ? trim($request->fdh_pass) : null,
+            'fdh_secretKey' => $request->fdh_secretKey ? trim($request->fdh_secretKey) : null,
+        ];
+
+        $user->update($updateData);
+
+        return back()->with('success', 'บันทึกข้อมูลโปรไฟล์สำเร็จแล้ว!');
+    }
 }

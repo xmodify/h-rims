@@ -48,6 +48,19 @@ class F16FdhExportService
     }
 
     /**
+     * ตัดทอนหรือฟอร์แมตรหัสสถานพยาบาล (5 หลัก โดยตัดเอา 5 หลักสุดท้าย เช่น EA0010703 -> 10703)
+     */
+    public static function formatHospcode($hospcode): string
+    {
+        $code = trim((string)$hospcode);
+        if (empty($code)) return '';
+        if (preg_match('/([0-9]{5})$/', $code, $m)) {
+            return $m[1];
+        }
+        return strlen($code) > 5 ? substr($code, -5) : $code;
+    }
+
+    /**
      * แมป Clinic Code (2 หลัก หรือ 5 หลัก)
      */
     public static function formatClinic($spclty): string
@@ -749,7 +762,7 @@ class F16FdhExportService
             $v = $visitsByVn->get($ro->vn);
             $dateopd = self::formatDate($v->vstdate ?? $ro->vstdate ?? $ro->refer_date);
             $clinic = self::formatClinic($ro->spclty ?? ($v->spclty ?? ''));
-            $refer = trim((string)$ro->refer_hospcode);
+            $refer = self::formatHospcode($ro->refer_hospcode);
             $refertype = $ro->refer_type ?: '2';
             $seq = $ro->vn;
             $referdate = self::formatDate($ro->refer_date);
@@ -760,7 +773,7 @@ class F16FdhExportService
             $v = $visitsByVn->get($ri->vn);
             $dateopd = self::formatDate($v->vstdate ?? $ri->vstdate ?? $ri->refer_date);
             $clinic = self::formatClinic($ri->spclty ?? ($v->spclty ?? ''));
-            $refer = trim((string)$ri->refer_hospcode);
+            $refer = self::formatHospcode($ri->refer_hospcode);
             $refertype = $ri->refer_type ?: '1';
             $seq = $ri->vn;
             $referdate = self::formatDate($ri->refer_date);
@@ -891,9 +904,9 @@ class F16FdhExportService
             $aetime = $er->aetime ?: '';
             $aetype = '';
             $referno = trim((string)($er->refer_no ?: ''));
-            $refmaini = trim((string)($er->refmaini ?: ''));
+            $refmaini = !empty($er->refmaini) ? self::formatHospcode($er->refmaini) : '';
             $ireftype = !empty($refmaini) ? '1' : '';
-            $refmaino = trim((string)($er->refmaino ?: ''));
+            $refmaino = !empty($er->refmaino) ? self::formatHospcode($er->refmaino) : '';
             $oreftype = !empty($refmaino) ? '1100' : '';
             $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z']) ? trim((string)$er->ucae) : 'N';
             $emtype = '3';
@@ -1415,7 +1428,7 @@ class F16FdhExportService
         $admissionsByVn = $admissions->keyBy('vn');
 
         foreach ($ipdRefers as $ro) {
-            $refer = trim((string)$ro->refer_hospcode);
+            $refer = self::formatHospcode($ro->refer_hospcode);
             $refertype = $ro->refer_type ?: '2';
             $an = '';
             if ($admissionsByAn->has($ro->vn)) {
@@ -1428,7 +1441,7 @@ class F16FdhExportService
             }
         }
         foreach ($ipdReferIns as $ri) {
-            $refer = trim((string)$ri->refer_hospcode);
+            $refer = self::formatHospcode($ri->refer_hospcode);
             $refertype = $ri->refer_type ?: '1';
             $an = '';
             if ($admissionsByAn->has($ri->vn)) {
@@ -1520,7 +1533,44 @@ class F16FdhExportService
         }
 
         // 13. AER.txt (18 คอลัมน์)
+        // HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT
         $aerLines = ["HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT"];
+        $referOutByAn = $ipdRefers->keyBy(function($item) use ($admissionsByAn, $admissionsByVn) {
+            if ($admissionsByAn->has($item->vn)) return $item->vn;
+            if ($admissionsByVn->has($item->vn)) return $admissionsByVn->get($item->vn)->an;
+            return $item->vn;
+        });
+        $referInByAn = $ipdReferIns->keyBy(function($item) use ($admissionsByAn, $admissionsByVn) {
+            if ($admissionsByAn->has($item->vn)) return $item->vn;
+            if ($admissionsByVn->has($item->vn)) return $admissionsByVn->get($item->vn)->an;
+            return $item->vn;
+        });
+
+        foreach ($admissions as $v) {
+            $ro = $referOutByAn->get($v->an);
+            $ri = $referInByAn->get($v->an);
+            $ucae = trim((string)($v->nhso_ucae_type_code ?? ''));
+            $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+
+            if ($ro || $ri || $isUcae) {
+                $dateopd = self::formatDate($v->regdate);
+                $authae = '';
+                $aedate = $dateopd;
+                $aetime = !empty($ro->refer_time) ? self::formatTime($ro->refer_time) : (!empty($ri->refer_time) ? self::formatTime($ri->refer_time) : self::formatTime($v->regtime));
+                $aetype = '';
+                $referno = trim((string)($ro->refer_number ?? ($ri->refer_number ?? '')));
+                $refmaini = !empty($ri->refer_hospcode) ? self::formatHospcode($ri->refer_hospcode) : '';
+                $ireftype = !empty($refmaini) ? '1' : '';
+                $refmaino = !empty($ro->refer_hospcode) ? self::formatHospcode($ro->refer_hospcode) : '';
+                $oreftype = !empty($refmaino) ? '1100' : '';
+                $ucaeVal = $isUcae ? $ucae : 'N';
+                $emtype = '3';
+                $seq = $v->an;
+                $an = $v->an;
+
+                $aerLines[] = "{$v->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucaeVal}|{$emtype}|{$seq}|||";
+            }
+        }
 
         // 14. ADP.txt (27 คอลัมน์)
         $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];

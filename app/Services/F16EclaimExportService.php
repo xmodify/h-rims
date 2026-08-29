@@ -41,6 +41,19 @@ class F16EclaimExportService
     }
 
     /**
+     * ตัดทอนหรือฟอร์แมตรหัสสถานพยาบาล (5 หลัก โดยตัดเอา 5 หลักสุดท้าย เช่น EA0010703 -> 10703)
+     */
+    public static function formatHospcode($hospcode): string
+    {
+        $code = trim((string)$hospcode);
+        if (empty($code)) return '';
+        if (preg_match('/([0-9]{5})$/', $code, $m)) {
+            return $m[1];
+        }
+        return strlen($code) > 5 ? substr($code, -5) : $code;
+    }
+
+    /**
      * Format clinic code to 5 digits (e.g. 01200, 01400, 00100)
      */
     private static function formatClinic($spclty)
@@ -1028,7 +1041,7 @@ class F16EclaimExportService
             $v = $visitsByVn->get($ro->vn);
             $dateopd = self::formatDate($v->vstdate ?? $ro->vstdate ?? $ro->refer_date);
             $clinic = self::formatClinic($ro->spclty ?? ($v->spclty ?? ''));
-            $refer = trim((string)$ro->refer_hospcode);
+            $refer = self::formatHospcode($ro->refer_hospcode);
             $refertype = $ro->refer_type ?: '2';
             $seq = $ro->vn;
             $referdate = self::formatDate($ro->refer_date);
@@ -1043,7 +1056,7 @@ class F16EclaimExportService
             $v = $visitsByVn->get($ri->vn);
             $dateopd = self::formatDate($v->vstdate ?? $ri->vstdate ?? $ri->refer_date);
             $clinic = self::formatClinic($ri->spclty ?? ($v->spclty ?? ''));
-            $refer = trim((string)$ri->refer_hospcode);
+            $refer = self::formatHospcode($ri->refer_hospcode);
             $refertype = $ri->refer_type ?: '1';
             $seq = $ri->vn;
             $referdate = self::formatDate($ri->refer_date);
@@ -1190,9 +1203,9 @@ class F16EclaimExportService
             $aetime = $er->aetime ?: '';
             $aetype = '';
             $referno = trim((string)($er->refer_no ?: ''));
-            $refmaini = trim((string)($er->refmaini ?: ''));
+            $refmaini = !empty($er->refmaini) ? self::formatHospcode($er->refmaini) : '';
             $ireftype = !empty($refmaini) ? '1' : '';
-            $refmaino = trim((string)($er->refmaino ?: ''));
+            $refmaino = !empty($er->refmaino) ? self::formatHospcode($er->refmaino) : '';
             $oreftype = !empty($refmaino) ? '1100' : '';
             $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z']) ? trim((string)$er->ucae) : '';
             $emtype = '3';
@@ -1471,15 +1484,39 @@ class F16EclaimExportService
         // 4. Query Refer (referout / referin)
         // -------------------------------------------------------------
         $ipdRefers = collect();
-        try {
-            $referRows = DB::connection('hosxp')->select("
-                SELECT r.vn as an, COALESCE(NULLIF(r.refer_hospcode,''), r.hospcode) as refer, COALESCE(r.refer_type, 2) as refertype
-                FROM referout r
-                WHERE r.vn IN ($placeholders)
-            ", $ans);
-            $ipdRefers = collect($referRows);
-        } catch (\Throwable $e) {
-            Log::warning("F16 IPD Export referout query error: " . $e->getMessage());
+        $ipdReferIns = collect();
+        $vnsList = $admissions->pluck('vn')->filter()->unique()->toArray();
+        $lookupKeys = array_unique(array_merge($ans, $vnsList));
+        $lookupPlaceholders = implode(',', array_fill(0, count($lookupKeys), '?'));
+        
+        if (!empty($lookupKeys)) {
+            try {
+                $referRows = DB::connection('hosxp')->select("
+                    SELECT ro.vn, ro.hn, ro.refer_date,
+                           TIME_FORMAT(ro.refer_time, '%H%i') as refer_time,
+                           COALESCE(NULLIF(ro.refer_hospcode, ''), ro.hospcode) as refer_hospcode,
+                           COALESCE(ro.refer_type, '2') as refer_type,
+                           ro.refer_number, o.spclty, o.vstdate
+                    FROM referout ro
+                    LEFT JOIN ovst o ON o.vn = ro.vn
+                    WHERE ro.vn IN ($lookupPlaceholders)
+                ", $lookupKeys);
+                $ipdRefers = collect($referRows);
+            } catch (\Throwable $e) {}
+
+            try {
+                $referInRows = DB::connection('hosxp')->select("
+                    SELECT ri.vn, ri.hn, ri.refer_date,
+                           TIME_FORMAT(ri.refer_time, '%H%i') as refer_time,
+                           COALESCE(NULLIF(ri.refer_hospcode, ''), ri.hospcode) as refer_hospcode,
+                           COALESCE(ri.refer_type, '1') as refer_type,
+                           ri.docno as refer_number, o.spclty, o.vstdate
+                    FROM referin ri
+                    LEFT JOIN ovst o ON o.vn = ri.vn
+                    WHERE ri.vn IN ($lookupPlaceholders)
+                ", $lookupKeys);
+                $ipdReferIns = collect($referInRows);
+            } catch (\Throwable $e) {}
         }
 
         // -------------------------------------------------------------
@@ -1528,7 +1565,6 @@ class F16EclaimExportService
         // 7. Query Lab (lab_head, lab_order, lab_items) for IPD if needed
         // -------------------------------------------------------------
         $labOrders = collect();
-        $vnsList = $admissions->pluck('vn')->filter()->unique()->toArray();
         if (!empty($vnsList)) {
             $vPlaceholders = implode(',', array_fill(0, count($vnsList), '?'));
             try {
@@ -1610,21 +1646,21 @@ class F16EclaimExportService
 
         // 4. IPD.txt (13 columns)
         $ipdLines = ["HN|AN|DATEADM|TIMEADM|DATEDSC|TIMEDSC|DISCHS|DISCHT|WARDDSC|DEPT|ADM_W|UUC|SVCTYPE"];
-        foreach ($admissions as $ip) {
-            $dateadm = self::formatDate($ip->regdate);
-            $timeadm = self::formatTime($ip->regtime);
-            $datedsc = self::formatDate($ip->dchdate);
-            $timedsc = self::formatTime($ip->dchtime);
-            $dischs = substr((string)intval($ip->dischs ?: '1'), 0, 1);
-            $discht = substr((string)intval($ip->discht ?: '1'), 0, 1);
-            $ward = substr(str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT), 0, 4) ?: '01';
-            $dept = substr(str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
-            $admwKg = floatval($ip->adm_w) > 500 ? floatval($ip->adm_w) / 1000 : floatval($ip->adm_w ?: 50);
+        foreach ($admissions as $v) {
+            $dateadm = self::formatDate($v->regdate);
+            $timeadm = self::formatTime($v->regtime);
+            $datedsc = self::formatDate($v->dchdate);
+            $timedsc = self::formatTime($v->dchtime);
+            $dischs = substr((string)intval($v->dischs ?: '1'), 0, 1);
+            $discht = substr((string)intval($v->discht ?: '1'), 0, 1);
+            $warddsc = substr(str_pad(trim((string)$v->warddsc), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
+            $dept = substr(str_pad(trim((string)$v->dept), 2, '0', STR_PAD_LEFT), 0, 2) ?: '01';
+            $admwKg = floatval($v->adm_w) > 500 ? floatval($v->adm_w) / 1000 : floatval($v->adm_w ?: 50);
             $admw = number_format($admwKg, 3, '.', '');
             $uuc = '1';
-            $svctype = $ip->svctype ?: '1';
+            $svctype = $v->svctype ?: '1';
 
-            $ipdLines[] = "{$ip->hn}|{$ip->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$ward}|{$dept}|{$admw}|{$uuc}|{$svctype}";
+            $ipdLines[] = "{$v->hn}|{$v->an}|{$dateadm}|{$timeadm}|{$datedsc}|{$timedsc}|{$dischs}|{$discht}|{$warddsc}|{$dept}|{$admw}|{$uuc}|{$svctype}";
         }
 
         // 5. ODX.txt (8 columns)
@@ -1667,11 +1703,34 @@ class F16EclaimExportService
 
         // 10. IRF.txt (3 columns)
         $irfLines = ["AN|REFER|REFERTYPE"];
-        foreach ($ipdRefers as $ir) {
-            $refer = trim((string)$ir->refer);
-            if (empty($refer)) continue;
-            $refertype = $ir->refertype ?: '2';
-            $irfLines[] = "{$ir->an}|{$refer}|{$refertype}";
+        $admissionsByAn = $admissions->keyBy('an');
+        $admissionsByVn = $admissions->keyBy('vn');
+
+        foreach ($ipdRefers as $ro) {
+            $refer = self::formatHospcode($ro->refer_hospcode);
+            $refertype = $ro->refer_type ?: '2';
+            $an = '';
+            if ($admissionsByAn->has($ro->vn)) {
+                $an = $ro->vn;
+            } elseif ($admissionsByVn->has($ro->vn)) {
+                $an = $admissionsByVn->get($ro->vn)->an;
+            }
+            if (!empty($an)) {
+                $irfLines[] = "{$an}|{$refer}|{$refertype}";
+            }
+        }
+        foreach ($ipdReferIns as $ri) {
+            $refer = self::formatHospcode($ri->refer_hospcode);
+            $refertype = $ri->refer_type ?: '1';
+            $an = '';
+            if ($admissionsByAn->has($ri->vn)) {
+                $an = $ri->vn;
+            } elseif ($admissionsByVn->has($ri->vn)) {
+                $an = $admissionsByVn->get($ri->vn)->an;
+            }
+            if (!empty($an)) {
+                $irfLines[] = "{$an}|{$refer}|{$refertype}";
+            }
         }
 
         // 11. LVD.txt (7 columns)
@@ -1708,8 +1767,6 @@ class F16EclaimExportService
                 $groupedDrugs[$key]->rxdate = $it->rxdate;
             }
         }
-
-        $admissionsByAn = $admissions->keyBy('an');
 
         foreach ($groupedDrugs as $it) {
             $adm = $admissionsByAn->get($it->an);
@@ -1780,7 +1837,44 @@ class F16EclaimExportService
         }
 
         // 15. AER.txt (18 columns)
+        // HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT
         $aerLines = ["HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT"];
+        $referOutByAn = $ipdRefers->keyBy(function($item) use ($admissionsByAn, $admissionsByVn) {
+            if ($admissionsByAn->has($item->vn)) return $item->vn;
+            if ($admissionsByVn->has($item->vn)) return $admissionsByVn->get($item->vn)->an;
+            return $item->vn;
+        });
+        $referInByAn = $ipdReferIns->keyBy(function($item) use ($admissionsByAn, $admissionsByVn) {
+            if ($admissionsByAn->has($item->vn)) return $item->vn;
+            if ($admissionsByVn->has($item->vn)) return $admissionsByVn->get($item->vn)->an;
+            return $item->vn;
+        });
+
+        foreach ($admissions as $v) {
+            $ro = $referOutByAn->get($v->an);
+            $ri = $referInByAn->get($v->an);
+            $ucae = trim((string)($v->nhso_ucae_type_code ?? ''));
+            $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+
+            if ($ro || $ri || $isUcae) {
+                $dateopd = self::formatDate($v->regdate);
+                $authae = '';
+                $aedate = $dateopd;
+                $aetime = !empty($ro->refer_time) ? self::formatTime($ro->refer_time) : (!empty($ri->refer_time) ? self::formatTime($ri->refer_time) : self::formatTime($v->regtime));
+                $aetype = '';
+                $referno = trim((string)($ro->refer_number ?? ($ri->refer_number ?? '')));
+                $refmaini = !empty($ri->refer_hospcode) ? self::formatHospcode($ri->refer_hospcode) : '';
+                $ireftype = !empty($refmaini) ? '1' : '';
+                $refmaino = !empty($ro->refer_hospcode) ? self::formatHospcode($ro->refer_hospcode) : '';
+                $oreftype = !empty($refmaino) ? '1100' : '';
+                $ucaeVal = $isUcae ? $ucae : 'N';
+                $emtype = '3';
+                $seq = $v->an;
+                $an = $v->an;
+
+                $aerLines[] = "{$v->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucaeVal}|{$emtype}|{$seq}|||";
+            }
+        }
 
         // 16. ADP.txt (27 columns)
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM

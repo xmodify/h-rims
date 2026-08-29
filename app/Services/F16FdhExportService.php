@@ -1006,7 +1006,7 @@ class F16FdhExportService
         // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1');
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
         });
 
         foreach ($drugItems as $it) {
@@ -1033,8 +1033,8 @@ class F16FdhExportService
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = '2'; // 1=In-hospital, 2=Home
             $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
-            $sigcode = trim((string)$it->sigcode);
-            $sigtext = trim(implode(' ', array_filter([$it->sigtext1, $it->sigtext2, $it->sigtext3])));
+            $sigcode = mb_substr(trim((string)$it->sigcode), 0, 50, 'UTF-8');
+            $sigtext = mb_substr(str_replace('|', ' ', trim(implode(' ', array_filter([$it->sigtext1, $it->sigtext2, $it->sigtext3])))), 0, 255, 'UTF-8');
             $provider = $it->doctor_license ?: ($v ? ($v->doctor_license ?: 'ว00000') : 'ว00000');
             $spitem = '';
 
@@ -1142,7 +1142,9 @@ class F16FdhExportService
         try {
             $admRows = DB::connection('hosxp')->select("
                 SELECT ipt.an, ipt.vn, ipt.hn, ipt.regdate, ipt.regtime, ipt.dchdate, ipt.dchtime,
-                       ipt.dchstts as dischs, ipt.dchtype as discht, ipt.ward as warddsc,
+                       COALESCE(dst.nhso_dchstts, ipt.dchstts, '1') as dischs,
+                       COALESCE(dt.nhso_dchtype, ipt.dchtype, '1') as discht,
+                       ipt.ward as warddsc,
                        ipt.spclty as dept, ipt.bw as adm_w, '' as svctype,
                        ipt.pttype,
                        a.pdx, a.dx_doctor, a.income, a.paid_money, a.rcpt_money, a.uc_money,
@@ -1162,6 +1164,8 @@ class F16FdhExportService
                 LEFT JOIN ipt_pttype ip ON ip.an = ipt.an
                 LEFT JOIN pttype p ON p.pttype = COALESCE(ip.pttype, ipt.pttype)
                 LEFT JOIN doctor doc ON doc.code = ipt.admdoctor
+                LEFT JOIN dchstts dst ON dst.dchstts = ipt.dchstts
+                LEFT JOIN dchtype dt ON dt.dchtype = ipt.dchtype
                 WHERE ipt.an IN ($placeholders)
                 ORDER BY ipt.regdate, ipt.regtime
             ", $ans);
@@ -1425,11 +1429,12 @@ class F16FdhExportService
             $timeadm = self::formatTime($v->regtime);
             $datedsc = self::formatDate($v->dchdate);
             $timedsc = self::formatTime($v->dchtime);
-            $dischs = $v->dischs ?: '1';
-            $discht = $v->discht ?: '1';
-            $warddsc = $v->warddsc ?: '01';
+            $dischs = substr((string)intval($v->dischs ?: '1'), 0, 1);
+            $discht = substr((string)intval($v->discht ?: '1'), 0, 1);
+            $warddsc = str_pad(trim((string)$v->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
             $dept = self::formatClinic($v->dept);
-            $admw = !empty($v->adm_w) ? number_format((float)$v->adm_w, 2, '.', '') : '0.00';
+            $admwKg = floatval($v->adm_w) > 500 ? floatval($v->adm_w) / 1000 : floatval($v->adm_w ?: 50);
+            $admw = number_format($admwKg, 2, '.', '');
             $uuc = '1';
             $svctype = '';
 
@@ -1611,7 +1616,7 @@ class F16FdhExportService
         // 16. DRU.txt (24 คอลัมน์)
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1');
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
         });
 
         foreach ($drugItems as $it) {
@@ -1637,8 +1642,8 @@ class F16FdhExportService
             $totcopay = '0';
             $usestatus = '1'; // 1=In-hospital
             $total = number_format((float)$it->sum_price, 2, '.', '');
-            $sigcode = trim((string)$it->sigcode);
-            $sigtext = trim(implode(' ', array_filter([$it->sigtext1, $it->sigtext2, $it->sigtext3])));
+            $sigcode = mb_substr(trim((string)$it->sigcode), 0, 50, 'UTF-8');
+            $sigtext = mb_substr(str_replace('|', ' ', trim(implode(' ', array_filter([$it->sigtext1, $it->sigtext2, $it->sigtext3])))), 0, 255, 'UTF-8');
             $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
             $spitem = '';
 
@@ -1788,9 +1793,10 @@ class F16FdhExportService
     }
 
     /**
-     * ค้นหา Token ที่เหมาะสมสำหรับส่งข้อมูล (Personal Provider ID Token -> User Token -> Hospital Token)
+     * ค้นหา Token ที่เหมาะสมสำหรับส่งข้อมูล (Personal Provider ID Token -> User Token)
+     * โดยการส่งเคลมจะไม่อนุญาตให้ใช้ Token กลางของ รพ. เพื่อระบุตัวตนผู้ส่งที่แท้จริง
      */
-    public static function resolveFdhToken(?string $customToken = null): array
+    public static function resolveFdhToken(?string $customToken = null, bool $allowHospitalFallback = false): array
     {
         // 1. Explicit Custom Token
         if (!empty($customToken) && !self::isJwtExpired($customToken)) {
@@ -1832,15 +1838,17 @@ class F16FdhExportService
             }
         }
 
-        // 4. Fallback: Hospital Central Token
-        $hospitalToken = self::getHospitalCentralToken();
-        if (!empty($hospitalToken)) {
-            $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
-            return [
-                'token' => $hospitalToken,
-                'type' => 'Hospital Central Token',
-                'user_name' => $tokenName
-            ];
+        // 4. Fallback: Hospital Central Token (ใช้เฉพาะกรณีที่อนุญาต เช่น Background Sync)
+        if ($allowHospitalFallback) {
+            $hospitalToken = self::getHospitalCentralToken();
+            if (!empty($hospitalToken)) {
+                $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
+                return [
+                    'token' => $hospitalToken,
+                    'type' => 'Hospital Central Token',
+                    'user_name' => $tokenName
+                ];
+            }
         }
 
         return [
@@ -1864,8 +1872,8 @@ class F16FdhExportService
             ];
         }
 
-        // 1. Resolve Token
-        $tokenInfo = self::resolveFdhToken($customToken);
+        // 1. Resolve Token (บังคับ Personal Provider ID Token เสมอ เพื่อระบุตัวตนผู้ส่ง)
+        $tokenInfo = self::resolveFdhToken($customToken, false);
         $token = $tokenInfo['token'];
         $tokenType = $tokenInfo['type'];
         $senderName = $tokenInfo['user_name'] ?? (Auth::user()->name ?? 'System');
@@ -1874,7 +1882,7 @@ class F16FdhExportService
             return [
                 'success' => false,
                 'need_login' => true,
-                'message' => 'ยังไม่ได้เชื่อมต่อ Provider ID หรือ Token หมดอายุ กรุณาเข้าสู่ระบบด้วย Provider ID ก่อนส่งข้อมูล'
+                'message' => 'กรุณาเข้าสู่ระบบด้วย Provider ID (หมอพร้อม) ก่อนส่งข้อมูล เพื่อระบุตัวตนผู้ส่งอย่างถูกต้อง'
             ];
         }
 
@@ -1939,15 +1947,13 @@ class F16FdhExportService
             $rawResponse = $response->body();
             $json = $response->json();
 
-            // หาก Token ไม่ผ่าน (401/403) ให้ลองส่งด้วย Hospital Gateway Token จาก Account Center
+            // หาก Token ไม่ผ่าน (401/403) ให้แจ้งเตือนให้เข้าสู่ระบบ Provider ID ใหม่อีกครั้ง
             if ($status === 401 || $status === 403) {
-                $hospitalToken = self::getHospitalCentralToken();
-                if (!empty($hospitalToken) && $hospitalToken !== $token) {
-                    $response = $makeRequest($hospitalToken);
-                    $status = $response->status();
-                    $rawResponse = $response->body();
-                    $json = $response->json();
-                }
+                return [
+                    'success' => false,
+                    'need_login' => true,
+                    'message' => 'Provider ID Token หมดอายุหรือไม่ได้รับสิทธิ์ในการส่งเคลม กรุณาเข้าสู่ระบบด้วย Provider ID ใหม่อีกครั้ง'
+                ];
             }
 
             if ($status === 200 || $status === 201 || (isset($json['status']) && $json['status'] == 200)) {
@@ -1971,80 +1977,73 @@ class F16FdhExportService
             $responseMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย: ' . $e->getMessage();
         }
 
-        // 5. If Success -> Upsert into fdh_claim_status table
+        // 5. If Success -> Update or Insert into fdh_claim_status table
         if ($isSuccess) {
             $now = now();
-            $upsertData = [];
-
             $senderCid = Auth::user()->cid ?? null;
 
-            // Query items to extract HN and visit identifier
-            if ($isIp) {
-                $admList = DB::connection('hosxp')
-                    ->table('ipt')
-                    ->whereIn('an', $keys)
-                    ->select('an', 'hn', 'vn')
-                    ->get();
+            try {
+                if ($isIp) {
+                    $admList = DB::connection('hosxp')
+                        ->table('ipt')
+                        ->whereIn('an', $keys)
+                        ->select('an', 'hn', 'vn')
+                        ->get();
 
-                foreach ($admList as $adm) {
-                    $upsertData[] = [
-                        'hn' => $adm->hn,
-                        'seq' => null,
-                        'an' => $adm->an,
-                        'hcode' => $hcode,
-                        'status' => 'WAIT',
-                        'process_status' => '0',
-                        'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
-                        'stm_period' => null,
-                        'transaction_id' => $transactionId,
-                        'send_channel' => 'API',
-                        'send_date' => $now,
-                        'send_user' => $senderName,
-                        'send_user_cid' => $senderCid,
-                        'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
-            } else {
-                $ovstList = DB::connection('hosxp')
-                    ->table('ovst')
-                    ->whereIn('vn', $keys)
-                    ->select('vn', 'hn')
-                    ->get();
+                    foreach ($admList as $adm) {
+                        DB::table('fdh_claim_status')->updateOrInsert(
+                            ['an' => $adm->an],
+                            [
+                                'hn' => $adm->hn,
+                                'seq' => null,
+                                'an' => $adm->an,
+                                'hcode' => $hcode,
+                                'status' => 'WAIT',
+                                'process_status' => '0',
+                                'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
+                                'stm_period' => null,
+                                'transaction_id' => $transactionId,
+                                'send_channel' => 'API',
+                                'send_date' => $now,
+                                'send_user' => $senderName,
+                                'send_user_cid' => $senderCid,
+                                'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
+                                'updated_at' => $now,
+                            ]
+                        );
+                    }
+                } else {
+                    $ovstList = DB::connection('hosxp')
+                        ->table('ovst')
+                        ->whereIn('vn', $keys)
+                        ->select('vn', 'hn')
+                        ->get();
 
-                foreach ($ovstList as $o) {
-                    $upsertData[] = [
-                        'hn' => $o->hn,
-                        'seq' => $o->vn,
-                        'an' => null,
-                        'hcode' => $hcode,
-                        'status' => 'WAIT',
-                        'process_status' => '0',
-                        'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
-                        'stm_period' => null,
-                        'transaction_id' => $transactionId,
-                        'send_channel' => 'API',
-                        'send_date' => $now,
-                        'send_user' => $senderName,
-                        'send_user_cid' => $senderCid,
-                        'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
+                    foreach ($ovstList as $o) {
+                        DB::table('fdh_claim_status')->updateOrInsert(
+                            ['seq' => $o->vn],
+                            [
+                                'hn' => $o->hn,
+                                'seq' => $o->vn,
+                                'an' => null,
+                                'hcode' => $hcode,
+                                'status' => 'WAIT',
+                                'process_status' => '0',
+                                'status_message_th' => 'ส่งข้อมูลผ่าน FDH API สำเร็จ (รอประมวลผล)',
+                                'stm_period' => null,
+                                'transaction_id' => $transactionId,
+                                'send_channel' => 'API',
+                                'send_date' => $now,
+                                'send_user' => $senderName,
+                                'send_user_cid' => $senderCid,
+                                'api_response' => is_string($rawResponse) ? substr($rawResponse, 0, 2000) : json_encode($rawResponse),
+                                'updated_at' => $now,
+                            ]
+                        );
+                    }
                 }
-            }
-
-            if (!empty($upsertData)) {
-                try {
-                    DB::table('fdh_claim_status')->upsert(
-                        $upsertData,
-                        ['hn', 'seq', 'an'],
-                        ['hcode', 'status', 'process_status', 'status_message_th', 'transaction_id', 'send_channel', 'send_date', 'send_user', 'send_user_cid', 'api_response', 'updated_at']
-                    );
-                } catch (\Throwable $e) {
-                    Log::warning("Could not upsert fdh_claim_status: " . $e->getMessage());
-                }
+            } catch (\Throwable $e) {
+                Log::warning("Could not updateOrInsert fdh_claim_status: " . $e->getMessage());
             }
 
             return [

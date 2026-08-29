@@ -234,6 +234,33 @@ class MainSettingController extends Controller
                         }
                     }
 
+                    // เคลียร์รายการซ้ำซ้อนในตาราง fdh_claim_status (ถ้ามี)
+                    if (\Illuminate\Support\Facades\Schema::hasTable('fdh_claim_status')) {
+                        try {
+                            $deletedDupOp = \Illuminate\Support\Facades\DB::delete("
+                                DELETE t1 FROM fdh_claim_status t1
+                                INNER JOIN fdh_claim_status t2 
+                                WHERE t1.id < t2.id 
+                                  AND t1.seq = t2.seq 
+                                  AND t1.seq IS NOT NULL 
+                                  AND t1.seq != ''
+                            ");
+                            $deletedDupIp = \Illuminate\Support\Facades\DB::delete("
+                                DELETE t1 FROM fdh_claim_status t1
+                                INNER JOIN fdh_claim_status t2 
+                                WHERE t1.id < t2.id 
+                                  AND t1.an = t2.an 
+                                  AND t1.an IS NOT NULL 
+                                  AND t1.an != ''
+                            ");
+                            if ($deletedDupOp > 0 || $deletedDupIp > 0) {
+                                $details[] = "ล้างข้อมูลซ้ำ fdh_claim_status (" . number_format($deletedDupOp + $deletedDupIp) . " รายการ)";
+                            }
+                        } catch (\Throwable $ex) {
+                            \Illuminate\Support\Facades\Log::warning("fdh_claim_status cleanup warning: " . $ex->getMessage());
+                        }
+                    }
+
                     $msg = 'ตรวจสอบโครงสร้างทุกตารางสำเร็จ';
                     if (!empty($details)) {
                         $msg .= ' (ปรับปรุง: ' . implode(', ', $details) . ')';

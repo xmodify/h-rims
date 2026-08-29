@@ -170,9 +170,9 @@ class F16FdhExportController extends Controller
      */
     public function checkToken(Request $request)
     {
-        $tokenInfo = F16FdhExportService::resolveFdhToken();
+        $tokenInfo = F16FdhExportService::resolveFdhToken(null, false);
         $isPersonal = ($tokenInfo['type'] === 'Provider ID (Personal Session)' || $tokenInfo['type'] === 'Provider ID (Database)' || $tokenInfo['type'] === 'Custom Token');
-        $hasToken = !empty($tokenInfo['token']);
+        $hasToken = !empty($tokenInfo['token']) && $isPersonal;
 
         return response()->json([
             'status' => 'success',

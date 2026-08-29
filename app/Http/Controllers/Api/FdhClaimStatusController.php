@@ -184,11 +184,19 @@ class FdhClaimStatusController extends Controller
         }
 
         if (!empty($upsertData)) {
-            DB::table('fdh_claim_status')->upsert(
-                $upsertData,
-                ['hn', 'seq', 'an'],
-                ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
-            );
+            foreach ($upsertData as $row) {
+                if (!empty($row['an'])) {
+                    DB::table('fdh_claim_status')->updateOrInsert(
+                        ['an' => $row['an']],
+                        $row
+                    );
+                } elseif (!empty($row['seq'])) {
+                    DB::table('fdh_claim_status')->updateOrInsert(
+                        ['seq' => $row['seq']],
+                        $row
+                    );
+                }
+            }
         }
 
         return [
@@ -469,8 +477,10 @@ class FdhClaimStatusController extends Controller
             $an  = $d['an']  ?? $request->an;
 
             $now = now();
-            DB::table('fdh_claim_status')->upsert(
-                [[
+            $matchKey = !empty($an) ? ['an' => $an] : ['seq' => $seq];
+            DB::table('fdh_claim_status')->updateOrInsert(
+                $matchKey,
+                [
                     'hn'                => $hn,
                     'seq'               => $seq,
                     'an'                => $an,
@@ -480,10 +490,7 @@ class FdhClaimStatusController extends Controller
                     'status_message_th' => $d['status_message_th'] ?? null,
                     'stm_period'        => $d['stm_period'] ?? null,
                     'updated_at'        => $now,
-                    'created_at'        => $now,
-                ]],
-                ['hn', 'seq', 'an'],
-                ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
+                ]
             );
 
             $saved = true;

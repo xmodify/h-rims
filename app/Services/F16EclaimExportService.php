@@ -940,8 +940,8 @@ class F16EclaimExportService
             $timeadm = self::formatTime($ip->regtime);
             $datedsc = self::formatDate($ip->dchdate);
             $timedsc = self::formatTime($ip->dchtime);
-            $dischs = $ip->dischs ?: '1';
-            $discht = $ip->discht ?: '1';
+            $dischs = substr((string)intval($ip->dischs ?: '1'), 0, 1);
+            $discht = substr((string)intval($ip->discht ?: '1'), 0, 1);
             $ward = str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
             $dept = str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT) ?: '01';
             $admw = number_format((float)($ip->adm_w ?: 50), 3, '.', '');
@@ -1126,7 +1126,7 @@ class F16EclaimExportService
         // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1');
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
         });
 
         foreach ($drugItems as $it) {
@@ -1154,9 +1154,9 @@ class F16EclaimExportService
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = !empty($it->an) ? '1' : '2'; // 1=In-hospital, 2=Home
             $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
-            $sigcode = trim((string)($it->sigcode ?? ''));
+            $sigcode = mb_substr(trim((string)($it->sigcode ?? '')), 0, 50, 'UTF-8');
             $sigtextParts = array_filter([trim((string)($it->sigtext1 ?? '')), trim((string)($it->sigtext2 ?? '')), trim((string)($it->sigtext3 ?? ''))]);
-            $sigtext = str_replace('|', ' ', implode(' ', $sigtextParts));
+            $sigtext = mb_substr(str_replace('|', ' ', implode(' ', $sigtextParts)), 0, 255, 'UTF-8');
             $provider = $it->doctor_license ?: 'ว00000';
             $spitem = '';
 
@@ -1384,7 +1384,9 @@ class F16EclaimExportService
         try {
             $admRows = DB::connection('hosxp')->select("
                 SELECT ipt.an, ipt.vn, ipt.hn, ipt.regdate, ipt.regtime, ipt.dchdate, ipt.dchtime,
-                       ipt.dchstts as dischs, ipt.dchtype as discht, ipt.ward as warddsc,
+                       COALESCE(dst.nhso_dchstts, ipt.dchstts, '1') as dischs,
+                       COALESCE(dt.nhso_dchtype, ipt.dchtype, '1') as discht,
+                       ipt.ward as warddsc,
                        ipt.spclty as dept, ipt.bw as adm_w, '' as svctype,
                        ipt.pttype,
                        a.pdx, a.dx_doctor, a.income, a.paid_money, a.rcpt_money, a.uc_money,
@@ -1404,6 +1406,8 @@ class F16EclaimExportService
                 LEFT JOIN ipt_pttype ip ON ip.an = ipt.an
                 LEFT JOIN pttype p ON p.pttype = COALESCE(ip.pttype, ipt.pttype)
                 LEFT JOIN doctor doc ON doc.code = ipt.admdoctor
+                LEFT JOIN dchstts dst ON dst.dchstts = ipt.dchstts
+                LEFT JOIN dchtype dt ON dt.dchtype = ipt.dchtype
                 WHERE ipt.an IN ($placeholders)
             ", $ans);
             $ansOrderMap = array_flip($ans);
@@ -1644,8 +1648,8 @@ class F16EclaimExportService
             $timeadm = self::formatTime($ip->regtime);
             $datedsc = self::formatDate($ip->dchdate);
             $timedsc = self::formatTime($ip->dchtime);
-            $dischs = intval($ip->dischs ?: '1');
-            $discht = intval($ip->discht ?: '1');
+            $dischs = substr((string)intval($ip->dischs ?: '1'), 0, 1);
+            $discht = substr((string)intval($ip->discht ?: '1'), 0, 1);
             $ward = str_pad(trim((string)$ip->warddsc), 2, '0', STR_PAD_LEFT) ?: '01';
             $dept = str_pad(trim((string)$ip->dept), 2, '0', STR_PAD_LEFT) ?: '01';
             $admwKg = floatval($ip->adm_w) > 500 ? floatval($ip->adm_w) / 1000 : floatval($ip->adm_w ?: 50);
@@ -1719,7 +1723,7 @@ class F16EclaimExportService
         // 12. DRU.txt (24 columns)
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1') && (float)$it->sum_price >= 0;
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
         });
 
         // Group by an, icode, unitprice (matching HOSxP IPD DRU aggregation)

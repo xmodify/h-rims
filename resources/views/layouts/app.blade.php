@@ -1279,8 +1279,8 @@
                                     <!-- -->
                                     <div class="dropdown-divider opacity-10"></div>
                                     <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#changePasswordModal">
-                                        <i class="bi bi-shield-lock me-2 text-primary"></i> Change Password
+                                        data-bs-target="#editProfileModal">
+                                        <i class="bi bi-person-circle me-2 text-success"></i> Edit Profile
                                     </a>
                                     <a class="dropdown-item dropdown-item-modern text-danger" href="{{ route('logout') }}"
                                         onclick="event.preventDefault();
@@ -1507,61 +1507,56 @@
                     @method('PUT')
                     <div class="modal-header bg-success text-white py-3 border-0">
                         <h5 class="modal-title fw-bold">
-                            <i class="bi bi-person-gear me-2"></i> แก้ไขข้อมูลส่วนตัว (Edit Profile)
+                            <i class="bi bi-person-circle me-2"></i> แก้ไขข้อมูลส่วนตัว (Edit Profile)
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control bg-light @error('name') is-invalid @enderror"
-                                    name="name" value="{{ old('name', auth()->user()->name) }}" required placeholder="กรอกชื่อ-นามสกุล">
-                                @error('name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label fw-bold small text-muted">ชื่อ-นามสกุล</label>
+                                <input type="text" class="form-control bg-light text-muted"
+                                    value="{{ auth()->user()->name }}" readonly tabindex="-1">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted">อีเมล (Email) <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control bg-light @error('email') is-invalid @enderror"
-                                    name="email" value="{{ old('email', auth()->user()->email) }}" required placeholder="example@email.com">
-                                @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label fw-bold small text-muted">อีเมล (Email)</label>
+                                <input type="email" class="form-control bg-light text-muted"
+                                    value="{{ auth()->user()->email }}" readonly tabindex="-1">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-bold small text-muted">เลขบัตรประชาชน (CID)</label>
-                                <input type="text" class="form-control bg-light @error('cid') is-invalid @enderror"
-                                    name="cid" value="{{ old('cid', auth()->user()->cid) }}" maxlength="13" placeholder="เลขบัตรประชาชน 13 หลัก">
+                                <input type="text" class="form-control bg-white @error('cid') is-invalid @enderror"
+                                    name="cid" value="{{ old('cid', auth()->user()->cid) }}" maxlength="13">
                                 @error('cid')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- Card ตั้งค่าบัญชี FDH ประจำตัว -->
+                        <!-- Card ตั้งค่าบัญชี FDH -->
                         <div class="card mt-4 border-0 shadow-sm" style="background-color: #f8fafc; border-left: 4px solid #0d9488 !important;">
                             <div class="card-body p-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-shield-lock-fill text-teal fs-5 me-2" style="color: #0d9488;"></i>
-                                    <h6 class="fw-bold mb-0" style="color: #0f766e;">ตั้งค่าบัญชี Claim (FDH) ประจำตัว</h6>
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-shield-lock-fill text-teal fs-5 me-2" style="color: #0d9488;"></i>
+                                        <h6 class="fw-bold mb-0" style="color: #0f766e;">ตั้งค่าบัญชี FDH</h6>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm" id="testProfileFdhBtn">
+                                        <i class="bi bi-shield-lock me-1"></i> ทดสอบ Token
+                                    </button>
                                 </div>
-                                <p class="text-muted small mb-3">
-                                    หากกรอกข้อมูลส่วนนี้ ระบบจะใช้บัญชี FDH ของท่านในการยิงส่ง 16 แฟ้ม (ชื่อผู้นำเข้าบนเว็บกระทรวงฯ จะเป็นชื่อของท่าน) <br>
-                                    <span class="text-secondary fst-italic">* หากเว้นว่างไว้ ระบบจะใช้บัญชีกลางของโรงพยาบาลจาก Main Setting โดยอัตโนมัติ</span>
-                                </p>
 
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold small text-muted">FDH User</label>
                                         <input type="text" class="form-control bg-white" name="fdh_user"
-                                            value="{{ old('fdh_user', auth()->user()->fdh_user) }}" placeholder="เช่น ratanachai.10987">
+                                            value="{{ old('fdh_user', auth()->user()->fdh_user) }}">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold small text-muted">FDH Pass</label>
                                         <div class="input-group">
                                             <input type="password" class="form-control bg-white" id="profile_fdh_pass" name="fdh_pass"
-                                                value="{{ old('fdh_pass', auth()->user()->fdh_pass) }}" placeholder="รหัสผ่าน FDH">
+                                                value="{{ old('fdh_pass', auth()->user()->fdh_pass) }}">
                                             <button class="btn btn-outline-secondary" type="button" onclick="togglePassVisibility('profile_fdh_pass', this)">
                                                 <i class="bi bi-eye"></i>
                                             </button>
@@ -1571,7 +1566,7 @@
                                         <label class="form-label fw-bold small text-muted">FDH Secret Key</label>
                                         <div class="input-group">
                                             <input type="password" class="form-control bg-white" id="profile_fdh_secretKey" name="fdh_secretKey"
-                                                value="{{ old('fdh_secretKey', auth()->user()->fdh_secretKey) }}" placeholder="Secret Key เช่น $jwt@moph#">
+                                                value="{{ old('fdh_secretKey', auth()->user()->fdh_secretKey) }}">
                                             <button class="btn btn-outline-secondary" type="button" onclick="togglePassVisibility('profile_fdh_secretKey', this)">
                                                 <i class="bi bi-eye"></i>
                                             </button>
@@ -1581,11 +1576,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light border-0">
-                        <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-                        <button type="submit" class="btn btn-success px-4 rounded-pill">
-                            <i class="bi bi-check-circle me-1"></i> บันทึกข้อมูลส่วนตัว
-                        </button>
+                    <div class="modal-footer bg-light border-0 d-flex justify-content-between">
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-bs-target="#changePasswordModal" data-bs-toggle="modal">
+                                <i class="bi bi-shield-lock me-1"></i> เปลี่ยนรหัสผ่าน (Change Password)
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-success px-4 rounded-pill">
+                                <i class="bi bi-check-circle me-1"></i> บันทึกข้อมูลส่วนตัว
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1605,6 +1607,73 @@
                     icon.classList.add('bi-eye');
                 }
             }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const testProfileFdhBtn = document.getElementById('testProfileFdhBtn');
+                if (testProfileFdhBtn) {
+                    testProfileFdhBtn.addEventListener('click', function () {
+                        const fdhUser = document.querySelector('input[name="fdh_user"]')?.value?.trim() || '';
+                        const fdhPass = document.querySelector('input[name="fdh_pass"]')?.value?.trim() || '';
+                        const fdhSecretKey = document.querySelector('input[name="fdh_secretKey"]')?.value?.trim() || '';
+
+                        Swal.fire({
+                            title: 'กำลังทดสอบการเชื่อมต่อ...',
+                            text: 'กรุณารอสักครู่ ระบบกำลังขอ Token จาก FDH',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        fetch('{{ route("profile.test-fdh-token") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                            },
+                            body: JSON.stringify({
+                                fdh_user: fdhUser,
+                                fdh_pass: fdhPass,
+                                fdh_secretKey: fdhSecretKey
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success' && data.token) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'เชื่อมต่อสำเร็จ',
+                                    html: `
+                                        <div class="text-start p-2">
+                                            <p class="mb-2 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึง Access Token สำเร็จ</p>
+                                            <div class="bg-light p-3 small border rounded-3" style="word-break: break-all; font-family: monospace; max-height: 150px; overflow-y: auto;">
+                                                ${data.token}
+                                            </div>
+                                        </div>
+                                    `,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#0a4d2c'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เชื่อมต่อล้มเหลว',
+                                    text: data.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User และ Password',
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: error.message || error,
+                                confirmButtonText: 'ตกลง',
+                                confirmButtonColor: '#d33'
+                            });
+                        });
+                    });
+                }
+            });
         </script>
 
         <!-- Change Password Modal -->

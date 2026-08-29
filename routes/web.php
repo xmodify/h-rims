@@ -41,6 +41,7 @@ use App\Http\Controllers\EclaimBotController;
 Route::middleware(['auth'])->group(function () {
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::put('profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('profile/test-fdh-token', [ProfileController::class, 'testFdhToken'])->name('profile.test-fdh-token');
 });
 
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {

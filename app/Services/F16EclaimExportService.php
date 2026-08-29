@@ -227,26 +227,38 @@ class F16EclaimExportService
         try {
             $visitRows = DB::connection('hosxp')->select("
                 SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
-                       o.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
+                       o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                       v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                        pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                        pt.chwpart, pt.amppart, pt.tmbpart,
                        p.hipdata_code,
-                       COALESCE(p.nhso_code, o.pt_subtype, 'O1') as pttype_nhso_code,
+                       COALESCE(p.nhso_code, o.pt_subtype, '10') as pttype_nhso_code,
                        doc.licenseno as doctor_license, doc.name as doctor_name,
-                       o.pt_subtype,
                        COALESCE(vp.hospmain, '') as hospmain,
                        COALESCE(vp.hospsub, '') as hospsub,
                        COALESCE(oq.edc_approve_list_text, vp.claim_code, vp.auth_code, '') as permitno,
                        vp.auth_code,
                        vp.claim_code,
                        oq.edc_approve_list_text,
-                       '' as gov_code,
-                       '' as gov_name
+                       vp.begin_date as datein,
+                       vp.expire_date as dateexp,
+                       vp.nhso_govcode as gov_code,
+                       vp.nhso_govname as gov_name,
+                       vp.nhso_docno as docno,
+                       vp.nhso_ownright_pid as ownrpid,
+                       vp.nhso_ownright_name as ownname,
+                       os.cc as cc_detail,
+                       os.temperature as btemp,
+                       os.bps as sbp,
+                       os.bpd as dbp,
+                       os.pulse as pr,
+                       os.rr as rr
                 FROM ovst o
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN patient pt ON pt.hn = o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                 LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                LEFT JOIN opdscreen os ON os.vn = o.vn
                 LEFT JOIN ovst_seq oq ON oq.vn = o.vn
                 LEFT JOIN doctor doc ON doc.code = o.doctor
                 WHERE o.vn IN ($placeholders)
@@ -258,26 +270,38 @@ class F16EclaimExportService
             try {
                 $visitRows = DB::connection('hosxp')->select("
                     SELECT o.vn, o.vn as seq, o.hn, o.an, o.vstdate, o.vsttime, o.spclty, o.main_dep, o.cur_dep,
-                           o.pttype, v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
+                           o.pttype, o.pt_subtype, o.ovstist, o.ovstost,
+                           v.pdx, v.dx_doctor, v.income, v.paid_money, v.rcpt_money, v.uc_money,
                            pt.cid, pt.pname, pt.fname, pt.lname, pt.birthday, pt.sex, pt.marrystatus, pt.occupation, pt.nationality,
                            pt.chwpart, pt.amppart, pt.tmbpart,
                            p.hipdata_code,
-                           COALESCE(p.nhso_code, o.pt_subtype, 'O1') as pttype_nhso_code,
+                           COALESCE(p.nhso_code, o.pt_subtype, '10') as pttype_nhso_code,
                            doc.licenseno as doctor_license, doc.name as doctor_name,
-                           o.pt_subtype,
                            COALESCE(vp.hospmain, '') as hospmain,
                            COALESCE(vp.hospsub, '') as hospsub,
                            COALESCE(vp.claim_code, vp.auth_code, '') as permitno,
                            vp.auth_code,
                            vp.claim_code,
                            '' as edc_approve_list_text,
-                           '' as gov_code,
-                           '' as gov_name
+                           vp.begin_date as datein,
+                           vp.expire_date as dateexp,
+                           vp.nhso_govcode as gov_code,
+                           vp.nhso_govname as gov_name,
+                           vp.nhso_docno as docno,
+                           vp.nhso_ownright_pid as ownrpid,
+                           vp.nhso_ownright_name as ownname,
+                           os.cc as cc_detail,
+                           os.temperature as btemp,
+                           os.bps as sbp,
+                           os.bpd as dbp,
+                           os.pulse as pr,
+                           os.rr as rr
                     FROM ovst o
                     LEFT JOIN vn_stat v ON v.vn = o.vn
                     LEFT JOIN patient pt ON pt.hn = o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                     LEFT JOIN pttype p ON p.pttype = COALESCE(vp.pttype, o.pttype)
+                    LEFT JOIN opdscreen os ON os.vn = o.vn
                     LEFT JOIN doctor doc ON doc.code = o.doctor
                     WHERE o.vn IN ($placeholders)
                     ORDER BY o.vstdate, o.vsttime
@@ -289,6 +313,7 @@ class F16EclaimExportService
             }
         }
         $vnsList = array_values($visits->pluck('vn')->toArray());
+        $vnPlaceholders = !empty($vnsList) ? implode(',', array_fill(0, count($vnsList), '?')) : '';
         $hnsList = array_values($visits->pluck('hn')->unique()->toArray());
         $ansList = array_values($visits->pluck('an')->filter()->unique()->toArray());
 
@@ -408,7 +433,7 @@ class F16EclaimExportService
                     LEFT JOIN ovst o ON o.vn = od.vn
                     LEFT JOIN patient pt ON pt.hn = od.hn
                     LEFT JOIN doctor doc ON doc.code = od.doctor
-                    WHERE od.vn IN ($placeholders)
+                    WHERE od.vn IN ($vnPlaceholders)
                     ORDER BY od.vn, od.diagtype, od.ovst_diag_id
                 ", $vnsList);
                 $opdDiags = collect($diagRows);
@@ -432,7 +457,7 @@ class F16EclaimExportService
                     LEFT JOIN ovst o ON o.vn = d.vn
                     LEFT JOIN patient pt ON pt.hn = o.hn
                     LEFT JOIN doctor doc ON doc.code = d.doctor
-                    WHERE d.vn IN ($placeholders)
+                    WHERE d.vn IN ($vnPlaceholders)
                     ORDER BY d.vn
                 ", $vnsList);
                 $opdOpers = collect($operRows);
@@ -496,7 +521,7 @@ class F16EclaimExportService
                     LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                     LEFT JOIN doctor doc ON doc.code = op.doctor
                     LEFT JOIN drugusage du ON du.drugusage = op.drugusage
-                    WHERE op.vn IN ($placeholders)
+                    WHERE op.vn IN ($vnPlaceholders)
                     ORDER BY op.vn, op.item_no
                 ", $vnsList);
                 $items = collect($itemRows);
@@ -522,7 +547,7 @@ class F16EclaimExportService
                         LEFT JOIN income inc ON inc.income = op.income
                         LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                         LEFT JOIN doctor doc ON doc.code = op.doctor
-                        WHERE op.vn IN ($placeholders)
+                        WHERE op.vn IN ($vnPlaceholders)
                         ORDER BY op.vn, op.item_no
                     ", $vnsList);
                     $items = collect($itemRows);
@@ -585,7 +610,7 @@ class F16EclaimExportService
                     SELECT er.vn, er.er_emergency_type, er.er_emergency_level_id,
                            TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time), '%H%i') as aetime
                     FROM er_regist er
-                    WHERE er.vn IN ($placeholders)
+                    WHERE er.vn IN ($vnPlaceholders)
                 ", $vnsList))->keyBy('vn');
 
                 $referOutByVn = $referOuts->keyBy('vn');
@@ -715,35 +740,34 @@ class F16EclaimExportService
         }
 
         // =============================================================
-        // GENERATE EACH OF THE 17 FILES (WITH OFFICIAL HEADERS)
+        // GENERATE EACH OF THE 17 FILES (ACCORDING TO OFFICIAL e-CLAIM PDF)
         // =============================================================
 
-        // 1. INS.txt (20 columns)
-        // HN|INSCL|SUBTYPE|CID|HCODE|DATEIN|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE
-        $insLines = ["HN|INSCL|SUBTYPE|CID|HCODE|DATEIN|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE"];
+        // 1. INS.txt (19 columns)
+        // HN|INSCL|SUBTYPE|CID|HCODE|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE
+        $insLines = ["HN|INSCL|SUBTYPE|CID|HCODE|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE"];
         foreach ($visits as $v) {
             $hip = strtoupper(trim((string)$v->hipdata_code));
             $ptt = strtoupper(trim((string)$v->pttype));
-            $inscl = $hip ?: (str_starts_with($ptt, 'O') ? 'OFC' : (str_starts_with($ptt, 'L') ? 'LGO' : (str_starts_with($ptt, 'U') ? 'UCS' : 'OFC')));
-            $subtype = trim((string)$v->pttype_nhso_code) ?: 'O1';
+            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
-            $datein = '';
-            $dateexp = '';
-            $hospmain = $v->hospmain ?: '';
+            $dateexp = self::formatDate($v->dateexp ?? '');
+            $hospmain = $v->hospmain ?: $hcode;
             $hospsub = $v->hospsub ?: '';
-            $govcode = '';
-            $govname = '';
+            $govcode = trim((string)($v->gov_code ?? ''));
+            $govname = trim((string)($v->gov_name ?? ''));
             $permitno = $v->permitno ?: '';
-            $docno = '';
-            $ownrpid = '';
-            $ownrname = '';
+            $docno = trim((string)($v->docno ?? ''));
+            $ownrpid = trim((string)($v->ownrpid ?? ''));
+            $ownname = trim((string)($v->ownname ?? ''));
             $an = $v->an ?: '';
             $seq = !empty($v->an) ? '' : ($v->seq ?: $v->vn);
             $subinscl = '';
             $relinscl = '';
-            $htype = '1';
+            $htype = !empty($v->an) ? '2' : '1';
 
-            $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$datein}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownrname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
+            $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
         }
 
         // 2. PAT.txt (15 columns)
@@ -771,17 +795,29 @@ class F16EclaimExportService
             $patLines[] = "{$hcode}|{$v->hn}|{$chw}|{$amp}|{$dob}|{$sex}|{$marry}|{$occupa}|{$nation}|{$cid}|{$namepat}|{$title}|{$fname}|{$lname}|{$idtype}";
         }
 
-        // 3. OPD.txt (6 columns)
-        // HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC
-        $opdLines = ["HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC"];
+        // 3. OPD.txt (15 columns ตามโครงสร้าง e-Claim สปสช.)
+        // HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC|DETAIL|BTEMP|SBP|DBP|PR|RR|OPTYPE|TYPEIN|TYPEOUT
+        $opdLines = ["HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC|DETAIL|BTEMP|SBP|DBP|PR|RR|OPTYPE|TYPEIN|TYPEOUT"];
         foreach ($visits as $v) {
             $clinic = self::formatClinic($v->spclty);
             $dateopd = self::formatDate($v->vstdate);
             $timeopd = self::formatTime($v->vsttime);
             $seq = $v->seq ?: $v->vn;
             $uuc = '1';
+            $detail = str_replace(['|', "\r", "\n"], ' ', trim((string)$v->cc_detail));
+            $btemp = !empty($v->btemp) ? number_format((float)$v->btemp, 1, '.', '') : '';
+            $sbp = !empty($v->sbp) ? (string)intval($v->sbp) : '';
+            $dbp = !empty($v->dbp) ? (string)intval($v->dbp) : '';
+            $pr = !empty($v->pr) ? (string)intval($v->pr) : '';
+            $rr = !empty($v->rr) ? (string)intval($v->rr) : '';
+            $optype = trim((string)($v->pt_subtype ?: '1'));
+            if (!in_array($optype, ['1', '2', '3', '4', '5'])) $optype = '1';
+            $typein = trim((string)($v->ovstist ?: '1'));
+            if (!in_array($typein, ['1', '2', '3', '4'])) $typein = '1';
+            $typeout = trim((string)($v->ovstost ?: '1'));
+            if (!in_array($typeout, ['1', '2', '3', '4', '5'])) $typeout = '1';
 
-            $opdLines[] = "{$v->hn}|{$clinic}|{$dateopd}|{$timeopd}|{$seq}|{$uuc}";
+            $opdLines[] = "{$v->hn}|{$clinic}|{$dateopd}|{$timeopd}|{$seq}|{$uuc}|{$detail}|{$btemp}|{$sbp}|{$dbp}|{$pr}|{$rr}|{$optype}|{$typein}|{$typeout}";
         }
 
         // 4. IPD.txt (13 columns)
@@ -849,9 +885,9 @@ class F16EclaimExportService
             }
         }
 
-        // 6. OOP.txt (7 columns)
-        // HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ
-        $oopLines = ["HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ"];
+        // 6. OOP.txt (8 columns ตามโครงสร้าง e-Claim สปสช.)
+        // HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ|SERVPRICE
+        $oopLines = ["HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ|SERVPRICE"];
         $seenOop = [];
         foreach ($opdOpers as $op) {
             $clinic = self::formatClinic($op->spclty);
@@ -864,12 +900,13 @@ class F16EclaimExportService
             }
             $cid = trim((string)$op->cid);
             $seq = $op->vn;
+            $servprice = number_format((float)($op->servprice ?: 0.0), 2, '.', '');
 
             $key = "{$seq}_{$oper}_{$dropid}";
             if (isset($seenOop[$key])) continue;
             $seenOop[$key] = true;
 
-            $oopLines[] = "{$op->hn}|{$dateopd}|{$clinic}|{$oper}|{$dropid}|{$cid}|{$seq}";
+            $oopLines[] = "{$op->hn}|{$dateopd}|{$clinic}|{$oper}|{$dropid}|{$cid}|{$seq}|{$servprice}";
         }
 
         // 7. IDX.txt (4 columns)
@@ -974,9 +1011,9 @@ class F16EclaimExportService
         // SEQLVD|AN|DATEOUT|TIMEOUT|DATEIN|TIMEIN|QTYDAY
         $lvdLines = ["SEQLVD|AN|DATEOUT|TIMEOUT|DATEIN|TIMEIN|QTYDAY"];
 
-        // 12. DRU.txt (21 columns)
-        // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGTYPE|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL
-        $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGTYPE|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL"];
+        // 12. DRU.txt (24 columns ตามโครงสร้าง e-Claim สปสช.)
+        // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM
+        $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
             return str_starts_with((string)$it->icode, '1');
         });
@@ -996,18 +1033,22 @@ class F16EclaimExportService
             $drugcost = number_format((float)$it->cost, 2, '.', '');
             $didstd = $it->sks_drug_code ?: ($it->tmt_tp_code ?: ($it->tmt_gp_code ?: ($it->ttmt_code ?: ($it->drug_did ?: ''))));
             $unit = trim((string)$it->drug_unit) ?: 'เม็ด';
-            $unitpack = "1x{$unit}";
+            $unitpack = "1x1";
             $seq = $it->vn;
             $an = $it->an ?: '';
             $cid = trim((string)$it->cid);
-            $drugtype = '';
             $drugremark = '';
             $pano = '';
             $totcopay = '0';
             $usestatus = !empty($it->an) ? '1' : '2'; // 1=In-hospital, 2=Home
             $total = number_format((float)$it->sum_price, 2, '.', '');
+            $sigcode = trim((string)($it->sigcode ?? ''));
+            $sigtextParts = array_filter([trim((string)($it->sigtext1 ?? '')), trim((string)($it->sigtext2 ?? '')), trim((string)($it->sigtext3 ?? ''))]);
+            $sigtext = str_replace('|', ' ', implode(' ', $sigtextParts));
+            $provider = $it->doctor_license ?: 'ว00000';
+            $spitem = '';
 
-            $druLines[] = "{$hcode}|{$it->hn}|{$an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amountStr}|{$drugpric}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|{$drugtype}|{$drugremark}|{$pano}|{$totcopay}|{$usestatus}|{$total}";
+            $druLines[] = "{$hcode}|{$it->hn}|{$an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amountStr}|{$drugpric}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|{$drugremark}|{$pano}|{$totcopay}|{$usestatus}|{$total}|{$sigcode}|{$sigtext}|{$provider}|{$spitem}";
         }
 
         // 13. CHA.txt (7 columns)
@@ -1042,9 +1083,9 @@ class F16EclaimExportService
             }
         }
 
-        // 14. CHT.txt (8 columns)
-        // HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ
-        $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ"];
+        // 14. CHT.txt (11 columns ตามโครงสร้าง e-Claim สปสช.)
+        // HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT
+        $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT"];
         foreach ($visits as $v) {
             $date = self::formatDate($v->vstdate);
             $total = number_format((float)$v->income, 2, '.', '');
@@ -1054,7 +1095,7 @@ class F16EclaimExportService
             $an = $v->an ?: '';
             $seq = !empty($v->an) ? $v->an : ($v->seq ?: $v->vn);
 
-            $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}";
+            $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}|||";
         }
 
         // 15. AER.txt (18 columns)
@@ -1079,9 +1120,9 @@ class F16EclaimExportService
             $aerLines[] = "{$er->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
         }
 
-        // 16. ADP.txt (29 columns)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
+        // 16. ADP.txt (27 columns ตามโครงสร้าง e-Claim สปสช.)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
             $price = (float)$it->sum_price;
             $isDrug = str_starts_with((string)$it->icode, '1');
@@ -1115,20 +1156,18 @@ class F16EclaimExportService
             $status1 = '';
             $bi = '';
             $clinic = self::formatClinic($it->spclty);
-            $itemsrc = '';
-            $provider = '';
+            $itemsrc = '1';
+            $provider = $it->doctor_license ?: 'ว00000';
             $gravida = '';
             $gaweek = '';
             $dcip = '';
             $lmp = '';
             $spitem = '';
-            $checkkey = "{$seq}:{$type}:{$code}:{$rateStr}";
-            $guid = $it->hos_guid ? '{' . trim($it->hos_guid, '{}') . '}' : ('{' . strtoupper(md5($it->vn . $it->icode . microtime())) . '}');
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkkey}|{$guid}";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
         }
 
-        // 17. LAB.txt / LABFU.txt (7 columns)
+        // 17. LABFU.txt (7 columns)
         // HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT
         $labLines = ["HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT"];
         $seenLab = [];
@@ -1169,7 +1208,7 @@ class F16EclaimExportService
             'CHT' => implode("\r\n", $chtLines),
             'AER' => implode("\r\n", $aerLines),
             'ADP' => implode("\r\n", $adpLines),
-            'LAB' => implode("\r\n", $labLines),
+            'LABFU' => implode("\r\n", $labLines),
         ];
 
         $counts = [
@@ -1189,7 +1228,7 @@ class F16EclaimExportService
             'CHT' => count($chtLines) - 1,
             'AER' => count($aerLines) - 1,
             'ADP' => count($adpLines) - 1,
-            'LAB' => count($labLines) - 1,
+            'LABFU' => count($labLines) - 1,
         ];
 
         return [
@@ -1378,31 +1417,31 @@ class F16EclaimExportService
         // GENERATE EACH OF THE 17 FILES FOR IPD
         // =============================================================
 
-        // 1. INS.txt (20 columns)
-        $insLines = ["HN|INSCL|SUBTYPE|CID|HCODE|DATEIN|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE"];
+        // 1. INS.txt (19 columns)
+        // HN|INSCL|SUBTYPE|CID|HCODE|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE
+        $insLines = ["HN|INSCL|SUBTYPE|CID|HCODE|DATEEXP|HOSPMAIN|HOSPSUB|GOVCODE|GOVNAME|PERMITNO|DOCNO|OWNRPID|OWNNAME|AN|SEQ|SUBINSCL|RELINSCL|HTYPE"];
         foreach ($admissions as $v) {
             $hip = strtoupper(trim((string)$v->hipdata_code));
             $ptt = strtoupper(trim((string)$v->pttype));
-            $inscl = $hip ?: (str_starts_with($ptt, 'O') ? 'OFC' : (str_starts_with($ptt, 'L') ? 'LGO' : (str_starts_with($ptt, 'U') ? 'UCS' : 'OFC')));
-            $subtype = trim((string)$v->pttype_nhso_code) ?: 'O1';
+            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
-            $datein = '';
-            $dateexp = '';
-            $hospmain = $v->hospmain ?: '';
+            $dateexp = self::formatDate($v->dateexp ?? '');
+            $hospmain = $v->hospmain ?: $hcode;
             $hospsub = $v->hospsub ?: '';
-            $govcode = '';
-            $govname = '';
+            $govcode = trim((string)($v->gov_code ?? ''));
+            $govname = trim((string)($v->gov_name ?? ''));
             $permitno = $v->permitno ?: '';
-            $docno = '';
-            $ownrpid = '';
-            $ownrname = '';
+            $docno = trim((string)($v->docno ?? ''));
+            $ownrpid = trim((string)($v->ownrpid ?? ''));
+            $ownname = trim((string)($v->ownname ?? ''));
             $an = $v->an;
             $seq = '';
             $subinscl = '';
             $relinscl = '';
-            $htype = '1';
+            $htype = '2';
 
-            $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$datein}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownrname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
+            $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
         }
 
         // 2. PAT.txt (15 columns)
@@ -1429,8 +1468,8 @@ class F16EclaimExportService
             $patLines[] = "{$hcode}|{$v->hn}|{$chw}|{$amp}|{$dob}|{$sex}|{$marry}|{$occupa}|{$nation}|{$cid}|{$namepat}|{$title}|{$fname}|{$lname}|{$idtype}";
         }
 
-        // 3. OPD.txt (6 columns)
-        $opdLines = ["HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC"];
+        // 3. OPD.txt (15 columns)
+        $opdLines = ["HN|CLINIC|DATEOPD|TIMEOPD|SEQ|UUC|DETAIL|BTEMP|SBP|DBP|PR|RR|OPTYPE|TYPEIN|TYPEOUT"];
 
         // 4. IPD.txt (13 columns)
         $ipdLines = ["HN|AN|DATEADM|TIMEADM|DATEDSC|TIMEDSC|DISCHS|DISCHT|WARDDSC|DEPT|ADM_W|UUC|SVCTYPE"];
@@ -1454,8 +1493,8 @@ class F16EclaimExportService
         // 5. ODX.txt (8 columns)
         $odxLines = ["HN|DATEDX|CLINIC|DIAG|DXTYPE|DRDX|PERSON_ID|SEQ"];
 
-        // 6. OOP.txt (7 columns)
-        $oopLines = ["HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ"];
+        // 6. OOP.txt (8 columns)
+        $oopLines = ["HN|DATEOPD|CLINIC|OPER|DROPID|PERSON_ID|SEQ|SERVPRICE"];
 
         // 7. IDX.txt (4 columns)
         $idxLines = ["AN|DIAG|DXTYPE|DRDX"];
@@ -1483,7 +1522,7 @@ class F16EclaimExportService
             $iopLines[] = "{$io->an}|{$oper}|{$optype}|{$dropid}|{$datein}|{$timein}|{$dateout}|{$timeout}";
         }
 
-        // 9. ORF.txt (6 columns)
+        // 9. ORF.txt (7 columns)
         $orfLines = ["HN|DATEOPD|CLINIC|REFER|REFERTYPE|SEQ|REFERDATE"];
 
         // 10. IRF.txt (3 columns)
@@ -1495,20 +1534,21 @@ class F16EclaimExportService
             $irfLines[] = "{$ir->an}|{$refer}|{$refertype}";
         }
 
-        // 11. LVD.txt (6 columns)
-        $lvdLines = ["SEQLVD|AN|DATEOUT|TIMEOUT|DATEIN|TIMEIN"];
+        // 11. LVD.txt (7 columns)
+        $lvdLines = ["SEQLVD|AN|DATEOUT|TIMEOUT|DATEIN|TIMEIN|QTYDAY"];
         $seqLvd = 1;
         foreach ($ipdLeaves as $lv) {
             $dateout = self::formatDate($lv->dateout);
             $timeout = self::formatTime($lv->timeout);
             $datein = self::formatDate($lv->datein);
             $timein = self::formatTime($lv->timein);
-            $lvdLines[] = "{$seqLvd}|{$lv->an}|{$dateout}|{$timeout}|{$datein}|{$timein}";
+            $qtyday = (string)(intval($lv->qtyday ?? 1) ?: 1);
+            $lvdLines[] = "{$seqLvd}|{$lv->an}|{$dateout}|{$timeout}|{$datein}|{$timein}|{$qtyday}";
             $seqLvd++;
         }
 
-        // 12. DRU.txt (23 columns)
-        $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRIC|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER"];
+        // 12. DRU.txt (24 columns)
+        $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
             return str_starts_with((string)$it->icode, '1') && (float)$it->sum_price >= 0;
         });
@@ -1543,11 +1583,11 @@ class F16EclaimExportService
             $drugcost = number_format((float)($it->unitcost ?: 0.0), 2, '.', '');
             $didstd = trim((string)$it->didstd) ?: $did;
             $unit = trim((string)$it->units) ?: 'เม็ด';
-            $unitpack = trim((string)$it->packqty) ? "1x{$it->packqty}" : "1x{$unit}";
+            $unitpack = trim((string)$it->packqty) ? "1x{$it->packqty}" : "1x1";
             $seq = $it->an;
             $provider = $it->doctor_license ?: 'ว00000';
 
-            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|||||||{$provider}";
+            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}||||||||{$provider}|";
         }
 
         // 13. CHA.txt (7 columns)
@@ -1580,8 +1620,9 @@ class F16EclaimExportService
             }
         }
 
-        // 14. CHT.txt (8 columns)
-        $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ"];
+        // 14. CHT.txt (11 columns)
+        // HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT
+        $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT"];
         foreach ($admissions as $v) {
             $date = self::formatDate($v->dchdate ?: $v->regdate);
             $total = number_format((float)$v->income, 2, '.', '');
@@ -1591,14 +1632,15 @@ class F16EclaimExportService
             $an = $v->an;
             $seq = $v->an;
 
-            $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}";
+            $chtLines[] = "{$v->hn}|{$an}|{$date}|{$total}|{$paid}|{$pttype}|{$cid}|{$seq}|||";
         }
 
         // 15. AER.txt (18 columns)
         $aerLines = ["HN|AN|DATEOPD|AUTHAE|AEDATE|AETIME|AETYPE|REFER_NO|REFMAINI|IREFTYPE|REFMAINO|OREFTYPE|UCAE|EMTYPE|SEQ|AESTATUS|DALERT|TALERT"];
 
-        // 16. ADP.txt (29 columns)
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
+        // 16. ADP.txt (27 columns)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
@@ -1641,10 +1683,10 @@ class F16EclaimExportService
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
             $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
 
-            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||||{$total}|||||{$clinic}||{$provider}|||||||";
+            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||||{$total}|||||{$clinic}|1|{$provider}|||||";
         }
 
-        // 17. LAB.txt (7 columns)
+        // 17. LABFU.txt (7 columns)
         $labLines = ["HCODE|HN|PERSON_ID|DATESERV|SEQ|LABTEST|LABRESULT"];
         $seenLab = [];
         foreach ($labOrders as $lab) {
@@ -1684,7 +1726,7 @@ class F16EclaimExportService
             'CHT' => implode("\r\n", $chtLines),
             'AER' => implode("\r\n", $aerLines),
             'ADP' => implode("\r\n", $adpLines),
-            'LAB' => implode("\r\n", $labLines),
+            'LABFU' => implode("\r\n", $labLines),
         ];
 
         $counts = [
@@ -1704,7 +1746,7 @@ class F16EclaimExportService
             'CHT' => count($chtLines) - 1,
             'AER' => count($aerLines) - 1,
             'ADP' => count($adpLines) - 1,
-            'LAB' => count($labLines) - 1,
+            'LABFU' => count($labLines) - 1,
         ];
 
         return [

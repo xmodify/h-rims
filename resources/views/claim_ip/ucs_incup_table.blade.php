@@ -1,3 +1,7 @@
+@php
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh') || \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim');
+@endphp
+
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
         <div class="px-4 pt-2 pb-0 border-bottom">
@@ -40,6 +44,11 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
+                            @if($is_f16_licensed)
+                            <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16FDH('UCS_IP_INCUP')">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -65,6 +74,9 @@
                         <table id="t_search" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                    @endif
                                     <th class="text-center">FDH</th>
                                     <th class="text-center">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
@@ -91,6 +103,11 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <td class="text-center" style="vertical-align: middle;">
+                                        <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->an }}">
+                                    </td>
+                                    @endif
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
                                     </td>
@@ -162,7 +179,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 13 : 12 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -178,6 +195,9 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <th class="text-center no-sort" rowspan="2" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                    @endif
                                     <th class="text-center" rowspan="2">Error (REP)</th>
                                     <th class="text-center" rowspan="2">ตึก</th>
                                     <th class="text-center" rowspan="2">Admit</th>
@@ -214,6 +234,11 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
+                                    @if($is_f16_licensed)
+                                    <td class="text-center" style="vertical-align: middle;">
+                                        <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->an }}">
+                                    </td>
+                                    @endif
                                     <td class="text-center small" data-order="{{ $row->rep_error ?: '-' }}">
                                         @if(!empty($row->rep_error))
                                             <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error }}">
@@ -268,7 +293,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 11 : 10 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

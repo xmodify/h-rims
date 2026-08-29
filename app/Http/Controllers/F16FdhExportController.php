@@ -3,20 +3,20 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\F16EclaimExportService;
+use App\Services\F16FdhExportService;
 use App\Services\LicenseVerificationService;
 
-class F16EclaimExportController extends Controller
+class F16FdhExportController extends Controller
 {
     /**
-     * ดึงข้อมูลสรุป Record Count และตัวอย่างข้อมูลสำหรับแสดงใน Modal Preview
+     * ดึงข้อมูลสรุป Record Count และตัวอย่างข้อมูลสำหรับแสดงใน Modal Preview (16 แฟ้ม FDH)
      */
     public function preview(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') && !LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม (export_f16_eclaim)'
+                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
             ], 403);
         }
 
@@ -45,9 +45,9 @@ class F16EclaimExportController extends Controller
 
         try {
             if ($isIp) {
-                $result = F16EclaimExportService::generate16FilesIp($keys);
+                $result = F16FdhExportService::generate16FilesIp($keys);
             } else {
-                $result = F16EclaimExportService::generate16Files($keys);
+                $result = F16FdhExportService::generate16Files($keys);
             }
 
             $headers = [];
@@ -72,9 +72,9 @@ class F16EclaimExportController extends Controller
             }
 
             $claimType = $isIp ? 'IP' : 'OP';
-            $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
+            $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
             $thYear = date('Y') + 543;
-            $subfolderName = "F16_ECLAIM_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
+            $subfolderName = "F16_FDH_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
 
             return response()->json([
                 'status' => 'success',
@@ -89,20 +89,20 @@ class F16EclaimExportController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'เกิดข้อผิดพลาดในการประมวลผล 16 แฟ้ม: ' . $e->getMessage()
+                'message' => 'เกิดข้อผิดพลาดในการประมวลผล 16 แฟ้ม FDH: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * ดึงเนื้อหาเต็มของทั้ง 16 แฟ้ม สำหรับให้ JavaScript บันทึกลงโฟลเดอร์โดยตรง
+     * ดึงเนื้อหาเต็มของทั้ง 16/17 แฟ้ม FDH สำหรับให้ JavaScript บันทึกลงโฟลเดอร์โดยตรง
      */
     public function exportData(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') && !LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม (export_f16_eclaim)'
+                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
             ], 403);
         }
 
@@ -113,7 +113,7 @@ class F16EclaimExportController extends Controller
         }
         $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
         $claimType = $isIp ? 'IP' : 'OP';
-        $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
+        $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
         if (is_string($rawKeys)) {
             $decoded = json_decode($rawKeys, true);
             $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);
@@ -133,14 +133,13 @@ class F16EclaimExportController extends Controller
 
         try {
             if ($isIp) {
-                $result = F16EclaimExportService::generate16FilesIp($keys);
+                $result = F16FdhExportService::generate16FilesIp($keys);
             } else {
-                $result = F16EclaimExportService::generate16Files($keys);
+                $result = F16FdhExportService::generate16Files($keys);
             }
             
-            // Format Thai year (e.g. 2569) + MMDD_HHMM
             $thYear = date('Y') + 543;
-            $subfolderName = "F16_ECLAIM_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
+            $subfolderName = "F16_FDH_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
 
             return response()->json([
                 'status' => 'success',
@@ -153,7 +152,7 @@ class F16EclaimExportController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'เกิดข้อผิดพลาดในการส่งออกข้อมูล: ' . $e->getMessage()
+                'message' => 'เกิดข้อผิดพลาดในการส่งออกข้อมูล 16 แฟ้ม FDH: ' . $e->getMessage()
             ], 500);
         }
     }

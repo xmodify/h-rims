@@ -86,6 +86,9 @@
     <!-- Modal Extension Info -->
     <x-extension_info_modal />
 
+    <!-- Modal ส่งออก 16 แฟ้ม FDH -->
+    <x-f16_fdh_export_modal />
+
 @endsection
 
 @push('scripts')
@@ -430,7 +433,7 @@
                   localStorage.removeItem('active_tab');
               }
 
-                            // Update global chart data
+              // Update global chart data
               if (res.chart_data && (res.chart_data.month && res.chart_data.month.length > 0 || !window.currentChartData)) {
                   window.currentChartData = res.chart_data;
               }
@@ -455,7 +458,6 @@
           container.innerHTML = '<div class="alert alert-danger text-center">ไม่สามารถโหลดข้อมูลได้</div>';
       });
     }
-
 
     // App Initialization & Form binding
     $(document).ready(function () {
@@ -484,6 +486,41 @@
               skip_chart: 1
           });
       });
+    });
+
+    // Function ส่งออก 16 แฟ้ม FDH (IPD)
+    function exportSelectedF16FDH(claimCode) {
+        const activePane = document.querySelector('#myTabContent .tab-pane.active');
+        const checkboxes = activePane ? activePane.querySelectorAll('.f16-select-item:checked') : document.querySelectorAll('.f16-select-item:checked');
+        const selectedAns = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedAns.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกรายการ',
+                text: 'กรุณาเลือกรายการที่ต้องการส่งออก 16 แฟ้ม FDH อย่างน้อย 1 รายการ',
+                confirmButtonColor: '#2563eb'
+            });
+            return;
+        }
+
+        openF16FdhExportModal({
+            ans: selectedAns,
+            claimCode: claimCode || 'UCS_IP_INCUP',
+            claimTitle: 'สิทธิ IP-UCS ใน CUP',
+            isIp: true
+        });
+    }
+
+    // Select All Checkbox Handler
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('select_all_f16')) {
+            const table = e.target.closest('table');
+            if (table) {
+                const itemCheckboxes = table.querySelectorAll('.f16-select-item');
+                itemCheckboxes.forEach(cb => cb.checked = e.target.checked);
+            }
+        }
     });
   </script>
 @endpush

@@ -483,6 +483,8 @@ Route::match(['get', 'post'], 'claim_op/sss_export_ssop', [\App\Http\Controllers
 Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('rims_license');
 Route::post('f16_eclaim_export/preview', [\App\Http\Controllers\F16EclaimExportController::class, 'preview'])->name('f16_eclaim_export.preview');
 Route::post('f16_eclaim_export/export-data', [\App\Http\Controllers\F16EclaimExportController::class, 'exportData'])->name('f16_eclaim_export.export_data');
+Route::post('f16_fdh_export/preview', [\App\Http\Controllers\F16FdhExportController::class, 'preview'])->name('f16_fdh_export.preview');
+Route::post('f16_fdh_export/export-data', [\App\Http\Controllers\F16FdhExportController::class, 'exportData'])->name('f16_fdh_export.export_data');
 Route::match(['get', 'post'], 'claim_op/csop_31', [ClaimOpController::class, 'csop_31']);
 Route::get('claim_op/csop_detail', [ClaimOpController::class, 'csop_detail']);
 Route::post('import/csop_rep_save', [\App\Http\Controllers\ImportCsController::class, 'import_rep_csop']);

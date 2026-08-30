@@ -563,8 +563,6 @@
         });
     }
 
-    }
-
     // AJAX Dashboard Loader
     function loadDashboard(dataParams) {
       const container = document.getElementById('data-container');

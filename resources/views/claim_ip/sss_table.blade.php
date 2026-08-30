@@ -1,5 +1,5 @@
 @php
-    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn');
+    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_aipn === 'Y');
 @endphp
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->

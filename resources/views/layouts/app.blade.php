@@ -1190,7 +1190,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-30 11.00
+                                V.69-08-30 13.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

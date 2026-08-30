@@ -1,5 +1,5 @@
 @php
-    $is_csop_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_csop');
+    $is_csop_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_csop') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_csop === 'Y');
 @endphp
 @extends('layouts.app')
 

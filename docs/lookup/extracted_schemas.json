@@ -32531,8 +32531,56 @@
                 "default": "N",
                 "extra": ""
             },
+            "allow_export_f16_eclaim": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
+            "allow_export_f16_fdh": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
+            "allow_export_ssop": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
+            "allow_export_aipn": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
+            "allow_export_csop": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
+            "allow_export_cipn": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
             "provider_id": {
                 "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "moph_token": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "moph_token_expire": {
+                "type": "datetime",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -32563,18 +32611,6 @@
             },
             "eclaim_pass": {
                 "type": "varchar(191)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "moph_token": {
-                "type": "text",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "moph_token_expire": {
-                "type": "datetime",
                 "nullable": true,
                 "default": null,
                 "extra": ""

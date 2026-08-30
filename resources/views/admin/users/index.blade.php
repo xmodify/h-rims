@@ -109,6 +109,12 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
+                                                    @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
+                                                    @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
+                                                    @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
+                                                    @if($user->allow_export_aipn === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก AIPN</span> @endif
+                                                    @if($user->allow_export_csop === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ส่งออก CSOP</span> @endif
+                                                    @if($user->allow_export_cipn === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ส่งออก CIPN</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -141,6 +147,12 @@
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
+                                                    data-allow_export_f16_eclaim="{{ $user->allow_export_f16_eclaim }}"
+                                                    data-allow_export_f16_fdh="{{ $user->allow_export_f16_fdh }}"
+                                                    data-allow_export_ssop="{{ $user->allow_export_ssop }}"
+                                                    data-allow_export_aipn="{{ $user->allow_export_aipn }}"
+                                                    data-allow_export_csop="{{ $user->allow_export_csop }}"
+                                                    data-allow_export_cipn="{{ $user->allow_export_cipn }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -239,6 +251,12 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
+                                                    @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
+                                                    @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
+                                                    @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
+                                                    @if($user->allow_export_aipn === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก AIPN</span> @endif
+                                                    @if($user->allow_export_csop === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ส่งออก CSOP</span> @endif
+                                                    @if($user->allow_export_cipn === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ส่งออก CIPN</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -271,6 +289,12 @@
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
+                                                    data-allow_export_f16_eclaim="{{ $user->allow_export_f16_eclaim }}"
+                                                    data-allow_export_f16_fdh="{{ $user->allow_export_f16_fdh }}"
+                                                    data-allow_export_ssop="{{ $user->allow_export_ssop }}"
+                                                    data-allow_export_aipn="{{ $user->allow_export_aipn }}"
+                                                    data-allow_export_csop="{{ $user->allow_export_csop }}"
+                                                    data-allow_export_cipn="{{ $user->allow_export_cipn }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -403,100 +427,191 @@
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
-                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-md-4 row-cols-1 g-3">
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_home" id="add_allow_home" value="Y">
-                                <label class="form-check-label small" for="add_allow_home">Home Detail</label>
-                            </div>
+                    <div class="border rounded-3 p-3 bg-light-subtle mb-2">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
+                            <span class="text-muted small">กำหนดสิทธิ์การใช้งานแยกตามหมวดหมู่</span>
                         </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_import" id="add_allow_import" value="Y">
-                                <label class="form-check-label small" for="add_allow_import">นำเข้าข้อมูล</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_check" id="add_allow_check" value="Y">
-                                <label class="form-check-label small" for="add_allow_check">ตรวจสอบข้อมูล</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_check_right" id="add_allow_check_right" value="Y">
-                                <label class="form-check-label small text-info fw-bold" for="add_allow_check_right">ตรวจสอบสิทธิการรักษา (สปสช.)</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_emr" id="add_allow_emr" value="Y">
-                                <label class="form-check-label small" for="add_allow_emr">งานเวชระเบียน</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_claim_op" id="add_allow_claim_op" value="Y">
-                                <label class="form-check-label small" for="add_allow_claim_op">เรียกเก็บ OP</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_claim_ip" id="add_allow_claim_ip" value="Y">
-                                <label class="form-check-label small" for="add_allow_claim_ip">เรียกเก็บ IP</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_mishos" id="add_allow_mishos" value="Y">
-                                <label class="form-check-label small" for="add_allow_mishos">MIS Hospital</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_debtor" id="add_allow_debtor" value="Y">
-                                <label class="form-check-label small" for="add_allow_debtor">ลูกหนี้ค่ารักษา</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_debtor_lock" id="add_allow_debtor_lock" value="Y">
-                                <label class="form-check-label small text-danger fw-bold" for="add_allow_debtor_lock">Lock ลูกหนี้</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_debtor_acc" id="add_allow_debtor_acc" value="Y">
-                                <label class="form-check-label small text-info fw-bold" for="add_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_receipt" id="add_allow_receipt" value="Y">
-                                <label class="form-check-label small text-warning fw-bold" for="add_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_nhso_endpoint" id="add_allow_nhso_endpoint" value="Y">
-                                <label class="form-check-label small text-primary fw-bold" for="add_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="allow_hosfin" id="add_allow_hosfin" value="Y">
-                                <label class="form-check-label small text-success fw-bold" for="add_allow_hosfin">HosFin</label>
-                            </div>
-                        </div>
-                        @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
-                            <div class="col">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" name="allow_aopod_death" id="add_allow_aopod_death" value="Y">
-                                    <label class="form-check-label small text-success fw-bold" for="add_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+
+                        <!-- Nav Tabs for Permissions -->
+                        <ul class="nav nav-pills nav-fill mb-3 p-1 bg-white rounded-3 border shadow-sm" id="addPermTabs" role="tablist" style="font-size: 0.85rem;">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-bold py-2" id="add-perm-general-tab" data-bs-toggle="pill" data-bs-target="#add-perm-general" type="button" role="tab">
+                                    <i class="bi bi-file-earmark-bar-graph me-1"></i> รายงานทั่วไป
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold py-2" id="add-perm-export-tab" data-bs-toggle="pill" data-bs-target="#add-perm-export" type="button" role="tab">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออกข้อมูล
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold py-2" id="add-perm-other-tab" data-bs-toggle="pill" data-bs-target="#add-perm-other" type="button" role="tab">
+                                    <i class="bi bi-gear-wide-connected me-1"></i> อื่น ๆ
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content bg-white p-3 rounded-3 border">
+                            <!-- Tab 1: รายงานทั่วไป -->
+                            <div class="tab-pane fade show active" id="add-perm-general" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_home" id="add_allow_home" value="Y">
+                                            <label class="form-check-label small" for="add_allow_home">Home Detail</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_import" id="add_allow_import" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_import"><i class="bi bi-file-earmark-arrow-down me-1"></i>นำเข้าข้อมูล</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_check" id="add_allow_check" value="Y">
+                                            <label class="form-check-label small" for="add_allow_check">ตรวจสอบข้อมูล</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_emr" id="add_allow_emr" value="Y">
+                                            <label class="form-check-label small" for="add_allow_emr">งานเวชระเบียน</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_claim_op" id="add_allow_claim_op" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="add_allow_claim_op">เรียกเก็บ OP</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_claim_ip" id="add_allow_claim_ip" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="add_allow_claim_ip">เรียกเก็บ IP</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_mishos" id="add_allow_mishos" value="Y">
+                                            <label class="form-check-label small" for="add_allow_mishos">MIS Hospital</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_debtor" id="add_allow_debtor" value="Y">
+                                            <label class="form-check-label small" for="add_allow_debtor">ลูกหนี้ค่ารักษา</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_hosfin" id="add_allow_hosfin" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="add_allow_hosfin">HosFin</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        @endif
+
+                            <!-- Tab 2: นำเข้า-ส่งออกข้อมูล -->
+                            <div class="tab-pane fade" id="add-perm-export" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_f16_eclaim" id="add_allow_export_f16_eclaim" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_export_f16_eclaim"><i class="bi bi-box-arrow-up-right me-1"></i>ส่งออก 16 แฟ้ม (e-Claim)</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_f16_fdh" id="add_allow_export_f16_fdh" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="add_allow_export_f16_fdh"><i class="bi bi-box-arrow-up-right me-1"></i>ส่งออก 16 แฟ้ม (FDH)</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_ssop'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_ssop" id="add_allow_export_ssop" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="add_allow_export_ssop"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก SSOP</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_aipn'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_aipn" id="add_allow_export_aipn" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="add_allow_export_aipn"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก AIPN</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_csop'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_csop" id="add_allow_export_csop" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="add_allow_export_csop"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก CSOP</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_cipn'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_export_cipn" id="add_allow_export_cipn" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="add_allow_export_cipn"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก CIPN</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: อื่น ๆ -->
+                            <div class="tab-pane fade" id="add-perm-other" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_check_right" id="add_allow_check_right" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="add_allow_check_right">ตรวจสอบสิทธิการรักษา (สปสช.)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_nhso_endpoint" id="add_allow_nhso_endpoint" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_debtor_lock" id="add_allow_debtor_lock" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="add_allow_debtor_lock">Lock ลูกหนี้</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_debtor_acc" id="add_allow_debtor_acc" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="add_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_receipt" id="add_allow_receipt" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="add_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
+                                        </div>
+                                    </div>
+                                    @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_aopod_death" id="add_allow_aopod_death" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="add_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <input type="hidden" name="active" value="Y">
                 </div>
@@ -622,100 +737,191 @@
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
-                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-md-4 row-cols-1 g-3">
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_home" id="edit_allow_home" value="Y">
-                                <label class="form-check-label small" for="edit_allow_home">Home Detail</label>
-                            </div>
+                    <div class="border rounded-3 p-3 bg-light-subtle mb-2">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
+                            <span class="text-muted small">กำหนดสิทธิ์การใช้งานแยกตามหมวดหมู่</span>
                         </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_import" id="edit_allow_import" value="Y">
-                                <label class="form-check-label small" for="edit_allow_import">นำเข้าข้อมูล</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_check" id="edit_allow_check" value="Y">
-                                <label class="form-check-label small" for="edit_allow_check">ตรวจสอบข้อมูล</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_check_right" id="edit_allow_check_right" value="Y">
-                                <label class="form-check-label small text-info fw-bold" for="edit_allow_check_right">ตรวจสอบสิทธิการรักษา (สปสช.)</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_emr" id="edit_allow_emr" value="Y">
-                                <label class="form-check-label small" for="edit_allow_emr">งานเวชระเบียน</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_claim_op" id="edit_allow_claim_op" value="Y">
-                                <label class="form-check-label small" for="edit_allow_claim_op">เรียกเก็บ OP</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_claim_ip" id="edit_allow_claim_ip" value="Y">
-                                <label class="form-check-label small" for="edit_allow_claim_ip">เรียกเก็บ IP</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_mishos" id="edit_allow_mishos" value="Y">
-                                <label class="form-check-label small" for="edit_allow_mishos">MIS Hospital</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor" id="edit_allow_debtor" value="Y">
-                                <label class="form-check-label small" for="edit_allow_debtor">ลูกหนี้ค่ารักษา</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_lock" id="edit_allow_debtor_lock" value="Y">
-                                <label class="form-check-label small text-danger fw-bold" for="edit_allow_debtor_lock">Lock ลูกหนี้</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_acc" id="edit_allow_debtor_acc" value="Y">
-                                <label class="form-check-label small text-info fw-bold" for="edit_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_receipt" id="edit_allow_receipt" value="Y">
-                                <label class="form-check-label small text-warning fw-bold" for="edit_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_nhso_endpoint" id="edit_allow_nhso_endpoint" value="Y">
-                                <label class="form-check-label small text-primary fw-bold" for="edit_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input p_switch" type="checkbox" name="allow_hosfin" id="edit_allow_hosfin" value="Y">
-                                <label class="form-check-label small text-success fw-bold" for="edit_allow_hosfin">HosFin</label>
-                            </div>
-                        </div>
-                        @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
-                            <div class="col">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input p_switch" type="checkbox" name="allow_aopod_death" id="edit_allow_aopod_death" value="Y">
-                                    <label class="form-check-label small text-success fw-bold" for="edit_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+
+                        <!-- Nav Tabs for Permissions -->
+                        <ul class="nav nav-pills nav-fill mb-3 p-1 bg-white rounded-3 border shadow-sm" id="editPermTabs" role="tablist" style="font-size: 0.85rem;">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-bold py-2" id="edit-perm-general-tab" data-bs-toggle="pill" data-bs-target="#edit-perm-general" type="button" role="tab">
+                                    <i class="bi bi-file-earmark-bar-graph me-1"></i> รายงานทั่วไป
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold py-2" id="edit-perm-export-tab" data-bs-toggle="pill" data-bs-target="#edit-perm-export" type="button" role="tab">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออกข้อมูล
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold py-2" id="edit-perm-other-tab" data-bs-toggle="pill" data-bs-target="#edit-perm-other" type="button" role="tab">
+                                    <i class="bi bi-gear-wide-connected me-1"></i> อื่น ๆ
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content bg-white p-3 rounded-3 border">
+                            <!-- Tab 1: รายงานทั่วไป -->
+                            <div class="tab-pane fade show active" id="edit-perm-general" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_home" id="edit_allow_home" value="Y">
+                                            <label class="form-check-label small" for="edit_allow_home">Home Detail</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_import" id="edit_allow_import" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_import"><i class="bi bi-file-earmark-arrow-down me-1"></i>นำเข้าข้อมูล</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_check" id="edit_allow_check" value="Y">
+                                            <label class="form-check-label small" for="edit_allow_check">ตรวจสอบข้อมูล</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_emr" id="edit_allow_emr" value="Y">
+                                            <label class="form-check-label small" for="edit_allow_emr">งานเวชระเบียน</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_claim_op" id="edit_allow_claim_op" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="edit_allow_claim_op">เรียกเก็บ OP</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_claim_ip" id="edit_allow_claim_ip" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="edit_allow_claim_ip">เรียกเก็บ IP</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_mishos" id="edit_allow_mishos" value="Y">
+                                            <label class="form-check-label small" for="edit_allow_mishos">MIS Hospital</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_debtor" id="edit_allow_debtor" value="Y">
+                                            <label class="form-check-label small" for="edit_allow_debtor">ลูกหนี้ค่ารักษา</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_hosfin" id="edit_allow_hosfin" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="edit_allow_hosfin">HosFin</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        @endif
+
+                            <!-- Tab 2: นำเข้า-ส่งออกข้อมูล -->
+                            <div class="tab-pane fade" id="edit-perm-export" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_f16_eclaim" id="edit_allow_export_f16_eclaim" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_export_f16_eclaim"><i class="bi bi-box-arrow-up-right me-1"></i>ส่งออก 16 แฟ้ม (e-Claim)</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_f16_fdh" id="edit_allow_export_f16_fdh" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="edit_allow_export_f16_fdh"><i class="bi bi-box-arrow-up-right me-1"></i>ส่งออก 16 แฟ้ม (FDH)</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_ssop'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_ssop" id="edit_allow_export_ssop" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="edit_allow_export_ssop"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก SSOP</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_aipn'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_aipn" id="edit_allow_export_aipn" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="edit_allow_export_aipn"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก AIPN</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_csop'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_csop" id="edit_allow_export_csop" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="edit_allow_export_csop"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก CSOP</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('export_cipn'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_export_cipn" id="edit_allow_export_cipn" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="edit_allow_export_cipn"><i class="bi bi-file-earmark-zip me-1"></i>ส่งออก CIPN</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: อื่น ๆ -->
+                            <div class="tab-pane fade" id="edit-perm-other" role="tabpanel">
+                                <div class="row row-cols-md-3 row-cols-1 g-3">
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_check_right" id="edit_allow_check_right" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="edit_allow_check_right">ตรวจสอบสิทธิการรักษา (สปสช.)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_nhso_endpoint" id="edit_allow_nhso_endpoint" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_lock" id="edit_allow_debtor_lock" value="Y">
+                                            <label class="form-check-label small text-danger fw-bold" for="edit_allow_debtor_lock">Lock ลูกหนี้</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_acc" id="edit_allow_debtor_acc" value="Y">
+                                            <label class="form-check-label small text-info fw-bold" for="edit_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_receipt" id="edit_allow_receipt" value="Y">
+                                            <label class="form-check-label small text-warning fw-bold" for="edit_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
+                                        </div>
+                                    </div>
+                                    @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_aopod_death" id="edit_allow_aopod_death" value="Y">
+                                            <label class="form-check-label small text-success fw-bold" for="edit_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -740,29 +946,20 @@
     .bg-info-subtle { background-color: #e0f2fe; }
     .bg-warning-subtle { background-color: #fef3c7; }
 
-    .nav-pills .nav-link-active {
-        color: #15803d !important;
-        background-color: #f0fdf4 !important;
-        border: 1px solid #bbf7d0 !important;
+    .nav-pills .nav-link {
+        color: #4b5563 !important;
+        border-radius: 0.5rem;
         transition: all 0.2s ease-in-out;
     }
-    .nav-pills .nav-link-active.active {
-        color: #ffffff !important;
-        background-color: #16a34a !important;
-        border-color: #16a34a !important;
-        box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+    .nav-pills .nav-link:hover {
+        color: #0d6efd !important;
+        background-color: #f1f5f9 !important;
     }
-    .nav-pills .nav-link-inactive {
-        color: #b91c1c !important;
-        background-color: #fef2f2 !important;
-        border: 1px solid #fecaca !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .nav-pills .nav-link-inactive.active {
+    .nav-pills .nav-link.active {
         color: #ffffff !important;
-        background-color: #dc2626 !important;
-        border-color: #dc2626 !important;
-        box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.25) !important;
     }
 </style>
 
@@ -788,45 +985,59 @@
 
         // Set ข้อมูลใน Edit Modal (using event delegation for DataTables compatibility)
         $(document).on('click', '.btn-edit', function () {
-            const data = $(this).data();
-            $('#editName').val(data.name);
-            $('#editEmail').val(data.email);
-            $('#editStatus').val(data.status);
-            $('#editActive').prop('checked', data.active === 'Y');
+            const $btn = $(this);
+            const data = $btn.data();
+            $('#editName').val(data.name || $btn.attr('data-name') || '');
+            $('#editEmail').val(data.email || $btn.attr('data-email') || '');
+            $('#editStatus').val(data.status || $btn.attr('data-status') || 'user');
+            $('#editActive').prop('checked', (data.active || $btn.attr('data-active')) === 'Y');
             
             // Set Permissions
-            $('#edit_allow_home').prop('checked', data.allow_home === 'Y');
-            $('#edit_allow_import').prop('checked', data.allow_import === 'Y');
-            $('#edit_allow_check').prop('checked', data.allow_check === 'Y');
-            $('#edit_allow_check_right').prop('checked', data.allow_check_right === 'Y');
-            $('#edit_allow_emr').prop('checked', data.allow_emr === 'Y');
-            $('#edit_allow_claim_op').prop('checked', data.allow_claim_op === 'Y');
-            $('#edit_allow_claim_ip').prop('checked', data.allow_claim_ip === 'Y');
-            $('#edit_allow_mishos').prop('checked', data.allow_mishos === 'Y');
-            $('#edit_allow_debtor').prop('checked', data.allow_debtor === 'Y');
-            $('#edit_allow_debtor_lock').prop('checked', data.allow_debtor_lock === 'Y');
-            $('#edit_allow_debtor_acc').prop('checked', data.allow_debtor_acc === 'Y');
-            $('#edit_allow_receipt').prop('checked', data.allow_receipt === 'Y');
-            $('#edit_allow_nhso_endpoint').prop('checked', data.allow_nhso_endpoint === 'Y');
-            $('#edit_allow_aopod_death').prop('checked', data.allow_aopod_death === 'Y');
-            $('#edit_allow_hosfin').prop('checked', data.allow_hosfin === 'Y');
-            $('#editCid').val(data.cid);
+            $('#edit_allow_home').prop('checked', (data.allow_home || $btn.attr('data-allow_home')) === 'Y');
+            $('#edit_allow_import').prop('checked', (data.allow_import || $btn.attr('data-allow_import')) === 'Y');
+            $('#edit_allow_check').prop('checked', (data.allow_check || $btn.attr('data-allow_check')) === 'Y');
+            $('#edit_allow_check_right').prop('checked', (data.allow_check_right || $btn.attr('data-allow_check_right')) === 'Y');
+            $('#edit_allow_emr').prop('checked', (data.allow_emr || $btn.attr('data-allow_emr')) === 'Y');
+            $('#edit_allow_claim_op').prop('checked', (data.allow_claim_op || $btn.attr('data-allow_claim_op')) === 'Y');
+            $('#edit_allow_claim_ip').prop('checked', (data.allow_claim_ip || $btn.attr('data-allow_claim_ip')) === 'Y');
+            $('#edit_allow_mishos').prop('checked', (data.allow_mishos || $btn.attr('data-allow_mishos')) === 'Y');
+            $('#edit_allow_debtor').prop('checked', (data.allow_debtor || $btn.attr('data-allow_debtor')) === 'Y');
+            $('#edit_allow_debtor_lock').prop('checked', (data.allow_debtor_lock || $btn.attr('data-allow_debtor_lock')) === 'Y');
+            $('#edit_allow_debtor_acc').prop('checked', (data.allow_debtor_acc || $btn.attr('data-allow_debtor_acc')) === 'Y');
+            $('#edit_allow_receipt').prop('checked', (data.allow_receipt || $btn.attr('data-allow_receipt')) === 'Y');
+            $('#edit_allow_nhso_endpoint').prop('checked', (data.allow_nhso_endpoint || $btn.attr('data-allow_nhso_endpoint')) === 'Y');
+            $('#edit_allow_aopod_death').prop('checked', (data.allow_aopod_death || $btn.attr('data-allow_aopod_death')) === 'Y');
+            $('#edit_allow_hosfin').prop('checked', (data.allow_hosfin || $btn.attr('data-allow_hosfin')) === 'Y');
+            $('#edit_allow_export_f16_eclaim').prop('checked', (data.allow_export_f16_eclaim || $btn.attr('data-allow_export_f16_eclaim')) === 'Y');
+            $('#edit_allow_export_f16_fdh').prop('checked', (data.allow_export_f16_fdh || $btn.attr('data-allow_export_f16_fdh')) === 'Y');
+            $('#edit_allow_export_ssop').prop('checked', (data.allow_export_ssop || $btn.attr('data-allow_export_ssop')) === 'Y');
+            $('#edit_allow_export_aipn').prop('checked', (data.allow_export_aipn || $btn.attr('data-allow_export_aipn')) === 'Y');
+            $('#edit_allow_export_csop').prop('checked', (data.allow_export_csop || $btn.attr('data-allow_export_csop')) === 'Y');
+            $('#edit_allow_export_cipn').prop('checked', (data.allow_export_cipn || $btn.attr('data-allow_export_cipn')) === 'Y');
+            $('#editCid').val(data.cid !== undefined ? data.cid : ($btn.attr('data-cid') || ''));
 
             // Set FDH credentials
-            $('#editFdhUser').val(data.fdh_user || '');
-            $('#editFdhPass').val(data.fdh_pass || '');
-            $('#editFdhSecretKey').val(data.fdh_secret_key || '');
+            $('#editFdhUser').val(data.fdh_user !== undefined ? data.fdh_user : ($btn.attr('data-fdh_user') || ''));
+            $('#editFdhPass').val(data.fdh_pass !== undefined ? data.fdh_pass : ($btn.attr('data-fdh_pass') || ''));
+            $('#editFdhSecretKey').val(data.fdh_secret_key !== undefined ? data.fdh_secret_key : ($btn.attr('data-fdh_secret_key') || ''));
 
             // Set e-Claim credentials
-            $('#editEclaimUser').val(data.eclaim_user || '');
-            $('#editEclaimPass').val(data.eclaim_pass || '');
+            $('#editEclaimUser').val(data.eclaim_user !== undefined ? data.eclaim_user : ($btn.attr('data-eclaim_user') || ''));
+            $('#editEclaimPass').val(data.eclaim_pass !== undefined ? data.eclaim_pass : ($btn.attr('data-eclaim_pass') || ''));
 
-            updateActiveLabel(data.active === 'Y');
+            updateActiveLabel((data.active || $btn.attr('data-active')) === 'Y');
             
+            // Reset permission tab to general
+            $('#edit-perm-general-tab').tab('show');
+
             // Disable permissions if admin
-            togglePermissionInputs(data.status === 'admin');
+            togglePermissionInputs((data.status || $btn.attr('data-status')) === 'admin');
             
-            $('#editForm').attr('action', "{{ url('admin/users') }}/" + data.id);
+            $('#editForm').attr('action', "{{ url('admin/users') }}/" + (data.id || $btn.attr('data-id')));
+        });
+
+        $('#addModal').on('show.bs.modal', function () {
+            $('#add-perm-general-tab').tab('show');
         });
 
         $('#editStatus').on('change', function() {

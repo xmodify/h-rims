@@ -14,10 +14,10 @@ class F16FdhExportController extends Controller
      */
     public function preview(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') || (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_export_f16_fdh !== 'Y')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
+                'message' => 'คุณไม่มีสิทธิ์ในการส่งออกข้อมูล 16 แฟ้ม FDH'
             ], 403);
         }
 
@@ -104,10 +104,10 @@ class F16FdhExportController extends Controller
      */
     public function exportData(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') || (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_export_f16_fdh !== 'Y')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
+                'message' => 'คุณไม่มีสิทธิ์ในการส่งออกข้อมูล 16 แฟ้ม FDH'
             ], 403);
         }
 
@@ -203,10 +203,10 @@ class F16FdhExportController extends Controller
      */
     public function sendApi(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh')) {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') || (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_export_f16_fdh !== 'Y')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม FDH (export_f16_fdh)'
+                'message' => 'คุณไม่มีสิทธิ์ในการส่งออกข้อมูล 16 แฟ้ม FDH'
             ], 403);
         }
 

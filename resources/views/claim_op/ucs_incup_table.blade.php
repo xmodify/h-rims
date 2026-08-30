@@ -1,5 +1,5 @@
 @php
-    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh');
+    $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_fdh === 'Y');
 @endphp
 
     <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">

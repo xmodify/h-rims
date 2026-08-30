@@ -446,7 +446,8 @@
                         <tr><th class="text-muted">รพ.หลัก</th><td>${visit.hospmain || '-'}</td></tr>
                         <tr><th class="text-muted">Authen Code</th><td>${visit.auth_code == 'Y' ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>มี Authen Code</span>' : '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ไม่มี Authen Code</span>'}</td></tr>
                         <tr><th class="text-muted">สรุป Chart</th><td>${visit.dch_sum == 'Y' ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>สรุป Chart แล้ว (Y)</span>' : '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ยังไม่สรุป Chart (N)</span>'}</td></tr>
-                        <tr><th class="text-muted">Audit Chart</th><td><span class="fw-bold text-dark">${visit.audit_status || '-'}</span></td></tr>
+                        <tr><th class="text-muted">Audit Chart</th><td>${visit.audit_status == 'Y' ? '<span class="badge bg-success" title="ผู้ Audit: ' + (visit.audit_doctor_name || '') + '"><i class="bi bi-check-circle me-1"></i>Audit แล้ว (Y)' + (visit.audit_doctor_name ? ' (' + visit.audit_doctor_name + ')' : '') + '</span>' : '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>ยังไม่ออดิท (N)</span>'}</td></tr>
+                        <tr><th class="text-muted">สถานะเรียกเก็บ</th><td>${visit.coll_status ? '<span class="badge bg-info text-dark fw-bold">' + visit.coll_status + '</span>' : '<span class="text-muted">-</span>'}</td></tr>
                       </table>
                     </div>
                   </div>

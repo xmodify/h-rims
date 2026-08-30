@@ -31,6 +31,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\NhsoEndpointController;
 use App\Http\Controllers\ImportSssController;
 use App\Http\Controllers\EclaimBotController;
+use App\Http\Controllers\KtbHealthPlatformController;
+use App\Http\Controllers\F16KtbExportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -548,6 +550,20 @@ Route::match(['get', 'post'], 'mishos/ucs_ppfs_anc', [MishosController::class, '
 Route::match(['get', 'post'], 'mishos/ucs_ppfs_postnatal', [MishosController::class, 'ucs_ppfs_postnatal']);
 Route::match(['get', 'post'], 'mishos/ucs_ppfs_fittest', [MishosController::class, 'ucs_ppfs_fittest']);
 Route::match(['get', 'post'], 'mishos/ucs_ppfs_scr', [MishosController::class, 'ucs_ppfs_scr']);
+
+// KTB Health Platform (16 แฟ้ม) -----------------------------------------------------------------------------
+Route::match(['get', 'post'], 'ktb/anc', [KtbHealthPlatformController::class, 'anc']);
+Route::match(['get', 'post'], 'ktb/postnatal', [KtbHealthPlatformController::class, 'postnatal']);
+Route::match(['get', 'post'], 'ktb/glasses', [KtbHealthPlatformController::class, 'glasses']);
+Route::match(['get', 'post'], 'ktb/oral_cancer', [KtbHealthPlatformController::class, 'oral_cancer']);
+Route::match(['get', 'post'], 'ktb/cervical_cancer', [KtbHealthPlatformController::class, 'cervical_cancer']);
+Route::match(['get', 'post'], 'ktb/fittest', [KtbHealthPlatformController::class, 'fittest']);
+Route::match(['get', 'post'], 'ktb/scr', [KtbHealthPlatformController::class, 'scr']);
+Route::match(['get', 'post'], 'ktb/s01', [KtbHealthPlatformController::class, 'scr']);
+Route::get('ktb/visit_details', [KtbHealthPlatformController::class, 'visit_details']);
+Route::post('ktb/f16_preview', [F16KtbExportController::class, 'previewData']);
+Route::post('ktb/f16_export', [F16KtbExportController::class, 'exportZip']);
+Route::get('ktb/download_zip/{fileName}', [F16KtbExportController::class, 'downloadZip']);
 
 // HosFin System Routes
 Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {

@@ -1162,6 +1162,42 @@
                                                 </li>
                                             </ul>
                                         </li>
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-heart-pulse-fill text-info me-2"></i> KTB Health Platform
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/anc') }}"><i class="bi bi-chevron-right text-muted me-1"></i> การฝากครรภ์ (ANC)</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/postnatal') }}"><i class="bi bi-chevron-right text-muted me-1"></i> การตรวจหลังคลอด</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/glasses') }}"><i class="bi bi-chevron-right text-muted me-1"></i> การตรวจคัดกรองวินิจฉัยให้แว่นตาสำหรับเด็ก</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/oral_cancer') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการคัดกรองรอยโรคเสี่ยงมะเร็งและมะเร็งช่องปาก</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/cervical_cancer') }}"><i class="bi bi-chevron-right text-muted me-1"></i> การตรวจคัดกรองมะเร็งสตรี</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('ktb/fittest') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการคัดกรองโรคมะเร็งลำไส้ใหญ่ (Fit test)</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern fw-bold text-primary"
+                                                        href="{{ url('ktb/scr') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการคัดกรองและประเมินปัจจัยเสี่ยงต่อสุขภาพกาย/สุขภาพจิต</a>
+                                                </li>
+                                            </ul>
+                                        </li>
                                     </ul>
                                 </li>
                             @endif
@@ -1190,7 +1226,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-30 13.00
+                                V.69-08-30 19.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

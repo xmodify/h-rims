@@ -118,7 +118,7 @@
               @endphp
               @if($is_f16_licensed)
               <button type="button" class="btn text-white fw-bold px-4 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSingleAnEclaim()">
-                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม E-Claim เคสนี้
+                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้มเคสนี้
               </button>
               @endif
             </div>
@@ -294,33 +294,6 @@
                 }
             }
 
-            let fdhBtn = '';
-            if (visit.fdh_status) {
-                fdhBtn = `
-                    <div class="d-inline-flex gap-2 align-items-center">
-                        <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
-                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
-                    </div>`;
-            } else if (visit.ec_status) {
-                fdhBtn = `
-                    <div class="d-inline-flex gap-2 align-items-center">
-                        <span class="badge bg-info text-dark py-1 px-2 text-wrap" style="max-width:180px;">E-Claim: ${visit.ec_status}</span>
-                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
-                    </div>`;
-            } else if (visit.data_exp_date) {
-                fdhBtn = `
-                    <div class="d-inline-flex gap-2 align-items-center">
-                        <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">ส่งออก 16 แฟ้ม (${formatDateThai(visit.data_exp_date)})</span>
-                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
-                    </div>`;
-            } else {
-                fdhBtn = `
-                    <div class="d-inline-flex gap-2 align-items-center">
-                        <span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span>
-                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
-                    </div>`;
-            }
-
             let statusHtml = '';
             if (!v.is_valid) {
                 statusHtml = `
@@ -477,7 +450,6 @@
                         <tr><th class="text-muted" style="width:38%">รวมค่ารักษา</th><td class="fw-bold text-dark">${parseFloat(visit.income || 0).toFixed(2)} บาท</td></tr>
                         <tr><th class="text-muted">ชำระเงินสด</th><td>${parseFloat(visit.rcpt_money || 0).toFixed(2)} บาท</td></tr>
                         <tr><th class="text-muted">ยอดเรียกเก็บ</th><td class="fw-bold text-primary">${parseFloat(visit.uc_money || (visit.income - visit.rcpt_money) || 0).toFixed(2)} บาท</td></tr>
-                        <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
                         <tr><th class="text-muted">PDX (โรคหลัก)</th><td>${visit.pdx ? '<span class="badge bg-danger-soft text-danger fw-bold">' + visit.pdx + '</span>' : '<span class="badge bg-danger">ยังไม่ระบุ PDX</span>'}</td></tr>
                         <tr><th class="text-muted">SDX (โรครอง)</th><td style="word-break: break-all;">${data.sec_diags.join(', ') || '<span class="text-muted">-</span>'}</td></tr>
                         <tr><th class="text-muted">ICD-9 (หัตถการ)</th><td style="word-break: break-all;">${data.procedures.join(', ') || '<span class="text-muted">-</span>'}</td></tr>
@@ -591,89 +563,6 @@
         });
     }
 
-    // Individual FDH Check
-    function checkFdh(hn, an) {
-        Swal.fire({
-            title: 'กำลังตรวจสอบสถานะ...',
-            text: 'กรุณารอสักครู่',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        $.ajax({
-            url: "{{ url('/api/fdh/check-claim-indiv') }}",
-            type: "POST",
-            data: {
-                hn: hn,
-                an: an,
-                _token: "{{ csrf_token() }}"
-            },
-            success: function (res) {
-                if (res.status === 200) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ตรวจสอบสำเร็จ',
-                        text: 'พบข้อมูลในระบบ FDH',
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => {
-                        if (currentModalAn && $('#detailsModal').is(':visible')) {
-                            showDetails(currentModalAn);
-                        }
-                        loadDashboard({
-                            budget_year: $('#form_budget_year select[name="budget_year"]').val(),
-                            start_date: $('#start_date').val(),
-                            end_date: $('#end_date').val(),
-                            skip_chart: 1
-                        });
-                    });
-                    return;
-                }
-                if (res.status === 404 || res.status === 500) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'ไม่พบข้อมูลในระบบ FDH',
-                        text: res.body?.message_th ?? "ไม่มีรายการนี้ส่ง"
-                    });
-                    return;
-                }
-                if (res.status === 400) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้'
-                    });
-                    return;
-                }
-            },
-            error: function () {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'การเชื่อมต่อล้มเหลว',
-                    text: 'ไม่สามารถเรียก API ได้ (Network Error)'
-                });
-            }
-        });
-    }
-
-    // FDH Bulk Check
-    async function checkFdhBulk(e) {
-        e.preventDefault();
-        const items = window.patientItems || [];
-
-        if (!items || items.length === 0) {
-            Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
-            return;
-        }
-
-        await runFdhBulkCheck(items, "{{ csrf_token() }}", "{{ url('/api/fdh/check-chunk') }}", function() {
-            loadDashboard({
-                budget_year: $('#form_budget_year select[name="budget_year"]').val(),
-                start_date: $('#start_date').val(),
-                end_date: $('#end_date').val(),
-                skip_chart: 1
-            });
-        });
     }
 
     // AJAX Dashboard Loader

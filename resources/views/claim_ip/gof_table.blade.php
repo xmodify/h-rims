@@ -94,18 +94,18 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
-                                    <td class="text-center">
+                                    <td class="text-center" id="td-status-search-{{ $row->an }}" data-order="{{ !$row->is_valid ? 0 : ($row->auth_valid ? 2 : 1) }}">
                                         @if(!$row->is_valid)
-                                            <button type="button" class="btn btn-outline-danger btn-xs py-0 px-1" title="ข้อมูลไม่ครบถ้วน (คลิกเพื่อดูรายละเอียด)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม IPD | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
-                                        @elseif($row->is_valid && !$row->auth_valid)
-                                            <button type="button" class="btn btn-outline-warning btn-xs py-0 px-1 text-dark" title="ข้อมูลพร้อมส่ง (ยังไม่มีเลข Authen)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                        @elseif($row->auth_valid)
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + มี Authen Code แล้ว | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
-                                            <button type="button" class="btn btn-outline-success btn-xs py-0 px-1" title="ข้อมูลพร้อมสมบูรณ์ (คลิกเพื่อดูรายละเอียด)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ข้อมูลครบ แต่ยังไม่มี Authen Code | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @endif
                                     </td>
@@ -190,18 +190,18 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
-                                    <td class="text-center">
+                                    <td class="text-center" id="td-status-claim-{{ $row->an }}" data-order="{{ !$row->is_valid ? 0 : ($row->auth_valid ? 2 : 1) }}">
                                         @if(!$row->is_valid)
-                                            <button type="button" class="btn btn-outline-danger btn-xs py-0 px-1" title="ข้อมูลไม่ครบถ้วน (คลิกเพื่อดูรายละเอียด)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม IPD | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
-                                        @elseif($row->is_valid && !$row->auth_valid)
-                                            <button type="button" class="btn btn-outline-warning btn-xs py-0 px-1 text-dark" title="ข้อมูลพร้อมส่ง (ยังไม่มีเลข Authen)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                        @elseif($row->auth_valid)
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + มี Authen Code แล้ว | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
-                                            <button type="button" class="btn btn-outline-success btn-xs py-0 px-1" title="ข้อมูลพร้อมสมบูรณ์ (คลิกเพื่อดูรายละเอียด)" onclick="showDetails('{{ $row->an }}')">
-                                                <i class="bi bi-eye"></i>
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ข้อมูลครบ แต่ยังไม่มี Authen Code | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @endif
                                     </td>

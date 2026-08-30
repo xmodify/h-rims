@@ -43,6 +43,8 @@ class User extends Authenticatable
         'fdh_user',
         'fdh_pass',
         'fdh_secretKey',
+        'eclaim_user',
+        'eclaim_pass',
         'moph_token',
         'moph_token_expire',
     ];

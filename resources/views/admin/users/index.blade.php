@@ -136,6 +136,8 @@
                                                     data-fdh_user="{{ $user->fdh_user }}"
                                                     data-fdh_pass="{{ $user->fdh_pass }}"
                                                     data-fdh_secret_key="{{ $user->fdh_secretKey }}"
+                                                    data-eclaim_user="{{ $user->eclaim_user }}"
+                                                    data-eclaim_pass="{{ $user->eclaim_pass }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
@@ -264,6 +266,8 @@
                                                     data-fdh_user="{{ $user->fdh_user }}"
                                                     data-fdh_pass="{{ $user->fdh_pass }}"
                                                     data-fdh_secret_key="{{ $user->fdh_secretKey }}"
+                                                    data-eclaim_user="{{ $user->eclaim_user }}"
+                                                    data-eclaim_pass="{{ $user->eclaim_pass }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
@@ -371,6 +375,30 @@
                         <div class="col-md-2">
                             <button type="button" class="btn btn-outline-success w-100 py-2 rounded-3 btn-test-fdh-token" data-user-input="#addFdhUser" data-pass-input="#addFdhPass" data-key-input="#addFdhSecretKey">
                                 <i class="bi bi-shield-check me-1"></i> ทดสอบ Token
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">e-Claim User</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-circle"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="addEclaimUser" name="eclaim_user" type="text">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">e-Claim Pass</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="addEclaimPass" name="eclaim_pass" type="password">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('addEclaimPass', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-info w-100 py-2 rounded-3 btn-test-eclaim-token" data-user-input="#addEclaimUser" data-pass-input="#addEclaimPass">
+                                <i class="bi bi-cloud-check me-1"></i> ทดสอบ Token
                             </button>
                         </div>
                     </div>
@@ -566,6 +594,30 @@
                         <div class="col-md-2">
                             <button type="button" class="btn btn-outline-success w-100 py-2 rounded-3 btn-test-fdh-token" data-user-input="#editFdhUser" data-pass-input="#editFdhPass" data-key-input="#editFdhSecretKey">
                                 <i class="bi bi-shield-check me-1"></i> ทดสอบ Token
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">e-Claim User</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-circle"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editEclaimUser" name="eclaim_user" type="text">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">e-Claim Pass</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editEclaimPass" name="eclaim_pass" type="password">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('editEclaimPass', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-info w-100 py-2 rounded-3 btn-test-eclaim-token" data-user-input="#editEclaimUser" data-pass-input="#editEclaimPass">
+                                <i class="bi bi-cloud-check me-1"></i> ทดสอบ Token
                             </button>
                         </div>
                     </div>
@@ -765,6 +817,10 @@
             $('#editFdhPass').val(data.fdh_pass || '');
             $('#editFdhSecretKey').val(data.fdh_secret_key || '');
 
+            // Set e-Claim credentials
+            $('#editEclaimUser').val(data.eclaim_user || '');
+            $('#editEclaimPass').val(data.eclaim_pass || '');
+
             updateActiveLabel(data.active === 'Y');
             
             // Disable permissions if admin
@@ -858,6 +914,86 @@
                         icon: 'error',
                         title: 'เชื่อมต่อล้มเหลว',
                         text: data.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User และ Password',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#ef4444',
+                        borderRadius: '15px'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message || error,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#ef4444',
+                    borderRadius: '15px'
+                });
+            });
+        });
+
+        // Test e-Claim Token
+        $(document).on('click', '.btn-test-eclaim-token', function () {
+            const userInput = $(this).data('user-input');
+            const passInput = $(this).data('pass-input');
+
+            const eclaimUser = $(userInput).val() ? $(userInput).val().trim() : '';
+            const eclaimPass = $(passInput).val() ? $(passInput).val().trim() : '';
+
+            if (!eclaimUser || !eclaimPass) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอก e-Claim User และ e-Claim Pass ให้ครบถ้วนก่อนทดสอบ Token',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0ea5e9',
+                    borderRadius: '15px'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'กำลังทดสอบการเชื่อมต่อ...',
+                text: 'กรุณารอสักครู่ ระบบกำลังขอ Token จาก สปสช. e-Claim',
+                allowOutsideClick: false,
+                borderRadius: '15px',
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            fetch('{{ route("profile.test-eclaim-token") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    eclaim_user: eclaimUser,
+                    eclaim_pass: eclaimPass
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.token) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ',
+                        html: `
+                            <div class="text-start p-2">
+                                <p class="mb-2 text-info fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึง e-Claim Token สำเร็จ</p>
+                                <div class="bg-light p-3 small border rounded-3" style="word-break: break-all; font-family: monospace; max-height: 150px; overflow-y: auto;">
+                                    ${data.token}
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#0284c7',
+                        borderRadius: '15px'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เชื่อมต่อล้มเหลว',
+                        text: data.message || 'ไม่สามารถขอ Access Token จาก สปสช. e-Claim ได้ กรุณาตรวจสอบ Username และ Password ของ e-Claim',
                         confirmButtonText: 'ตกลง',
                         confirmButtonColor: '#ef4444',
                         borderRadius: '15px'

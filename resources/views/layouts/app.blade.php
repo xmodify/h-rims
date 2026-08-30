@@ -1575,6 +1575,39 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Card ตั้งค่าบัญชี e-Claim -->
+                        <div class="card mt-3 border-0 shadow-sm" style="background-color: #f0fdfa; border-left: 4px solid #0e939a !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-cloud-arrow-up-fill fs-5 me-2" style="color: #0e939a;"></i>
+                                        <h6 class="fw-bold mb-0" style="color: #0e7490;">ตั้งค่าบัญชี e-Claim</h6>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-info btn-sm px-3 rounded-pill shadow-sm" id="testProfileEclaimBtn">
+                                        <i class="bi bi-cloud-check me-1"></i> ทดสอบ Token
+                                    </button>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted">e-Claim User</label>
+                                        <input type="text" class="form-control bg-white" name="eclaim_user"
+                                            value="{{ old('eclaim_user', auth()->user()->eclaim_user) }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-muted">e-Claim Pass</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control bg-white" id="profile_eclaim_pass" name="eclaim_pass"
+                                                value="{{ old('eclaim_pass', auth()->user()->eclaim_pass) }}">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassVisibility('profile_eclaim_pass', this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer bg-light border-0 d-flex justify-content-between">
                         <div>
@@ -1657,6 +1690,80 @@
                                     icon: 'error',
                                     title: 'เชื่อมต่อล้มเหลว',
                                     text: data.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User และ Password',
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด',
+                                text: error.message || error,
+                                confirmButtonText: 'ตกลง',
+                                confirmButtonColor: '#d33'
+                            });
+                        });
+                    });
+                }
+
+                const testProfileEclaimBtn = document.getElementById('testProfileEclaimBtn');
+                if (testProfileEclaimBtn) {
+                    testProfileEclaimBtn.addEventListener('click', function () {
+                        const eclaimUser = document.querySelector('input[name="eclaim_user"]')?.value?.trim() || '';
+                        const eclaimPass = document.querySelector('input[name="eclaim_pass"]')?.value?.trim() || '';
+
+                        if (!eclaimUser || !eclaimPass) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'ข้อมูลไม่ครบถ้วน',
+                                text: 'กรุณากรอก e-Claim User และ e-Claim Pass ให้ครบถ้วนก่อนทดสอบ Token',
+                                confirmButtonText: 'ตกลง',
+                                confirmButtonColor: '#0ea5e9'
+                            });
+                            return;
+                        }
+
+                        Swal.fire({
+                            title: 'กำลังทดสอบการเชื่อมต่อ...',
+                            text: 'กรุณารอสักครู่ ระบบกำลังขอ Token จาก สปสช. e-Claim',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        fetch('{{ route("profile.test-eclaim-token") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                            },
+                            body: JSON.stringify({
+                                eclaim_user: eclaimUser,
+                                eclaim_pass: eclaimPass
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success' && data.token) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'เชื่อมต่อสำเร็จ',
+                                    html: `
+                                        <div class="text-start p-2">
+                                            <p class="mb-2 text-info fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึง e-Claim Token สำเร็จ</p>
+                                            <div class="bg-light p-3 small border rounded-3" style="word-break: break-all; font-family: monospace; max-height: 150px; overflow-y: auto;">
+                                                ${data.token}
+                                            </div>
+                                        </div>
+                                    `,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#0284c7'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เชื่อมต่อล้มเหลว',
+                                    text: data.message || 'ไม่สามารถขอ Access Token จาก สปสช. e-Claim ได้ กรุณาตรวจสอบ Username และ Password ของ e-Claim',
                                     confirmButtonText: 'ตกลง',
                                     confirmButtonColor: '#d33'
                                 });

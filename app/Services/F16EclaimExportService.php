@@ -5,6 +5,9 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class F16EclaimExportService
 {
@@ -1106,7 +1109,7 @@ class F16EclaimExportService
         // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0 && (float)$it->sum_price > 0;
         });
 
         foreach ($drugItems as $it) {
@@ -1215,9 +1218,9 @@ class F16EclaimExportService
             $aerLines[] = "{$er->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
         }
 
-        // 16. ADP.txt (27 columns ตามโครงสร้าง e-Claim สปสช.)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
+        // 16. ADP.txt (29 columns ตามโครงสร้าง HOSxP / e-Claim สปสช.)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
         $adpItems = $items->filter(function($it) {
             $price = (float)$it->sum_price;
             $isDrug = str_starts_with((string)$it->icode, '1');
@@ -1232,8 +1235,9 @@ class F16EclaimExportService
 
         foreach ($adpItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = self::mapIncomeToAdpType($it->income, $it->nhso_adp_type);
-            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
+            $rawCode = trim((string)$it->nhso_adp_code);
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
@@ -1245,22 +1249,24 @@ class F16EclaimExportService
             $serialno = '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
-            $usestatus = '';
-            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
+            $usestatus = ($type === '11') ? '2' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
+            $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';
             $bi = '';
             $clinic = self::formatClinic($it->spclty);
-            $itemsrc = '1';
-            $provider = $it->doctor_license ?: 'ว00000';
+            $itemsrc = '';
+            $provider = '';
             $gravida = '';
             $gaweek = '';
             $dcip = '';
             $lmp = '';
             $spitem = '';
+            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
+            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkKey}|{$guid}";
         }
 
         // 17. LABFU.txt (7 columns)
@@ -1751,7 +1757,7 @@ class F16EclaimExportService
         // 12. DRU.txt (24 columns)
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0 && (float)$it->sum_price > 0;
         });
 
         // Group by an, icode, unitprice (matching HOSxP IPD DRU aggregation)
@@ -1878,9 +1884,9 @@ class F16EclaimExportService
             }
         }
 
-        // 16. ADP.txt (27 columns)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
+        // 16. ADP.txt (29 columns ตามโครงสร้าง HOSxP / e-Claim สปสช.)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
         $adpItems = $items->filter(function($it) {
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
@@ -1895,9 +1901,11 @@ class F16EclaimExportService
         foreach ($adpItems as $it) {
             $adm = $admissionsByAn->get($it->an);
             $type = trim((string)($it->nhso_adp_type ?: '17'));
-            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
+            $rawCode = trim((string)$it->nhso_adp_code);
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
             $rate = floatval($it->unitprice ?: 0.0);
-            $key = $it->an . '_' . $type . '_' . $code . '_' . $rate;
+            $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
+            $key = $it->an . '_' . $type . '_' . $code . '_' . $rateStr;
 
             if (!isset($groupedAdp[$key])) {
                 $groupedAdp[$key] = clone $it;
@@ -1917,15 +1925,20 @@ class F16EclaimExportService
             $type = $it->adp_type;
             $code = $it->adp_code;
             $qty = number_format((float)$it->qty, 0, '.', '');
-            $rate = number_format((float)($it->unitprice ?: 0.0), 2, '.', '');
+            $rate = floatval($it->unitprice ?: 0.0);
+            $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $seq = $it->an;
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
-            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
+            $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
+            $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
-            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
+            $provider = '';
+            $itemsrc = '';
+            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
+            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rate}|{$seq}|||||{$totcopay}||{$total}|||||{$clinic}|1|{$provider}|||||";
+            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||{$totcopay}|{$usestatus}|{$total}|||||{$clinic}|{$itemsrc}|{$provider}||||||{$checkKey}|{$guid}";
         }
 
         // 17. LABFU.txt (7 columns)
@@ -1997,6 +2010,377 @@ class F16EclaimExportService
             'counts' => $counts,
             'total_visits' => count($admissions),
             'hcode' => $hcode
+        ];
+    }
+
+    /**
+     * ดึงและตรวจสอบ e-Claim Access Token จาก สปสช. DCenter
+     */
+    public static function getEclaimTokenDetail(?object $customUser = null): array
+    {
+        $settings = DB::table('main_setting')
+            ->pluck('value', 'name')
+            ->toArray();
+
+        if (!$customUser && Auth::check()) {
+            $userObj = DB::table('users')->where('id', Auth::id())->first();
+        } else {
+            $userObj = $customUser;
+        }
+
+        $user     = !empty($userObj->eclaim_user) ? trim($userObj->eclaim_user) : null;
+        $password = !empty($userObj->eclaim_pass) ? trim($userObj->eclaim_pass) : null;
+
+        // Fallback to main_setting if user hasn't configured it
+        if (!$user && !empty($settings['eclaim_user'])) {
+            $user = trim($settings['eclaim_user']);
+        }
+        if (!$password && !empty($settings['eclaim_pass'])) {
+            $password = trim($settings['eclaim_pass']);
+        }
+
+        if (!$user || !$password) {
+            return [
+                'success' => false,
+                'token' => null,
+                'eclaim_user' => $user,
+                'has_credentials' => false,
+                'message' => 'ยังไม่ได้ตั้งค่า e-Claim User หรือ e-Claim Pass ในข้อมูลผู้ใช้งาน'
+            ];
+        }
+
+        $hcode = $settings['hospital_code'] ?? ($settings['hcode'] ?? self::getHcode() ?? '10989');
+        $apiUrl = 'https://nhsoapi.nhso.go.th/FMU/ecimp/v1/auth';
+
+        try {
+            $response = Http::withOptions([
+                'verify' => false,
+                'http_errors' => false
+            ])->withHeaders([
+                "Accept" => "application/json",
+                "Content-Type" => "application/json",
+                "User-Agent" => "H-RIMS/1.0 " . $hcode
+            ])->timeout(30)->post($apiUrl, [
+                'username' => $user,
+                'password' => $password
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!empty($data['token'])) {
+                    return [
+                        'success' => true,
+                        'token' => trim($data['token']),
+                        'eclaim_user' => $user,
+                        'has_credentials' => true,
+                        'user_name' => $userObj->name ?? $user,
+                        'message' => 'ดึง e-Claim Access Token สำเร็จ'
+                    ];
+                }
+            }
+
+            $body = $response->json();
+            $msg = $body['message'] ?? ($body['Message'] ?? ($body['error'] ?? 'e-Claim User หรือ e-Claim Pass ไม่ถูกต้อง'));
+            return [
+                'success' => false,
+                'token' => null,
+                'eclaim_user' => $user,
+                'has_credentials' => true,
+                'message' => $msg
+            ];
+        } catch (\Throwable $e) {
+            Log::error("e-Claim Token error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'token' => null,
+                'eclaim_user' => $user,
+                'has_credentials' => true,
+                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ e-Claim สปสช.: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * ค้นหา Token e-Claim ที่พร้อมใช้งาน
+     */
+    public static function resolveEclaimToken(?string $customToken = null): array
+    {
+        if (!empty($customToken)) {
+            return [
+                'token' => trim($customToken),
+                'type' => 'Custom e-Claim Token',
+                'user_name' => Auth::user()->name ?? 'e-Claim User',
+                'message' => 'Custom Token พร้อมใช้งาน'
+            ];
+        }
+
+        $tokenDetail = self::getEclaimTokenDetail();
+        if ($tokenDetail['success'] && !empty($tokenDetail['token'])) {
+            return [
+                'token' => $tokenDetail['token'],
+                'type' => 'e-Claim Token (' . ($tokenDetail['eclaim_user'] ?? 'User') . ')',
+                'user_name' => $tokenDetail['user_name'] ?? (Auth::user()->name ?? $tokenDetail['eclaim_user']),
+                'eclaim_user' => $tokenDetail['eclaim_user'],
+                'message' => 'ขอ Token สำเร็จ'
+            ];
+        }
+
+        return [
+            'token' => null,
+            'type' => 'None',
+            'user_name' => Auth::user()->name ?? 'Unknown',
+            'eclaim_user' => $tokenDetail['eclaim_user'] ?? null,
+            'message' => $tokenDetail['message'] ?? 'ไม่สามารถขอ Access Token จากระบบ e-Claim ได้ กรุณาตรวจสอบ e-Claim User และ Password'
+        ];
+    }
+
+    /**
+     * =========================================================================
+     * SEND 16/17 FILES DIRECTLY TO NHSO E-CLAIM API GATEWAY (v1)
+     * =========================================================================
+     */
+    public static function sendToEclaimApi(array $keys, bool $isIp, string $claimCode, ?string $customToken = null): array
+    {
+        if (empty($keys)) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบรายการที่เลือกส่ง'
+            ];
+        }
+
+        // 1. Resolve Token
+        $tokenInfo = self::resolveEclaimToken($customToken);
+        $token = $tokenInfo['token'];
+        $tokenType = $tokenInfo['type'];
+        $senderName = Auth::user()->name ?? ($tokenInfo['user_name'] ?? 'System');
+
+        if (empty($token)) {
+            return [
+                'success' => false,
+                'message' => $tokenInfo['message'] ?? 'ไม่สามารถขอ Access Token จากระบบ e-Claim ได้ กรุณาตรวจสอบ e-Claim User และ Password ในข้อมูลผู้ใช้งาน'
+            ];
+        }
+
+        // 2. Generate 16/17 Files
+        $exportData = $isIp 
+            ? self::generate16FilesIp($keys) 
+            : self::generate16Files($keys);
+
+        if (empty($exportData['files'])) {
+            return [
+                'success' => false,
+                'message' => 'ไม่สามารถสร้างชุดข้อมูล 16 แฟ้มได้'
+            ];
+        }
+
+        $files = $exportData['files'];
+        $hcode = $exportData['hcode'] ?: self::getHcode();
+
+        // 3. Map Main Insurance Scheme code (UCS, OFC, LGO, SSS)
+        $upperClaim = strtoupper(trim($claimCode));
+        $maininscl = 'UCS';
+        if (in_array($upperClaim, ['OFC', 'CS', 'CSOP', 'CSIP', 'DIS', 'ED', 'NR'])) {
+            $maininscl = 'OFC';
+        } elseif (in_array($upperClaim, ['LGO', 'LGO_OP', 'LGO_IP'])) {
+            $maininscl = 'LGO';
+        } elseif (in_array($upperClaim, ['SSS', 'SS', 'SSS_IP', 'SSS_OP', 'SSS_HC', 'SSS_72', 'SSS_AE', 'SSS_PPFS'])) {
+            $maininscl = 'SSS';
+        } elseif (!empty($upperClaim)) {
+            $maininscl = $upperClaim;
+        }
+
+        // 4. Map 16 files into e-Claim JSON Schema
+        $fileKeyMap = [
+            'ins' => ['key' => 'INS', 'name' => 'INS.txt', 'required' => true],
+            'pat' => ['key' => 'PAT', 'name' => 'PAT.txt', 'required' => true],
+            'opd' => ['key' => 'OPD', 'name' => 'OPD.txt', 'required' => false],
+            'orf' => ['key' => 'ORF', 'name' => 'ORF.txt', 'required' => false],
+            'odx' => ['key' => 'ODX', 'name' => 'ODX.txt', 'required' => false],
+            'oop' => ['key' => 'OOP', 'name' => 'OOP.txt', 'required' => false],
+            'ipd' => ['key' => 'IPD', 'name' => 'IPD.txt', 'required' => false],
+            'irf' => ['key' => 'IRF', 'name' => 'IRF.txt', 'required' => false],
+            'idx' => ['key' => 'IDX', 'name' => 'IDX.txt', 'required' => false],
+            'iop' => ['key' => 'IOP', 'name' => 'IOP.txt', 'required' => false],
+            'cht' => ['key' => 'CHT', 'name' => 'CHT.txt', 'required' => false],
+            'cha' => ['key' => 'CHA', 'name' => 'CHA.txt', 'required' => false],
+            'aer' => ['key' => 'AER', 'name' => 'AER.txt', 'required' => false],
+            'adp' => ['key' => 'ADP', 'name' => 'ADP.txt', 'required' => false],
+            'lvd' => ['key' => 'LVD', 'name' => 'LVD.txt', 'required' => false],
+            'dru' => ['key' => 'DRU', 'name' => 'DRU.txt', 'required' => false],
+            'lab' => ['key' => 'LABFU', 'name' => 'LAB.txt', 'required' => false],
+        ];
+
+        $filePayload = [];
+        foreach ($fileKeyMap as $targetField => $meta) {
+            $rawContent = $files[$meta['key']] ?? '';
+            
+            // Check if file is completely empty or has content
+            $lines = explode("\n", trim($rawContent));
+            $hasData = count($lines) > 1 || (!empty(trim($rawContent)) && $meta['required']);
+
+            if ($targetField === 'lab' && !$hasData) {
+                $filePayload[$targetField] = null;
+                continue;
+            }
+
+            if ($hasData || $meta['required']) {
+                $filePayload[$targetField] = [
+                    'blobName' => $meta['name'],
+                    'blobType' => 'text/plain',
+                    'blob'     => base64_encode($rawContent),
+                    'size'     => strlen($rawContent),
+                    'encoding' => 'UTF-8'
+                ];
+            } else {
+                $filePayload[$targetField] = [
+                    'blobName' => $meta['name'],
+                    'blobType' => 'text/plain',
+                    'blob'     => '',
+                    'size'     => 0,
+                    'encoding' => 'UTF-8'
+                ];
+            }
+        }
+
+        $payload = [
+            'fileType'   => 'txt',
+            'maininscl'  => $maininscl,
+            'importDup'  => false,
+            'assignToMe' => false,
+            'dataTypes'  => [$isIp ? 'IP' : 'OP'],
+            'opRefer'    => false,
+            'file'       => $filePayload
+        ];
+
+        // 5. Send to NHSO API Gateway
+        $apiUrl = 'https://nhsoapi.nhso.go.th/FMU/ecimp/v1/send';
+        $isSuccess = false;
+        $responseMessage = '';
+        $transactionId = null;
+        $rawResponse = null;
+
+        try {
+            $response = Http::withOptions([
+                'verify' => false,
+                'http_errors' => false
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'User-Agent'    => 'H-RIMS/1.0 ' . $hcode,
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json'
+            ])->timeout(180)->post($apiUrl, $payload);
+
+            $status = $response->status();
+            $rawResponse = $response->body();
+            $json = $response->json();
+
+            if ($status === 200 || $status === 201 || (isset($json['status']) && $json['status'] == 200)) {
+                $isSuccess = true;
+                $transactionId = $json['transaction_id'] 
+                    ?? ($json['data']['transaction_id'] 
+                    ?? ($json['data']['batch_number'] 
+                    ?? ($json['batch_number'] 
+                    ?? ('EC-' . date('YmdHis') . '-' . substr(uniqid(), -4)))));
+                $responseMessage = $json['message'] ?? ($json['message_th'] ?? 'ส่งข้อมูลเข้า e-Claim สำเร็จ');
+            } else {
+                $responseMessage = $json['message'] ?? ($json['message_th'] ?? ($json['error'] ?? "e-Claim ตอบกลับ HTTP Status $status"));
+            }
+        } catch (\Throwable $e) {
+            Log::error("e-Claim Send API Exception: " . $e->getMessage());
+            $responseMessage = 'เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย สปสช.: ' . $e->getMessage();
+        }
+
+        // 6. Record status in database if success
+        if ($isSuccess) {
+            $now = now();
+            $senderCid = Auth::user()->cid ?? null;
+
+            try {
+                if (Schema::hasTable('eclaim_status')) {
+                    if ($isIp) {
+                        $admList = DB::connection('hosxp')
+                            ->table('ipt')
+                            ->leftJoin('patient as pt', 'pt.hn', '=', 'ipt.hn')
+                            ->whereIn('ipt.an', $keys)
+                            ->select('ipt.an', 'ipt.hn', 'ipt.vn', 'ipt.dchdate', 'ipt.dchtime', 'ipt.regdate', 'ipt.regtime', 'pt.cid as pt_cid', DB::raw("CONCAT(COALESCE(pt.pname,''), pt.fname, ' ', pt.lname) as ptname"))
+                            ->get();
+
+                        foreach ($admList as $adm) {
+                            DB::table('eclaim_status')->updateOrInsert(
+                                ['an' => $adm->an],
+                                [
+                                    'hospcode'     => $hcode,
+                                    'eclaim_no'    => $transactionId,
+                                    'patient_type' => 'IPD',
+                                    'hipdata'      => $maininscl,
+                                    'cid'          => $adm->pt_cid,
+                                    'ptname'       => $adm->ptname,
+                                    'hn'           => $adm->hn,
+                                    'an'           => $adm->an,
+                                    'seq'          => $adm->vn,
+                                    'vstdate'      => $adm->regdate ?? null,
+                                    'vsttime'      => $adm->regtime ?? null,
+                                    'dchdate'      => $adm->dchdate ?? null,
+                                    'dchtime'      => $adm->dchtime ?? null,
+                                    'status'       => 'WAIT',
+                                    'recorder'     => $senderName,
+                                    'tran_id'      => $transactionId,
+                                    'channel'      => 'API',
+                                    'updated_at'   => $now,
+                                ]
+                            );
+                        }
+                    } else {
+                        $ovstList = DB::connection('hosxp')
+                            ->table('ovst')
+                            ->leftJoin('patient as pt', 'pt.hn', '=', 'ovst.hn')
+                            ->whereIn('ovst.vn', $keys)
+                            ->select('ovst.vn', 'ovst.hn', 'ovst.vstdate', 'ovst.vsttime', 'pt.cid as pt_cid', DB::raw("CONCAT(COALESCE(pt.pname,''), pt.fname, ' ', pt.lname) as ptname"))
+                            ->get();
+
+                        foreach ($ovstList as $o) {
+                            DB::table('eclaim_status')->updateOrInsert(
+                                ['seq' => $o->vn],
+                                [
+                                    'hospcode'     => $hcode,
+                                    'eclaim_no'    => $transactionId,
+                                    'patient_type' => 'OPD',
+                                    'hipdata'      => $maininscl,
+                                    'cid'          => $o->pt_cid,
+                                    'ptname'       => $o->ptname,
+                                    'hn'           => $o->hn,
+                                    'an'           => null,
+                                    'seq'          => $o->vn,
+                                    'vstdate'      => $o->vstdate ?? null,
+                                    'vsttime'      => $o->vsttime ?? null,
+                                    'status'       => 'WAIT',
+                                    'recorder'     => $senderName,
+                                    'tran_id'      => $transactionId,
+                                    'channel'      => 'API',
+                                    'updated_at'   => $now,
+                                ]
+                            );
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Could not record eclaim_status: " . $e->getMessage());
+            }
+
+            return [
+                'success'        => true,
+                'transaction_id' => $transactionId,
+                'total'          => count($keys),
+                'token_type'     => $tokenType,
+                'sender_name'    => $senderName,
+                'message'        => $responseMessage ?: 'ส่งข้อมูล 16 แฟ้มเข้าสู่ระบบ e-Claim สปสช. ผ่าน API สำเร็จเรียบร้อยแล้ว'
+            ];
+        }
+
+        return [
+            'success'      => false,
+            'message'      => $responseMessage ?: 'ไม่สามารถส่งข้อมูลเข้า e-Claim ได้ กรุณาตรวจสอบการเชื่อมต่อ',
+            'raw_response' => $rawResponse
         ];
     }
 }

@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::put('profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
     Route::post('profile/test-fdh-token', [ProfileController::class, 'testFdhToken'])->name('profile.test-fdh-token');
+    Route::post('profile/test-eclaim-token', [ProfileController::class, 'testEclaimToken'])->name('profile.test-eclaim-token');
 });
 
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
@@ -485,6 +486,8 @@ Route::match(['get', 'post'], 'claim_op/sss_export_ssop', [\App\Http\Controllers
 Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('rims_license');
 Route::post('f16_eclaim_export/preview', [\App\Http\Controllers\F16EclaimExportController::class, 'preview'])->name('f16_eclaim_export.preview');
 Route::post('f16_eclaim_export/export-data', [\App\Http\Controllers\F16EclaimExportController::class, 'exportData'])->name('f16_eclaim_export.export_data');
+Route::post('f16_eclaim_export/send-api', [\App\Http\Controllers\F16EclaimExportController::class, 'sendApi'])->name('f16_eclaim_export.send_api');
+Route::get('f16_eclaim_export/check-token', [\App\Http\Controllers\F16EclaimExportController::class, 'checkToken'])->name('f16_eclaim_export.check_token');
 Route::post('f16_fdh_export/preview', [\App\Http\Controllers\F16FdhExportController::class, 'preview'])->name('f16_fdh_export.preview');
 Route::post('f16_fdh_export/export-data', [\App\Http\Controllers\F16FdhExportController::class, 'exportData'])->name('f16_fdh_export.export_data');
 Route::post('f16_fdh_export/send-api', [\App\Http\Controllers\F16FdhExportController::class, 'sendApi'])->name('f16_fdh_export.send_api');

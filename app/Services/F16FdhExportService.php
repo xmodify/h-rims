@@ -916,10 +916,9 @@ class F16FdhExportService
             $aerLines[] = "{$er->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
         }
 
-        // 14. ADP.txt (27 คอลัมน์ตาม 16แฟ้มFDH.xlsx)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
-        
+        // 14. ADP.txt (29 คอลัมน์ตามมาตรฐาน HOSxP / 16แฟ้ม)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
         $adpItems = $items->filter(function($it) {
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
@@ -931,8 +930,9 @@ class F16FdhExportService
 
         foreach ($adpItems as $it) {
             $dateopd = self::formatDate($it->vstdate);
-            $type = self::mapIncomeToAdpType($it->income, $it->nhso_adp_type);
-            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
+            $rawCode = trim((string)$it->nhso_adp_code);
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
@@ -944,22 +944,24 @@ class F16FdhExportService
             $serialno = '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
-            $usestatus = '';
-            $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
+            $usestatus = ($type === '11') ? '2' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
+            $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';
             $bi = '';
             $clinic = self::formatClinic($it->spclty);
-            $itemsrc = '1';
-            $provider = $it->doctor_license ?: 'ว00000';
+            $itemsrc = '';
+            $provider = '';
             $gravida = '';
             $gaweek = '';
             $dcip = '';
             $lmp = '';
             $spitem = '';
+            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
+            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkKey}|{$guid}";
         }
 
         // ตรวจสอบและเพิ่ม ADP TYPE = 5 (โครงการบริการ เช่น WALKIN / 30 บาทรักษาทุกที่)
@@ -971,11 +973,11 @@ class F16FdhExportService
                 $qty = '1';
                 $rateStr = '0';
                 $seq = $v->vn;
-                $total = '0.00';
+                $total = '0';
                 $clinic = self::formatClinic($v->spclty);
-                $provider = $v->doctor_license ?: 'ว00000';
+                $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
 
-                $adpLines[] = "{$v->hn}||{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||0||{$total}|||||{$clinic}|1|{$provider}|||||";
+                $adpLines[] = "{$v->hn}||{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||0|2|{$total}|||||{$clinic}||||||||{$checkKey}|";
             }
         }
 
@@ -986,7 +988,7 @@ class F16FdhExportService
         // HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0 && (float)$it->sum_price > 0;
         });
 
         foreach ($drugItems as $it) {
@@ -1575,7 +1577,9 @@ class F16FdhExportService
         }
 
         // 14. ADP.txt (27 คอลัมน์)
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
+        // 14. ADP.txt (29 คอลัมน์ตามมาตรฐาน HOSxP / 16แฟ้ม)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
         $adpItems = $items->filter(function($it) {
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
@@ -1589,7 +1593,8 @@ class F16FdhExportService
             $adm = $admissionsByAn->get($it->an);
             $dateopd = self::formatDate($it->vstdate ?: ($adm ? $adm->dchdate : ''));
             $type = trim((string)($it->nhso_adp_type ?: '17'));
-            $code = trim((string)($it->nhso_adp_code ?: $it->icode));
+            $rawCode = trim((string)$it->nhso_adp_code);
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
@@ -1599,23 +1604,26 @@ class F16FdhExportService
             $dose = '';
             $catype = '';
             $serialno = '';
-            $totcopay = '0';
-            $usestatus = '';
-            $total = number_format((float)$it->sum_price, 2, '.', '');
+            $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
+            $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
+            $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
+            $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';
             $bi = '';
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
-            $itemsrc = '1';
-            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: 'ว00000') : 'ว00000');
+            $itemsrc = '';
+            $provider = '';
             $gravida = '';
             $gaweek = '';
             $dcip = '';
             $lmp = '';
             $spitem = '';
+            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
+            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkKey}|{$guid}";
         }
 
         // 15. LVD.txt (7 คอลัมน์)
@@ -1635,7 +1643,7 @@ class F16FdhExportService
         // 16. DRU.txt (24 คอลัมน์)
         $druLines = ["HCODE|HN|AN|CLINIC|PERSON_ID|DATE_SERV|DID|DIDNAME|AMOUNT|DRUGPRICE|DRUGCOST|DIDSTD|UNIT|UNIT_PACK|SEQ|DRUGREMARK|PA_NO|TOTCOPAY|USE_STATUS|TOTAL|SIGCODE|SIGTEXT|PROVIDER|SP_ITEM"];
         $drugItems = $items->filter(function($it) {
-            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0;
+            return str_starts_with((string)$it->icode, '1') && (float)$it->qty > 0 && (float)$it->sum_price > 0;
         });
 
         foreach ($drugItems as $it) {

@@ -32555,6 +32555,18 @@
                 "default": null,
                 "extra": ""
             },
+            "eclaim_user": {
+                "type": "varchar(191)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "eclaim_pass": {
+                "type": "varchar(191)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "moph_token": {
                 "type": "text",
                 "nullable": true,

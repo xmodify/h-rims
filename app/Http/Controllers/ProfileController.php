@@ -45,6 +45,8 @@ class ProfileController extends Controller
             'fdh_user' => ['nullable', 'string', 'max:255'],
             'fdh_pass' => ['nullable', 'string', 'max:255'],
             'fdh_secretKey' => ['nullable', 'string', 'max:255'],
+            'eclaim_user' => ['nullable', 'string', 'max:255'],
+            'eclaim_pass' => ['nullable', 'string', 'max:255'],
         ]);
 
         $updateData = [
@@ -52,6 +54,8 @@ class ProfileController extends Controller
             'fdh_user' => $request->fdh_user ? trim($request->fdh_user) : null,
             'fdh_pass' => $request->fdh_pass ? trim($request->fdh_pass) : null,
             'fdh_secretKey' => $request->fdh_secretKey ? trim($request->fdh_secretKey) : null,
+            'eclaim_user' => $request->eclaim_user ? trim($request->eclaim_user) : null,
+            'eclaim_pass' => $request->eclaim_pass ? trim($request->eclaim_pass) : null,
         ];
 
         $user->update($updateData);
@@ -123,18 +127,83 @@ class ProfileController extends Controller
                     'token' => $token,
                     'user' => $user
                 ]);
-            } else {
-                $body = $response->json();
-                $msg = $body['Message'] ?? ($body['message'] ?? 'User/Password Invalid หรือไม่สามารถเชื่อมต่อ FDH ได้');
-                return response()->json([
-                    'status' => 'failed',
-                    'message' => $msg
-                ]);
             }
+
+            $json = $response->json();
+            $msg = $json['Message'] ?? ($json['message'] ?? 'User/Password Invalid หรือไม่สามารถเชื่อมต่อ FDH ได้');
+            return response()->json([
+                'status' => 'failed',
+                'message' => $msg
+            ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'failed',
                 'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * ทดสอบขอ Access Token จาก e-Claim API สปสช. (DCenter)
+     */
+    public function testEclaimToken(Request $request)
+    {
+        $settings = DB::table('main_setting')
+            ->pluck('value', 'name')
+            ->toArray();
+
+        $user = $request->filled('eclaim_user') 
+            ? trim($request->eclaim_user) 
+            : (Auth::check() ? (Auth::user()->eclaim_user ?: null) : null);
+
+        $password = $request->filled('eclaim_pass') 
+            ? trim($request->eclaim_pass) 
+            : (Auth::check() ? (Auth::user()->eclaim_pass ?: null) : null);
+
+        if (!$user || !$password) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'กรุณากรอก e-Claim User (DCenter) และ e-Claim Pass ให้ครบถ้วนเพื่อทำการทดสอบ'
+            ]);
+        }
+
+        $hcode = $settings['hospital_code'] ?? ($settings['hcode'] ?? '10989');
+        $apiUrl = 'https://nhsoapi.nhso.go.th/FMU/ecimp/v1/auth';
+
+        try {
+            $response = Http::withOptions([
+                'verify' => false,
+                'http_errors' => false
+            ])->withHeaders([
+                "Accept" => "application/json",
+                "Content-Type" => "application/json",
+                "User-Agent" => "H-RIMS/1.0 " . $hcode
+            ])->post($apiUrl, [
+                'username' => $user,
+                'password' => $password
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!empty($data['token'])) {
+                    return response()->json([
+                        'status' => 'success',
+                        'token' => $data['token'],
+                        'user' => $user
+                    ]);
+                }
+            }
+
+            $body = $response->json();
+            $msg = $body['message'] ?? ($body['Message'] ?? 'Username หรือ Password ของ สปสช. DCenter ไม่ถูกต้อง');
+            return response()->json([
+                'status' => 'failed',
+                'message' => $msg
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ e-Claim สปสช.: ' . $e->getMessage()
             ]);
         }
     }

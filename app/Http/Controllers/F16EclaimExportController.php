@@ -157,4 +157,110 @@ class F16EclaimExportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ตรวจสอบสถานะ e-Claim Token
+     */
+    public function checkToken(Request $request)
+    {
+        try {
+            $tokenDetail = F16EclaimExportService::getEclaimTokenDetail();
+
+            if ($tokenDetail['success'] && !empty($tokenDetail['token'])) {
+                return response()->json([
+                    'status' => 'success',
+                    'has_token' => true,
+                    'token' => $tokenDetail['token'],
+                    'token_type' => 'e-Claim Token (' . ($tokenDetail['eclaim_user'] ?? 'User') . ')',
+                    'user_name' => $tokenDetail['user_name'] ?? (auth()->user()->name ?? 'e-Claim User'),
+                    'eclaim_user' => $tokenDetail['eclaim_user'] ?? '',
+                    'message' => 'e-Claim Token พร้อมใช้งาน'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'token' => null,
+                'token_type' => 'None',
+                'user_name' => auth()->user()->name ?? 'Unknown',
+                'eclaim_user' => $tokenDetail['eclaim_user'] ?? '',
+                'has_credentials' => $tokenDetail['has_credentials'] ?? false,
+                'message' => $tokenDetail['message'] ?? 'ไม่สามารถดึง e-Claim Access Token ได้ กรุณาตรวจสอบ e-Claim User และ Password'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'message' => 'เกิดข้อผิดพลาดในการตรวจสอบ Token: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ส่งข้อมูล 16 แฟ้ม e-Claim เข้าสู่ สปสช. API โดยตรง
+     */
+    public function sendApi(Request $request)
+    {
+        if (!LicenseVerificationService::isModuleLicensed('export_f16_eclaim')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'คุณยังไม่มี License สำหรับโมดูล ส่งออก 16 แฟ้ม (export_f16_eclaim)'
+            ], 403);
+        }
+
+        $type = $request->input('type');
+        $isIp = $type === 'ip' || $request->boolean('is_ip');
+        if (!$type && !$request->has('is_ip')) {
+            $isIp = $request->has('ans') && !$request->has('vns');
+        }
+
+        $rawKeys = $isIp ? ($request->input('ans') ?: $request->input('vns', [])) : ($request->input('vns') ?: $request->input('ans', []));
+        $claimCode = strtoupper(trim($request->input('claim_code', 'CLAIM')));
+        $customToken = $request->input('custom_token');
+
+        if (is_string($rawKeys)) {
+            $decoded = json_decode($rawKeys, true);
+            $keys = is_array($decoded) ? $decoded : explode(',', $rawKeys);
+        } else {
+            $keys = (array)$rawKeys;
+        }
+        $keys = array_values(array_filter(array_unique((array)$keys)));
+
+        if (empty($keys)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งออก'
+            ], 422);
+        }
+
+        @ini_set('max_execution_time', 0);
+        @ini_set('memory_limit', '512M');
+
+        try {
+            $apiResult = F16EclaimExportService::sendToEclaimApi($keys, $isIp, $claimCode, $customToken);
+
+            if ($apiResult['success']) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $apiResult['message'],
+                    'transaction_id' => $apiResult['transaction_id'] ?? null,
+                    'total' => $apiResult['total'] ?? count($keys),
+                    'token_type' => $apiResult['token_type'] ?? 'e-Claim Token',
+                    'sender_name' => $apiResult['sender_name'] ?? (auth()->user()->name ?? 'System')
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $apiResult['message'] ?? 'เกิดข้อผิดพลาดในการส่งข้อมูลเข้า e-Claim API',
+                'raw_response' => $apiResult['raw_response'] ?? null
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในระบบส่ง API: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -29,6 +29,8 @@ class UserController extends Controller
             'fdh_user' => 'nullable|string|max:255',
             'fdh_pass' => 'nullable|string|max:255',
             'fdh_secretKey' => 'nullable|string|max:255',
+            'eclaim_user' => 'nullable|string|max:255',
+            'eclaim_pass' => 'nullable|string|max:255',
         ]);
 
         User::create([
@@ -56,6 +58,8 @@ class UserController extends Controller
             'fdh_user' => $request->filled('fdh_user') ? trim($request->fdh_user) : null,
             'fdh_pass' => $request->filled('fdh_pass') ? trim($request->fdh_pass) : null,
             'fdh_secretKey' => $request->filled('fdh_secretKey') ? trim($request->fdh_secretKey) : null,
+            'eclaim_user' => $request->filled('eclaim_user') ? trim($request->eclaim_user) : null,
+            'eclaim_pass' => $request->filled('eclaim_pass') ? trim($request->eclaim_pass) : null,
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -75,6 +79,8 @@ class UserController extends Controller
             'fdh_user' => 'nullable|string|max:255',
             'fdh_pass' => 'nullable|string|max:255',
             'fdh_secretKey' => 'nullable|string|max:255',
+            'eclaim_user' => 'nullable|string|max:255',
+            'eclaim_pass' => 'nullable|string|max:255',
         ]);
 
         $data = [
@@ -101,6 +107,8 @@ class UserController extends Controller
             'fdh_user' => $request->filled('fdh_user') ? trim($request->fdh_user) : null,
             'fdh_pass' => $request->filled('fdh_pass') ? trim($request->fdh_pass) : null,
             'fdh_secretKey' => $request->filled('fdh_secretKey') ? trim($request->fdh_secretKey) : null,
+            'eclaim_user' => $request->filled('eclaim_user') ? trim($request->eclaim_user) : null,
+            'eclaim_pass' => $request->filled('eclaim_pass') ? trim($request->eclaim_pass) : null,
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

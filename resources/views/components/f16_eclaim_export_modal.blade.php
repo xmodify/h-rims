@@ -156,7 +156,7 @@
                                             'key' => 'ADP', 
                                             'name' => 'ADP', 
                                             'desc' => 'บริการเสริม/อุปกรณ์/PPFS',
-                                            'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM']
+                                            'headers' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM', 'CHECK_KEY', 'GUID']
                                         ],
                                         [
                                             'key' => 'LVD', 
@@ -297,11 +297,14 @@
                     <span id="f16ExportProgressText" class="fw-bold text-primary small"></span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal" data-dismiss="modal" onclick="closeF16Modal()">
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
-                    <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;">
-                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">เลือกโฟลเดอร์และส่งออก (17 แฟ้ม e-Claim .txt)</span>
+                    <button type="button" class="btn btn-outline-secondary px-3 fw-bold" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()">
+                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                    </button>
+                    <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnSendF16EclaimApi" onclick="sendF16ToEclaimApi()" style="background: linear-gradient(135deg, #0e939a 0%, #17b7be 100%); border: none;">
+                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16EclaimApiText">🚀 ส่งข้อมูลเข้า e-Claim ผ่าน API</span>
                     </button>
                 </div>
             </div>
@@ -504,6 +507,7 @@
         $('#f16LoadingOverlay').show();
         $('#f16MainContent').hide();
         $('#btnExecuteF16Export').prop('disabled', true);
+        $('#btnSendF16EclaimApi').prop('disabled', true);
 
         // Show Modal (Compatible with both Bootstrap 4 and Bootstrap 5)
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -538,6 +542,7 @@
                 $('#f16LoadingOverlay').hide();
                 $('#f16MainContent').show();
                 $('#btnExecuteF16Export').prop('disabled', false);
+                $('#btnSendF16EclaimApi').prop('disabled', false);
 
                 if (res.status === 'success') {
                     const counts = res.counts || {};
@@ -760,6 +765,237 @@
                     Swal.fire('ข้อผิดพลาด', errMsg, 'error');
                 } else {
                     alert(errMsg);
+                }
+            }
+        });
+    };
+
+    /**
+     * Helper ฟังก์ชันปิด Modal
+     */
+    window.closeF16Modal = function() {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            try {
+                const modalEl = document.getElementById('f16EclaimExportModal');
+                const instance = bootstrap.Modal.getInstance(modalEl);
+                if (instance) {
+                    instance.hide();
+                } else {
+                    $('#f16EclaimExportModal').modal('hide');
+                }
+            } catch (e) {
+                $('#f16EclaimExportModal').modal('hide');
+            }
+        } else {
+            $('#f16EclaimExportModal').modal('hide');
+        }
+    };
+
+    /**
+     * =========================================================================
+     * DIRECT SEND 16 FILES TO NHSO E-CLAIM API GATEWAY
+     * =========================================================================
+     */
+    window.sendF16ToEclaimApi = function() {
+        const state = window._f16ExportState;
+        if (!state.vns || state.vns.length === 0) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งข้อมูล', 'warning');
+            } else {
+                alert('กรุณาเลือกรายการอย่างน้อย 1 รายการก่อนส่งข้อมูล');
+            }
+            return;
+        }
+
+        const totalItems = state.vns.length;
+        const claimTitle = state.claimTitle || state.claimCode;
+
+        let currentCsrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+        // 1. ฟังก์ชันส่ง API เข้าสู่ e-Claim
+        const executeApiSend = function(customToken = null) {
+            const btn = $('#btnSendF16EclaimApi');
+            const originalBtnHtml = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่ง e-Claim...');
+            $('#f16ExportProgressText').html('<span class="text-info" style="color: #0e939a !important;"><i class="bi bi-arrow-repeat spin me-1"></i>กำลังเชื่อมต่อ Server e-Claim สปสช. และส่งชุดข้อมูล 16 แฟ้ม...</span>');
+
+            const tokenToSend = currentCsrfToken || $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+            $.ajax({
+                url: '{{ route("f16_eclaim_export.send_api") }}',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': tokenToSend
+                },
+                data: {
+                    _token: tokenToSend,
+                    vns: state.isIp ? [] : state.vns,
+                    ans: state.isIp ? state.vns : [],
+                    is_ip: state.isIp ? 1 : 0,
+                    claim_code: state.claimCode,
+                    custom_token: customToken
+                },
+                success: function(res) {
+                    btn.prop('disabled', false).html(originalBtnHtml);
+                    $('#f16ExportProgressText').text('');
+
+                    if (res.status === 'success') {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '<span class="text-success fw-bold">ส่งข้อมูลเข้า e-Claim สำเร็จ!</span>',
+                                html: `
+                                    <div class="text-start p-3 bg-light rounded border mt-2">
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">รหัสการเคลม (Transaction ID / Batch No):</small>
+                                            <strong class="text-primary fs-6 font-monospace">${res.transaction_id || '-'}</strong>
+                                        </div>
+                                        <div class="row g-2 pt-2 border-top">
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">จำนวนรายการ:</small>
+                                                <span class="badge bg-success fs-6">${res.total} รายการ</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">ผู้นำเข้า:</small>
+                                                <strong class="text-dark">${res.sender_name || '-'}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 pt-2 border-top small text-muted">
+                                            <i class="bi bi-shield-check text-success me-1"></i> ประเภท Token: ${res.token_type || '-'}
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0">ระบบได้บันทึกสถานะการส่งลงในระบบเรียบร้อยแล้ว</p>
+                                `,
+                                confirmButtonColor: '#0e939a',
+                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> ตกลง'
+                            }).then(() => {
+                                closeF16Modal();
+
+                                // Auto refresh datatables on parent page
+                                if (typeof loadData === 'function') {
+                                    loadData();
+                                } else if (typeof searchData === 'function') {
+                                    searchData();
+                                } else if (typeof fetchRecords === 'function') {
+                                    fetchRecords();
+                                }
+                            });
+                        } else {
+                            alert('ส่งข้อมูลเข้า e-Claim สำเร็จ! (Transaction: ' + (res.transaction_id || '-') + ')');
+                            closeF16Modal();
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ส่งข้อมูลไม่สำเร็จ',
+                                text: res.message || 'เกิดข้อผิดพลาดในการส่งข้อมูลเข้า e-Claim API',
+                                confirmButtonColor: '#d33'
+                            });
+                        } else {
+                            alert(res.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html(originalBtnHtml);
+                    $('#f16ExportProgressText').text('');
+
+                    let errMsg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ e-Claim';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errMsg = xhr.responseJSON.message;
+                    }
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: errMsg,
+                            confirmButtonColor: '#d33'
+                        });
+                    } else {
+                        alert(errMsg);
+                    }
+                }
+            });
+        };
+
+        // 2. Pre-validation: เช็ค Token จากระบบก่อนยืนยันส่ง
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'กำลังตรวจสอบ Token...',
+                text: 'กำลังเชื่อมต่อและยืนยัน Access Token กับ สปสช. e-Claim',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        $.ajax({
+            url: '{{ route("f16_eclaim_export.check_token") }}',
+            type: 'GET',
+            success: function(res) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.close();
+                }
+
+                if (res.has_token) {
+                    const eclaimUserDisplay = res.eclaim_user ? res.eclaim_user : 'e-Claim';
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'ยืนยันการส่งข้อมูลเข้า e-Claim?',
+                            html: `
+                                <div class="text-start p-3 bg-light rounded border mt-2">
+                                    <p class="mb-1 text-dark"><strong>สิทธิ:</strong> <span class="badge" style="background-color: #0e939a;">${claimTitle}</span></p>
+                                    <p class="mb-1 text-dark"><strong>จำนวน:</strong> <span class="badge bg-primary">${totalItems} รายการ</span></p>
+                                    <p class="mb-1 text-dark"><strong>e-Claim User:</strong> <span class="badge bg-secondary font-monospace">${eclaimUserDisplay}</span></p>
+                                    <p class="mb-0 text-dark"><strong>ผู้นำเข้า:</strong> ${res.user_name || '-'}</p>
+                                </div>
+                                <div class="alert alert-info py-2 px-3 mt-3 mb-0 small text-start" style="background-color: #e0f2fe; border-color: #bae6fd; color: #0369a1;">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i> เชื่อมต่อ e-Claim Token พร้อมใช้งาน
+                                </div>
+                            `,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#0e939a',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> ยืนยันส่งข้อมูล',
+                            cancelButtonText: 'ยกเลิก'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                executeApiSend(res.token);
+                            }
+                        });
+                    } else {
+                        if (confirm(`ยืนยันการส่งข้อมูลเข้า e-Claim API จำนวน ${totalItems} รายการ?`)) {
+                            executeApiSend(res.token);
+                        }
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '<span class="text-danger fw-bold">ไม่พบ e-Claim Token</span>',
+                            html: `
+                                <div class="text-start p-3 bg-light rounded border mt-2">
+                                    <p class="text-danger mb-2 font-monospace small"><strong>ข้อผิดพลาดจากระบบ:</strong><br>${res.message || 'ไม่พบการตั้งค่าบัญชี e-Claim'}</p>
+                                    <p class="text-muted small mb-0">กรุณาไปที่เมนู <strong>แก้ไขข้อมูลส่วนตัว</strong> หรือ <strong>ผู้ดูแลระบบ > จัดการผู้ใช้งาน</strong> เพื่อกรอก <strong>e-Claim User</strong> และ <strong>e-Claim Pass</strong> พร้อมกดทดสอบ Token ให้สำเร็จ</p>
+                                </div>
+                            `,
+                            confirmButtonColor: '#0e939a',
+                            confirmButtonText: '<i class="bi bi-gear me-1"></i> เข้าใจแล้ว'
+                        });
+                    } else {
+                        alert(res.message || 'ไม่สามารถขอ e-Claim Access Token ได้ กรุณาตรวจสอบ User / Password');
+                    }
+                }
+            },
+            error: function() {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถตรวจสอบสถานะ e-Claim Token จากเซิร์ฟเวอร์ได้', 'error');
+                } else {
+                    alert('ไม่สามารถตรวจสอบสถานะ e-Claim Token ได้');
                 }
             }
         });

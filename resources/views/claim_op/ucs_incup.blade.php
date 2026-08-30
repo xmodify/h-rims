@@ -97,6 +97,44 @@
     <!-- Modal ส่งออก 16 แฟ้ม FDH -->
     <x-f16_fdh_export_modal />
 
+    <!-- Modal รายละเอียดการรับบริการผู้ป่วยนอก (OPD) -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+          <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+            <div class="d-flex align-items-center gap-2">
+              <div class="p-2 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                <i class="bi bi-hospital-fill text-white fs-5"></i>
+              </div>
+              <div>
+                <h6 class="modal-title fw-bold text-white mb-0" id="detailsModalLabel">รายละเอียดการรับบริการผู้ป่วยนอก (OPD)</h6>
+                <div class="text-white-50 small" style="font-size: 0.75rem;">ตรวจสอบความพร้อมข้อมูล 16 แฟ้ม และสถานะการเรียกเก็บก่อนส่งออก</div>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4 bg-light" id="detailsModalBody">
+            <!-- Content loaded via AJAX -->
+          </div>
+          <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary px-4 fw-bold shadow-sm" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle me-1"></i> ปิดหน้าต่าง
+            </button>
+            <div class="d-flex gap-2">
+              @php
+                $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_fdh === 'Y');
+              @endphp
+              @if($is_f16_licensed)
+              <button type="button" class="btn text-white fw-bold px-4 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSingleVnFdh()">
+                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้มเคสนี้
+              </button>
+              @endif
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -355,9 +393,24 @@
       });
     }
 
+    let currentModalVn = null;
+
+    function exportSingleVnFdh() {
+        if (!currentModalVn) return;
+        $('#detailsModal').modal('hide');
+        openF16FdhExportModal({
+            vns: [currentModalVn],
+            ans: [currentModalVn],
+            claimCode: 'UCS_INCUP',
+            claimTitle: 'สิทธิ UC-OP ใน CUP',
+            isIp: false
+        });
+    }
+
     // Modal Details functions
     const VISIT_DETAILS_URL = "{{ url('claim_op/ucs_incup/visit_details') }}";
     function showDetails(vn) {
+        currentModalVn = vn;
         const body = document.getElementById('detailsModalBody');
         if (body) {
             body.innerHTML = `

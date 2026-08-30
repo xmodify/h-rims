@@ -81,22 +81,42 @@
         </div>
     </div>
 
-    <!-- Details Modal -->
-    <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white">
-                    <h6 class="modal-title fw-bold"><i class="bi bi-clipboard2-pulse-fill me-2"></i>รายละเอียดการรับบริการ และ ผลตรวจสอบเงื่อนไข</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="detailsModalBody">
-                    <div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>
-                </div>
-                <div class="modal-footer border-0 bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิด</button>
-                </div>
+    <!-- Modal รายละเอียดการรับบริการผู้ป่วยนอก (OPD) -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+          <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+            <div class="d-flex align-items-center gap-2">
+              <div class="p-2 bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                <i class="bi bi-hospital-fill text-white fs-5"></i>
+              </div>
+              <div>
+                <h6 class="modal-title fw-bold text-white mb-0" id="detailsModalLabel">รายละเอียดการรับบริการผู้ป่วยนอก (OPD)</h6>
+                <div class="text-white-50 small" style="font-size: 0.75rem;">ตรวจสอบความพร้อมข้อมูล 16 แฟ้ม และสถานะการเรียกเก็บก่อนส่งออก</div>
+              </div>
             </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4 bg-light" id="detailsModalBody">
+            <!-- Content loaded via AJAX -->
+          </div>
+          <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary px-4 fw-bold shadow-sm" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle me-1"></i> ปิดหน้าต่าง
+            </button>
+            <div class="d-flex gap-2">
+              @php
+                $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_eclaim === 'Y');
+              @endphp
+              @if($is_f16_licensed)
+              <button type="button" class="btn text-white fw-bold px-4 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSingleVnEclaim()">
+                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้มเคสนี้
+              </button>
+              @endif
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Modal ศูนย์รวมการนำเข้าข้อมูล (Import Hub) -->
@@ -496,7 +516,22 @@
         });
     }
 
+    let currentModalVn = null;
+
+    function exportSingleVnEclaim() {
+        if (!currentModalVn) return;
+        $('#detailsModal').modal('hide');
+        window.openF16EclaimExportModal({
+            vns: [currentModalVn],
+            ans: [currentModalVn],
+            claimCode: 'OFC',
+            claimTitle: 'OP-OFC (ข้าราชการ กรมบัญชีกลาง)',
+            isIp: false
+        });
+    }
+
     function showDetails(vn) {
+        currentModalVn = vn;
         const body = document.getElementById('detailsModalBody');
         body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
         $('#detailsModal').modal('show');

@@ -971,6 +971,7 @@ class ClaimIpController extends Controller
         $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -980,7 +981,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1038,6 +1039,7 @@ class ClaimIpController extends Controller
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1047,6 +1049,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
                 CONCAT_WS(",", stm.repno, cipn.rid, csop.rid, rep_eclaim.repno) AS repno,
@@ -1116,9 +1119,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
             if (!empty($row->repno)) {
                 $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
             }
@@ -1267,6 +1274,7 @@ class ClaimIpController extends Controller
         // 3. Search Data (Wait for claim - Optimized)
         $search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1276,7 +1284,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1314,6 +1322,7 @@ class ClaimIpController extends Controller
         // 4. Claimed Data (LGO - Optimized)
         $claim = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1322,7 +1331,8 @@ class ClaimIpController extends Controller
                  WHERE r.vn = i.an AND a.rcpno IS NULL
                 ) AS rcpt_money,
                 0 AS claim_price,
-                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
                 stm.case_iplg AS receive_treatment,stm.compensate_treatment AS receive_total,stm.repno,
                 rep.error_code AS rep_error,
                 ec.status AS ec_status
@@ -1372,9 +1382,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
 
         
@@ -1532,6 +1546,7 @@ class ClaimIpController extends Controller
         $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1541,7 +1556,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1590,6 +1605,7 @@ class ClaimIpController extends Controller
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1599,6 +1615,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
@@ -1661,9 +1678,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
             if (!empty($row->repno)) {
                 $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
             }
@@ -1825,6 +1846,7 @@ class ClaimIpController extends Controller
         $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1834,7 +1856,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1883,6 +1905,7 @@ class ClaimIpController extends Controller
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -1892,6 +1915,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
@@ -1954,9 +1978,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
             if (!empty($row->repno)) {
                 $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
             }
@@ -2109,6 +2137,7 @@ class ClaimIpController extends Controller
         $search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -2118,7 +2147,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -2159,6 +2188,7 @@ class ClaimIpController extends Controller
         $claim = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                pt.cid, pt.sex,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -2168,6 +2198,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) AS receive_total,
                 stm.repno AS repno,
@@ -2222,9 +2253,16 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
+            if (!empty($row->repno)) {
+                $row->repno = implode(',', array_unique(array_filter(explode(',', $row->repno))));
+            }
         }
 
         

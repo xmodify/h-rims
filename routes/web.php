@@ -514,10 +514,15 @@ Route::get('claim_ip/ucs_outcup/visit_details', [ClaimIpController::class, 'get_
 Route::match(['get', 'post'], 'claim_ip/stp', [ClaimIpController::class, 'stp']);
 Route::get('claim_ip/stp/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/ofc', [ClaimIpController::class, 'ofc']);
+Route::get('claim_ip/ofc/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/lgo', [ClaimIpController::class, 'lgo']);
+Route::get('claim_ip/lgo/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/bkk', [ClaimIpController::class, 'bkk']);
+Route::get('claim_ip/bkk/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/bmt', [ClaimIpController::class, 'bmt']);
+Route::get('claim_ip/bmt/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/srt', [ClaimIpController::class, 'srt']);
+Route::get('claim_ip/srt/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/sss', [ClaimIpController::class, 'sss']);
 Route::match(['get', 'post'], 'claim_ip/sss_export_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_aipn'])->middleware('rims_license');
 Route::post('claim_ip/sss_export_preview_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview_aipn'])->middleware('rims_license');

@@ -3112,7 +3112,7 @@ class ClaimIpController extends Controller
 
         // 3. Search Data (GOF - Optimized)
         $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3151,7 +3151,7 @@ class ClaimIpController extends Controller
 
         // 4. Claimed Data (GOF - Optimized)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3189,9 +3189,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
 
         $table_html = view('claim_ip.gof_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -3302,7 +3306,7 @@ class ClaimIpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3348,7 +3352,7 @@ class ClaimIpController extends Controller
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype', [$start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3392,6 +3396,17 @@ class ClaimIpController extends Controller
                  WHERE r.vn = i.an AND a.rcpno IS NULL
                 ) = a.paid_money 
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype', [$start_date, $end_date, $start_date, $end_date]);
+
+        foreach ($search as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
+        }
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
+        }
 
         
         $table_html = view('claim_ip.rcpt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
@@ -3525,7 +3540,7 @@ class ClaimIpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3558,7 +3573,7 @@ class ClaimIpController extends Controller
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -3597,9 +3612,13 @@ class ClaimIpController extends Controller
 
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
         foreach ($claim as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
 
         $table_html = view('claim_ip.act_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();

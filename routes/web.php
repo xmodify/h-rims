@@ -533,8 +533,11 @@ Route::post('claim_ip/rep_sss_aipn_import', [ImportSssController::class, 'import
 Route::post('claim_ip/stm_sss_aipn_import', [ImportSssController::class, 'import_aipn_stm']);
 Route::match(['get', 'post'], 'claim_ip/sss_hc', [ClaimIpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_ip/gof', [ClaimIpController::class, 'gof']);
+Route::get('claim_ip/gof/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/rcpt', [ClaimIpController::class, 'rcpt']);
+Route::get('claim_ip/rcpt/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/act', [ClaimIpController::class, 'act']);
+Route::get('claim_ip/act/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 
 // Mishos -------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'mishos/ucs_ae', [MishosController::class, 'ucs_ae']);

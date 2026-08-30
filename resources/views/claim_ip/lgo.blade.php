@@ -557,6 +557,7 @@
         $('#detailsModal').modal('hide');
         openF16EclaimExportModal({
             ans: [currentModalAn],
+            vns: [currentModalAn],
             claimCode: 'LGO',
             claimTitle: 'สิทธิ IP-LGO องค์กรปกครองส่วนท้องถิ่น (อปท.)',
             isIp: true
@@ -783,6 +784,7 @@
 
         openF16EclaimExportModal({
             ans: selectedAns,
+            vns: selectedAns,
             claimCode: claimCode || 'LGO',
             claimTitle: 'สิทธิ IP-LGO องค์กรปกครองส่วนท้องถิ่น (อปท.)',
             isIp: true

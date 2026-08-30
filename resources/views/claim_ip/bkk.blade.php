@@ -557,6 +557,7 @@
         $('#detailsModal').modal('hide');
         openF16EclaimExportModal({
             ans: [currentModalAn],
+            vns: [currentModalAn],
             claimCode: 'BKK',
             claimTitle: 'สิทธิ IP-BKK ข้าราชการกรุงเทพมหานคร',
             isIp: true
@@ -783,6 +784,7 @@
 
         openF16EclaimExportModal({
             ans: selectedAns,
+            vns: selectedAns,
             claimCode: claimCode || 'BKK',
             claimTitle: 'สิทธิ IP-BKK ข้าราชการกรุงเทพมหานคร',
             isIp: true

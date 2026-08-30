@@ -557,6 +557,7 @@
         $('#detailsModal').modal('hide');
         openF16EclaimExportModal({
             ans: [currentModalAn],
+            vns: [currentModalAn],
             claimCode: 'BMT',
             claimTitle: 'สิทธิ IP-BMT สถ.ทถ. กทม. / พนักงานการบินไทย',
             isIp: true
@@ -783,6 +784,7 @@
 
         openF16EclaimExportModal({
             ans: selectedAns,
+            vns: selectedAns,
             claimCode: claimCode || 'BMT',
             claimTitle: 'สิทธิ IP-BMT สถ.ทถ. กทม. / พนักงานการบินไทย',
             isIp: true

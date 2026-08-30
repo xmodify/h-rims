@@ -557,6 +557,7 @@
         $('#detailsModal').modal('hide');
         openF16EclaimExportModal({
             ans: [currentModalAn],
+            vns: [currentModalAn],
             claimCode: 'SRT',
             claimTitle: 'สิทธิ IP-SRT การรถไฟแห่งประเทศไทย',
             isIp: true
@@ -783,6 +784,7 @@
 
         openF16EclaimExportModal({
             ans: selectedAns,
+            vns: selectedAns,
             claimCode: claimCode || 'SRT',
             claimTitle: 'สิทธิ IP-SRT การรถไฟแห่งประเทศไทย',
             isIp: true

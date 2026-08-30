@@ -470,9 +470,10 @@
      */
     window.openF16EclaimExportModal = function(config) {
         config = config || {};
-        const vns = config.vns || [];
+        const isIp = !!(config.isIp || config.is_ip || config.type === 'ip');
+        const vns = config.vns || config.ans || [];
         const claimCode = config.claimCode || 'OFC';
-        const claimTitle = config.claimTitle || 'OP-OFC (ข้าราชการ)';
+        const claimTitle = config.claimTitle || (isIp ? 'IP-' + claimCode : 'OP-' + claimCode);
 
         if (!vns || vns.length === 0) {
             if (typeof Swal !== 'undefined') {
@@ -491,6 +492,7 @@
 
         // Reset State
         window._f16ExportState.vns = vns;
+        window._f16ExportState.isIp = isIp;
         window._f16ExportState.claimCode = claimCode;
         window._f16ExportState.claimTitle = claimTitle;
         window._f16ExportState.tables = {};
@@ -520,7 +522,6 @@
             $('#f16EclaimExportModal').modal('show');
         }
 
-        const isIp = !!(config.isIp || config.is_ip || config.type === 'ip');
         const postData = {
             _token: '{{ csrf_token() }}',
             type: isIp ? 'ip' : 'op',

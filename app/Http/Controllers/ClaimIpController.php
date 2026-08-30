@@ -210,6 +210,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok,
                 rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status
             FROM ipt i 
@@ -259,10 +260,18 @@ class ClaimIpController extends Controller
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         foreach ($search as $row) {
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->income = floatval($row->income);
+            $row->rcpt_money = floatval($row->rcpt_money);
+            $row->claim_price = $row->income - $row->rcpt_money;
+            $row->is_valid = !empty($row->icd10) && $row->dch_sum === 'Y';
+            $row->auth_valid = ($row->auth_code === 'Y');
         }
         foreach ($claim as $row) {
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->income = floatval($row->income);
+            $row->rcpt_money = floatval($row->rcpt_money);
+            $row->claim_price = $row->income - $row->rcpt_money;
+            $row->is_valid = !empty($row->icd10) && $row->dch_sum === 'Y';
+            $row->auth_valid = ($row->auth_code === 'Y');
         }
 
         
@@ -474,6 +483,7 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok,
                 rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status
             FROM ipt i 
@@ -523,10 +533,18 @@ class ClaimIpController extends Controller
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         foreach ($search as $row) {
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->income = floatval($row->income);
+            $row->rcpt_money = floatval($row->rcpt_money);
+            $row->claim_price = $row->income - $row->rcpt_money;
+            $row->is_valid = !empty($row->icd10) && $row->dch_sum === 'Y';
+            $row->auth_valid = ($row->auth_code === 'Y');
         }
         foreach ($claim as $row) {
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->income = floatval($row->income);
+            $row->rcpt_money = floatval($row->rcpt_money);
+            $row->claim_price = $row->income - $row->rcpt_money;
+            $row->is_valid = !empty($row->icd10) && $row->dch_sum === 'Y';
+            $row->auth_valid = ($row->auth_code === 'Y');
         }
 
         
@@ -3483,6 +3501,180 @@ class ClaimIpController extends Controller
                 'claim_price' => $claim_price ?? [],
                 'claim_sent_price' => $claim_sent_price ?? [],
                 'receive_total' => $receive_total ?? []
+            ]
+        ]);
+    }
+
+    /**
+     * ดึงข้อมูลรายละเอียดการรับบริการผู้ป่วยใน (IPD) และตรวจสอบความพร้อม 16 แฟ้ม สำหรับ Modal
+     */
+    public function get_ip_visit_details(Request $request)
+    {
+        $an = $request->input('an') ?? $request->input('vn');
+        if (empty($an)) {
+            return response()->json(['error' => 'กรุณาระบุ AN'], 400);
+        }
+
+        // ดึงข้อมูลหลักของการ Admit จาก ipt, an_stat, patient
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT i.an, i.hn, i.regdate, i.regtime, i.dchdate, i.dchtime,
+                   i.dchstts, ds.name AS dchstts_name,
+                   i.dchtype, dt.name AS dchtype_name,
+                   i.ward, w.name AS ward_name,
+                   i.bw AS adm_w, i.adjrw, i.drg, i.wtlos, i.ot, i.data_ok,
+                   IF(id.an <> "","Y",NULL) AS dch_sum,
+                   ict.ipt_coll_status_type_name AS audit_status,
+                   pt.cid, pt.sex, a.age_y, pt.birthday,
+                   CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,
+                   p.name AS pttype, p.hipdata_code, ip.hospmain,
+                   a.income, a.uc_money, a.paid_money,
+                   IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+                   IF((ip.auth_code IS NOT NULL AND ip.auth_code <> ""), "Y", NULL) AS auth_code,
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status = "success" OR ip.claim_code LIKE "EP%"), "Y", NULL) AS endpoint,
+                   ep.claim_status,
+                   fdh.status_message_th AS fdh_status,
+                   id.icd10 AS pdx,
+                   i10.name AS pdx_name,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                   dch_doc.name AS dch_doctor_name, dch_doc.licenseno AS dch_doctor_license
+            FROM ipt i
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN ward w ON w.ward = i.ward
+            LEFT JOIN dchstts ds ON ds.dchstts = i.dchstts
+            LEFT JOIN dchtype dt ON dt.dchtype = i.dchtype
+            LEFT JOIN an_stat a ON a.an = i.an
+            LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
+            LEFT JOIN icd101 i10 ON i10.code = id.icd10
+            LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money 
+                FROM rcpt_print r 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL 
+                GROUP BY r.vn
+            ) rc ON rc.vn = i.an
+            LEFT JOIN (
+                SELECT cid, vstdate,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN claimCode END) AS claimCode,
+                       MAX(CASE WHEN claimCode LIKE "EP%" OR claim_status = "success" THEN "success" ELSE claim_status END) AS claim_status
+                FROM hrims.nhso_endpoint
+                GROUP BY cid, vstdate
+            ) ep ON ep.cid = pt.cid AND ep.vstdate = i.dchdate
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an = i.an
+            LEFT JOIN doctor doc ON doc.code = i.admdoctor
+            LEFT JOIN doctor dch_doc ON dch_doc.code = i.dch_doctor
+            WHERE i.an = ?', [$an]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'ไม่พบข้อมูลการรับบริการ AN: ' . $an], 404);
+        }
+
+        // คำนวณจำนวนวันนอน (LOS)
+        if (!empty($visit->regdate) && !empty($visit->dchdate)) {
+            $diff = (strtotime($visit->dchdate) - strtotime($visit->regdate)) / 86400;
+            $visit->los = max(1, (int)$diff);
+        } else {
+            $visit->los = 1;
+        }
+
+        // แปลงน้ำหนักแรกรับเป็น kg (ถ้าเป็นกรัม > 500 ให้หาร 1000)
+        if (!empty($visit->adm_w)) {
+            $rawBw = floatval($visit->adm_w);
+            $visit->adm_w = $rawBw > 500 ? number_format($rawBw / 1000, 1) : number_format($rawBw, 1);
+        }
+
+        // โรครอง (Secondary Diagnoses)
+        $secDiags = DB::connection('hosxp')->select('
+            SELECT id.icd10, COALESCE(i10.name, "") AS name, id.diagtype
+            FROM iptdiag id
+            LEFT JOIN icd101 i10 ON i10.code = id.icd10
+            WHERE id.an = ? AND id.diagtype <> "1"
+            ORDER BY id.diagtype', [$an]);
+        $visit->sec_diags = $secDiags;
+        $visit->sdx = implode(', ', array_map(fn($d) => $d->icd10, $secDiags));
+
+        // หัตถการ/ผ่าตัด (Procedures / IOP)
+        $procedures = DB::connection('hosxp')->select('
+            SELECT io.icd9, COALESCE(i9.name, "") AS name, io.opdate, io.optime, io.enddate, io.endtime,
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license
+            FROM iptoprt io
+            LEFT JOIN icd9cm1 i9 ON i9.code = io.icd9
+            LEFT JOIN doctor doc ON doc.code = io.doctor
+            WHERE io.an = ?
+            ORDER BY io.opdate, io.optime', [$an]);
+        $visit->procedures = $procedures;
+        $visit->icd9 = implode(', ', array_map(fn($p) => $p->icd9, $procedures));
+
+        // รายการเวชภัณฑ์ / ค่ารักษาพยาบาล / ยา IPD (ดึงจาก opitemrece)
+        $items = DB::connection('hosxp')->select('
+            SELECT op.item_no, op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price, op.income AS income_cat,
+                   COALESCE(n.nhso_adp_type_id, d.nhso_adp_type_id) AS nhso_adp_type_id,
+                   COALESCE(n.nhso_adp_code, d.nhso_adp_code) AS nhso_adp_code,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmt_code,
+                   COALESCE(NULLIF(d.sks_drug_code,""), NULLIF(d3.ref_code,""), NULLIF(d.tmt_tp_code,""), NULLIF(d.tmt_gp_code,""), NULLIF(d.ttmt_code,""), NULLIF(d.did,"")) AS tmtid,
+                   d.did, d.sks_drug_code
+            FROM opitemrece op
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN (
+                SELECT icode, MAX(ref_code) AS ref_code 
+                FROM drugitems_ref_code 
+                WHERE drugitems_ref_code_type_id = 3 
+                GROUP BY icode
+            ) d3 ON d3.icode = op.icode
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
+            WHERE op.an = ?
+            ORDER BY op.item_no', [$an]);
+
+        // การตรวจสอบเงื่อนไขความถูกต้อง 16 แฟ้ม IPD (Validation)
+        $errors = [];
+        $warnings = [];
+
+        if (empty($visit->cid) || strlen(trim($visit->cid)) !== 13) {
+            $errors[] = "เลขประจำตัวประชาชน (CID) ไม่ถูกต้องหรือไม่ครบ 13 หลัก (จำเป็นสำหรับ 16 แฟ้ม)";
+        }
+        if (empty($visit->hn)) {
+            $errors[] = "ไม่พบรหัสผู้ป่วย (HN)";
+        }
+        if (empty($visit->pdx)) {
+            $errors[] = "ยังไม่ได้ระบุรหัสโรคหลัก (PDX) กรุณาสรุปผลการวินิจฉัยโรค";
+        }
+        if (empty($visit->regdate) || empty($visit->dchdate)) {
+            $errors[] = "ข้อมูลวันแรกรับ (Admit) หรือวันจำหน่าย (Discharge) ไม่ครบถ้วน";
+        }
+        if (empty($visit->dchstts) || empty($visit->dchtype)) {
+            $errors[] = "ยังไม่ได้ระบุสถานะหรือประเภทการจำหน่าย (DISCHS / DISCHT)";
+        }
+        if (empty($visit->adm_w) || floatval($visit->adm_w) <= 0) {
+            $warnings[] = "ยังไม่ได้บันทึกน้ำหนักแรกรับ (ADM_W) ในระบบผู้ป่วยใน";
+        }
+        if (empty($visit->auth_code)) {
+            $warnings[] = "ยังไม่มีรหัสขออนุมัติเบิก (Authen Code)";
+        }
+        if (empty($visit->adjrw) || floatval($visit->adjrw) <= 0) {
+            $warnings[] = "ยังไม่ได้ประมวลผลค่าน้ำหนักสัมพัทธ์ (AdjRW / DRG)";
+        }
+
+        $auth_valid = !empty($visit->auth_code) && $visit->auth_code === 'Y';
+
+        return response()->json([
+            'success' => true,
+            'visit' => $visit,
+            'sec_diags' => array_map(fn($d) => $d->icd10, $secDiags),
+            'procedures' => array_map(fn($p) => $p->icd9, $procedures),
+            'items' => $items,
+            'validation' => [
+                'is_valid' => count($errors) === 0,
+                'auth_valid' => $auth_valid,
+                'errors' => $errors,
+                'warnings' => $warnings
             ]
         ]);
     }

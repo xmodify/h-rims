@@ -508,7 +508,9 @@ Route::match(['get', 'post'], 'claim_op/act', [ClaimOpController::class, 'act'])
 
 // Claim_IP -----------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'claim_ip/ucs_incup', [ClaimIpController::class, 'ucs_incup']);
+Route::get('claim_ip/ucs_incup/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/ucs_outcup', [ClaimIpController::class, 'ucs_outcup']);
+Route::get('claim_ip/ucs_outcup/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/stp', [ClaimIpController::class, 'stp']);
 Route::match(['get', 'post'], 'claim_ip/ofc', [ClaimIpController::class, 'ofc']);
 Route::match(['get', 'post'], 'claim_ip/lgo', [ClaimIpController::class, 'lgo']);
@@ -1041,6 +1043,7 @@ Route::post('debtor/1102050102_804_bulk_adj', [\App\Http\Controllers\DebtorAdjCo
 Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
+    Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('api.nhso.pull_indiv');
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
     Route::post('import_edc_zip', [\App\Http\Controllers\ImportEdcController::class, 'importZip'])->name('api.import_edc_zip');
     Route::post('import_edc_file', [\App\Http\Controllers\ImportEdcController::class, 'importFile'])->name('api.import_edc_file');

@@ -32,13 +32,17 @@
                         <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
                         <div class="input-group input-group-sm">
                             <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                            <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                            <!-- Start Date -->
+                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
                             
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th" value="{{ $start_date }}" style="width: 120px;" readonly>
                             <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th" value="{{ $end_date }}" style="width: 120px;" readonly>
-                            <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
+
+                            <!-- End Date -->
+                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+
+                            <button type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
@@ -77,8 +81,7 @@
                                     @if($is_f16_licensed)
                                     <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
                                     @endif
-                                    <th class="text-center">FDH</th>
-                                    <th class="text-center">ความพร้อม</th>
+                                    <th class="text-center">สถานะ</th>
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
                                     <th class="text-center">D/C</th>
@@ -96,7 +99,6 @@
                             </thead> 
                             <tbody> 
                                 @php 
-                                    $count = 1; 
                                     $sum_income = 0; 
                                     $sum_rcpt_money = 0; 
                                     $sum_claim_price = 0; 
@@ -108,40 +110,20 @@
                                         <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->an }}">
                                     </td>
                                     @endif
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
-                                    </td>
-                                    <td class="text-start ps-3" data-order="{{ $row->data_ok == 'Y' ? '2' : '1' }}">
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">Authen:</span>
-                                                @if($row->auth_code == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="Authen Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="Authen N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">สรุป Chart:</span>
-                                                @if($row->dch_sum == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="สรุป Chart Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="สรุป Chart N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">พร้อมส่ง:</span>
-                                                @if($row->data_ok == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="พร้อมส่ง N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">สถานะ:</span>
-                                                <span class="text-dark fw-bold">{{ $row->ipt_coll_status_type_name ?: '-' }}</span>
-                                            </div>
-                                        </div>
+                                    <td class="text-center" id="td-status-search-{{ $row->an }}" data-order="{{ !$row->is_valid ? 0 : ($row->auth_valid ? 2 : 1) }}">
+                                        @if(!$row->is_valid)
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม IPD | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif($row->auth_valid)
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + มี Authen Code แล้ว | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ข้อมูลครบ แต่ยังไม่มี Authen Code | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @endif
                                     </td>
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">
@@ -170,7 +152,6 @@
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td> 
                                 </tr>
                                 @php 
-                                    $count++; 
                                     $sum_income += $row->income; 
                                     $sum_rcpt_money += $row->rcpt_money; 
                                     $sum_claim_price += $row->claim_price; 
@@ -179,7 +160,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="{{ $is_f16_licensed ? 13 : 12 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 12 : 11 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -198,6 +179,7 @@
                                     @if($is_f16_licensed)
                                     <th class="text-center no-sort" rowspan="2" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
                                     @endif
+                                    <th class="text-center" rowspan="2">สถานะ</th>
                                     <th class="text-center" rowspan="2">Error (REP)</th>
                                     <th class="text-center" rowspan="2">ตึก</th>
                                     <th class="text-center" rowspan="2">Admit</th>
@@ -225,7 +207,6 @@
                             </thead> 
                             <tbody> 
                                 @php 
-                                    $count = 1; 
                                     $sum_income = 0; 
                                     $sum_rcpt_money = 0; 
                                     $sum_claim_price = 0; 
@@ -239,6 +220,21 @@
                                         <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->an }}">
                                     </td>
                                     @endif
+                                    <td class="text-center" id="td-status-claim-{{ $row->an }}" data-order="{{ !$row->is_valid ? 0 : ($row->auth_valid ? 2 : 1) }}">
+                                        @if(!$row->is_valid)
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม IPD | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif($row->auth_valid)
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + มี Authen Code แล้ว | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->an }}')" title="ข้อมูลครบ แต่ยังไม่มี Authen Code | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @endif
+                                    </td>
                                     <td class="text-center small" data-order="{{ $row->rep_error ?: '-' }}">
                                         @if(!empty($row->rep_error))
                                             <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error }}">
@@ -282,7 +278,6 @@
                                     <td class="text-center small text-muted">{{ $row->repno }}</td> 
                                 </tr>
                                 @php 
-                                    $count++; 
                                     $sum_income += $row->income; 
                                     $sum_rcpt_money += $row->rcpt_money; 
                                     $sum_claim_price += $row->claim_price; 
@@ -293,7 +288,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="{{ $is_f16_licensed ? 11 : 10 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="{{ $is_f16_licensed ? 12 : 11 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

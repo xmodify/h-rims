@@ -682,9 +682,10 @@ class ClaimIpController extends Controller
             $receive_total = $chartData['receive_total'] ?? [];
         }
 
-        $visits = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
+        // 3. Unclaimed Data ($search)
+        $search = DB::connection('hosxp')->select('
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
                  FROM rcpt_print r 
@@ -693,10 +694,63 @@ class ClaimIpController extends Controller
                 ) AS rcpt_money,
                 0 AS claim_price,
                 CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
-                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status,
-                IF(i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL, "Y", "N") AS is_sent
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok,
+                fdh.status_message_th AS fdh_status
+            FROM ipt i 
+            LEFT JOIN patient pt ON pt.hn=i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an=i.an
+            LEFT JOIN pttype p ON p.pttype=ip.pttype
+            LEFT JOIN ward w ON w.ward=i.ward
+            LEFT JOIN an_stat a ON a.an=i.an
+            LEFT JOIN (
+                SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype
+            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN ipt_accident ia ON ia.an=i.an
+            LEFT JOIN referout r ON r.vn=i.an
+            LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
+            LEFT JOIN iptoprt idx ON idx.an=i.an
+            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
+            LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
+            LEFT JOIN (
+                SELECT an FROM hrims.rep_ucs
+                WHERE rep_type = "IP"
+                GROUP BY an
+            ) rep ON rep.an = i.an
+            LEFT JOIN (
+                SELECT an FROM hrims.stm_ucs 
+                WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
+                GROUP BY an
+            ) stm ON stm.an = i.an  
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code = "STP" 
+            AND i.data_exp_date IS NULL
+            AND fdh.an IS NULL
+            AND ec.an IS NULL
+            AND rep.an IS NULL
+            AND stm.an IS NULL
+            GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        // 4. Claimed Data ($claim)
+        $claim = DB::connection('hosxp')->select('
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+                p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
+                IFNULL(inc.income,0) AS income, 
+                (SELECT IFNULL(SUM(r.total_amount), 0)
+                 FROM rcpt_print r 
+                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                 WHERE r.vn = i.an AND a.rcpno IS NULL
+                ) AS rcpt_money,
+                0 AS claim_price,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok,
+                rep.error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -722,19 +776,45 @@ class ClaimIpController extends Controller
                 SUM(receive_total) AS receive_total, MAX(repno) AS repno FROM hrims.stm_ucs 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
-            ) stm ON stm.an = i.an
+            ) stm ON stm.an = i.an  
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT an, error_code, repno,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY an 
+                               ORDER BY 
+                                   CASE WHEN error_code IS NULL OR error_code = "" THEN 1 ELSE 0 END DESC,
+                                   repno DESC
+                           ) AS rn
+                    FROM hrims.rep_ucs
+                    WHERE rep_type = "IP"
+                ) ranked
+                WHERE rn = 1
+            ) rep ON rep.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
+            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR rep.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        foreach ($visits as $row) {
+        foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
         }
 
-        $table_html = view('claim_ip.stp_table', compact('budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'))->render();
+        foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->is_valid = !empty($row->cid) && strlen(trim($row->cid)) === 13 && !empty($row->hn) && !empty($row->icd10) && !empty($row->regdate) && !empty($row->dchdate);
+            $row->auth_valid = !empty($row->auth_code) && $row->auth_code === 'Y';
+        }
 
-        $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $visits);
+        $table_html = view('claim_ip.stp_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
 
         return response()->json([
             'success' => true,
@@ -747,7 +827,6 @@ class ClaimIpController extends Controller
                 'receive_total' => $receive_total ?? []
             ]
         ]);
-
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
@@ -3521,7 +3600,7 @@ class ClaimIpController extends Controller
                    i.dchstts, ds.name AS dchstts_name,
                    i.dchtype, dt.name AS dchtype_name,
                    i.ward, w.name AS ward_name,
-                   i.bw AS adm_w, i.adjrw, i.drg, i.wtlos, i.ot, i.data_ok,
+                   i.bw AS adm_w, i.adjrw, i.drg, i.wtlos, i.ot, i.data_ok, i.data_exp_date,
                    IF(id.an <> "","Y",NULL) AS dch_sum,
                    ict.ipt_coll_status_type_name AS audit_status,
                    pt.cid, pt.sex, a.age_y, pt.birthday,
@@ -3533,6 +3612,8 @@ class ClaimIpController extends Controller
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status = "success" OR ip.claim_code LIKE "EP%"), "Y", NULL) AS endpoint,
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
+                   ec.status AS ec_status,
+                   ec.check_detail AS rep_error,
                    id.icd10 AS pdx,
                    i10.name AS pdx_name,
                    doc.name AS doctor_name, doc.licenseno AS doctor_license,
@@ -3564,6 +3645,7 @@ class ClaimIpController extends Controller
                 GROUP BY cid, vstdate
             ) ep ON ep.cid = pt.cid AND ep.vstdate = i.dchdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an = i.an
+            LEFT JOIN hrims.eclaim_status ec ON ec.an = i.an
             LEFT JOIN doctor doc ON doc.code = i.admdoctor
             LEFT JOIN doctor dch_doc ON dch_doc.code = i.dch_doctor
             WHERE i.an = ?', [$an]);

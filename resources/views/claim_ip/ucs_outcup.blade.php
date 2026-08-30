@@ -302,6 +302,18 @@
                         <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
                         <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
                     </div>`;
+            } else if (visit.ec_status) {
+                fdhBtn = `
+                    <div class="d-inline-flex gap-2 align-items-center">
+                        <span class="badge bg-info text-dark py-1 px-2 text-wrap" style="max-width:180px;">E-Claim: ${visit.ec_status}</span>
+                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
+                    </div>`;
+            } else if (visit.data_exp_date) {
+                fdhBtn = `
+                    <div class="d-inline-flex gap-2 align-items-center">
+                        <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">ส่งออก 16 แฟ้ม (${formatDateThai(visit.data_exp_date)})</span>
+                        <button onclick="checkFdh('${visit.hn}', '${an}')" class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
+                    </div>`;
             } else {
                 fdhBtn = `
                     <div class="d-inline-flex gap-2 align-items-center">
@@ -430,7 +442,7 @@
                         <tr><th class="text-muted">CID (13 หลัก)</th><td class="font-monospace">${visit.cid || '-'}</td></tr>
                         <tr><th class="text-muted">ชื่อ-สกุล</th><td class="fw-bold text-dark">${visit.ptname}</td></tr>
                         <tr><th class="text-muted">เพศ / อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : '-')} / ${visit.age_y} ปี</td></tr>
-                        <tr><th class="text-muted">สิทธิการรักษา</th><td><span class="badge bg-primary-soft text-primary fw-bold">${visit.pttype || '-'}</span></td></tr>
+                        <tr><th class="text-muted">สิทธิการรักษา</th><td><span class="badge bg-primary-soft text-primary fw-bold text-wrap text-start" title="${visit.pttype || ''}" style="max-width: 210px; display: inline-block; font-size: 0.72rem; line-height: 1.3;">${visit.pttype || '-'}</span></td></tr>
                         <tr><th class="text-muted">รพ.หลัก</th><td>${visit.hospmain || '-'}</td></tr>
                         <tr><th class="text-muted">Authen Code</th><td>${visit.auth_code == 'Y' ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>มี Authen Code</span>' : '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ไม่มี Authen Code</span>'}</td></tr>
                         <tr><th class="text-muted">สรุป Chart</th><td>${visit.dch_sum == 'Y' ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>สรุป Chart แล้ว (Y)</span>' : '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ยังไม่สรุป Chart (N)</span>'}</td></tr>

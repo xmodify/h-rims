@@ -512,6 +512,7 @@ Route::get('claim_ip/ucs_incup/visit_details', [ClaimIpController::class, 'get_i
 Route::match(['get', 'post'], 'claim_ip/ucs_outcup', [ClaimIpController::class, 'ucs_outcup']);
 Route::get('claim_ip/ucs_outcup/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/stp', [ClaimIpController::class, 'stp']);
+Route::get('claim_ip/stp/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/ofc', [ClaimIpController::class, 'ofc']);
 Route::match(['get', 'post'], 'claim_ip/lgo', [ClaimIpController::class, 'lgo']);
 Route::match(['get', 'post'], 'claim_ip/bkk', [ClaimIpController::class, 'bkk']);

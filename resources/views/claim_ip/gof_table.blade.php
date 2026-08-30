@@ -111,11 +111,11 @@
                                     </td>
                                     <td class="text-center small">{{ $row->ward }}</td>
                                     <td class="text-center small">
-                                        <div>{{ DateThaiShort($row->regdate) }}</div>
+                                        <div>{{ DateThai($row->regdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">{{ !empty($row->regtime) ? substr($row->regtime, 0, 5).' น.' : '' }}</div>
                                     </td>
                                     <td class="text-center small">
-                                        <div>{{ DateThaiShort($row->dchdate) }}</div>
+                                        <div>{{ DateThai($row->dchdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">{{ !empty($row->dchtime) ? substr($row->dchtime, 0, 5).' น.' : '' }}</div>
                                     </td>
                                     <td class="text-center small text-muted">{{ $row->refer ?? '-' }}</td>
@@ -207,11 +207,11 @@
                                     </td>
                                     <td class="text-center small">{{ $row->ward }}</td>
                                     <td class="text-center small">
-                                        <div>{{ DateThaiShort($row->regdate) }}</div>
+                                        <div>{{ DateThai($row->regdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">{{ !empty($row->regtime) ? substr($row->regtime, 0, 5).' น.' : '' }}</div>
                                     </td>
                                     <td class="text-center small">
-                                        <div>{{ DateThaiShort($row->dchdate) }}</div>
+                                        <div>{{ DateThai($row->dchdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">{{ !empty($row->dchtime) ? substr($row->dchtime, 0, 5).' น.' : '' }}</div>
                                     </td>
                                     <td class="text-center small text-muted">{{ $row->refer ?? '-' }}</td>

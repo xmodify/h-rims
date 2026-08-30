@@ -586,14 +586,48 @@
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
                         <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                        @php
+                        @endphp
                         <table class="table table-sm table-borderless mb-0 small compact-info-table">
                           <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
                           <tr><th class="text-muted">CC</th><td style="word-break: break-all;">${visit.cc ?? '-'}</td></tr>
                           <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
                           <tr><th class="text-muted">SDX</th><td style="word-break: break-all;">${data.sec_diags.join(', ') || '-'}</td></tr>
-                          <tr><th class="text-muted">ICD-9</th><td style="word-break: break-all;">${data.procedures.join(', ') || '-'}</td></tr>
-                          <tr><th class="text-muted">แพทย์ผู้ตรวจ</th><td>${visit.doctor_name ?? '-'}</td></tr>
-                          <tr><th class="text-muted">เลขใบอนุญาต</th><td>${visit.doctor_license ?? '-'}</td></tr>
+                          <tr>
+                            <th class="text-muted">ผู้วินิจฉัย (DRDX)</th>
+                            <td>
+                              ${(function() {
+                                  let docLic = visit.doctor_license ? visit.doctor_license.trim() : '';
+                                  let isDocValid = docLic.startsWith('ว') || docLic.startsWith('ท') || docLic.startsWith('พท');
+                                  let docBadge = docLic 
+                                      ? `<span class="badge ${isDocValid ? 'bg-success' : 'bg-danger'} font-monospace ms-1" title="${isDocValid ? 'เลข ว/ท ถูกต้อง' : 'รูปแบบไม่ถูกต้อง ต้องขึ้นต้นด้วย ว หรือ ท'}">${docLic}</span>` 
+                                      : `<span class="badge bg-danger ms-1">ไม่มีเลข ว/ท</span>`;
+                                  return `<div>${visit.doctor_name || '-'} ${docBadge}</div>`;
+                              })()}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th class="text-muted">หัตถการ (OOP)</th>
+                            <td>
+                              ${(function() {
+                                  if (data.procedure_details && data.procedure_details.length > 0) {
+                                      return data.procedure_details.map(p => {
+                                          let pLic = p.doctor_license ? p.doctor_license.trim() : '';
+                                          let isPValid = pLic.startsWith('ว') || pLic.startsWith('ท') || pLic.startsWith('พท');
+                                          let pBadge = pLic 
+                                              ? `<span class="badge ${isPValid ? 'bg-success' : 'bg-danger'} font-monospace" title="${isPValid ? 'เลข ว/ท ถูกต้อง' : 'รูปแบบไม่ถูกต้อง ต้องขึ้นต้นด้วย ว หรือ ท'}">${pLic}</span>` 
+                                              : `<span class="badge bg-danger">ไม่มีเลข ว/ท</span>`;
+                                          let docName = p.doctor_name ? `<span class="text-muted" style="font-size:0.75rem;"> ${p.doctor_name}</span>` : '';
+                                          return `<div class="mb-1 d-flex align-items-center flex-wrap gap-1"><span class="badge bg-secondary font-monospace">${p.icd9}</span> ${pBadge} ${docName}</div>`;
+                                      }).join('');
+                                  } else if (data.procedures && data.procedures.length > 0) {
+                                      return data.procedures.map(p => `<span class="badge bg-secondary font-monospace me-1">${p}</span>`).join('');
+                                  } else {
+                                      return '<span class="text-muted">-</span>';
+                                  }
+                              })()}
+                            </td>
+                          </tr>
                         </table>
                       </div>
                     </div>

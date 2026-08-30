@@ -313,16 +313,34 @@ class ClaimValidator
             return ['errors' => [], 'warnings' => []];
         }
 
-        // check DRDX (Doctor License) - Only for Social Security (SSS)
+        // check DRDX (Doctor License) & DROPID (Procedure Operator License) - Only for Social Security (SSS)
         $is_sss = is_object($visit) ? !empty($visit->is_sss) : (!empty($visit['is_sss']));
         if ($is_sss) {
+            // 1. ตรวจสอบผู้วินิจฉัยโรค (DRDX) ต้องขึ้นต้นด้วย ว หรือ ท (หรือ พท)
             $doc_lic = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
-            $is_doc_valid = (!empty($doc_lic) && str_starts_with($doc_lic, 'ว'));
+            $is_doc_valid = (!empty($doc_lic) && (str_starts_with($doc_lic, 'ว') || str_starts_with($doc_lic, 'ท') || str_starts_with($doc_lic, 'พท')));
             if (!$is_doc_valid) {
                 if (empty($doc_lic)) {
-                    $errors[] = "ไม่พบเลขใบอนุญาตผู้วินิจฉัยโรค (DRDX) ของแพทย์ผู้รักษา";
+                    $errors[] = "ไม่พบเลขใบอนุญาตผู้วินิจฉัยโรค (DRDX) ของแพทย์ผู้รักษา (ต้องขึ้นต้นด้วย ว หรือ ท)";
                 } else {
-                    $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องเริ่มต้นด้วย ว";
+                    $errors[] = "เลขใบอนุญาตผู้วินิจฉัยโรค '{$doc_lic}' รูปแบบไม่ถูกต้อง (DRDX) ต้องขึ้นต้นด้วย ว หรือ ท";
+                }
+            }
+
+            // 2. ตรวจสอบผู้ทำหัตถการ (DROPID) ต้องขึ้นต้นด้วย ว หรือ ท (หรือ พท)
+            $procDetails = is_object($visit) ? ($visit->procedure_details ?? []) : ($visit['procedure_details'] ?? []);
+            if (!empty($procDetails)) {
+                foreach ($procDetails as $proc) {
+                    $procCode = is_object($proc) ? ($proc->icd9 ?? ($proc->icd10 ?? '')) : ($proc['icd9'] ?? ($proc['icd10'] ?? ''));
+                    $procLic  = trim((string)(is_object($proc) ? ($proc->doctor_license ?? '') : ($proc['doctor_license'] ?? '')));
+                    $is_proc_valid = (!empty($procLic) && (str_starts_with($procLic, 'ว') || str_starts_with($procLic, 'ท') || str_starts_with($procLic, 'พท')));
+                    if (!$is_proc_valid) {
+                        if (empty($procLic)) {
+                            $errors[] = "หัตถการ [{$procCode}]: ไม่พบเลขใบอนุญาตผู้ทำหัตถการ (DROPID) ต้องขึ้นต้นด้วย ว หรือ ท";
+                        } else {
+                            $errors[] = "หัตถการ [{$procCode}]: เลขใบอนุญาตผู้ทำหัตถการ '{$procLic}' (DROPID) ไม่ถูกต้อง ต้องขึ้นต้นด้วย ว หรือ ท";
+                        }
+                    }
                 }
             }
         }

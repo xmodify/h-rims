@@ -944,8 +944,21 @@
                             }).then(() => {
                                 closeFdhModal();
 
-                                // Auto refresh datatables on parent page
-                                if (typeof loadData === 'function') {
+                                // 1. บันทึก active tab และสลับไปยังแท็บ "ส่งเบิกแล้ว"
+                                localStorage.setItem('active_tab', '#claim');
+                                const claimTabBtn = document.querySelector('#claim-tab, button[data-bs-target="#claim"], a[href="#claim"], #pills-claim-tab');
+                                if (claimTabBtn) {
+                                    claimTabBtn.click();
+                                }
+
+                                // 2. Auto refresh ข้อมูลในหน้าหลัก
+                                if (typeof loadDashboard === 'function') {
+                                    loadDashboard({
+                                        budget_year: $('#form_budget_year select[name="budget_year"]').val() || undefined,
+                                        start_date: $('#start_date').val() || undefined,
+                                        end_date: $('#end_date').val() || undefined
+                                    });
+                                } else if (typeof loadData === 'function') {
                                     loadData();
                                 } else if (typeof searchData === 'function') {
                                     searchData();
@@ -954,15 +967,19 @@
                                 } else if (typeof fetchClaims === 'function') {
                                     fetchClaims();
                                 } else {
-                                    const searchForm = $('form#searchForm, form#filterForm, form.filter-form');
+                                    const searchForm = $('form#form_indiv, form#searchForm, form#filterForm, form.filter-form');
                                     if (searchForm.length > 0) {
                                         searchForm.first().submit();
+                                    } else {
+                                        window.location.reload();
                                     }
                                 }
                             });
                         } else {
                             alert('ส่งข้อมูลเข้า FDH สำเร็จ! รหัสการเคลม: ' + (res.transaction_id || '-'));
                             closeFdhModal();
+                            const claimTabBtn = document.querySelector('#claim-tab, button[data-bs-target="#claim"], a[href="#claim"]');
+                            if (claimTabBtn) claimTabBtn.click();
                         }
                     } else {
                         if (typeof Swal !== 'undefined') {

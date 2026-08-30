@@ -5660,30 +5660,52 @@ public function sss_ppfs(Request $request)
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        // ── Batch load claim items for all VNs ──────────────────────────────
+        // ── Batch load claim items & procedures for all VNs ──────────────────
         $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
         $itemsByVn = [];
+        $proceduresByVn = [];
         if (!empty($allVns)) {
+            $vnPlaceholders = implode(',', array_fill(0, count($allVns), '?'));
             $rawItems = DB::connection('hosxp')
-                ->select('
+                ->select("
                     SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
                            li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
                            IFNULL(n.name, d.name) AS name
                     FROM opitemrece op
-                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y'
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
                     LEFT JOIN drugitems d ON d.icode = op.icode
-                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
-                    AND op.paidst = "02"',
+                    WHERE op.vn IN ($vnPlaceholders)
+                    AND op.paidst = '02'",
                 $allVns);
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;
+            }
+
+            try {
+                $rawProcedures = DB::connection('hosxp')->select("
+                    SELECT od.vn, od.icd10 as icd9, od.doctor, doc.licenseno as doctor_license
+                    FROM ovstdiag od
+                    LEFT JOIN doctor doc ON doc.code = od.doctor
+                    WHERE od.vn IN ($vnPlaceholders) AND od.diagtype = '2'
+                    UNION
+                    SELECT dop.vn, dop.icd9 as icd9, dop.doctor, doc.licenseno as doctor_license
+                    FROM doctor_operation dop
+                    LEFT JOIN doctor doc ON doc.code = dop.doctor
+                    WHERE dop.vn IN ($vnPlaceholders)
+                ", array_merge($allVns, $allVns));
+                foreach ($rawProcedures as $p) {
+                    $proceduresByVn[$p->vn][] = $p;
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("SSS PPFS batch load procedures error: " . $e->getMessage());
             }
         }
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
+            $row->procedure_details = $proceduresByVn[$row->seq] ?? [];
             $result = $validator->validatePpfsOnly($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -5691,6 +5713,7 @@ public function sss_ppfs(Request $request)
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
+            $row->procedure_details = $proceduresByVn[$row->seq] ?? [];
             $result = $validator->validatePpfsOnly($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -5771,14 +5794,22 @@ public function sss_ppfs(Request $request)
             ->toArray();
         $visit->sdx = implode(',', $secDiags);
 
-        // รหัสหัตถการ (ICD-9/Procedure)
-        $procedures = DB::connection('hosxp')
-            ->table('ovstdiag')
-            ->where('vn', $vn)
-            ->where('diagtype', '2')
-            ->pluck('icd10')
-            ->toArray();
+        // รหัสหัตถการ (ICD-9/Procedure) พร้อมแพทย์ผู้ทำหัตถการ
+        $procedureRows = DB::connection('hosxp')->select('
+            SELECT od.icd10 as icd9, od.doctor, doc.name as doctor_name, doc.licenseno as doctor_license
+            FROM ovstdiag od
+            LEFT JOIN doctor doc ON doc.code = od.doctor
+            WHERE od.vn = ? AND od.diagtype = "2"
+            UNION
+            SELECT dop.icd9 as icd9, dop.doctor, doc.name as doctor_name, doc.licenseno as doctor_license
+            FROM doctor_operation dop
+            LEFT JOIN doctor doc ON doc.code = dop.doctor
+            WHERE dop.vn = ?
+        ', [$vn, $vn]);
+
+        $procedures = array_values(array_unique(array_filter(array_column($procedureRows, 'icd9'))));
         $visit->icd9 = implode(',', $procedures);
+        $visit->procedure_details = $procedureRows;
 
         // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บเฉพาะ PPFS
         $items = DB::connection('hosxp')->select('
@@ -5806,11 +5837,12 @@ public function sss_ppfs(Request $request)
         $validation = $validator->validatePpfsOnly($visit, $items);
 
         return response()->json([
-            'visit'      => $visit,
-            'sec_diags'  => $secDiags,
-            'procedures' => $procedures,
-            'items'      => $items,
-            'validation' => $validation,
+            'visit'             => $visit,
+            'sec_diags'         => $secDiags,
+            'procedures'        => $procedures,
+            'procedure_details' => $procedureRows,
+            'items'             => $items,
+            'validation'        => $validation,
         ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------

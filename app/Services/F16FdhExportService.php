@@ -1728,7 +1728,10 @@ class F16FdhExportService
      * 1. ใช้ FDH Credentials ประจำตัวของผู้ใช้ที่ล็อกอิน (หากมีการตั้งค่าไว้ใน Edit Profile)
      * 2. ใช้ FDH Credentials กลางของโรงพยาบาล (จาก main_setting)
      */
-    public static function getHospitalCentralToken(?object $customUser = null): ?string
+    /**
+     * ดึงรายละเอียดและขอ Access Token จาก FDH ด้วยข้อมูลบัญชีผู้ใช้งาน
+     */
+    public static function getFdhTokenDetail(?object $customUser = null): array
     {
         $settings = DB::table('main_setting')
             ->pluck('value', 'name')
@@ -1736,14 +1739,45 @@ class F16FdhExportService
 
         $userObj = $customUser ?: (Auth::check() ? Auth::user() : null);
 
-        // หากผู้ใช้ปัจจุบันมีการตั้งค่า FDH User & Pass ประจำตัวไว้ในโปรไฟล์ ให้ใช้ของผู้นั้นเป็นอันดับแรก
-        $user      = !empty($userObj->fdh_user) ? $userObj->fdh_user : ($settings['fdh_user'] ?? null);
-        $password  = !empty($userObj->fdh_pass) ? $userObj->fdh_pass : ($settings['fdh_pass'] ?? null);
-        $secretKey = !empty($userObj->fdh_secretKey) ? $userObj->fdh_secretKey : ($settings['fdh_secretKey'] ?? '$jwt@moph#');
-        $hcode     = $settings['hospital_code'] ?? ($settings['hcode'] ?? null);
+        // ดึง FDH User, Pass, Secret Key ของ User ปัจจุบัน
+        $user      = !empty($userObj->fdh_user) ? trim($userObj->fdh_user) : null;
+        $password  = !empty($userObj->fdh_pass) ? trim($userObj->fdh_pass) : null;
+        $secretKey = !empty($userObj->fdh_secretKey) ? trim($userObj->fdh_secretKey) : '$jwt@moph#';
 
-        if (!$user || !$password || !$secretKey || !$hcode) {
-            return null;
+        // ถ้า User ยังไม่ได้กรอก ให้ลองดึงค่ากลางจาก main_setting (ถ้ามี)
+        if (!$user && !empty($settings['fdh_user'])) {
+            $user = trim($settings['fdh_user']);
+        }
+        if (!$password && !empty($settings['fdh_pass'])) {
+            $password = trim($settings['fdh_pass']);
+        }
+        if (empty($userObj->fdh_secretKey) && !empty($settings['fdh_secretKey'])) {
+            $secretKey = trim($settings['fdh_secretKey']);
+        }
+
+        if (!$user || !$password) {
+            return [
+                'success' => false,
+                'token' => null,
+                'fdh_user' => $user,
+                'has_credentials' => false,
+                'message' => 'ยังไม่ได้ตั้งค่า FDH User หรือ FDH Pass ในข้อมูลผู้ใช้งาน'
+            ];
+        }
+
+        $userParts = explode('.', $user);
+        $hcode = (count($userParts) > 1 && is_numeric(end($userParts)))
+            ? end($userParts)
+            : ($settings['hospital_code'] ?? ($settings['hcode'] ?? null));
+
+        if (!$hcode) {
+            return [
+                'success' => false,
+                'token' => null,
+                'fdh_user' => $user,
+                'has_credentials' => true,
+                'message' => 'ไม่พบรหัสสถานพยาบาล (Hospital Code)'
+            ];
         }
 
         $hash = hash_hmac('sha256', $password, $secretKey);
@@ -1752,7 +1786,8 @@ class F16FdhExportService
 
         try {
             $response = Http::withOptions([
-                'verify' => false
+                'verify' => false,
+                'http_errors' => false
             ])->withHeaders([
                 "Accept" => "application/json",
                 "Content-Type" => "application/json"
@@ -1763,13 +1798,47 @@ class F16FdhExportService
             ]);
 
             if ($response->successful()) {
-                return trim($response->body());
+                $token = trim($response->body());
+                if (!empty($token) && !str_starts_with($token, '<!DOCTYPE') && !str_starts_with($token, '{') && !str_contains($token, 'Invalid')) {
+                    return [
+                        'success' => true,
+                        'token' => $token,
+                        'fdh_user' => $user,
+                        'has_credentials' => true,
+                        'user_name' => $userObj->name ?? $user,
+                        'message' => 'ดึง Access Token สำเร็จ'
+                    ];
+                }
             }
-        } catch (\Throwable $e) {
-            Log::error("FDH Hospital Token error: " . $e->getMessage());
-        }
 
-        return null;
+            $json = $response->json();
+            $msg = $json['Message'] ?? ($json['message'] ?? ($json['error'] ?? 'บัญชี FDH User หรือ รหัสผ่าน (FDH Pass) ไม่ถูกต้อง'));
+            return [
+                'success' => false,
+                'token' => null,
+                'fdh_user' => $user,
+                'has_credentials' => true,
+                'message' => $msg
+            ];
+        } catch (\Throwable $e) {
+            Log::error("FDH Token error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'token' => null,
+                'fdh_user' => $user,
+                'has_credentials' => true,
+                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ FDH: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * ดึง Token กลางของโรงพยาบาลหรือของผู้ใช้
+     */
+    public static function getHospitalCentralToken(?object $customUser = null): ?string
+    {
+        $detail = self::getFdhTokenDetail($customUser);
+        return $detail['token'] ?? null;
     }
 
     /**
@@ -1818,66 +1887,51 @@ class F16FdhExportService
     }
 
     /**
-     * ค้นหา Token ที่เหมาะสมสำหรับส่งข้อมูล (Personal Provider ID Token -> User Token)
-     * โดยการส่งเคลมจะไม่อนุญาตให้ใช้ Token กลางของ รพ. เพื่อระบุตัวตนผู้ส่งที่แท้จริง
+     * ค้นหา Token ที่เหมาะสมสำหรับส่งข้อมูล (FDH User Token -> Explicit Custom Token)
      */
-    public static function resolveFdhToken(?string $customToken = null, bool $allowHospitalFallback = false): array
+    public static function resolveFdhToken(?string $customToken = null, bool $allowHospitalFallback = true): array
     {
         // 1. Explicit Custom Token
         if (!empty($customToken) && !self::isJwtExpired($customToken)) {
-            $tokenName = self::extractSenderNameFromToken($customToken) ?: (Auth::user()->name ?? 'Provider ID');
+            $tokenName = self::extractSenderNameFromToken($customToken) ?: (Auth::user()->name ?? 'FDH Account');
             return [
                 'token' => trim($customToken),
                 'type' => 'Custom Token',
-                'user_name' => $tokenName
+                'user_name' => $tokenName,
+                'message' => 'Custom Token พร้อมใช้งาน'
             ];
         }
 
-        // 2. Session Token (จาก MOPH Provider ID Login)
-        $sessionToken = session('moph_fdh_token');
-        if (!empty($sessionToken) && !self::isJwtExpired($sessionToken)) {
-            $tokenName = self::extractSenderNameFromToken($sessionToken) ?: (Auth::user()->name ?? 'Provider ID');
+        // 2. Token จากการต่อ API ตรงด้วยบัญชี FDH ของผู้ใช้ปัจจุบัน
+        $fdhDetail = self::getFdhTokenDetail();
+        if ($fdhDetail['success'] && !empty($fdhDetail['token'])) {
+            $tokenName = $fdhDetail['user_name'] ?? (Auth::user()->name ?? $fdhDetail['fdh_user']);
             return [
-                'token' => trim($sessionToken),
-                'type' => 'Provider ID (Personal Session)',
-                'user_name' => $tokenName
+                'token' => $fdhDetail['token'],
+                'type' => 'FDH Token (' . ($fdhDetail['fdh_user'] ?? 'User') . ')',
+                'user_name' => $tokenName,
+                'fdh_user' => $fdhDetail['fdh_user'],
+                'message' => 'ขอ Token สำเร็จ'
             ];
         }
 
-        // 3. Token จาก Database ของ User ปัจจุบัน
-        if (Auth::check()) {
-            $user = Auth::user();
-            if (!empty($user->moph_token)) {
-                $isExpired = self::isJwtExpired($user->moph_token);
-                if (!empty($user->moph_token_expire)) {
-                    $isExpired = $isExpired || (strtotime($user->moph_token_expire) <= time());
-                }
-                if (!$isExpired) {
-                    $tokenName = self::extractSenderNameFromToken($user->moph_token) ?: $user->name;
-                    return [
-                        'token' => trim($user->moph_token),
-                        'type' => 'Provider ID (Database)',
-                        'user_name' => $tokenName
-                    ];
-                }
-            }
-        }
-
-        // 4. Fallback: Hospital Central Token
-        $hospitalToken = self::getHospitalCentralToken();
-        if (!empty($hospitalToken)) {
-            $tokenName = self::extractSenderNameFromToken($hospitalToken) ?: (Auth::user()->name ?? 'Hospital Account');
+        // ถ้ามีข้อมูล credentials แต่ขอ Token ไม่ผ่าน (เช่น user/password ผิด) ให้หยุดและแจ้ง error ทันที
+        if (!empty($fdhDetail['has_credentials'])) {
             return [
-                'token' => $hospitalToken,
-                'type' => 'Hospital Central Token',
-                'user_name' => $tokenName
+                'token' => null,
+                'type' => 'None',
+                'user_name' => Auth::user()->name ?? 'Unknown',
+                'fdh_user' => $fdhDetail['fdh_user'] ?? null,
+                'message' => $fdhDetail['message'] ?? 'ไม่สามารถขอ Access Token จากระบบ FDH ได้ บัญชี FDH User หรือ รหัสผ่าน ไม่ถูกต้อง'
             ];
         }
 
         return [
             'token' => null,
             'type' => 'None',
-            'user_name' => Auth::user()->name ?? 'Unknown'
+            'user_name' => Auth::user()->name ?? 'Unknown',
+            'fdh_user' => $fdhDetail['fdh_user'] ?? null,
+            'message' => $fdhDetail['message'] ?? 'ไม่สามารถขอ Access Token จากระบบ FDH ได้ กรุณาตรวจสอบ FDH User และ Password'
         ];
     }
 
@@ -1904,8 +1958,8 @@ class F16FdhExportService
         if (empty($token)) {
             return [
                 'success' => false,
-                'need_login' => true,
-                'message' => 'กรุณาเข้าสู่ระบบด้วย Provider ID (หมอพร้อม) ก่อนส่งข้อมูล เพื่อระบุตัวตนผู้ส่งอย่างถูกต้อง'
+                'need_login' => false,
+                'message' => $tokenInfo['message'] ?? 'ไม่สามารถขอ Access Token จากระบบ FDH ได้ กรุณาตรวจสอบ FDH User และ Password ในข้อมูลผู้ใช้งาน'
             ];
         }
 

@@ -133,6 +133,9 @@
                                                     data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
                                                     data-allow_receipt="{{ $user->allow_receipt }}"
                                                     data-cid="{{ $user->cid }}"
+                                                    data-fdh_user="{{ $user->fdh_user }}"
+                                                    data-fdh_pass="{{ $user->fdh_pass }}"
+                                                    data-fdh_secret_key="{{ $user->fdh_secretKey }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
@@ -258,6 +261,9 @@
                                                     data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
                                                     data-allow_receipt="{{ $user->allow_receipt }}"
                                                     data-cid="{{ $user->cid }}"
+                                                    data-fdh_user="{{ $user->fdh_user }}"
+                                                    data-fdh_pass="{{ $user->fdh_pass }}"
+                                                    data-fdh_secret_key="{{ $user->fdh_secretKey }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
@@ -332,6 +338,40 @@
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
                                 <input name="cid" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="เลขบัตรประชาชน 13 หลัก">
                             </div>
+                        </div>
+                    </div>
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">FDH User</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="addFdhUser" name="fdh_user" type="text" placeholder="user.hcode">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">FDH Pass</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="addFdhPass" name="fdh_pass" type="password" placeholder="FDH Password">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('addFdhPass', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">FDH Secret Key</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="addFdhSecretKey" name="fdh_secretKey" type="password" placeholder="Secret Key">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('addFdhSecretKey', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success w-100 py-2 rounded-3 btn-test-fdh-token" data-user-input="#addFdhUser" data-pass-input="#addFdhPass" data-key-input="#addFdhSecretKey">
+                                <i class="bi bi-shield-check me-1"></i> ทดสอบ Token
+                            </button>
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
@@ -493,6 +533,40 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">FDH User</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editFdhUser" name="fdh_user" type="text" placeholder="user.hcode">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">FDH Pass</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editFdhPass" name="fdh_pass" type="password" placeholder="FDH Password">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('editFdhPass', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">FDH Secret Key</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                <input class="form-control bg-light border-start-0 ps-0" id="editFdhSecretKey" name="fdh_secretKey" type="password" placeholder="Secret Key">
+                                <button class="btn btn-outline-secondary border-start-0 bg-light" type="button" onclick="togglePassVisibility('editFdhSecretKey', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success w-100 py-2 rounded-3 btn-test-fdh-token" data-user-input="#editFdhUser" data-pass-input="#editFdhPass" data-key-input="#editFdhSecretKey">
+                                <i class="bi bi-shield-check me-1"></i> ทดสอบ Token
+                            </button>
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
@@ -686,6 +760,11 @@
             $('#edit_allow_hosfin').prop('checked', data.allow_hosfin === 'Y');
             $('#editCid').val(data.cid);
 
+            // Set FDH credentials
+            $('#editFdhUser').val(data.fdh_user || '');
+            $('#editFdhPass').val(data.fdh_pass || '');
+            $('#editFdhSecretKey').val(data.fdh_secret_key || '');
+
             updateActiveLabel(data.active === 'Y');
             
             // Disable permissions if admin
@@ -713,6 +792,89 @@
         function updateActiveLabel(isActive) {
             $('#activeLabel').text(isActive ? 'เปิดใช้งาน' : 'ระงับการใช้งาน').toggleClass('text-success', isActive).toggleClass('text-danger', !isActive);
         }
+
+        // Test FDH Token
+        $(document).on('click', '.btn-test-fdh-token', function () {
+            const userInput = $(this).data('user-input');
+            const passInput = $(this).data('pass-input');
+            const keyInput = $(this).data('key-input');
+
+            const fdhUser = $(userInput).val() ? $(userInput).val().trim() : '';
+            const fdhPass = $(passInput).val() ? $(passInput).val().trim() : '';
+            const fdhSecretKey = $(keyInput).val() ? $(keyInput).val().trim() : '';
+
+            if (!fdhUser || !fdhPass || !fdhSecretKey) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอก FDH User, FDH Pass และ FDH Secret Key ให้ครบถ้วนก่อนทดสอบ Token',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0ea5e9',
+                    borderRadius: '15px'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'กำลังทดสอบการเชื่อมต่อ...',
+                text: 'กรุณารอสักครู่ ระบบกำลังขอ Token จาก FDH',
+                allowOutsideClick: false,
+                borderRadius: '15px',
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            fetch('{{ route("profile.test-fdh-token") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    fdh_user: fdhUser,
+                    fdh_pass: fdhPass,
+                    fdh_secretKey: fdhSecretKey
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.token) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ',
+                        html: `
+                            <div class="text-start p-2">
+                                <p class="mb-2 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึง Access Token สำเร็จ</p>
+                                <div class="bg-light p-3 small border rounded-3" style="word-break: break-all; font-family: monospace; max-height: 150px; overflow-y: auto;">
+                                    ${data.token}
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#16a34a',
+                        borderRadius: '15px'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เชื่อมต่อล้มเหลว',
+                        text: data.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User และ Password',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#ef4444',
+                        borderRadius: '15px'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message || error,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#ef4444',
+                    borderRadius: '15px'
+                });
+            });
+        });
 
         // SweetAlert ยืนยัน Reset Password
         $(document).on('click', '.btn-reset-password', function () {
@@ -768,5 +930,19 @@
             });
         @endif
     });
+
+    function togglePassVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
 </script>
 @endpush

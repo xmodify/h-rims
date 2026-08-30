@@ -966,7 +966,12 @@
                         }
                     } else {
                         if (typeof Swal !== 'undefined') {
-                            Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถส่งข้อมูลได้', 'error');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ส่งข้อมูลไม่สำเร็จ',
+                                text: res.message || 'ไม่สามารถส่งข้อมูลได้',
+                                confirmButtonColor: '#dc3545'
+                            });
                         } else {
                             alert(res.message || 'ไม่สามารถส่งข้อมูลได้');
                         }
@@ -997,7 +1002,8 @@
             updateCsrfToken(tokenData.csrf_token);
 
             const senderName = tokenData.user_name || 'ผู้ให้บริการ';
-            const tokenType = tokenData.token_type || 'Provider ID';
+            const fdhUser = tokenData.fdh_user || 'ไม่ระบุ';
+            const tokenType = tokenData.token_type || 'FDH Token';
 
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -1006,9 +1012,9 @@
                         <div class="p-3 bg-light rounded border text-start">
                             <div class="mb-2"><strong>สิทธิการรักษา:</strong> <span class="badge bg-info text-dark">${claimTitle}</span></div>
                             <div class="mb-2"><strong>จำนวนที่เลือก:</strong> <span class="badge bg-primary fs-6">${totalItems} รายการ</span></div>
-                            <div class="mb-2"><strong>ผู้นำเข้า (Provider ID):</strong> <span class="text-success fw-bold">${senderName}</span></div>
-                            <div class="text-muted small">
-                                <i class="bi bi-shield-check text-success me-1"></i> เชื่อมต่อ ${tokenType} พร้อมส่งข้อมูล
+                            <div class="mb-2"><strong>FDH User:</strong> <span class="text-primary fw-bold font-monospace">${fdhUser}</span> (${senderName})</div>
+                            <div class="text-success small pt-1 border-top">
+                                <i class="bi bi-shield-check me-1"></i> เชื่อมต่อ ${tokenType} สำเร็จ พร้อมส่งข้อมูล
                             </div>
                         </div>
                     `,
@@ -1020,90 +1026,71 @@
                     cancelButtonText: 'ยกเลิก'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        executeApiSend();
+                        executeApiSend(tokenData.token);
                     }
                 });
             } else {
-                if (confirm(`ยืนยันส่งข้อมูล 16 แฟ้ม จำนวน ${totalItems} รายการ เข้าสู่ FDH ผ่าน API? (ผู้นำเข้า: ${senderName})`)) {
-                    executeApiSend();
+                if (confirm(`ยืนยันส่งข้อมูล 16 แฟ้ม จำนวน ${totalItems} รายการ เข้าสู่ FDH ผ่าน API? (FDH User: ${fdhUser})`)) {
+                    executeApiSend(tokenData.token);
                 }
             }
         };
 
-        // 3. ฟังก์ชันเปิดหน้าต่าง Login Provider ID ทันทีแบบไม่ต้องผ่านกล่องเตือน
-        const promptProviderLogin = function(loginUrl) {
-            const loginWindow = window.open(loginUrl, 'ProviderIdLogin', 'width=700,height=800,menubar=no,toolbar=no,location=no');
+        // 3. เริ่มต้น: ตรวจสอบและดึง FDH Token ล่วงหน้า
+        $('#f16FdhExportProgressText').html('<span class="text-info"><i class="bi bi-shield-lock me-1"></i>กำลังทดสอบเชื่อมต่อ FDH Token...</span>');
 
-            if (typeof Swal !== 'undefined') {
-                // แสดง Loading รอการ Login ในหน้าต่าง Pop-up ทันที
-                Swal.fire({
-                    title: '<span class="fw-bold text-primary">กำลังรอการยืนยันตัวตน...</span>',
-                    html: `
-                        <p class="text-muted small mb-2">ระบบได้เปิดหน้าต่างเข้าสู่ระบบ Provider ID ให้เรียบร้อยแล้ว</p>
-                        <div class="p-2 bg-light rounded text-muted small border">
-                            <i class="bi bi-info-circle text-primary me-1"></i> กรุณาเข้าสู่ระบบในหน้าต่าง Provider ID เมื่อเสร็จสิ้นจะเข้าสู่ขั้นตอนส่งข้อมูลทันที
-                        </div>
-                    `,
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    showCancelButton: true,
-                    cancelButtonColor: '#6c757d',
-                    cancelButtonText: 'ยกเลิก',
-                    didOpen: () => {
-                        Swal.showLoading();
-
-                        const checkInterval = setInterval(() => {
-                            if (loginWindow.closed) {
-                                clearInterval(checkInterval);
-                                // Pop-up ปิดแล้ว -> ตรวจสอบ Token ใหม่อีกครั้ง
-                                $.get('{{ route("f16_fdh_export.check_token") }}', function(recheckRes) {
-                                    updateCsrfToken(recheckRes.csrf_token);
-                                    if (recheckRes.has_token) {
-                                        Swal.close();
-                                        promptSendConfirmation(recheckRes);
-                                    } else {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'การยืนยันตัวตนไม่สำเร็จ',
-                                            text: 'ไม่พบ Token ของ Provider ID กรุณาลองใหม่อีกครั้ง',
-                                            confirmButtonColor: '#dc3545'
-                                        });
-                                    }
-                                }).fail(function() {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'ข้อผิดพลาด',
-                                        text: 'ไม่สามารถตรวจสอบสถานะ Token ได้',
-                                        confirmButtonColor: '#dc3545'
-                                    });
-                                });
-                            }
-                        }, 1000);
-                    }
-                }).then((result) => {
-                    if (result.isDismissed && loginWindow && !loginWindow.closed) {
-                        loginWindow.close();
-                    }
-                });
-            }
-        };
-
-        // 4. เริ่มต้น: ตรวจสอบ Token ก่อนเสมอ
-        $('#f16FdhExportProgressText').html('<span class="text-info"><i class="bi bi-shield-lock me-1"></i>กำลังตรวจสอบสิทธิ Provider ID...</span>');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'กำลังตรวจสอบสิทธิ์และเชื่อมต่อ Token FDH...',
+                text: 'กรุณารอสักครู่ ระบบกำลังทดสอบขอ Access Token จาก FDH',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
         
         $.get('{{ route("f16_fdh_export.check_token") }}', function(res) {
             $('#f16FdhExportProgressText').text('');
             updateCsrfToken(res.csrf_token);
             if (res.has_token) {
-                // มี Token พร้อมแล้ว -> แสดงกล่องยืนยันส่งทันที
+                // เชื่อมต่อ Token สำเร็จ -> แสดงกล่องยืนยันส่ง
+                if (typeof Swal !== 'undefined') Swal.close();
                 promptSendConfirmation(res);
             } else {
-                // ยังไม่มี Token -> เด้งให้ Login Provider ID ก่อน
-                promptProviderLogin(res.provider_login_url);
+                // Token ไม่ผ่านหรือผู้ใช้กรอกผิด -> แสดงข้อความแจ้งเตือนชัดเจน
+                const errorMsg = res.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบ FDH User, Password หรือ Secret Key';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เชื่อมต่อ Token FDH ไม่สำเร็จ',
+                        html: `
+                            <div class="text-start p-3 bg-light rounded border small">
+                                <p class="text-danger fw-bold mb-2"><i class="bi bi-exclamation-octagon-fill me-1"></i> ข้อผิดพลาด:</p>
+                                <p class="mb-2 text-dark">${escapeHtmlF16Fdh(errorMsg)}</p>
+                                <hr class="my-2">
+                                <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> กรุณาตรวจสอบ <b>FDH User, FDH Pass และ FDH Secret Key</b> ในหน้าจัดการผู้ใช้งาน (User Management) หรือ ข้อมูลส่วนตัว (Profile)</p>
+                            </div>
+                        `,
+                        confirmButtonColor: '#dc3545',
+                        confirmButtonText: 'รับทราบ'
+                    });
+                } else {
+                    alert('เชื่อมต่อ Token FDH ไม่สำเร็จ: ' + errorMsg);
+                }
             }
-        }).fail(function() {
+        }).fail(function(xhr) {
             $('#f16FdhExportProgressText').text('');
-            promptProviderLogin('{{ route("auth.health-id.redirect") }}');
+            const res = xhr.responseJSON || {};
+            const errMsg = res.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ FDH';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาดในการเชื่อมต่อ',
+                    text: errMsg,
+                    confirmButtonColor: '#dc3545'
+                });
+            } else {
+                alert('ข้อผิดพลาด: ' + errMsg);
+            }
         });
     };
 </script>

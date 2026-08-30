@@ -26,6 +26,9 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
+            'fdh_user' => 'nullable|string|max:255',
+            'fdh_pass' => 'nullable|string|max:255',
+            'fdh_secretKey' => 'nullable|string|max:255',
         ]);
 
         User::create([
@@ -50,6 +53,9 @@ class UserController extends Controller
             'allow_aopod_death' => $request->has('allow_aopod_death') ? 'Y' : 'N',
             'allow_check_right' => $request->has('allow_check_right') ? 'Y' : 'N',
             'allow_hosfin' => $request->has('allow_hosfin') ? 'Y' : 'N',
+            'fdh_user' => $request->filled('fdh_user') ? trim($request->fdh_user) : null,
+            'fdh_pass' => $request->filled('fdh_pass') ? trim($request->fdh_pass) : null,
+            'fdh_secretKey' => $request->filled('fdh_secretKey') ? trim($request->fdh_secretKey) : null,
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -63,9 +69,12 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-        'name' => 'required',
-        'email' => 'required|email',
-        'password' => 'nullable|min:6'
+            'name' => 'required',
+            'email' => 'required|email',
+            'password' => 'nullable|min:6',
+            'fdh_user' => 'nullable|string|max:255',
+            'fdh_pass' => 'nullable|string|max:255',
+            'fdh_secretKey' => 'nullable|string|max:255',
         ]);
 
         $data = [
@@ -89,6 +98,9 @@ class UserController extends Controller
             'allow_aopod_death' => $request->has('allow_aopod_death') ? 'Y' : 'N',
             'allow_check_right' => $request->has('allow_check_right') ? 'Y' : 'N',
             'allow_hosfin' => $request->has('allow_hosfin') ? 'Y' : 'N',
+            'fdh_user' => $request->filled('fdh_user') ? trim($request->fdh_user) : null,
+            'fdh_pass' => $request->filled('fdh_pass') ? trim($request->fdh_pass) : null,
+            'fdh_secretKey' => $request->filled('fdh_secretKey') ? trim($request->fdh_secretKey) : null,
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

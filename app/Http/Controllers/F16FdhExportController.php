@@ -167,22 +167,34 @@ class F16FdhExportController extends Controller
     }
 
     /**
-     * ตรวจสอบความพร้อมของ MOPH Provider ID Token ของผู้ใช้งานปัจจุบัน
+     * ตรวจสอบความพร้อมของ FDH Token ของผู้ใช้งานปัจจุบัน
      */
     public function checkToken(Request $request)
     {
-        $tokenInfo = F16FdhExportService::resolveFdhToken();
-        $isPersonal = ($tokenInfo['type'] === 'Provider ID (Personal Session)' || $tokenInfo['type'] === 'Provider ID (Database)' || $tokenInfo['type'] === 'Custom Token');
-        $hasToken = !empty($tokenInfo['token']);
+        $tokenDetail = F16FdhExportService::getFdhTokenDetail();
+        $user = Auth::user();
+
+        if ($tokenDetail['success']) {
+            return response()->json([
+                'status' => 'success',
+                'has_token' => true,
+                'has_credentials' => true,
+                'token' => $tokenDetail['token'],
+                'fdh_user' => $tokenDetail['fdh_user'],
+                'token_type' => 'FDH Token (API)',
+                'user_name' => $user->name ?? $tokenDetail['fdh_user'],
+                'csrf_token' => csrf_token(),
+            ]);
+        }
 
         return response()->json([
-            'status' => 'success',
-            'has_token' => $hasToken,
-            'is_personal' => $isPersonal,
-            'token_type' => $tokenInfo['type'],
-            'user_name' => Auth::user()->name ?? ($tokenInfo['user_name'] ?? 'ผู้ให้บริการ'),
+            'status' => 'error',
+            'has_token' => false,
+            'has_credentials' => $tokenDetail['has_credentials'] ?? false,
+            'fdh_user' => $tokenDetail['fdh_user'] ?? ($user->fdh_user ?? null),
+            'message' => $tokenDetail['message'] ?? 'ไม่สามารถขอ Token จากระบบ FDH ได้',
+            'user_name' => $user->name ?? 'ผู้ให้บริการ',
             'csrf_token' => csrf_token(),
-            'provider_login_url' => route('auth.health-id.redirect')
         ]);
     }
 

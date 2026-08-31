@@ -144,9 +144,9 @@ class KtbHealthPlatformController extends Controller
     {
         return $this->handleCategory($request, [
             'route_key' => 'scr',
-            'activity_code' => 'S01',
-            'page_title' => 'บริการคัดกรองและประเมินปัจจัยเสี่ยงต่อสุขภาพกาย/สุขภาพจิต',
-            'adp_codes' => ['12001', '12002', '12002_0', '12002_1', '12003', '12004']
+            'activity_code' => 'SCR',
+            'page_title' => 'บริการคัดกรองและประเมินปัจจัยเสี่ยงต่อสุขภาพกาย/สุขภาพจิต (SCR)',
+            'adp_codes' => ['12001', '12002', '12003', '12004']
         ]);
     }
 
@@ -312,6 +312,29 @@ class KtbHealthPlatformController extends Controller
             $all_visits = [];
         }
 
+        // Batch query nhso_endpoint เพื่อตรวจสอบสถานะปิดสิทธิ สปสช.
+        $cids = array_filter(array_unique(array_column($all_visits, 'cid')));
+        $endpointsMap = [];
+        if (!empty($cids)) {
+            try {
+                $endpoints = DB::table('nhso_endpoint')
+                    ->whereIn('cid', $cids)
+                    ->where(function($query) {
+                        $query->where('claimCode', 'LIKE', 'EP%')
+                              ->orWhere('claim_status', 'success');
+                    })
+                    ->get()
+                    ->groupBy('cid');
+                foreach ($endpoints as $cid => $group) {
+                    foreach ($group as $ep) {
+                        $endpointsMap[$cid][$ep->vstdate] = true;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore endpoint check error if table not accessible
+            }
+        }
+
         $search = [];
         foreach ($all_visits as $row) {
             $row->income = floatval($row->income);
@@ -320,9 +343,41 @@ class KtbHealthPlatformController extends Controller
             $row->ppfs = floatval($row->ppfs);
             $row->ems = floatval($row->ems);
             $row->claim_price = floatval($row->claim_price);
-            $row->is_valid = !empty($row->cid) && !empty($row->pdx) && !empty($row->bps) && !empty($row->bw);
-            $row->endpoint_valid = true;
-            $row->validation_warnings = [];
+
+            // ตรวจสอบเงื่อนไขตามเกณฑ์เดียวกับ visit_details
+            $errors = [];
+            $warnings = [];
+
+            if (empty($row->cid) || strlen(trim($row->cid)) !== 13) {
+                $errors[] = "เลขประจำตัวประชาชน (CID) ไม่ถูกต้องหรือไม่มีข้อมูล";
+            }
+            if (empty($row->hn)) {
+                $errors[] = "ไม่พบรหัสผู้ป่วย (HN)";
+            }
+            if (empty($row->pdx)) {
+                $errors[] = "ไม่พบรหัสการวินิจฉัยโรคหลัก (PDX)";
+            }
+            if (empty($row->bps) || empty($row->bpd)) {
+                $warnings[] = "ยังไม่ได้บันทึกความดันโลหิต (BPS / BPD)";
+            }
+            if (empty($row->bw) || floatval($row->bw) <= 0) {
+                $warnings[] = "ยังไม่ได้บันทึกน้ำหนักตัว (BW)";
+            }
+            if (empty($row->height) || floatval($row->height) <= 0) {
+                $warnings[] = "ยังไม่ได้บันทึกส่วนสูง (Height)";
+            }
+
+            $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
+            $row->endpoint = $hasEp ? 'Y' : null;
+            $row->endpoint_valid = $hasEp;
+            if (!$hasEp) {
+                $warnings[] = "สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)";
+            }
+
+            $row->is_valid = empty($errors);
+            $row->validation_errors = $errors;
+            $row->validation_warnings = $warnings;
+
             $search[] = $row;
         }
 

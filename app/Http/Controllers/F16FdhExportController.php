@@ -45,10 +45,20 @@ class F16FdhExportController extends Controller
         @ini_set('memory_limit', '512M');
 
         try {
+            $claimType = $isIp ? 'IP' : 'OP';
+            $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
+            $cleanClaimCode = str_replace('_IP_', '_', $claimCode);
+            if (str_starts_with($cleanClaimCode, 'IP_')) {
+                $cleanClaimCode = substr($cleanClaimCode, 3);
+            }
+            $thYear = date('Y') + 543;
+            $subfolderName = "F16_FDH_{$claimType}_{$cleanClaimCode}_{$thYear}" . date('md_Hi');
+
+            $options = ['claim_code' => $claimCode];
             if ($isIp) {
-                $result = F16FdhExportService::generate16FilesIp($keys);
+                $result = F16FdhExportService::generate16FilesIp($keys, $options);
             } else {
-                $result = F16FdhExportService::generate16Files($keys);
+                $result = F16FdhExportService::generate16Files($keys, $options);
             }
 
             $headers = [];
@@ -71,15 +81,6 @@ class F16FdhExportController extends Controller
                 $headers[$key] = count($rows) > 0 ? $rows[0] : [];
                 $tables[$key] = count($rows) > 1 ? array_slice($rows, 1, 100) : [];
             }
-
-            $claimType = $isIp ? 'IP' : 'OP';
-            $claimCode = strtoupper(trim($request->input('claim_code', 'UCS')));
-            $claimCode = str_replace('_IP_', '_', $claimCode);
-            if (str_starts_with($claimCode, 'IP_')) {
-                $claimCode = substr($claimCode, 3);
-            }
-            $thYear = date('Y') + 543;
-            $subfolderName = "F16_FDH_{$claimType}_{$claimCode}_{$thYear}" . date('md_Hi');
 
             return response()->json([
                 'status' => 'success',
@@ -141,10 +142,11 @@ class F16FdhExportController extends Controller
         @ini_set('memory_limit', '512M');
 
         try {
+            $options = ['claim_code' => $claimCode];
             if ($isIp) {
-                $result = F16FdhExportService::generate16FilesIp($keys);
+                $result = F16FdhExportService::generate16FilesIp($keys, $options);
             } else {
-                $result = F16FdhExportService::generate16Files($keys);
+                $result = F16FdhExportService::generate16Files($keys, $options);
             }
             
             $thYear = date('Y') + 543;
@@ -238,7 +240,8 @@ class F16FdhExportController extends Controller
         @ini_set('memory_limit', '512M');
 
         try {
-            $result = F16FdhExportService::sendToFdhApi($keys, $isIp, $claimCode, $customToken);
+            $options = ['claim_code' => $claimCode];
+            $result = F16FdhExportService::sendToFdhApi($keys, $isIp, $claimCode, $customToken, $options);
 
             if ($result['success']) {
                 return response()->json([

@@ -277,23 +277,32 @@ class F16EclaimExportService
     }
 
     /**
-     * Normalize Non-ED reason code to standard 2-character code (EA, EB, EC, ED, EE, EF, PA)
-     * using claim_control lookup or keyword mapping from drugitems_ned_reason_list
+     * Normalize Non-ED reason code to standard 2-character code (EA, EB, EC, ED, EE, PA)
+     * Note: EF (non-reimbursable) is converted to EC so it can be claimed/reimbursed properly.
      */
     public static function normalizeNedReason(?string $raw): string
     {
-        if (empty($raw)) return '';
+        if (empty($raw)) return 'EC';
         $trimmed = trim((string)$raw);
         $upper = strtoupper($trimmed);
 
-        if (in_array($upper, ['EA', 'EB', 'EC', 'ED', 'EE', 'EF', 'PA'])) {
+        if ($upper === 'EF') {
+            return 'EC';
+        }
+        if (in_array($upper, ['EA', 'EB', 'EC', 'ED', 'EE', 'PA'])) {
             return $upper;
         }
-        if (preg_match('/^(EA|EB|EC|ED|EE|EF|PA)\b/i', $trimmed, $m)) {
+        if (preg_match('/^(EA|EB|EC|ED|EE|PA)\b/i', $trimmed, $m)) {
             return strtoupper($m[1]);
         }
-        if (in_array($upper, ['A', 'B', 'C', 'D', 'E', 'F'])) {
+        if (preg_match('/^EF\b/i', $trimmed)) {
+            return 'EC';
+        }
+        if (in_array($upper, ['A', 'B', 'C', 'D', 'E'])) {
             return 'E' . $upper;
+        }
+        if ($upper === 'F') {
+            return 'EC';
         }
         if (str_contains($trimmed, 'แพ้ยา') || str_contains($trimmed, 'ข้างเคียง') || str_contains($trimmed, 'ไม่พึงประสงค์')) {
             return 'EA';
@@ -311,13 +320,13 @@ class F16EclaimExportService
             return 'EE';
         }
         if (str_contains($trimmed, 'จำนง') || str_contains($trimmed, 'เบิกไม่ได้') || str_contains($trimmed, 'ชำระเอง')) {
-            return 'EF';
+            return 'EC';
         }
         if (str_contains($trimmed, 'PA') || str_contains($trimmed, 'อนุมัติก่อน')) {
             return 'PA';
         }
 
-        return mb_substr($trimmed, 0, 50, 'UTF-8');
+        return 'EC';
     }
 
     /**
@@ -898,31 +907,48 @@ class F16EclaimExportService
         } catch (\Throwable $e) {}
 
         $nedIcodeMap = [];
+        $edIcodeMap = [];
         try {
             if (Schema::hasTable('drugcat_nhso')) {
-                $nhsoRows = DB::table('drugcat_nhso')
-                    ->whereNotNull('hospdrugcode')
-                    ->where('hospdrugcode', '!=', '')
-                    ->select('hospdrugcode', 'ised_approved', 'ised')
-                    ->get();
+                $local_db = config('database.connections.mysql.database');
+                $nhsoRows = DB::select("
+                    SELECT dc.hospdrugcode, dc.ised, dc.ised_approved, dc.date_approved, dc.updateflag
+                    FROM {$local_db}.drugcat_nhso dc
+                    INNER JOIN (
+                        SELECT hospdrugcode, MAX(date_approved) as max_date
+                        FROM {$local_db}.drugcat_nhso
+                        WHERE updateflag IN ('A','U','E')
+                        GROUP BY hospdrugcode
+                    ) max_dc ON max_dc.hospdrugcode = dc.hospdrugcode AND max_dc.max_date = dc.date_approved
+                    WHERE dc.updateflag IN ('A','U','E')
+                ");
                 foreach ($nhsoRows as $nr) {
-                    if ($nr->ised_approved === 'N' || ($nr->ised_approved !== 'E' && $nr->ised === 'N')) {
+                    $approved = strtoupper(trim((string)$nr->ised_approved));
+                    if ($approved === 'N') {
                         $nedIcodeMap[$nr->hospdrugcode] = true;
+                    } elseif ($approved === 'E' || str_starts_with($approved, 'E')) {
+                        $edIcodeMap[$nr->hospdrugcode] = true;
                     }
                 }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            Log::warning("F16 Export drugcat_nhso query error: " . $e->getMessage());
+        }
 
         try {
             $sksRows = DB::connection('hosxp')->select("
-                SELECT HospDrugCode, ISED, NDC24
+                SELECT HospDrugCode, ISED
                 FROM sks_drugcatalog
-                WHERE (ISED = 'N' OR NDC24 LIKE '2%' OR NDC24 LIKE '4%')
-                  AND HospDrugCode IS NOT NULL
+                WHERE HospDrugCode IS NOT NULL
             ");
             foreach ($sksRows as $sr) {
-                if (!isset($nedIcodeMap[$sr->HospDrugCode])) {
-                    $nedIcodeMap[$sr->HospDrugCode] = true;
+                if (!isset($nedIcodeMap[$sr->HospDrugCode]) && !isset($edIcodeMap[$sr->HospDrugCode])) {
+                    $sksIsed = strtoupper(trim((string)$sr->ISED));
+                    if ($sksIsed === 'N') {
+                        $nedIcodeMap[$sr->HospDrugCode] = true;
+                    } elseif ($sksIsed === 'E') {
+                        $edIcodeMap[$sr->HospDrugCode] = true;
+                    }
                 }
             }
         } catch (\Throwable $e) {}
@@ -1234,17 +1260,29 @@ class F16EclaimExportService
             $seq = $it->vn;
             $an = $it->an ?: '';
             $cid = trim((string)$it->cid);
+            $isNed = false;
+            if (isset($nedIcodeMap[$it->icode])) {
+                $isNed = true;
+            } elseif (isset($edIcodeMap[$it->icode])) {
+                $isNed = false;
+            } else {
+                $drugAcc = strtoupper(trim((string)($it->drugaccount ?? '')));
+                $isNed = empty($drugAcc) || in_array($drugAcc, ['-', 'NED', 'NON-ED', 'นอก']);
+            }
+
+            $drugremark = '';
+            $pano = '';
             $nedInfo = $opdNedReasons->get($it->vn . '_' . $it->icode);
-            $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasons->get($it->icode)?->doctor_reason ?? '');
-            if (empty($rawReason)) {
-                $isNed = isset($nedIcodeMap[$it->icode]) 
-                    || in_array(strtoupper((string)($it->drugaccount ?? '')), ['NED', 'NON-ED', 'นอก', '-']);
-                if ($isNed) {
-                    $rawReason = 'EC';
+            if ($isNed) {
+                $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasons->get($it->icode)?->doctor_reason ?? '');
+                $drugremark = !empty($rawReason) ? self::normalizeNedReason($rawReason) : 'EC';
+                $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
+            } else {
+                if ($nedInfo && !empty($nedInfo->pa_no)) {
+                    $pano = mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8');
+                    $drugremark = 'PA';
                 }
             }
-            $drugremark = self::normalizeNedReason($rawReason);
-            $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = !empty($it->an) ? '1' : '2'; // 1=In-hospital, 2=Home
@@ -1330,9 +1368,9 @@ class F16EclaimExportService
             $aerLines[] = "{$er->hn}|{$an}|{$dateopd}|{$authae}|{$aedate}|{$aetime}|{$aetype}|{$referno}|{$refmaini}|{$ireftype}|{$refmaino}|{$oreftype}|{$ucae}|{$emtype}|{$seq}|||";
         }
 
-        // 16. ADP.txt (29 columns ตามโครงสร้าง HOSxP / e-Claim สปสช.)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
+        // 16. ADP.txt (27 columns ตามโครงสร้างมาตรฐาน e-Claim สปสช.)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
             $price = (float)$it->sum_price;
             $isDrug = str_starts_with((string)$it->icode, '1');
@@ -1375,10 +1413,8 @@ class F16EclaimExportService
             $dcip = '';
             $lmp = '';
             $spitem = '';
-            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
-            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}|{$checkKey}|{$guid}";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
         }
 
         // 17. LABFU.txt (7 columns)
@@ -1765,16 +1801,27 @@ class F16EclaimExportService
         } catch (\Throwable $e) {}
 
         $nedIcodeMapIp = [];
+        $edIcodeMapIp = [];
         try {
             if (Schema::hasTable('drugcat_nhso')) {
-                $nhsoRows = DB::table('drugcat_nhso')
-                    ->whereNotNull('hospdrugcode')
-                    ->where('hospdrugcode', '!=', '')
-                    ->select('hospdrugcode', 'ised_approved', 'ised')
-                    ->get();
+                $local_db = config('database.connections.mysql.database');
+                $nhsoRows = DB::select("
+                    SELECT dc.hospdrugcode, dc.ised, dc.ised_approved, dc.date_approved, dc.updateflag
+                    FROM {$local_db}.drugcat_nhso dc
+                    INNER JOIN (
+                        SELECT hospdrugcode, MAX(date_approved) as max_date
+                        FROM {$local_db}.drugcat_nhso
+                        WHERE updateflag IN ('A','U','E')
+                        GROUP BY hospdrugcode
+                    ) max_dc ON max_dc.hospdrugcode = dc.hospdrugcode AND max_dc.max_date = dc.date_approved
+                    WHERE dc.updateflag IN ('A','U','E')
+                ");
                 foreach ($nhsoRows as $nr) {
-                    if ($nr->ised_approved === 'N' || ($nr->ised_approved !== 'E' && $nr->ised === 'N')) {
+                    $approved = strtoupper(trim((string)$nr->ised_approved));
+                    if ($approved === 'N') {
                         $nedIcodeMapIp[$nr->hospdrugcode] = true;
+                    } elseif ($approved === 'E' || str_starts_with($approved, 'E')) {
+                        $edIcodeMapIp[$nr->hospdrugcode] = true;
                     }
                 }
             }
@@ -1782,14 +1829,18 @@ class F16EclaimExportService
 
         try {
             $sksRows = DB::connection('hosxp')->select("
-                SELECT HospDrugCode, ISED, NDC24
+                SELECT HospDrugCode, ISED
                 FROM sks_drugcatalog
-                WHERE (ISED = 'N' OR NDC24 LIKE '2%' OR NDC24 LIKE '4%')
-                  AND HospDrugCode IS NOT NULL
+                WHERE HospDrugCode IS NOT NULL
             ");
             foreach ($sksRows as $sr) {
-                if (!isset($nedIcodeMapIp[$sr->HospDrugCode])) {
-                    $nedIcodeMapIp[$sr->HospDrugCode] = true;
+                if (!isset($nedIcodeMapIp[$sr->HospDrugCode]) && !isset($edIcodeMapIp[$sr->HospDrugCode])) {
+                    $sksIsed = strtoupper(trim((string)$sr->ISED));
+                    if ($sksIsed === 'N') {
+                        $nedIcodeMapIp[$sr->HospDrugCode] = true;
+                    } elseif ($sksIsed === 'E') {
+                        $edIcodeMapIp[$sr->HospDrugCode] = true;
+                    }
                 }
             }
         } catch (\Throwable $e) {}
@@ -1991,17 +2042,29 @@ class F16EclaimExportService
             $unit = trim((string)$it->units) ?: 'เม็ด';
             $unitpack = trim((string)$it->packqty) ? "1x{$it->packqty}" : "1x1";
             $seq = $it->an;
+            $isNed = false;
+            if (isset($nedIcodeMapIp[$it->icode])) {
+                $isNed = true;
+            } elseif (isset($edIcodeMapIp[$it->icode])) {
+                $isNed = false;
+            } else {
+                $drugAcc = strtoupper(trim((string)($it->drugaccount ?? '')));
+                $isNed = empty($drugAcc) || in_array($drugAcc, ['-', 'NED', 'NON-ED', 'นอก']);
+            }
+
+            $drugremark = '';
+            $pano = '';
             $nedInfo = $ipdNedReasons->get($it->an . '_' . $it->icode);
-            $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasonsIp->get($it->icode)?->doctor_reason ?? '');
-            if (empty($rawReason)) {
-                $isNed = isset($nedIcodeMapIp[$it->icode]) 
-                    || in_array(strtoupper((string)($it->drugaccount ?? '')), ['NED', 'NON-ED', 'นอก', '-']);
-                if ($isNed) {
-                    $rawReason = 'EC';
+            if ($isNed) {
+                $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasonsIp->get($it->icode)?->doctor_reason ?? '');
+                $drugremark = !empty($rawReason) ? self::normalizeNedReason($rawReason) : 'EC';
+                $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
+            } else {
+                if ($nedInfo && !empty($nedInfo->pa_no)) {
+                    $pano = mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8');
+                    $drugremark = 'PA';
                 }
             }
-            $drugremark = self::normalizeNedReason($rawReason);
-            $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = '1';
@@ -2096,9 +2159,9 @@ class F16EclaimExportService
             }
         }
 
-        // 16. ADP.txt (29 columns ตามโครงสร้าง HOSxP / e-Claim สปสช.)
-        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID
-        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM|CHECK_KEY|GUID"];
+        // 16. ADP.txt (27 columns ตามโครงสร้างมาตรฐาน e-Claim สปสช.)
+        // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
+        $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
@@ -2147,10 +2210,8 @@ class F16EclaimExportService
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
             $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
             $itemsrc = '1';
-            $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
-            $guid = trim((string)($it->hos_guid ?? ''));
 
-            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||{$totcopay}|{$usestatus}|{$total}|||||{$clinic}|{$itemsrc}|{$provider}||||||{$checkKey}|{$guid}";
+            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||{$totcopay}|{$usestatus}|{$total}|||||{$clinic}|{$itemsrc}|{$provider}||||||";
         }
 
         // 17. LABFU.txt (7 columns)

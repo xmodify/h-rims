@@ -84,7 +84,7 @@
                                 <input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}">
                             </td>
                             <td class="text-center text-muted small">{{ $count }}</td>
-                            <td class="text-center" id="td-status-search-{{ $row->seq }}">
+                            <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                 @if(!$row->is_valid)
                                     <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                 @elseif($row->endpoint_valid && empty($row->validation_warnings))

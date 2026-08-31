@@ -28,7 +28,8 @@ class F16KtbExportService
         $vitalsMap = $this->getVitalsMap($vns);
         $ancMap = $this->getAncMap($vns);
 
-        $allFileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'CHT', 'CHA', 'AER', 'ADP', 'LVD', 'DRU', 'LABFU'];
+        // KTB Health Platform รองรับและใช้งานเฉพาะ 6 แฟ้มหลัก: INS, PAT, OPD, ODX, ADP, DRU
+        $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
         $result = [];
 
         foreach ($allFileKeys as $key) {
@@ -184,7 +185,8 @@ class F16KtbExportService
             mkdir($tempDir, 0777, true);
         }
 
-        $allFileKeys = ['INS', 'PAT', 'OPD', 'ORF', 'ODX', 'OOP', 'IPD', 'IRF', 'IDX', 'IOP', 'CHT', 'CHA', 'AER', 'ADP', 'LVD', 'DRU', 'LABFU'];
+        // KTB Health Platform รองรับเฉพาะ 6 แฟ้ม: INS, PAT, OPD, ODX, ADP, DRU
+        $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
 
         foreach ($allFileKeys as $key) {
             $filePath = $tempDir . '/' . $key . '.txt';

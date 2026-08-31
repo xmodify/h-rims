@@ -101,34 +101,23 @@
                 <div id="f16KtbLoadingOverlay" class="text-center py-5">
                     <div class="spinner-border text-primary mb-3" style="width: 3.2rem; height: 3.2rem;" role="status"></div>
                     <h6 class="fw-bold text-dark mb-1">กำลังประมวลผลและเตรียมข้อมูล 16 แฟ้มจาก HOSxP ตามสเปก KTB...</h6>
-                    <p class="text-muted small">ระบบกำลังจัดเตรียมโครงสร้างแฟ้ม INS, PAT, OPD, ODX, OOP, CHT, CHA, ADP, DRU, LABFU กรุณารอสักครู่</p>
+                    <p class="text-muted small">ระบบกำลังจัดเตรียมโครงสร้าง 6 แฟ้มหลักของ KTB (INS, PAT, OPD, ODX, ADP, DRU) กรุณารอสักครู่</p>
                 </div>
 
                 <!-- Main Content Area -->
                 <div id="f16KtbMainContent" style="display: none;">
-                    <!-- 17 Tabs Bar -->
+                    <!-- 6 Tabs Bar -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body p-2 bg-white rounded">
                             <ul class="nav nav-pills nav-pills-ktb nav-fill flex-wrap gap-1" id="f16KtbTabs" role="tablist">
                                 @php
                                     $fileTabs = [
-                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'สิทธิการรักษา'],
-                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ประวัติผู้ป่วย'],
-                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'การรับบริการ OPD'],
-                                        ['key' => 'ORF', 'name' => 'ORF', 'desc' => 'ส่งต่อผู้ป่วยนอก'],
-                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'การวินิจฉัยโรค OPD'],
-                                        ['key' => 'OOP', 'name' => 'OOP', 'desc' => 'หัตถการ OPD'],
-                                        ['key' => 'IPD', 'name' => 'IPD', 'desc' => 'ผู้ป่วยใน'],
-                                        ['key' => 'IRF', 'name' => 'IRF', 'desc' => 'ส่งต่อผู้ป่วยใน'],
-                                        ['key' => 'IDX', 'name' => 'IDX', 'desc' => 'การวินิจฉัย IPD'],
-                                        ['key' => 'IOP', 'name' => 'IOP', 'desc' => 'หัตถการ IPD'],
-                                        ['key' => 'CHT', 'name' => 'CHT', 'desc' => 'สรุปค่าใช้จ่าย'],
-                                        ['key' => 'CHA', 'name' => 'CHA', 'desc' => 'ค่ารักษา 20 หมวด'],
-                                        ['key' => 'AER', 'name' => 'AER', 'desc' => 'อุบัติเหตุฉุกเฉิน'],
-                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'บริการส่งเสริม/PPFS'],
-                                        ['key' => 'LVD', 'name' => 'LVD', 'desc' => 'วันลากลับบ้าน'],
-                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'การสั่งใช้ยา'],
-                                        ['key' => 'LABFU', 'name' => 'LABFU', 'desc' => 'ผลตรวจทางห้องปฏิบัติการ']
+                                        ['key' => 'INS', 'name' => 'INS', 'desc' => 'ผู้มีสิทธิการรักษาพยาบาล (INS) *'],
+                                        ['key' => 'PAT', 'name' => 'PAT', 'desc' => 'ข้อมูลผู้ป่วยกลาง (PAT) *'],
+                                        ['key' => 'OPD', 'name' => 'OPD', 'desc' => 'การมารับบริการผู้ป่วยนอก (OPD)'],
+                                        ['key' => 'ODX', 'name' => 'ODX', 'desc' => 'วินิจฉัยโรคผู้ป่วยนอก (ODX)'],
+                                        ['key' => 'ADP', 'name' => 'ADP', 'desc' => 'ค่าใช้จ่ายเพิ่ม และบริการที่ยังไม่ได้จัดหมวด (ADP) *'],
+                                        ['key' => 'DRU', 'name' => 'DRU', 'desc' => 'การใช้ยา (DRU)']
                                     ];
                                 @endphp
                                 @foreach($fileTabs as $tab)

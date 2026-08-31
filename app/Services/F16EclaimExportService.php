@@ -2203,15 +2203,29 @@ class F16EclaimExportService
             $rate = floatval($it->unitprice ?: 0.0);
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $seq = $it->an;
+            $an = $it->an;
+            $cagcode = '';
+            $dose = '';
+            $catype = '';
+            $serialno = '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
             $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
+            $qtyday = '';
+            $tmltcode = '';
+            $status1 = '';
+            $bi = '';
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
-            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
             $itemsrc = '1';
+            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
+            $gravida = '';
+            $gaweek = '';
+            $dcip = '';
+            $lmp = '';
+            $spitem = '';
 
-            $adpLines[] = "{$it->hn}|{$it->an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||{$totcopay}|{$usestatus}|{$total}|||||{$clinic}|{$itemsrc}|{$provider}||||||";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
         }
 
         // 17. LABFU.txt (7 columns)

@@ -1111,8 +1111,26 @@ class F16FdhExportService
                 $seq = $v->vn;
                 $total = '0';
                 $clinic = self::formatClinic($v->spclty);
+                $an = '';
+                $cagcode = '';
+                $dose = '';
+                $catype = '';
+                $serialno = '';
+                $totcopay = '0';
+                $usestatus = '2';
+                $qtyday = '';
+                $tmltcode = '';
+                $status1 = '';
+                $bi = '';
+                $itemsrc = '';
+                $provider = '';
+                $gravida = '';
+                $gaweek = '';
+                $dcip = '';
+                $lmp = '';
+                $spitem = '';
 
-                $adpLines[] = "{$v->hn}||{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||0|2|{$total}|||||{$clinic}|||||||";
+                $adpLines[] = "{$v->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
             }
         }
 
@@ -1850,15 +1868,28 @@ class F16FdhExportService
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $seq = $it->an;
             $an = $it->an;
+            $cagcode = '';
+            $dose = '';
+            $catype = '';
+            $serialno = '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
             $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
+            $qtyday = '';
+            $tmltcode = '';
+            $status1 = '';
+            $bi = '';
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
-            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
             $itemsrc = '1';
+            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
+            $gravida = '';
+            $gaweek = '';
+            $dcip = '';
+            $lmp = '';
+            $spitem = '';
 
-            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|||||{$totcopay}|{$usestatus}|{$total}|||||{$clinic}|{$itemsrc}|{$provider}||||||";
+            $adpLines[] = "{$it->hn}|{$an}|{$dateopd}|{$type}|{$code}|{$qty}|{$rateStr}|{$seq}|{$cagcode}|{$dose}|{$catype}|{$serialno}|{$totcopay}|{$usestatus}|{$total}|{$qtyday}|{$tmltcode}|{$status1}|{$bi}|{$clinic}|{$itemsrc}|{$provider}|{$gravida}|{$gaweek}|{$dcip}|{$lmp}|{$spitem}";
         }
 
         // 15. LVD.txt (7 คอลัมน์)

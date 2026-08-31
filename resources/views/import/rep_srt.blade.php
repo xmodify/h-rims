@@ -501,7 +501,7 @@
                                 <select class="form-select form-select-sm rounded-3" id="botRepBudgetYear">
                                     @foreach ($budget_year_select as $row)
                                         <option value="{{ $row->LEAVE_YEAR_ID }}" {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                                            {{ $row->LEAVE_YEAR_NAME }}
+                                            ปี พ.ศ. {{ $row->LEAVE_YEAR_ID }}
                                         </option>
                                     @endforeach
                                 </select>

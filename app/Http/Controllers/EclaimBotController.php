@@ -303,6 +303,7 @@ class EclaimBotController extends Controller
                         'session_id' => $sessionId,
                         'qr_image' => $data['qr_image'] ?? '',
                         'ref_code' => $data['ref_code'] ?? '',
+                        'deep_link' => $data['deep_link'] ?? '',
                         'expires_in' => $data['expires_in'] ?? 120,
                         'message' => 'QR Code พร้อมสแกน'
                     ]);
@@ -392,8 +393,9 @@ class EclaimBotController extends Controller
                 'state' => 'QR_READY',
                 'qr_image' => $data['qr_image'] ?? '',
                 'ref_code' => $data['ref_code'] ?? '',
+                'deep_link' => $data['deep_link'] ?? '',
                 'expires_in' => $data['expires_in'] ?? 120,
-                'message' => 'พร้อมสแกน QR Code'
+                'message' => 'พร้อมสแกน QR Code หรือเปิดแอป ThaiD'
             ]);
         }
 

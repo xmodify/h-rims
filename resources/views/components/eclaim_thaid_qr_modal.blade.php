@@ -31,6 +31,22 @@
                 <!-- 2. QR READY STATE -->
                 <div id="thaidQrReadyState" style="display: none;">
                     
+                    <!-- Mobile / Tablet Direct App Button (Shown on iOS / Android) -->
+                    <div id="thaidMobileActionBox" class="mb-3 px-1" style="display: none;">
+                        <a id="btnOpenThaidApp" href="#" class="btn btn-primary btn-lg w-100 rounded-pill shadow py-2.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-decoration-none text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); font-size: 0.95rem; border: none;">
+                            <i class="bi bi-phone-fill fs-5"></i>
+                            <span>แตะเพื่อเปิดแอป ThaiD บนเครื่องนี้</span>
+                        </a>
+                        <div class="small text-muted mt-2" style="font-size: 0.78rem;">
+                            <i class="bi bi-info-circle me-1 text-primary"></i> กดยืนยันในแอป ThaiD เสร็จแล้ว สลับกลับมาที่หน้านี้
+                        </div>
+                        <div class="d-flex align-items-center my-3 text-muted">
+                            <hr class="flex-grow-1 my-0 opacity-25">
+                            <span class="px-2 small text-secondary" style="font-size: 0.75rem;">หรือใช้อุปกรณ์อื่นสแกน QR Code</span>
+                            <hr class="flex-grow-1 my-0 opacity-25">
+                        </div>
+                    </div>
+
                     <!-- QR Box -->
                     <div class="d-inline-block p-3 bg-white rounded-4 shadow-sm border mb-3 position-relative">
                         <img id="thaidQrImage" src="" alt="ThaiD QR Code" style="width: 240px; height: 240px; object-fit: contain;" class="rounded-3">
@@ -43,7 +59,7 @@
                             <span class="spinner-grow spinner-grow-sm text-primary" role="status"></span>
                             <span class="fw-bold" style="font-size: 0.82rem;">กำลังรอการสแกนจากแอปพลิเคชัน ThaiD</span>
                         </div>
-                        <p class="text-muted small mb-1">
+                        <p class="text-muted small mb-1" id="thaidScanHintText">
                             <i class="bi bi-phone me-1 text-primary"></i> เปิดแอป <b>ThaiD</b> บนมือถือ ➔ กดปุ่มสแกนที่หน้าจอนี้
                         </p>
                         <div class="small fw-semibold text-danger">
@@ -105,10 +121,20 @@
 
 <script>
 let currentThaidSessionId = null;
+let currentThaidDeepLink = null;
 let thaidPollingInterval = null;
 let thaidCountdownInterval = null;
 let thaidRemainingSeconds = 120;
 let onThaidLoginSuccessCallback = null;
+
+// Detect Mobile / Tablet Devices (iOS / Android / iPadOS)
+function isMobileOrTabletDevice() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /android/i.test(ua);
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return isIos || isAndroid || (isTouch && window.innerWidth <= 1024);
+}
 
 // Modal Show/Hide Helpers (Safe across jQuery & Bootstrap versions)
 function showEclaimThaidModal() {
@@ -153,11 +179,13 @@ async function startThaidQrLogin() {
     clearInterval(thaidPollingInterval);
     clearInterval(thaidCountdownInterval);
 
+    currentThaidDeepLink = null;
     document.getElementById('thaidQrLoadingState').style.display = 'block';
     document.getElementById('thaidQrReadyState').style.display = 'none';
     document.getElementById('thaidQrSuccessState').style.display = 'none';
     document.getElementById('thaidQrFailedState').style.display = 'none';
     document.getElementById('thaidFooterActions').style.display = 'none';
+    document.getElementById('thaidMobileActionBox').style.display = 'none';
     document.getElementById('thaidQrLoadingText').innerText = 'กำลังเชื่อมต่อระบบ e-Claim สปสช...';
 
     try {
@@ -173,7 +201,7 @@ async function startThaidQrLogin() {
 
         if (res.ok && data.status === 'success' && data.qr_image) {
             currentThaidSessionId = data.session_id;
-            showThaidQrReady(data.qr_image, data.ref_code, data.expires_in || 120);
+            showThaidQrReady(data.qr_image, data.ref_code, data.expires_in || 120, data.deep_link);
         } else if (res.ok && data.session_id) {
             currentThaidSessionId = data.session_id;
             document.getElementById('thaidQrLoadingText').innerText = 'กำลังขอ QR Code จาก ThaiD...';
@@ -187,7 +215,7 @@ async function startThaidQrLogin() {
 }
 
 // Show QR Ready State
-function showThaidQrReady(qrBase64, refCode, expiresIn) {
+function showThaidQrReady(qrBase64, refCode, expiresIn, deepLink) {
     document.getElementById('thaidQrLoadingState').style.display = 'none';
     document.getElementById('thaidQrReadyState').style.display = 'block';
     document.getElementById('thaidFooterActions').style.display = 'block';
@@ -200,6 +228,37 @@ function showThaidQrReady(qrBase64, refCode, expiresIn) {
         refBadge.innerHTML = `หมายเลขอ้างอิง: <span class="badge bg-secondary">${refCode}</span>`;
     } else {
         refBadge.innerHTML = '';
+    }
+
+    // Configure Mobile Direct Link Button
+    currentThaidDeepLink = deepLink || null;
+    const mobileBox = document.getElementById('thaidMobileActionBox');
+    const openBtn = document.getElementById('btnOpenThaidApp');
+    const scanHint = document.getElementById('thaidScanHintText');
+
+    if (isMobileOrTabletDevice()) {
+        mobileBox.style.display = 'block';
+        if (openBtn) {
+            openBtn.href = currentThaidDeepLink || '#';
+            openBtn.onclick = function(e) {
+                if (!currentThaidDeepLink) {
+                    e.preventDefault();
+                    alert('กำลังเตรียมลิงก์เปิดแอป กรุณาลองใหม่อีกครั้ง');
+                    return false;
+                }
+                // On iOS/Android, navigating to Universal Link or custom scheme opens the ThaiD app
+                window.location.href = currentThaidDeepLink;
+                return false;
+            };
+        }
+        if (scanHint) {
+            scanHint.innerHTML = `<i class="bi bi-phone me-1 text-primary"></i> แตะปุ่มด้านบนเพื่อเปิดแอป <b>ThaiD</b> หรือใช้เครื่องอื่นสแกน QR Code`;
+        }
+    } else {
+        mobileBox.style.display = 'none';
+        if (scanHint) {
+            scanHint.innerHTML = `<i class="bi bi-phone me-1 text-primary"></i> เปิดแอป <b>ThaiD</b> บนมือถือ ➔ กดปุ่มสแกนที่หน้าจอนี้`;
+        }
     }
 
     // Start Countdown
@@ -250,7 +309,11 @@ function startThaidPolling(sessionId) {
                 showThaidSuccess(data.user || 'เจ้าหน้าที่ e-Claim');
             } else if (data.status === 'success' && data.state === 'QR_READY' && data.qr_image) {
                 if (document.getElementById('thaidQrReadyState').style.display === 'none') {
-                    showThaidQrReady(data.qr_image, data.ref_code, data.expires_in || 120);
+                    showThaidQrReady(data.qr_image, data.ref_code, data.expires_in || 120, data.deep_link);
+                } else if (data.deep_link && !currentThaidDeepLink) {
+                    currentThaidDeepLink = data.deep_link;
+                    const openBtn = document.getElementById('btnOpenThaidApp');
+                    if (openBtn) openBtn.href = currentThaidDeepLink;
                 }
             } else if (data.status === 'error') {
                 clearInterval(thaidPollingInterval);

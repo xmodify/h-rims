@@ -652,7 +652,76 @@ class MainSettingController extends Controller
                         $report[] = "hosfin_dtl_mappings (ไม่พบไฟล์)";
                     }
 
-                    // --- 2.7: Auto-Detect & Check Python dependencies (access-parser for HosFin MDB) ---
+                    // --- 2.7: Import/Sync Lookup C Deny (lookup_nhso_c_deny.json) ---
+                    $filePathCDeny = base_path('docs/lookup/lookup_nhso_c_deny.json');
+                    if (file_exists($filePathCDeny)) {
+                        $jsonData = json_decode(file_get_contents($filePathCDeny), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $insertedCountCDeny = 0;
+                            $updatedCountCDeny = 0;
+                            
+                            $existingCodes = [];
+                            if (Schema::hasTable('lookup_nhso_c_deny')) {
+                                $existingCodes = DB::table('lookup_nhso_c_deny')->pluck('code')->toArray();
+                            }
+                            $existingCodesMap = array_flip($existingCodes);
+
+                            DB::beginTransaction();
+                            try {
+                                $batchInsert = [];
+                                foreach ($jsonData as $row) {
+                                    $code = trim($row['code'] ?? '');
+                                    if (empty($code)) {
+                                        continue;
+                                    }
+
+                                    $type = trim($row['type'] ?? '') ?: 'Corrective';
+                                    $desc = trim($row['description'] ?? '');
+                                    $guide = trim($row['guide'] ?? '');
+
+                                    if (isset($existingCodesMap[$code])) {
+                                        DB::table('lookup_nhso_c_deny')->where('code', $code)->update([
+                                            'type' => $type,
+                                            'description' => $desc,
+                                            'guide' => $guide,
+                                            'updated_at' => now()
+                                        ]);
+                                        $updatedCountCDeny++;
+                                    } else {
+                                        $batchInsert[] = [
+                                            'type' => $type,
+                                            'code' => $code,
+                                            'description' => $desc,
+                                            'guide' => $guide,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                        $existingCodesMap[$code] = true;
+                                        $insertedCountCDeny++;
+
+                                        if (count($batchInsert) >= 500) {
+                                            DB::table('lookup_nhso_c_deny')->insert($batchInsert);
+                                            $batchInsert = [];
+                                        }
+                                    }
+                                }
+                                if (!empty($batchInsert)) {
+                                    DB::table('lookup_nhso_c_deny')->insert($batchInsert);
+                                }
+                                DB::commit();
+                                $report[] = "lookup_nhso_c_deny (เพิ่ม: $insertedCountCDeny, อัปเดต: $updatedCountCDeny รายการ)";
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
+                            }
+                        } else {
+                            $report[] = "lookup_nhso_c_deny (ไฟล์ JSON รูปแบบไม่ถูกต้อง)";
+                        }
+                    } else {
+                        $report[] = "lookup_nhso_c_deny (ไม่พบไฟล์)";
+                    }
+
+                    // --- 2.8: Auto-Detect & Check Python dependencies (access-parser for HosFin MDB) ---
                     $pythonInstallMsg = '';
                     try {
                         $pyStatus = \App\Helpers\PythonHelper::checkStatus();

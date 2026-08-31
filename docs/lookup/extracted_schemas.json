@@ -32624,5 +32624,65 @@
                 }
             ]
         }
+    },
+    "lookup_nhso_c_deny": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "type": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": "Corrective",
+                "extra": ""
+            },
+            "code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "description": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "guide": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "lookup_nhso_c_deny_code_unique": [
+                {
+                    "column": "code",
+                    "unique": true
+                }
+            ]
+        }
     }
 }

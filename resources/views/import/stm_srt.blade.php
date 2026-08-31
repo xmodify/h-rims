@@ -58,7 +58,13 @@
         
         <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="form-check form-switch me-1 mb-0 bg-light px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2 shadow-sm" style="cursor: pointer;">
+                    <input class="form-check-input ms-0" type="checkbox" id="filterUnreceiptedOnly" style="cursor: pointer;">
+                    <label class="form-check-label small fw-bold text-danger mb-0 text-nowrap" for="filterUnreceiptedOnly" style="cursor: pointer;">
+                        <i class="bi bi-funnel-fill text-danger me-1"></i> เฉพาะงวดที่ยังไม่ได้ออกใบเสร็จ
+                    </label>
+                </div>
                 <span class="text-muted small">ปีงบประมาณ:</span>
                 <select class="form-select form-select-sm" name="budget_year" style="width: 160px; border-radius: 8px;">
                     @foreach ($budget_year_select as $row)
@@ -98,18 +104,38 @@
                     </thead>
                     <tbody>
                         @foreach($stm_srt as $row)
-                        <tr>
+                        <tr data-receipt="{{ !empty($row->receive_no) ? '1' : '0' }}">
                             <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
+                            <td class="text-center">
+                                @if($row->dep === 'OPD')
+                                    <span class="badge bg-info-subtle text-primary border border-info-subtle fw-bold px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-person-fill me-0.5"></i> OPD
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-hospital me-0.5"></i> IPD
+                                    </span>
+                                @endif
+                            </td>
                             <td class="text-end fw-bold">{{ number_format($row->repno) }}</td>
                             <td class="text-end fw-bold">{{ number_format($row->count_cid) }}</td>
                             <td class="text-end small">{{ number_format($row->sum_adjrw,4) }}</td>
                             <td class="text-end text-muted">{{ number_format($row->sum_charge,2) }}</td>   
                             <td class="text-end text-success fw-bold">{{ number_format($row->sum_receive_total,2) }}</td>  
                             <td class="text-center text-primary fw-bold">{{ $row->round_no }}</td>
-                            <td class="text-center text-primary fw-bold">{{ $row->receive_no }}</td>
-                            <td class="text-center small">{{ $row->receipt_date }}</td>
-                            <td class="text-center small text-muted">{{ $row->receipt_by }}</td>
+                            <td class="text-center">
+                                @if(!empty($row->receive_no))
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-check-circle-fill me-0.5"></i> {{ $row->receive_no }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-clock-history me-0.5"></i> ยังไม่ออก
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-center small">{{ $row->receipt_date ?? '-' }}</td>
+                            <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
                                 <td class="text-center text-nowrap">
                                     <div class="d-flex justify-content-center gap-2">
@@ -567,7 +593,7 @@
                 }
             });
 
-            $('#stm_srt').DataTable({
+            var stmTable = $('#stm_srt').DataTable({
                 ordering: false,
                 dom: '<"row mb-3"' +
                         '<"col-md-6"l>' +
@@ -595,6 +621,23 @@
                         next: "ถัดไป"
                     }
                 }
+            });
+
+            // Filter only unreceipted files
+            $.fn.dataTable.ext.search.push(
+                function(settings, data, dataIndex, rowData, counter) {
+                    if (settings.sTableId !== 'stm_srt') return true;
+                    if ($('#filterUnreceiptedOnly').is(':checked')) {
+                        var rowNode = settings.aoData[dataIndex].nTr;
+                        var isReceipted = $(rowNode).attr('data-receipt') === '1';
+                        return !isReceipted;
+                    }
+                    return true;
+                }
+            );
+
+            $('#filterUnreceiptedOnly').on('change', function() {
+                stmTable.draw();
             });
 
             // --- Chart Modal Handling ---

@@ -62,7 +62,13 @@
         
         <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="form-check form-switch me-1 mb-0 bg-light px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2 shadow-sm" style="cursor: pointer;">
+                    <input class="form-check-input ms-0" type="checkbox" id="filterUnresolvedOnly" style="cursor: pointer;">
+                    <label class="form-check-label small fw-bold text-danger mb-0 text-nowrap" for="filterUnresolvedOnly" style="cursor: pointer;">
+                        <i class="bi bi-funnel-fill text-danger me-1"></i> เฉพาะไฟล์ที่ยังแก้ไม่ผ่าน
+                    </label>
+                </div>
                 <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
                 <select class="form-select form-select-sm" name="budget_year" style="width: 160px; border-radius: 8px;">
                     @foreach ($budget_year_select as $row)
@@ -118,7 +124,7 @@
                             $unresolved = $row->count_fail - $row->count_resolved;
                             $resolved = $row->count_resolved;
                         @endphp
-                        <tr>
+                        <tr data-unresolved="{{ $unresolved }}">
                             <td class="small fw-bold text-dark">
                                 {{ $row->rep_filename }}
                                 @if($row->is_appeal)
@@ -127,7 +133,21 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
+                            <td class="text-center">
+                                @if(strtoupper($row->dep) === 'OP' || strtoupper($row->dep) === 'OPD')
+                                    <span class="badge bg-info-subtle text-primary border border-info-subtle fw-bold px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-person-fill me-0.5"></i> OPD
+                                    </span>
+                                @elseif(strtoupper($row->dep) === 'IP' || strtoupper($row->dep) === 'IPD')
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-hospital me-0.5"></i> IPD
+                                    </span>
+                                @else
+                                    <span class="badge bg-light text-dark border fw-bold px-2 py-1" style="font-size: 11px;">
+                                        {{ $row->dep }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="text-center">{{ $row->repno }}</td>
                             <td class="text-end fw-bold">{{ number_format($row->count_cid) }}</td>
                             <td class="text-end text-success fw-bold">{{ number_format($row->count_pass) }}</td>
@@ -286,15 +306,15 @@
                         <table class="table table-modern table-hover align-middle w-100">
                             <thead class="sticky-top bg-white" style="z-index: 1;">
                                 <tr>
-                                    <th class="text-center" width="5%">ลำดับ</th>
-                                    <th class="text-center" width="10%">HN</th>
-                                    <th class="text-center" width="10%">AN</th>
-                                    <th>ชื่อ-สกุล</th>
-                                    <th class="text-center" width="12%">วันที่รับบริการ</th>
-                                    <th class="text-center text-danger" width="13%">รหัส C / Error Code</th>
-                                    <th class="text-end" width="10%">เรียกเก็บ</th>
-                                    <th class="text-end" width="10%">ชดเชย สปสช.</th>
-                                    <th class="text-center" width="20%">สถานะปัจจุบัน</th>
+                                    <th class="text-center" width="4%">ลำดับ</th>
+                                    <th class="text-center" width="8%">HN</th>
+                                    <th class="text-center" width="8%">AN</th>
+                                    <th width="14%">ชื่อ-สกุล</th>
+                                    <th class="text-center" width="10%">วันที่รับบริการ</th>
+                                    <th class="text-start text-danger" width="30%">สาเหตุข้อผิดพลาด (รหัส C / แนวทางแก้ไข)</th>
+                                    <th class="text-end" width="8%">เรียกเก็บ</th>
+                                    <th class="text-end" width="8%">ชดเชย สปสช.</th>
+                                    <th class="text-center" width="10%">สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody id="failPatientsTableBody">
@@ -588,7 +608,7 @@
 
         $(document).ready(function () {
 
-            $('#rep_ofc_table').DataTable({
+            var repTable = $('#rep_ofc_table').DataTable({
                 ordering: false,
                 dom: '<"row mb-3"' +
                         '<"col-md-6"l>' +
@@ -616,6 +636,23 @@
                         next: "ถัดไป"
                     }
                 }
+            });
+
+            // Filter only unresolved files
+            $.fn.dataTable.ext.search.push(
+                function(settings, data, dataIndex, rowData, counter) {
+                    if (settings.sTableId !== 'rep_ofc_table') return true;
+                    if ($('#filterUnresolvedOnly').is(':checked')) {
+                        var rowNode = settings.aoData[dataIndex].nTr;
+                        var unresolved = parseInt($(rowNode).attr('data-unresolved') || '0', 10);
+                        return unresolved > 0;
+                    }
+                    return true;
+                }
+            );
+
+            $('#filterUnresolvedOnly').on('change', function() {
+                repTable.draw();
             });
 
             // --- Chart Modal Handling ---
@@ -775,6 +812,37 @@
                         // Populate patients table
                         if (res.patients && res.patients.length > 0) {
                             res.patients.forEach((p, idx) => {
+                                let errorDetailsHtml = '';
+                                if (p.error_details && p.error_details.length > 0) {
+                                    errorDetailsHtml = p.error_details.map(d => {
+                                        const hasDescOrGuide = (d.description && d.description.trim() !== '') || (d.guide && d.guide.trim() !== '');
+                                        
+                                        if (!hasDescOrGuide) {
+                                            return `
+                                                <div class="mb-1 text-center">
+                                                    <span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 11px;">
+                                                        ${d.code}
+                                                    </span>
+                                                </div>
+                                            `;
+                                        }
+
+                                        return `
+                                            <div class="p-2 mb-1 rounded bg-light border text-start" style="font-size: 11px; line-height: 1.35;">
+                                                <div class="mb-1">
+                                                    <span class="badge bg-danger text-white fw-bold px-2 py-0.5" style="font-size: 11px;">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> ${d.code}
+                                                    </span>
+                                                </div>
+                                                ${d.description ? `<div class="text-dark fw-semibold mb-1" style="font-size: 11px;"><i class="bi bi-info-circle text-primary me-1"></i>${d.description}</div>` : ''}
+                                                ${d.guide ? `<div class="text-success fw-medium" style="font-size: 11px;"><i class="bi bi-lightbulb-fill text-warning me-1"></i><b>แนวทางแก้:</b> ${d.guide}</div>` : ''}
+                                            </div>
+                                        `;
+                                    }).join('');
+                                } else {
+                                    errorDetailsHtml = `<span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 11px;">${p.error_code || '-'}</span>`;
+                                }
+
                                 const row = `
                                     <tr>
                                         <td class="text-center text-muted small">${idx + 1}</td>
@@ -782,7 +850,7 @@
                                         <td class="text-center">${p.an}</td>
                                         <td class="fw-bold">${p.pt_name}</td>
                                         <td class="text-center small">${p.service_date}</td>
-                                        <td class="text-center"><span class="badge bg-danger-soft text-danger fw-bold fs-6" style="background-color: rgba(220, 53, 69, 0.08);">${p.error_code}</span></td>
+                                        <td class="text-start">${errorDetailsHtml}</td>
                                         <td class="text-end text-muted">${p.charge_total}</td>
                                         <td class="text-end text-danger fw-bold">${p.net_compensate_nhso}</td>
                                         <td class="text-center">

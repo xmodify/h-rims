@@ -224,7 +224,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_ucs',
@@ -298,6 +298,52 @@ class ImportRepController extends Controller
         ]);
     }
 
+    /**
+     * Parse raw error_code string and lookup explanation from lookup_nhso_c_deny
+     */
+    protected function parseErrorCodeDetails($rawCodes, $cDenyLookupCache = null)
+    {
+        if (empty($cDenyLookupCache)) {
+            $cDenyLookupCache = [];
+            if (\Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_c_deny')) {
+                $cDenyLookupCache = DB::table('lookup_nhso_c_deny')
+                    ->select('code', 'type', 'description', 'guide')
+                    ->get()
+                    ->keyBy('code')
+                    ->toArray();
+            }
+        }
+
+        if (empty($rawCodes) || $rawCodes === '-') {
+            return [];
+        }
+
+        $codes = array_map('trim', explode(',', $rawCodes));
+        $details = [];
+
+        foreach ($codes as $c) {
+            if ($c === '') continue;
+            if (isset($cDenyLookupCache[$c])) {
+                $item = (array)$cDenyLookupCache[$c];
+                $details[] = [
+                    'code' => $c,
+                    'type' => $item['type'] ?? '',
+                    'description' => $item['description'] ?? '',
+                    'guide' => $item['guide'] ?? ''
+                ];
+            } else {
+                $details[] = [
+                    'code' => $c,
+                    'type' => '',
+                    'description' => '',
+                    'guide' => ''
+                ];
+            }
+        }
+
+        return $details;
+    }
+
     // rep_ucs_getFailDetails -------------------------------------------------------------------------------------
     public function rep_ucs_getFailDetails(Request $request)
     {
@@ -342,6 +388,7 @@ class ImportRepController extends Controller
 
         // Format dates, numbers, and resolution status badges
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -360,6 +407,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -1073,7 +1121,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_ofc',
@@ -1171,6 +1219,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -1188,6 +1237,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -1808,7 +1858,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_sss',
@@ -1906,6 +1956,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -1923,6 +1974,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -2491,7 +2543,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_lgo',
@@ -2589,6 +2641,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -2606,6 +2659,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -3182,7 +3236,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_bkk',
@@ -3280,6 +3334,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -3297,6 +3352,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -3871,7 +3927,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_bmt',
@@ -3969,6 +4025,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -3986,6 +4043,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -4560,7 +4618,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_srt',
@@ -4658,6 +4716,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -4675,6 +4734,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,
@@ -5249,7 +5309,7 @@ class ImportRepController extends Controller
             WHERE (CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 4) AS UNSIGNED)
                 + (IF(CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename) + 4, 2) AS UNSIGNED) >= 10, 1, 0))) = ?
             GROUP BY rep_filename, rep_type, repno
-            ORDER BY rep_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY CAST(SUBSTRING(rep_filename, LOCATE('25', rep_filename), 8) AS UNSIGNED) DESC, (CASE WHEN repno REGEXP '^[0-9]+$' THEN CAST(repno AS UNSIGNED) ELSE 0 END) DESC, rep_filename DESC ", [$budget_year]);
 
         return view(
             'import.rep_pvt',
@@ -5347,6 +5407,7 @@ class ImportRepController extends Controller
             ->get();
 
         $formattedPatients = [];
+        $cDenyLookupCache = null;
         foreach ($patients as $p) {
             $service_date = ($type == 'OP') ? $p->vstdate : $p->dchdate;
 
@@ -5364,6 +5425,7 @@ class ImportRepController extends Controller
                 'pt_name' => $p->pt_name,
                 'service_date' => $service_date ? date('d/m/Y', strtotime($service_date)) : '-',
                 'error_code' => $p->error_code,
+                'error_details' => $this->parseErrorCodeDetails($p->error_code, $cDenyLookupCache),
                 'charge_total' => number_format($p->charge_total, 2),
                 'net_compensate_nhso' => number_format($p->net_compensate_nhso, 2),
                 'status_text' => $status_text,

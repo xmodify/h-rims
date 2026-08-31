@@ -102,11 +102,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename), 4) AS UNSIGNED)
                 + (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no            
-            ORDER BY CASE WHEN round_no IS NOT NULL AND round_no <> '' 
-                THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-                + CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)
-                ELSE CAST(SUBSTRING( stm_filename, LOCATE('25', stm_filename), 6) AS UNSIGNED )END DESC,
-            stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view(
             'import.stm_ucs',
@@ -2064,11 +2082,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
 				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
-				stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_ofc', compact('stm_ofc', 'budget_year_select', 'budget_year'));
     }
@@ -2792,11 +2828,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
 				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
-				stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_bkk', compact('stm_bkk', 'budget_year_select', 'budget_year'));
     }
@@ -3514,11 +3568,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
 				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
-				stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_srt', compact('stm_srt', 'budget_year_select', 'budget_year'));
     }
@@ -4236,11 +4308,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
 				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
-				stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_pvt', compact('stm_pvt', 'budget_year_select', 'budget_year'));
     }
@@ -4959,11 +5049,29 @@ class ImportController extends Controller
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
 				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
-				stm_filename DESC, dep DESC ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_bmt', compact('stm_bmt', 'budget_year_select', 'budget_year'));
     }
@@ -6768,11 +6876,29 @@ class ImportController extends Controller
             WHERE (CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2), '_', 1 ), 4) AS UNSIGNED)  
 				+ (CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2),'_', 1), 5, 2) AS UNSIGNED) >= 10)) = ?
             GROUP BY stm_filename, round_no
-            ORDER BY CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2),'_', 1), 6) AS UNSIGNED) DESC,
-				CASE WHEN round_no IS NOT NULL AND round_no <> ''
-				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED) ELSE 0 END DESC,    
-				stm_filename DESC,round_no DESC; ", [$budget_year]);
+            ORDER BY 
+                CASE 
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    ELSE 0
+                END DESC,
+                CASE 
+                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    ELSE 0
+                END DESC,
+                dep DESC,
+                stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_lgo', compact('stm_lgo', 'budget_year_select', 'budget_year'));
     }

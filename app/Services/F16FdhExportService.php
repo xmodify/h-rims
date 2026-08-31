@@ -532,7 +532,7 @@ class F16FdhExportService
             try {
                 $itemRows = DB::connection('hosxp')->select("
                     SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                           op.income, op.paidst, op.pttype, op.hos_guid,
+                           COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income) as income, op.paidst, op.pttype, op.hos_guid,
                            d.name as drug_name, d.strength as drug_strength, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                            d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
                            n.name as nondrug_name,
@@ -546,7 +546,7 @@ class F16FdhExportService
                     LEFT JOIN patient pt ON pt.hn = op.hn
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
-                    LEFT JOIN income inc ON inc.income = op.income
+                    LEFT JOIN income inc ON inc.income = COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income)
                     LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                     LEFT JOIN doctor doc ON doc.code = op.doctor
                     LEFT JOIN drugusage du ON du.drugusage = op.drugusage
@@ -559,7 +559,7 @@ class F16FdhExportService
                 try {
                     $itemRows = DB::connection('hosxp')->select("
                         SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                               op.income, op.paidst, op.pttype, op.hos_guid,
+                               COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income) as income, op.paidst, op.pttype, op.hos_guid,
                                d.name as drug_name, d.strength as drug_strength, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                                d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
                                n.name as nondrug_name,
@@ -573,7 +573,7 @@ class F16FdhExportService
                         LEFT JOIN patient pt ON pt.hn = op.hn
                         LEFT JOIN drugitems d ON d.icode = op.icode
                         LEFT JOIN nondrugitems n ON n.icode = op.icode
-                        LEFT JOIN income inc ON inc.income = op.income
+                        LEFT JOIN income inc ON inc.income = COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income)
                         LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                         LEFT JOIN doctor doc ON doc.code = op.doctor
                         WHERE op.vn IN ($vnPlaceholders)
@@ -1471,7 +1471,7 @@ class F16FdhExportService
             try {
                 $itemRows = DB::connection('hosxp')->select("
                     SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
-                           op.income, op.paidst, op.pttype, op.hos_guid,
+                           COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income) as income, op.paidst, op.pttype, op.hos_guid,
                            d.name as drug_name, d.strength as drug_strength, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                            d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
                            n.name as nondrug_name,
@@ -1484,7 +1484,7 @@ class F16FdhExportService
                     LEFT JOIN patient pt ON pt.hn = op.hn
                     LEFT JOIN drugitems d ON d.icode = op.icode
                     LEFT JOIN nondrugitems n ON n.icode = op.icode
-                    LEFT JOIN income inc ON inc.income = op.income
+                    LEFT JOIN income inc ON inc.income = COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income)
                     LEFT JOIN drg_chrgitem drg ON drg.drg_chrgitem_id = inc.drg_chrgitem_id
                     LEFT JOIN doctor doc ON doc.code = op.doctor
                     LEFT JOIN drugusage du ON du.drugusage = op.drugusage

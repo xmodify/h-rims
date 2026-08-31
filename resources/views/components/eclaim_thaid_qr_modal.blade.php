@@ -33,12 +33,23 @@
                     
                     <!-- Mobile / Tablet Direct App Button (Shown on iOS / Android) -->
                     <div id="thaidMobileActionBox" class="mb-3 px-1" style="display: none;">
-                        <a id="btnOpenThaidApp" href="#" class="btn btn-primary btn-lg w-100 rounded-pill shadow py-2.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-decoration-none text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); font-size: 0.95rem; border: none;">
-                            <i class="bi bi-phone-fill fs-5"></i>
-                            <span>แตะเพื่อเปิดแอป ThaiD บนเครื่องนี้</span>
-                        </a>
-                        <div class="small text-muted mt-2" style="font-size: 0.78rem;">
-                            <i class="bi bi-info-circle me-1 text-primary"></i> กดยืนยันในแอป ThaiD เสร็จแล้ว สลับกลับมาที่หน้านี้
+                        <div class="d-grid gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2" onclick="saveThaidQrImage()">
+                                <i class="bi bi-download"></i>
+                                <span>1. บันทึกรูป QR Code ลงเครื่อง</span>
+                            </button>
+                            <a id="btnOpenThaidApp" href="thaid://" class="btn btn-primary rounded-pill shadow-sm py-2.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-decoration-none text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); font-size: 0.95rem; border: none;">
+                                <i class="bi bi-phone-fill fs-5"></i>
+                                <span>2. สลับไปเปิดแอป ThaiD</span>
+                            </a>
+                        </div>
+                        <div class="alert alert-light border small text-start p-2.5 mb-2 rounded-3" style="font-size: 0.76rem; background-color: #f8fafc;">
+                            <div class="fw-bold text-primary mb-1"><i class="bi bi-lightbulb-fill text-warning me-1"></i>ขั้นตอนยืนยันตัวตนบนมือถือ:</div>
+                            <ol class="ps-3 mb-0 text-secondary" style="line-height: 1.45;">
+                                <li>แตะ <b>บันทึกรูป QR Code</b> ด้านบน</li>
+                                <li>แตะ <b>สลับไปเปิดแอป ThaiD</b> ➔ เลือกปุ่ม <b>สแกน</b> ➔ เลือกไอคอน <b>คลังภาพ</b></li>
+                                <li>ยืนยันในแอป ThaiD เสร็จแล้ว สลับกลับมาหน้านี้จะล็อกอินให้อัตโนมัติ</li>
+                            </ol>
                         </div>
                         <div class="d-flex align-items-center my-3 text-muted">
                             <hr class="flex-grow-1 my-0 opacity-25">
@@ -231,7 +242,7 @@ function showThaidQrReady(qrBase64, refCode, expiresIn, deepLink) {
     }
 
     // Configure Mobile Direct Link Button
-    currentThaidDeepLink = deepLink || null;
+    currentThaidDeepLink = deepLink || 'thaid://';
     const mobileBox = document.getElementById('thaidMobileActionBox');
     const openBtn = document.getElementById('btnOpenThaidApp');
     const scanHint = document.getElementById('thaidScanHintText');
@@ -239,20 +250,15 @@ function showThaidQrReady(qrBase64, refCode, expiresIn, deepLink) {
     if (isMobileOrTabletDevice()) {
         mobileBox.style.display = 'block';
         if (openBtn) {
-            openBtn.href = currentThaidDeepLink || '#';
+            openBtn.href = 'thaid://';
             openBtn.onclick = function(e) {
-                if (!currentThaidDeepLink) {
-                    e.preventDefault();
-                    alert('กำลังเตรียมลิงก์เปิดแอป กรุณาลองใหม่อีกครั้ง');
-                    return false;
-                }
-                // On iOS/Android, navigating to Universal Link or custom scheme opens the ThaiD app
-                window.location.href = currentThaidDeepLink;
+                // Open native ThaiD app directly
+                window.location.href = 'thaid://';
                 return false;
             };
         }
         if (scanHint) {
-            scanHint.innerHTML = `<i class="bi bi-phone me-1 text-primary"></i> แตะปุ่มด้านบนเพื่อเปิดแอป <b>ThaiD</b> หรือใช้เครื่องอื่นสแกน QR Code`;
+            scanHint.innerHTML = `<i class="bi bi-phone me-1 text-primary"></i> หรือใช้อุปกรณ์อื่นสแกน QR Code ด้านล่างนี้`;
         }
     } else {
         mobileBox.style.display = 'none';
@@ -366,6 +372,40 @@ function showThaidFailed(title, message) {
 
     document.getElementById('thaidFailedTitle').innerText = title;
     document.getElementById('thaidFailedMsg').innerText = message;
+}
+
+// Save QR Image to Mobile Gallery / Download
+function saveThaidQrImage() {
+    const qrImg = document.getElementById('thaidQrImage');
+    if (!qrImg || !qrImg.src) {
+        alert('ไม่พบรูปภาพ QR Code กรุณารอสักครู่');
+        return;
+    }
+
+    try {
+        const link = document.createElement('a');
+        link.href = qrImg.src;
+        link.download = `ThaiD_QR_eClaim_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Show feedback to user
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกรูป QR Code แล้ว',
+                text: 'กรุณาแตะปุ่ม "สลับไปเปิดแอป ThaiD" แล้วกดสแกนรูปภาพจากคลังภาพ',
+                timer: 2500,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top'
+            });
+        }
+    } catch (e) {
+        // Fallback: open image in new window
+        window.open(qrImg.src, '_blank');
+    }
 }
 
 // Cleanup Handler

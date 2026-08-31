@@ -192,43 +192,24 @@ async function run() {
             if (mTextRef) refCode = mTextRef[1];
         }
 
-        // Extract ThaiD Deep Link / Universal Link for App-to-App on iOS / Android
-        const pageLinks = await page.evaluate(() => {
-            let deepLink = '';
-            const allLinks = Array.from(document.querySelectorAll('a[href]'));
+        // Extract ThaiD Native App Scheme if available
+        const nativeScheme = await page.evaluate(() => {
+            const allLinks = Array.from(document.querySelectorAll('a[href], [onclick], [data-href]'));
             for (const a of allLinks) {
-                const href = a.getAttribute('href') || '';
-                if (href.startsWith('thaid://') || href.startsWith('dopa://') || href.includes('imauth.bora.dopa.go.th') || href.includes('thaid')) {
-                    deepLink = href;
-                    break;
-                }
+                const href = a.getAttribute('href') || a.getAttribute('onclick') || a.getAttribute('data-href') || '';
+                const m = href.match(/(?:thaid|dopa):\/\/[^\s'"]+/i);
+                if (m) return m[0];
             }
-            if (!deepLink) {
-                const elements = Array.from(document.querySelectorAll('[onclick], button, a, [data-href], [data-url]'));
-                for (const el of elements) {
-                    const attr = (el.getAttribute('onclick') || el.getAttribute('data-href') || el.getAttribute('data-url') || '');
-                    const m = attr.match(/(?:thaid|dopa):\/\/[^\s'"]+/i) || attr.match(/https:\/\/imauth\.bora\.dopa\.go\.th[^\s'"]+/i);
-                    if (m) {
-                        deepLink = m[0];
-                        break;
-                    }
-                }
-            }
-            return {
-                deepLink: deepLink || window.location.href,
-                currentUrl: window.location.href
-            };
-        }).catch(() => ({ deepLink: page.url(), currentUrl: page.url() }));
-
-        const deepLinkUrl = pageLinks.deepLink || currentUrl;
+            return '';
+        }).catch(() => '');
 
         updateSessionState(sessionFile, {
             status: 'QR_READY',
             qr_image: qrSrc,
             ref_code: refCode,
-            deep_link: deepLinkUrl,
+            deep_link: nativeScheme || 'thaid://',
             expires_in: 120,
-            message: 'พร้อมสแกน QR Code หรือเปิดแอป ThaiD'
+            message: 'พร้อมสแกน QR Code ด้วยแอปพลิเคชัน ThaiD'
         });
 
         console.log(`[Session ${sessionId}] QR Code is ready. Waiting for user to scan...`);

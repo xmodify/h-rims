@@ -192,22 +192,10 @@ async function run() {
             if (mTextRef) refCode = mTextRef[1];
         }
 
-        // Extract ThaiD Native App Scheme if available
-        const nativeScheme = await page.evaluate(() => {
-            const allLinks = Array.from(document.querySelectorAll('a[href], [onclick], [data-href]'));
-            for (const a of allLinks) {
-                const href = a.getAttribute('href') || a.getAttribute('onclick') || a.getAttribute('data-href') || '';
-                const m = href.match(/(?:thaid|dopa):\/\/[^\s'"]+/i);
-                if (m) return m[0];
-            }
-            return '';
-        }).catch(() => '');
-
         updateSessionState(sessionFile, {
             status: 'QR_READY',
             qr_image: qrSrc,
             ref_code: refCode,
-            deep_link: nativeScheme || 'thaid://',
             expires_in: 120,
             message: 'พร้อมสแกน QR Code ด้วยแอปพลิเคชัน ThaiD'
         });

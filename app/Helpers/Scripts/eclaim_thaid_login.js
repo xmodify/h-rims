@@ -247,27 +247,61 @@ async function run() {
         }
 
         // Also check if Vue set localStorage token
+        let localTok = '';
         try {
-            const localTok = await page.evaluate(() => window.localStorage.getItem('token'));
-            if (localTok && !fullCookieString.includes('ACCESS_TOKEN')) {
+            localTok = await page.evaluate(() => window.localStorage.getItem('token') || '');
+            if (localTok) {
                 cookiePairs.push(`ACCESS_TOKEN=${localTok}`);
             }
         } catch(e) {}
 
         const fullCookieString = cookiePairs.join('; ');
 
-        // Check if landing page has user info
+        // Check if landing page has user info, hospcode, and cid
         let detectedUser = 'เจ้าหน้าที่ e-Claim';
         let detectedHcode = '';
+        let detectedCid = '';
+
+        // Extract from JWT tokens if available
+        for (const pair of cookiePairs) {
+            const parts = pair.split('=');
+            if (parts.length >= 2 && (parts[0] === 'ACCESS_TOKEN' || parts[0] === 'KEYCLOAK_IDENTITY')) {
+                const jwtVal = parts.slice(1).join('=');
+                if (jwtVal && jwtVal.includes('.')) {
+                    try {
+                        const jwtParts = jwtVal.split('.');
+                        if (jwtParts.length >= 2) {
+                            const b64 = jwtParts[1].replace(/-/g, '+').replace(/_/g, '/');
+                            const payload = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+                            if (payload.hospMain) detectedHcode = payload.hospMain;
+                            else if (payload.organize_id) detectedHcode = payload.organize_id;
+                            else if (payload.hospCode) detectedHcode = payload.hospCode;
+
+                            if (payload.cid) detectedCid = payload.cid;
+                            else if (payload.id_card) detectedCid = payload.id_card;
+                            else if (payload.pid) detectedCid = payload.pid;
+
+                            if (payload.nameTh) detectedUser = payload.nameTh;
+                            else if (payload.name) detectedUser = payload.name;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }
+
         try {
             const html = await page.content();
-            const mUser = html.match(/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u);
-            if (mUser && !mUser[1].includes('Audit User') && !mUser[1].includes('SSO')) {
-                detectedUser = mUser[1].trim().replace(/<[^>]*>?/gm, '');
+            if (detectedUser === 'เจ้าหน้าที่ e-Claim') {
+                const mUser = html.match(/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u);
+                if (mUser && !mUser[1].includes('Audit User') && !mUser[1].includes('SSO')) {
+                    detectedUser = mUser[1].trim().replace(/<[^>]*>?/gm, '');
+                }
             }
-            const mHosp = html.match(/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล|Hospcode|Hcode|รหัส)\s*[:：\-]?\s*(\d{5})/u) || html.match(/\b(1\d{4})\b/);
-            if (mHosp) {
-                detectedHcode = mHosp[1];
+            if (!detectedHcode) {
+                const mHosp = html.match(/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล|Hospcode|Hcode|รหัส)\s*[:：\-]?\s*(\d{5})/u) || html.match(/\b(1\d{4})\b/);
+                if (mHosp) {
+                    detectedHcode = mHosp[1];
+                }
             }
         } catch (e) {}
 
@@ -277,9 +311,10 @@ async function run() {
                 cookies: fullCookieString,
                 user: detectedUser,
                 hospcode: detectedHcode,
+                cid: detectedCid,
                 message: `เข้าสู่ระบบสำเร็จ ยินดีต้อนรับ ${detectedUser}`
             });
-            console.log(`[Session ${sessionId}] Login success! Cookies saved.`);
+            console.log(`[Session ${sessionId}] Login success! User: ${detectedUser}, Hospcode: ${detectedHcode}, CID: ${detectedCid}`);
         } else {
             updateSessionState(sessionFile, {
                 status: 'FAILED',

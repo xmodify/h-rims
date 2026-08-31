@@ -220,11 +220,13 @@ class EclaimBotController extends Controller
                     $eclaimHcode = trim($request->hospcode);
                 }
 
-                // ตรวจสอบ: ถ้ารหัส รพ. ฝั่ง e-Claim หรือ Extension ไม่ตรงกับ Server RiMS ให้แจ้งเตือนและบล็อกทันที
-                if (!empty($serverHcode) && !empty($eclaimHcode) && trim($serverHcode) !== trim($eclaimHcode)) {
+                // 🛡️ ตรวจสอบ: ป้องกันสแกนข้าม รพ. (Hospcode Validation) และสแกนแทนกัน (CID Validation)
+                $userCid = auth()->check() ? (auth()->user()->cid ?? null) : null;
+                $valRes = $this->validateEclaimSessionContext($token, $serverHcode, $userCid, $eclaimHcode);
+                if (!$valRes['valid']) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => "❌ รหัสสถานพยาบาลไม่ตรงกัน! บัญชี e-Claim นี้เป็นของ รพ. [{$eclaimHcode}] แต่ Server RiMS ปลายทางเป็นของ [{$serverHcode}" . ($serverHname ? " - {$serverHname}" : "") . "] กรุณาตรวจสอบว่าสลับ Server ปลายทางถูกต้อง หรือล็อกอินบัญชี e-Claim ตรงกับ รพ. หรือไม่"
+                        'message' => $valRes['message']
                     ], 422);
                 }
             } else {
@@ -294,6 +296,161 @@ class EclaimBotController extends Controller
             'token' => $token,
             'user' => $user
         ]);
+    }
+
+    /**
+     * Validate Scanned/Synced e-Claim Session against configured Hospital Code and User CID
+     *
+     * @return array [ 'valid' => bool, 'message' => string, 'hospcode' => ?string, 'cid' => ?string, 'user' => ?string ]
+     */
+    public function validateEclaimSessionContext(?string $token = '', ?string $expectedHcode = null, ?string $expectedCid = null, ?string $directHcode = null, ?string $directCid = null): array
+    {
+        $serverHcode = $expectedHcode ?: (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989');
+        $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: '';
+        
+        $detectedHcode = $directHcode ?: null;
+        $detectedCid = $directCid ?: null;
+        $detectedUser = null;
+
+        $detectedUsername = null;
+
+        // 1. Extract from JWT Tokens (ACCESS_TOKEN or KEYCLOAK_IDENTITY)
+        if (preg_match_all('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $matches)) {
+            foreach ($matches[1] as $jwtStr) {
+                try {
+                    $parts = explode('.', $jwtStr);
+                    if (count($parts) >= 2) {
+                        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                        if (is_array($payload)) {
+                            if (!$detectedHcode) {
+                                if (!empty($payload['hospMain'])) $detectedHcode = (string)$payload['hospMain'];
+                                elseif (!empty($payload['organize_id'])) $detectedHcode = (string)$payload['organize_id'];
+                                elseif (!empty($payload['hospCode'])) $detectedHcode = (string)$payload['hospCode'];
+                                elseif (!empty($payload['hcode'])) $detectedHcode = (string)$payload['hcode'];
+                            }
+
+                            if (!$detectedCid) {
+                                if (!empty($payload['cid'])) $detectedCid = (string)$payload['cid'];
+                                elseif (!empty($payload['id_card'])) $detectedCid = (string)$payload['id_card'];
+                                elseif (!empty($payload['pid'])) $detectedCid = (string)$payload['pid'];
+                            }
+
+                            if (!$detectedUser) {
+                                if (!empty($payload['nameTh'])) $detectedUser = $payload['nameTh'];
+                                elseif (!empty($payload['name'])) $detectedUser = $payload['name'];
+                            }
+
+                            if (!$detectedUsername) {
+                                if (!empty($payload['preferred_username'])) {
+                                    $detectedUsername = (string)$payload['preferred_username'];
+                                } elseif (!empty($payload['sub']) && str_contains($payload['sub'], ':')) {
+                                    $subParts = explode(':', $payload['sub']);
+                                    $detectedUsername = end($subParts);
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {}
+            }
+        }
+
+        // 1. ตรวจสอบเลขประจำตัวประชาชน (CID) และตัวตนผู้สแกน
+        if (!empty($expectedCid)) {
+            $cleanExpectedCid = preg_replace('/\D/', '', (string)$expectedCid);
+            // ถ้าเลขบัตรในระบบไม่ครบ 13 หลัก (เช่น กรอกผิดหรือข้อมูลไม่สมบูรณ์)
+            if (strlen($cleanExpectedCid) !== 13) {
+                return [
+                    'valid' => false,
+                    'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: เลขบัตรประชาชนของผู้ใช้งานในระบบ RiMS ([{$expectedCid}]) ไม่ถูกต้อง (ต้องครบ 13 หลัก) กรุณาแก้ไขข้อมูลผู้ใช้ให้ถูกต้องก่อนทำรายการ",
+                    'hospcode' => $detectedHcode,
+                    'cid' => $detectedCid,
+                    'user' => $detectedUser
+                ];
+            }
+
+            // ถ้าได้ CID จากการสแกน และไม่ตรงกัน
+            if (!empty($detectedCid)) {
+                $cleanDetectedCid = preg_replace('/\D/', '', (string)$detectedCid);
+                if ($cleanDetectedCid !== $cleanExpectedCid) {
+                    return [
+                        'valid' => false,
+                        'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: เลขบัตรประจำตัวประชาชนของผู้สแกน [{$detectedCid}] ไม่ตรงกับบัญชีผู้ใช้งานในระบบ RiMS ([{$expectedCid}])",
+                        'hospcode' => $detectedHcode,
+                        'cid' => $detectedCid,
+                        'user' => $detectedUser
+                    ];
+                }
+            }
+        } elseif (!empty($detectedCid)) {
+            $cleanDetectedCid = preg_replace('/\D/', '', (string)$detectedCid);
+            if (strlen($cleanDetectedCid) === 13) {
+                $existsInRims = DB::table('users')->where('cid', $detectedCid)->orWhere('cid', $cleanDetectedCid)->exists();
+                if (!$existsInRims && !auth()->check()) {
+                    return [
+                        'valid' => false,
+                        'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: เลขบัตรประชาชน [{$detectedCid}] ไม่มีสิทธิ์ใช้งานในระบบ RiMS",
+                        'hospcode' => $detectedHcode,
+                        'cid' => $detectedCid,
+                        'user' => $detectedUser
+                    ];
+                }
+            }
+        }
+
+        // ตรวจสอบ Username / eclaim_user และ ชื่อ-นามสกุล หากผู้ใช้งานล็อกอินอยู่
+        if (auth()->check()) {
+            $currUser = auth()->user();
+            if (!empty($currUser->eclaim_user) && !empty($detectedUsername)) {
+                if (strtolower(trim($detectedUsername)) !== strtolower(trim($currUser->eclaim_user))) {
+                    return [
+                        'valid' => false,
+                        'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: บัญชี e-Claim ผู้สแกน [{$detectedUsername}] ไม่ตรงกับ e-Claim User ในระบบ RiMS ([{$currUser->eclaim_user}])",
+                        'hospcode' => $detectedHcode,
+                        'cid' => $detectedCid,
+                        'user' => $detectedUser
+                    ];
+                }
+            }
+
+            if (!empty($detectedUser) && $detectedUser !== 'เจ้าหน้าที่ e-Claim' && !empty($currUser->name)) {
+                $cleanDbName = trim(str_replace(['นาย', 'นาง', 'น.ส.', 'นางสาว', 'ด.ช.', 'ด.ญ.'], '', $currUser->name));
+                $cleanScanName = trim(str_replace(['นาย', 'นาง', 'น.ส.', 'นางสาว', 'ด.ช.', 'ด.ญ.'], '', $detectedUser));
+                // ตรวจสอบว่าชื่อหรือนามสกุลตรงกันหรือไม่
+                $dbFirstWord = explode(' ', $cleanDbName)[0] ?? '';
+                if ($dbFirstWord && stripos($cleanScanName, $dbFirstWord) === false && stripos($cleanDbName, $cleanScanName) === false) {
+                    return [
+                        'valid' => false,
+                        'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: บัญชี e-Claim ผู้สแกนคือ [{$detectedUser}] ไม่ตรงกับผู้ใช้งานระบบ RiMS ([{$currUser->name}])",
+                        'hospcode' => $detectedHcode,
+                        'cid' => $detectedCid,
+                        'user' => $detectedUser
+                    ];
+                }
+            }
+        }
+
+        // 2. ตรวจสอบรหัสสถานพยาบาล (Hospcode)
+        if (!empty($detectedHcode) && !empty($serverHcode)) {
+            $cleanDetectedHcode = trim((string)$detectedHcode);
+            $cleanServerHcode = trim((string)$serverHcode);
+            if ($cleanDetectedHcode !== $cleanServerHcode) {
+                return [
+                    'valid' => false,
+                    'message' => "❌ การเข้าสู่ระบบถูกปฏิเสธ: บัญชี e-Claim นี้สังกัดหน่วยบริการ [{$detectedHcode}] ซึ่งไม่ตรงกับหน่วยบริการของระบบ RiMS นี้ ([{$serverHcode}]" . ($serverHname ? " - {$serverHname}" : "") . ") กรุณาใช้บัญชีของโรงพยาบาลนี้เท่านั้น",
+                    'hospcode' => $detectedHcode,
+                    'cid' => $detectedCid,
+                    'user' => $detectedUser
+                ];
+            }
+        }
+
+        return [
+            'valid' => true,
+            'message' => 'ตรวจสอบความถูกต้องสำเร็จ',
+            'hospcode' => $detectedHcode ?: $serverHcode,
+            'cid' => $detectedCid,
+            'user' => $detectedUser
+        ];
     }
 
     /**
@@ -388,6 +545,22 @@ class EclaimBotController extends Controller
             $cleanToken = $this->cleanToken($token);
             $now = date('Y-m-d H:i:s');
             $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+            $userCid = auth()->check() ? (auth()->user()->cid ?? null) : null;
+
+            // 🛡️ ป้องกันสแกนข้าม รพ. (Hospcode Validation) และสแกนแทนกัน (CID Validation)
+            $valRes = $this->validateEclaimSessionContext($cleanToken, $hcode, $userCid, $data['hospcode'] ?? null, $data['cid'] ?? null);
+            if (!$valRes['valid']) {
+                @unlink($sessionFile);
+                return response()->json([
+                    'status' => 'error',
+                    'state' => 'REJECTED',
+                    'message' => $valRes['message']
+                ], 422);
+            }
+
+            if (!empty($valRes['user'])) {
+                $user = $valRes['user'];
+            }
 
             // 1. บันทึกลง users table ของผู้ใช้งานปัจจุบัน
             if (auth()->check()) {

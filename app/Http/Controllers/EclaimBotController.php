@@ -181,14 +181,30 @@ class EclaimBotController extends Controller
                     ], 422);
                 }
 
-                // ดึงชื่อผู้ใช้งานที่ล็อกอินอยู่จาก e-Claim (ตัดข้อความที่เป็นประกาศทิ้ง)
-                if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                    $extracted = trim(strip_tags($m[1]));
-                    if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
-                        $user = $extracted;
+                // ดึงชื่อผู้ใช้งานจริงจาก JWT Token หรือ HTML (ตัดข้อความที่เป็นประกาศทิ้ง)
+                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm)) {
+                    try {
+                        $parts = explode('.', $jm[1]);
+                        if (count($parts) >= 2) {
+                            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                            if (!empty($payload['nameTh'])) {
+                                $user = $payload['nameTh'];
+                            } elseif (!empty($payload['name'])) {
+                                $user = $payload['name'];
+                            }
+                        }
+                    } catch (\Exception $e) {}
+                }
+
+                if (empty($user) || $user === 'เจ้าหน้าที่ e-Claim' || mb_strlen($user) > 50 || stripos($user, 'ประกาศ') !== false || stripos($user, 'หน่วยบริการ') !== false) {
+                    if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]{2,40})/u', $html, $m)) {
+                        $extracted = trim(strip_tags($m[1]));
+                        if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false && stripos($extracted, 'ประกาศ') === false && stripos($extracted, 'หน่วยบริการ') === false && mb_strlen($extracted) <= 40) {
+                            $user = $extracted;
+                        }
+                    } elseif (auth()->check()) {
+                        $user = auth()->user()->name;
                     }
-                } elseif (auth()->check()) {
-                    $user = auth()->user()->name;
                 }
 
                 // ตรวจจับรหัสสถานพยาบาล 5 หลัก จาก e-Claim HTML

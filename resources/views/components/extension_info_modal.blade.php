@@ -76,7 +76,7 @@
                       <ol class="small text-muted ps-3 mb-0 lh-base" style="font-size: 0.8rem;">
                           <li class="mb-1">เปิดหน้าเว็บ <a href="https://eclaim.nhso.go.th" target="_blank" class="fw-bold text-success text-decoration-underline">e-Claim สปสช.</a> และ Login ThaiD</li>
                           <li class="mb-1">คลิกไอคอน Extension <b>"RiMS Sync"</b></li>
-                          <li>กดปุ่มสีเขียว <b>"ซิงก์ Session เข้า RiMS"</b></li>
+                          <li>กดปุ่มสีเขียว <b>"Sync webComponent"</b></li>
                       </ol>
                   </div>
               </div>

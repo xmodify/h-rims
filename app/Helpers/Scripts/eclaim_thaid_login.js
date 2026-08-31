@@ -229,8 +229,13 @@ async function run() {
             await page.waitForTimeout(2000);
         }
 
-        // Wait an extra moment for session cookies to be fully set
-        await page.waitForTimeout(3000);
+        // Wait an extra moment and navigate to Client/home to initialize Vue SPA and fresh ACCESS_TOKEN
+        try {
+            await page.goto('https://eclaim.nhso.go.th/Client/home', { waitUntil: 'networkidle', timeout: 25000 });
+            await page.waitForTimeout(3000);
+        } catch(e) {
+            console.log('Client/home init note:', e.message);
+        }
 
         // 6. Extract Cookies & User Info
         const cookies = await context.cookies();
@@ -240,6 +245,15 @@ async function run() {
                 cookiePairs.push(`${c.name}=${c.value}`);
             }
         }
+
+        // Also check if Vue set localStorage token
+        try {
+            const localTok = await page.evaluate(() => window.localStorage.getItem('token'));
+            if (localTok && !fullCookieString.includes('ACCESS_TOKEN')) {
+                cookiePairs.push(`ACCESS_TOKEN=${localTok}`);
+            }
+        } catch(e) {}
+
         const fullCookieString = cookiePairs.join('; ');
 
         // Check if landing page has user info

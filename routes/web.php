@@ -347,6 +347,8 @@ Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class,
 Route::post('check/drugcat_nhso_save', [CheckDrugcatController::class, 'drugcat_nhso_save']);
 Route::get('check/drugcat_nhso', [CheckDrugcatController::class, 'drugcat_nhso'])->name('check.drugcat_nhso');
 Route::match(['get', 'post'], 'check/eclaim_status', [\App\Http\Controllers\CheckEclaimController::class, 'eclaim_status']);
+Route::get('check/eclaim_status/bot-status', [\App\Http\Controllers\CheckEclaimController::class, 'getBotStatus'])->name('check.eclaim_status.bot_status');
+Route::post('check/eclaim_status/auto-pull', [\App\Http\Controllers\CheckEclaimController::class, 'autoPullEclaimStatus'])->name('check.eclaim_status.auto_pull');
 Route::post('check/eclaim_status/import', [\App\Http\Controllers\CheckEclaimController::class, 'import_eclaim_excel']);
 Route::get('check/drugcat_nhso_non_nhso', [CheckDrugcatController::class, 'drugcat_nhso_non_nhso']);
 Route::get('check/drugcat_nhso_price_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_price_notmatch_hosxp']);

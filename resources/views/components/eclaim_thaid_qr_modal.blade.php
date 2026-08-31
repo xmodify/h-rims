@@ -104,11 +104,11 @@
 </style>
 
 <script>
-let currentThaidSessionId = null;
-let thaidPollingInterval = null;
-let thaidCountdownInterval = null;
-let thaidRemainingSeconds = 120;
-let onThaidLoginSuccessCallback = null;
+var currentThaidSessionId = null;
+var thaidPollingInterval = null;
+var thaidCountdownInterval = null;
+var thaidRemainingSeconds = 120;
+var onThaidLoginSuccessCallback = null;
 
 // Modal Show/Hide Helpers (Safe across jQuery & Bootstrap versions)
 function showEclaimThaidModal() {

@@ -470,5 +470,58 @@ class PlaywrightHelper
 
         return true;
     }
+
+    /**
+     * Run E-Claim Client Automated Crawler (All records from Client/home)
+     */
+    public static function runEclaimClientCrawler(array $params): array
+    {
+        $nodeExe = static::findNodeExecutable();
+        if (!$nodeExe) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบ Node.js บนเครื่องเซิร์ฟเวอร์'
+            ];
+        }
+
+        $scriptPath = base_path('app/Helpers/Scripts/eclaim_client_crawler.js');
+        if (!file_exists($scriptPath)) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบสคริปต์ eclaim_client_crawler.js'
+            ];
+        }
+
+        $outputFile = storage_path('app/crawler_' . uniqid() . '.json');
+        $startDate = $params['start_date'] ?? '';
+        $endDate = $params['end_date'] ?? $startDate;
+        $cookies = $params['cookies'] ?? '';
+
+        $customPath = static::getCustomBrowsersPath();
+        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
+
+        // Save cookies to temp file if too long to prevent command line length overflow on Windows
+        $tempCookieFile = storage_path('app/cookies_' . uniqid() . '.txt');
+        file_put_contents($tempCookieFile, $cookies);
+
+        $cmd = "{$nodeExe} \"" . str_replace('/', DIRECTORY_SEPARATOR, $scriptPath) . "\" --startDate=\"{$startDate}\" --endDate=\"{$endDate}\" --cookieFile=\"" . str_replace('/', DIRECTORY_SEPARATOR, $tempCookieFile) . "\" --output=\"" . str_replace('/', DIRECTORY_SEPARATOR, $outputFile) . "\"";
+
+        $res = static::runSyncCommand($cmd, base_path(), $extraEnv);
+        @unlink($tempCookieFile);
+
+        if (file_exists($outputFile)) {
+            $data = json_decode(file_get_contents($outputFile), true);
+            @unlink($outputFile);
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+
+        return [
+            'success' => false,
+            'message' => 'ไม่สามารถดึงข้อมูลจาก e-Claim Client ได้: ' . ($res['output'] ?: 'Unknown error'),
+            'raw_output' => $res['output']
+        ];
+    }
 }
 

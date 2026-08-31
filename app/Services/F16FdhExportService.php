@@ -280,6 +280,50 @@ class F16FdhExportService
     }
 
     /**
+     * Normalize Non-ED reason code to standard 2-character code (EA, EB, EC, ED, EE, EF, PA)
+     * using claim_control lookup or keyword mapping from drugitems_ned_reason_list
+     */
+    public static function normalizeNedReason(?string $raw): string
+    {
+        if (empty($raw)) return '';
+        $trimmed = trim((string)$raw);
+        $upper = strtoupper($trimmed);
+
+        if (in_array($upper, ['EA', 'EB', 'EC', 'ED', 'EE', 'EF', 'PA'])) {
+            return $upper;
+        }
+        if (preg_match('/^(EA|EB|EC|ED|EE|EF|PA)\b/i', $trimmed, $m)) {
+            return strtoupper($m[1]);
+        }
+        if (in_array($upper, ['A', 'B', 'C', 'D', 'E', 'F'])) {
+            return 'E' . $upper;
+        }
+        if (str_contains($trimmed, 'แพ้ยา') || str_contains($trimmed, 'ข้างเคียง') || str_contains($trimmed, 'ไม่พึงประสงค์')) {
+            return 'EA';
+        }
+        if (str_contains($trimmed, 'ไม่บรรลุ') || str_contains($trimmed, 'ไม่ได้ผล') || str_contains($trimmed, 'ไม่บรรลุผล')) {
+            return 'EB';
+        }
+        if (str_contains($trimmed, 'ไม่มียา') || str_contains($trimmed, 'ไม่มีกลุ่มยา') || str_contains($trimmed, 'อย.') || str_contains($trimmed, 'อาหารและยา')) {
+            return 'EC';
+        }
+        if (str_contains($trimmed, 'ข้อห้าม') || str_contains($trimmed, 'ห้ามใช้')) {
+            return 'ED';
+        }
+        if (str_contains($trimmed, 'ราคาแพง') || str_contains($trimmed, 'คุ้มค่า')) {
+            return 'EE';
+        }
+        if (str_contains($trimmed, 'จำนง') || str_contains($trimmed, 'เบิกไม่ได้') || str_contains($trimmed, 'ชำระเอง')) {
+            return 'EF';
+        }
+        if (str_contains($trimmed, 'PA') || str_contains($trimmed, 'อนุมัติก่อน')) {
+            return 'PA';
+        }
+
+        return mb_substr($trimmed, 0, 50, 'UTF-8');
+    }
+
+    /**
      * =========================================================================
      * GENERATE 16/17 แฟ้มมาตรฐาน FDH สำหรับผู้ป่วยนอก (OPD)
      * =========================================================================
@@ -667,6 +711,63 @@ class F16FdhExportService
             }
         }
 
+        // Query Non-ED Reason / DRUGREMARK from ovst_presc_ned and drugitems_ned_reason
+        $opdNedReasons = collect();
+        if (!empty($vnsList)) {
+            try {
+                $nedRows = DB::connection('hosxp')->select("
+                    SELECT vn, icode,
+                           COALESCE(NULLIF(presc_reason, ''), NULLIF(reason_all, '')) as ned_reason,
+                           nhso_authorize_code as pa_no
+                    FROM ovst_presc_ned
+                    WHERE vn IN ($vnPlaceholders)
+                ", $vnsList);
+                $opdNedReasons = collect($nedRows)->keyBy(function($r) {
+                    return $r->vn . '_' . $r->icode;
+                });
+            } catch (\Throwable $e) {}
+        }
+
+        $masterNedReasons = collect();
+        try {
+            $masterRows = DB::connection('hosxp')->select("
+                SELECT icode, doctor_reason
+                FROM drugitems_ned_reason
+                WHERE doctor_reason IS NOT NULL AND doctor_reason != ''
+            ");
+            $masterNedReasons = collect($masterRows)->keyBy('icode');
+        } catch (\Throwable $e) {}
+
+        $nedIcodeMap = [];
+        try {
+            if (Schema::hasTable('drugcat_nhso')) {
+                $nhsoRows = DB::table('drugcat_nhso')
+                    ->whereNotNull('hospdrugcode')
+                    ->where('hospdrugcode', '!=', '')
+                    ->select('hospdrugcode', 'ised_approved', 'ised')
+                    ->get();
+                foreach ($nhsoRows as $nr) {
+                    if ($nr->ised_approved === 'N' || ($nr->ised_approved !== 'E' && $nr->ised === 'N')) {
+                        $nedIcodeMap[$nr->hospdrugcode] = true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            $sksRows = DB::connection('hosxp')->select("
+                SELECT HospDrugCode, ISED, NDC24
+                FROM sks_drugcatalog
+                WHERE (ISED = 'N' OR NDC24 LIKE '2%' OR NDC24 LIKE '4%')
+                  AND HospDrugCode IS NOT NULL
+            ");
+            foreach ($sksRows as $sr) {
+                if (!isset($nedIcodeMap[$sr->HospDrugCode])) {
+                    $nedIcodeMap[$sr->HospDrugCode] = true;
+                }
+            }
+        } catch (\Throwable $e) {}
+
         // =============================================================
         // BUILD 16/17 แฟ้ม FDH สำหรับ OPD
         // =============================================================
@@ -1009,8 +1110,17 @@ class F16FdhExportService
             $unit = trim((string)$it->drug_unit) ?: 'เม็ด';
             $unitpack = trim((string)$it->drug_pack) ? "1x{$it->drug_pack}" : "1x{$unit}";
             $seq = $it->vn;
-            $drugremark = '';
-            $pano = '';
+            $nedInfo = $opdNedReasons->get($it->vn . '_' . $it->icode);
+            $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasons->get($it->icode)?->doctor_reason ?? '');
+            if (empty($rawReason)) {
+                $isNed = isset($nedIcodeMap[$it->icode]) 
+                    || in_array(strtoupper((string)($it->drugaccount ?? '')), ['NED', 'NON-ED', 'นอก', '-']);
+                if ($isNed) {
+                    $rawReason = 'EC';
+                }
+            }
+            $drugremark = self::normalizeNedReason($rawReason);
+            $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = '2'; // 1=In-hospital, 2=Home
@@ -1339,6 +1449,63 @@ class F16FdhExportService
             } catch (\Throwable $e) {}
         }
 
+        // Query Non-ED Reason / DRUGREMARK from ipt_presc_ned
+        $ipdNedReasons = collect();
+        if (!empty($ansList)) {
+            try {
+                $nedRows = DB::connection('hosxp')->select("
+                    SELECT an, icode,
+                           COALESCE(NULLIF(presc_reason_1, ''), NULLIF(presc_reason_2, '')) as ned_reason,
+                           nhso_authorize_code as pa_no
+                    FROM ipt_presc_ned
+                    WHERE an IN ($anPlaceholders)
+                ", $ansList);
+                $ipdNedReasons = collect($nedRows)->keyBy(function($r) {
+                    return $r->an . '_' . $r->icode;
+                });
+            } catch (\Throwable $e) {}
+        }
+
+        $masterNedReasonsIp = collect();
+        try {
+            $masterRows = DB::connection('hosxp')->select("
+                SELECT icode, doctor_reason
+                FROM drugitems_ned_reason
+                WHERE doctor_reason IS NOT NULL AND doctor_reason != ''
+            ");
+            $masterNedReasonsIp = collect($masterRows)->keyBy('icode');
+        } catch (\Throwable $e) {}
+
+        $nedIcodeMapIp = [];
+        try {
+            if (Schema::hasTable('drugcat_nhso')) {
+                $nhsoRows = DB::table('drugcat_nhso')
+                    ->whereNotNull('hospdrugcode')
+                    ->where('hospdrugcode', '!=', '')
+                    ->select('hospdrugcode', 'ised_approved', 'ised')
+                    ->get();
+                foreach ($nhsoRows as $nr) {
+                    if ($nr->ised_approved === 'N' || ($nr->ised_approved !== 'E' && $nr->ised === 'N')) {
+                        $nedIcodeMapIp[$nr->hospdrugcode] = true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            $sksRows = DB::connection('hosxp')->select("
+                SELECT HospDrugCode, ISED, NDC24
+                FROM sks_drugcatalog
+                WHERE (ISED = 'N' OR NDC24 LIKE '2%' OR NDC24 LIKE '4%')
+                  AND HospDrugCode IS NOT NULL
+            ");
+            foreach ($sksRows as $sr) {
+                if (!isset($nedIcodeMapIp[$sr->HospDrugCode])) {
+                    $nedIcodeMapIp[$sr->HospDrugCode] = true;
+                }
+            }
+        } catch (\Throwable $e) {}
+
         // =============================================================
         // BUILD 16/17 แฟ้ม FDH สำหรับ IPD
         // =============================================================
@@ -1664,8 +1831,17 @@ class F16FdhExportService
             $unit = trim((string)$it->drug_unit) ?: 'เม็ด';
             $unitpack = trim((string)$it->drug_pack) ? "1x{$it->drug_pack}" : "1x{$unit}";
             $seq = $it->an;
-            $drugremark = '';
-            $pano = '';
+            $nedInfo = $ipdNedReasons->get($it->an . '_' . $it->icode);
+            $rawReason = $nedInfo ? $nedInfo->ned_reason : ($masterNedReasonsIp->get($it->icode)?->doctor_reason ?? '');
+            if (empty($rawReason)) {
+                $isNed = isset($nedIcodeMapIp[$it->icode]) 
+                    || in_array(strtoupper((string)($it->drugaccount ?? '')), ['NED', 'NON-ED', 'นอก', '-']);
+                if ($isNed) {
+                    $rawReason = 'EC';
+                }
+            }
+            $drugremark = self::normalizeNedReason($rawReason);
+            $pano = $nedInfo ? mb_substr(trim((string)$nedInfo->pa_no), 0, 30, 'UTF-8') : '';
             $totcopay = '0';
             $usestatus = '1'; // 1=In-hospital
             $total = number_format((float)$it->sum_price, 2, '.', '');

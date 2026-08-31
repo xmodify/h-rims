@@ -290,6 +290,22 @@ async function run() {
         }
 
         try {
+            if (!detectedHcode) {
+                const wcRes = await context.request.get('https://eclaim.nhso.go.th/webComponent/checkdata/CheckDataAction.do');
+                if (wcRes.ok()) {
+                    const wcHtml = await wcRes.text();
+                    const mHosp = wcHtml.match(/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล)\s*:\s*([^\[<]+)\[(\d{5})\]/u);
+                    if (mHosp) {
+                        detectedHcode = mHosp[2].trim();
+                        if (detectedUser === 'เจ้าหน้าที่ e-Claim') {
+                            detectedUser = mHosp[1].trim();
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+
+        try {
             const html = await page.content();
             if (detectedUser === 'เจ้าหน้าที่ e-Claim') {
                 const mUser = html.match(/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u);

@@ -236,8 +236,15 @@ class EclaimBotController extends Controller
                 ], 422);
             }
         } catch (\Exception $e) {
-            // กรณีเซิร์ฟเวอร์เชื่อมต่อออกภายนอกไม่ได้
-            if (auth()->check()) {
+            $userCid = auth()->check() ? (auth()->user()->cid ?? null) : null;
+            $valRes = $this->validateEclaimSessionContext($token, $serverHcode, $userCid, $request->input('hospcode'));
+            if (!$valRes['valid']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $valRes['message']
+                ], 422);
+            }
+            if (auth()->check() && empty($user)) {
                 $user = auth()->user()->name;
             }
         }
@@ -305,8 +312,25 @@ class EclaimBotController extends Controller
      */
     public function validateEclaimSessionContext(?string $token = '', ?string $expectedHcode = null, ?string $expectedCid = null, ?string $directHcode = null, ?string $directCid = null): array
     {
-        $serverHcode = $expectedHcode ?: (DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989');
-        $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: '';
+        $serverHcode = $expectedHcode ?: DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        $serverHname = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
+        
+        if (!$serverHcode) {
+            try {
+                $serverHcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
+            } catch (\Exception $e) {}
+        }
+        if (!$serverHcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $serverHcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        $serverHcode = $serverHcode ?: '10989';
+
+        if (!$serverHname) {
+            try {
+                $serverHname = DB::connection('hosxp')->table('opdconfig')->value('hospitalname');
+            } catch (\Exception $e) {}
+        }
+        $serverHname = $serverHname ?: '';
         
         $detectedHcode = $directHcode ?: null;
         $detectedCid = $directCid ?: null;
@@ -430,6 +454,20 @@ class EclaimBotController extends Controller
         }
 
         // 2. ตรวจสอบรหัสสถานพยาบาล (Hospcode)
+        // ถ้ายังไม่ได้ Hospcode จาก Token หรือ Playwright ให้ Probe สดจาก e-Claim webComponent
+        if (empty($detectedHcode) && !empty($token)) {
+            try {
+                $probeHeaders = $this->getEclaimBrowserHeaders($token);
+                $probeRes = Http::withHeaders($probeHeaders)->withoutVerifying()->timeout(6)->get('https://eclaim.nhso.go.th/webComponent/checkdata/CheckDataAction.do');
+                if ($probeRes->successful()) {
+                    $probeHtml = $probeRes->body();
+                    if (preg_match('/(?:หน่วยงาน|หน่วยบริการ|สถานพยาบาล)\s*:\s*([^\[<]+)\[(\d{5})\]/u', $probeHtml, $mHosp)) {
+                        $detectedHcode = trim($mHosp[2]);
+                    }
+                }
+            } catch (\Exception $e) {}
+        }
+
         if (!empty($detectedHcode) && !empty($serverHcode)) {
             $cleanDetectedHcode = trim((string)$detectedHcode);
             $cleanServerHcode = trim((string)$serverHcode);
@@ -879,6 +917,21 @@ class EclaimBotController extends Controller
         $user = $request->input('user') ?: (auth()->check() ? auth()->user()->name : null);
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         $now = date('Y-m-d H:i:s');
+
+        // 🛡️ ป้องกันสแกนข้าม รพ. (Hospcode Validation) และสแกนแทนกัน (CID Validation)
+        $userCid = auth()->check() ? (auth()->user()->cid ?? null) : null;
+        $valRes = $this->validateEclaimSessionContext($token, $hcode, $userCid, $request->input('hospcode'), $request->input('cid'));
+        if (!$valRes['valid']) {
+            return response()->json([
+                'status' => 'error',
+                'connected' => false,
+                'message' => $valRes['message']
+            ], 422);
+        }
+
+        if (!empty($valRes['user'])) {
+            $user = $valRes['user'];
+        }
 
         // ถ้ายังไม่มีชื่อผู้ใช้ ให้ลอง probe ดึงชื่อผู้ใช้จริงจาก e-Claim
         if (!$user) {

@@ -1184,14 +1184,33 @@ class SssExportController extends Controller
             $billitems_rows = [];
             $seq_item = 1;
             foreach ($billitems_raw as $item) {
-                $qty = (float)$item->qty;
-                $unitprice = (float)$item->unitprice;
-                $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
-                $discount = (float)($item->discount ?: 0.0);
+                $qty = round((float)$item->qty, 2);
+                $unitprice = round((float)$item->unitprice, 2);
+                $sum_price = round((float)($item->sum_price ?: 0.0), 2);
+                $discount = round((float)($item->discount ?: 0.0), 2);
 
-                // Skip items with price or quantity <= 0 (e.g., patient's own medicines)
-                if ($charge_amt <= 0 || $qty <= 0) {
+                // Skip items with quantity <= 0 or sum_price <= 0 (e.g., patient's own medicines or waived charges with net 0)
+                if ($qty <= 0 || ($sum_price <= 0 && $discount <= 0) || ($sum_price <= 0 && $discount >= ($qty * $unitprice))) {
                     continue;
+                }
+
+                if ($unitprice <= 0 && $qty > 0 && ($sum_price > 0 || $discount > 0)) {
+                    $unitprice = round(($sum_price + $discount) / $qty, 2);
+                }
+
+                // ChargeAmt in AIPN standard must always equal round(QTY * UnitPrice, 2)
+                $charge_amt = round($qty * $unitprice, 2);
+
+                if ($charge_amt <= 0) {
+                    continue;
+                }
+
+                if ($discount == 0 && $sum_price > 0 && $sum_price < $charge_amt) {
+                    $discount = round($charge_amt - $sum_price, 2);
+                }
+
+                if ($discount > $charge_amt) {
+                    $discount = $charge_amt;
                 }
 
                 // Map to AIPN BillGr
@@ -1746,11 +1765,12 @@ class SssExportController extends Controller
         ", [$an]);
 
         foreach ($items as $item) {
-            $qty = (float)$item->qty;
-            $sum_price = (float)$item->sum_price;
+            $qty = round((float)$item->qty, 2);
+            $sum_price = round((float)($item->sum_price ?: 0.0), 2);
+            $discount = round((float)($item->discount ?: 0.0), 2);
             
-            // Skip validation checks for items with price or quantity <= 0 (e.g., patient's own medicines)
-            if ($sum_price <= 0 || $qty <= 0) {
+            // Skip validation checks for items with price or quantity <= 0 (e.g., patient's own medicines or waived charges)
+            if ($qty <= 0 || ($sum_price <= 0 && $discount <= 0) || ($sum_price <= 0 && $discount >= ($qty * (float)$item->unitprice))) {
                 continue;
             }
 

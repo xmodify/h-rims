@@ -2811,8 +2811,8 @@ class ClaimIpController extends Controller
                 $parts = explode(':', $c, 2);
                 $base_code = trim($parts[0]);
 
-                $desc = $lookup[$base_code] ?? 'ไม่พบข้อมูลในคู่มือ';
-                $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8');
+                $desc = $lookup[$base_code] ?? $lookup[$c] ?? 'ไม่พบข้อมูลในคู่มือ';
+                $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8') || (is_numeric($base_code) && (int)$base_code >= 800);
                 $rep_feedbacks[] = [
                     'code' => $c,
                     'type' => $is_warn ? 'warning' : 'error',

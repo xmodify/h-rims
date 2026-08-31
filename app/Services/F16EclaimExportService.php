@@ -1400,6 +1400,35 @@ class F16EclaimExportService
             ", $ans);
             $ansOrderMap = array_flip($ans);
             $admissions = collect($admRows)->sortBy(fn($a) => $ansOrderMap[$a->an] ?? 999999)->values();
+
+            // Check NHSO endpoint fallback for permitno if empty
+            $cids = $admissions->pluck('cid')->filter()->unique()->toArray();
+            if (!empty($cids)) {
+                try {
+                    $nhsoEndpoints = DB::table('nhso_endpoint')
+                        ->whereIn('cid', $cids)
+                        ->whereNotNull('claimCode')
+                        ->where('claimCode', '!=', '')
+                        ->select('cid', 'vstdate', 'claimCode')
+                        ->get()
+                        ->groupBy(function ($r) {
+                            return $r->cid . '_' . $r->vstdate;
+                        });
+
+                    $admissions->transform(function ($v) use ($nhsoEndpoints) {
+                        if (empty($v->permitno)) {
+                            $key1 = $v->cid . '_' . $v->regdate;
+                            $key2 = $v->cid . '_' . $v->dchdate;
+                            if (isset($nhsoEndpoints[$key1]) && count($nhsoEndpoints[$key1]) > 0) {
+                                $v->permitno = trim((string)$nhsoEndpoints[$key1]->first()->claimCode);
+                            } elseif (isset($nhsoEndpoints[$key2]) && count($nhsoEndpoints[$key2]) > 0) {
+                                $v->permitno = trim((string)$nhsoEndpoints[$key2]->first()->claimCode);
+                            }
+                        }
+                        return $v;
+                    });
+                } catch (\Throwable $ex) {}
+            }
         } catch (\Throwable $e) {
             Log::error("F16 IPD Export main admission query error: " . $e->getMessage());
             throw $e;
@@ -1604,7 +1633,7 @@ class F16EclaimExportService
         foreach ($admissions as $v) {
             $hip = strtoupper(trim((string)$v->hipdata_code));
             $ptt = strtoupper(trim((string)$v->pttype));
-            $inscl = self::mapChtPttype($v->hipdata_code, $v->pttype);
+            $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
             $dateexp = self::formatDate($v->dateexp ?? '');
@@ -1620,7 +1649,7 @@ class F16EclaimExportService
             $seq = '';
             $subinscl = '';
             $relinscl = '';
-            $htype = '2';
+            $htype = '';
 
             $insLines[] = "{$v->hn}|{$inscl}|{$subtype}|{$cid}|{$hcode}|{$dateexp}|{$hospmain}|{$hospsub}|{$govcode}|{$govname}|{$permitno}|{$docno}|{$ownrpid}|{$ownname}|{$an}|{$seq}|{$subinscl}|{$relinscl}|{$htype}";
         }
@@ -1783,7 +1812,8 @@ class F16EclaimExportService
             $dateserv = self::formatDate($it->rxdate ?: ($it->vstdate ?: ($adm ? $adm->dchdate : '')));
             $did = trim((string)$it->icode);
             $didname = str_replace('|', '', trim((string)$it->drug_name));
-            $amount = intval($it->qty);
+            $amount = (float)$it->qty;
+            $amountStr = $amount == floor($amount) ? (string)intval($amount) : number_format($amount, 2, '.', '');
             $drugprice = number_format((float)($it->unitprice ?: ($it->drug_price ?: 0.0)), 2, '.', '');
             $drugcost = number_format((float)($it->unitcost ?: 0.0), 2, '.', '');
             $didstd = trim((string)$it->didstd) ?: $did;
@@ -1796,7 +1826,7 @@ class F16EclaimExportService
             $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $provider = $it->doctor_license ?: 'ว00000';
 
-            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amount}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|||{$totcopay}|{$usestatus}|{$total}|||{$provider}|";
+            $druLines[] = "{$hcode}|{$it->hn}|{$it->an}|{$clinic}|{$cid}|{$dateserv}|{$did}|{$didname}|{$amountStr}|{$drugprice}|{$drugcost}|{$didstd}|{$unit}|{$unitpack}|{$seq}|||{$totcopay}|{$usestatus}|{$total}|||{$provider}|";
         }
 
         // 13. CHA.txt (7 columns)
@@ -1900,9 +1930,9 @@ class F16EclaimExportService
         $groupedAdp = [];
         foreach ($adpItems as $it) {
             $adm = $admissionsByAn->get($it->an);
-            $type = trim((string)($it->nhso_adp_type ?: '17'));
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
             $rawCode = trim((string)$it->nhso_adp_code);
-            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? trim((string)$it->icode) : $rawCode;
             $rate = floatval($it->unitprice ?: 0.0);
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $key = $it->an . '_' . $type . '_' . $code . '_' . $rateStr;
@@ -1933,8 +1963,8 @@ class F16EclaimExportService
             $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
             $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
             $clinic = self::formatClinic($adm ? $adm->dept : '01');
-            $provider = '';
-            $itemsrc = '';
+            $provider = $it->doctor_license ?: ($adm ? ($adm->doctor_license ?: '') : '');
+            $itemsrc = '1';
             $checkKey = "{$seq}:{$type}:{$code}:{$rateStr}";
             $guid = trim((string)($it->hos_guid ?? ''));
 

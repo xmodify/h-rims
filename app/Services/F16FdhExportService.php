@@ -1592,9 +1592,9 @@ class F16FdhExportService
         foreach ($adpItems as $it) {
             $adm = $admissionsByAn->get($it->an);
             $dateopd = self::formatDate($it->vstdate ?: ($adm ? $adm->dchdate : ''));
-            $type = trim((string)($it->nhso_adp_type ?: '17'));
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
             $rawCode = trim((string)$it->nhso_adp_code);
-            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
+            $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? trim((string)$it->icode) : $rawCode;
             $qty = intval($it->qty) ?: 1;
             $rate = (float)$it->unitprice;
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');

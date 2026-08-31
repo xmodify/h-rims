@@ -32614,6 +32614,24 @@
                 "nullable": true,
                 "default": null,
                 "extra": ""
+            },
+            "eclaim_session_token": {
+                "type": "longtext",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "eclaim_session_user": {
+                "type": "varchar(191)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "eclaim_session_time": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
             }
         },
         "indexes": {

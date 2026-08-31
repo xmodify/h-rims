@@ -227,7 +227,27 @@ class EclaimBotController extends Controller
         $hcode = $serverHcode ?: ($request->hospcode ?: '10989');
         $now = date('Y-m-d H:i:s');
 
-        // บันทึกลง Database (main_setting) เพื่อแชร์ให้ทุกคนใน รพ.
+        // 1. บันทึกลง users table ของผู้ใช้งาน (ถ้ามี user_id/username หรือล็อกอินอยู่)
+        $targetUserId = auth()->check() ? auth()->id() : null;
+        if (!$targetUserId && $request->user_id) {
+            $targetUserId = DB::table('users')->where('id', $request->user_id)->value('id');
+        }
+        if (!$targetUserId && $request->username) {
+            $targetUserId = DB::table('users')->where('username', $request->username)->orWhere('name', $request->username)->value('id');
+        }
+        if ($targetUserId) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                    DB::table('users')->where('id', $targetUserId)->update([
+                        'eclaim_session_token' => $token,
+                        'eclaim_session_user' => $user,
+                        'eclaim_session_time' => $now,
+                    ]);
+                }
+            } catch (\Exception $e) {}
+        }
+
+        // 2. บันทึกลง Database (main_setting) เพื่อเป็น Fallback ส่วนกลาง
         DB::table('main_setting')->updateOrInsert(
             ['name' => 'eclaim_session_token'],
             ['name_th' => 'e-Claim Session Token', 'value' => $token]
@@ -241,7 +261,7 @@ class EclaimBotController extends Controller
             ['name_th' => 'e-Claim Session Connected Time', 'value' => $now]
         );
 
-        // 2. Save to Cache & Session
+        // 3. Save to Cache & Session
         \Illuminate\Support\Facades\Cache::put('eclaim_session_token_' . $hcode, $token, 7200);
         \Illuminate\Support\Facades\Cache::put('eclaim_session_token_global', $token, 7200);
         \Illuminate\Support\Facades\Cache::put('eclaim_session_user_' . $hcode, $user, 7200);
@@ -254,7 +274,7 @@ class EclaimBotController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'ซิงก์ Session กับ RiMS สำเร็จแล้ว (' . $user . ') พร้อมใช้งานสำหรับทุกคนใน รพ.',
+            'message' => 'ซิงก์ Session กับ RiMS สำเร็จแล้ว (' . $user . ')',
             'token' => $token,
             'user' => $user
         ]);
@@ -353,6 +373,20 @@ class EclaimBotController extends Controller
             $now = date('Y-m-d H:i:s');
             $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
 
+            // 1. บันทึกลง users table ของผู้ใช้งานปัจจุบัน
+            if (auth()->check()) {
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                        DB::table('users')->where('id', auth()->id())->update([
+                            'eclaim_session_token' => $cleanToken,
+                            'eclaim_session_user' => $user,
+                            'eclaim_session_time' => $now,
+                        ]);
+                    }
+                } catch (\Exception $e) {}
+            }
+
+            // 2. บันทึกลง Database (main_setting) เป็น Fallback
             DB::table('main_setting')->updateOrInsert(
                 ['name' => 'eclaim_session_token'],
                 ['name_th' => 'e-Claim Session Token', 'value' => $cleanToken]
@@ -438,83 +472,131 @@ class EclaimBotController extends Controller
     {
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         
-        $sessionToken = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
-            ?: Session::get('eclaim_session_token')));
-            
-        $sessionUser = DB::table('main_setting')->where('name', 'eclaim_session_user')->value('value')
-            ?: (Session::get('eclaim_session_user')
-            ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim'));
-            
-        $sessionTime = DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value')
-            ?: (Session::get('eclaim_session_time')
-            ?: date('Y-m-d H:i:s'));
+        $userToken = null;
+        $userSessionUser = null;
+        $userSessionTime = null;
+        $userAuthMethod = '';
 
-        if (!$sessionToken) {
-            return response()->json([
-                'connected' => false,
-                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim (กรุณาซิงก์ Session จาก Extension)'
-            ]);
-        }
-
-        // Live Probe: ทดสอบยิงไปตรวจสอบกับระบบ e-Claim สปสช. จริงก่อนแสดงสถานะเชื่อมต่อสำเร็จ
-        $probePassed = false;
-        try {
-            $headers = $this->getEclaimBrowserHeaders($sessionToken);
-            $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
-            
-            // ลอง Probe ด้วยหน้าหลัก MainWebAction (timeout 8s กระชับ ไม่ค้าง)
-            $probeRes = Http::withHeaders($headers)
-                ->withoutVerifying()
-                ->timeout(8)
-                ->get($probeUrl);
-
-            $html = (string)$probeRes->body();
-
-            // ตรวจสอบว่า Probe ผ่าน (ได้รับหน้าเว็บ e-Claim ที่ล็อกอินแล้วสมบูรณ์)
-            if (
-                $probeRes->status() === 200 &&
-                stripos($html, 'Error Page') === false &&
-                stripos($html, 'frmErr') === false &&
-                stripos($html, 'คุณไม่มีสิทธิ์') === false &&
-                stripos($html, 'ประกาศใช้งานระบบ SSO') === false &&
-                stripos($html, 'SSO (ThaiD)') === false &&
-                (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ยินดีต้อนรับ') !== false || stripos($html, 'maininscl') !== false)
-            ) {
-                $probePassed = true;
-                // ดึงชื่อผู้ใช้งานหากมี
-                if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
-                    $extracted = trim(strip_tags($m[1]));
-                    if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
-                        $sessionUser = $extracted;
-                    }
+        // 1. ตรวจสอบ Session เฉพาะของผู้ใช้งานปัจจุบันก่อน (Priority 1: User-Specific)
+        if (auth()->check()) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                $uData = DB::table('users')->where('id', auth()->id())->first(['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time']);
+                if ($uData && !empty($uData->eclaim_session_token)) {
+                    $userToken = $uData->eclaim_session_token;
+                    $userSessionUser = $uData->eclaim_session_user;
+                    $userSessionTime = $uData->eclaim_session_time;
+                    $userAuthMethod = 'Session ประจำตัว (' . (auth()->user()->name ?: 'User') . ')';
                 }
             }
+            if (!$userToken && Session::has('eclaim_session_token')) {
+                $userToken = Session::get('eclaim_session_token');
+                $userSessionUser = Session::get('eclaim_session_user');
+                $userSessionTime = Session::get('eclaim_session_time');
+                $userAuthMethod = Session::get('eclaim_auth_method', 'Session เบราว์เซอร์ส่วนตัว');
+            }
+        }
 
-        } catch (\Exception $e) {
-            // กรณีเครือข่ายเชื่อมต่อไม่ได้หรือ Timeout จาก Firewall
+        // Live Probe ทดสอบ Token ของ User ก่อน
+        if ($userToken) {
+            $userToken = $this->cleanToken($userToken);
             $probePassed = false;
+            try {
+                $headers = $this->getEclaimBrowserHeaders($userToken);
+                $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
+                $probeRes = Http::withHeaders($headers)->withoutVerifying()->timeout(8)->get($probeUrl);
+                $html = (string)$probeRes->body();
+
+                if (
+                    $probeRes->status() === 200 &&
+                    stripos($html, 'Error Page') === false &&
+                    stripos($html, 'frmErr') === false &&
+                    stripos($html, 'คุณไม่มีสิทธิ์') === false &&
+                    stripos($html, 'ประกาศใช้งานระบบ SSO') === false &&
+                    stripos($html, 'SSO (ThaiD)') === false &&
+                    (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ยินดีต้อนรับ') !== false || stripos($html, 'maininscl') !== false)
+                ) {
+                    $probePassed = true;
+                    if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                        $extracted = trim(strip_tags($m[1]));
+                        if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
+                            $userSessionUser = $extracted;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                $probePassed = false;
+            }
+
+            if ($probePassed) {
+                Session::put('eclaim_session_token', $userToken);
+                Session::put('eclaim_session_user', $userSessionUser);
+                Session::put('eclaim_session_time', $userSessionTime ?: date('Y-m-d H:i:s'));
+
+                return response()->json([
+                    'connected' => true,
+                    'user' => $userSessionUser ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim'),
+                    'connected_at' => $userSessionTime ?: date('Y-m-d H:i:s'),
+                    'auth_method' => $userAuthMethod ?: 'Session ประจำตัวผู้ใช้งาน'
+                ]);
+            }
         }
 
-        // หาก Probe ผ่านจริง
-        if ($probePassed) {
-            Session::put('eclaim_session_token', $sessionToken);
-            Session::put('eclaim_session_user', $sessionUser);
-            Session::put('eclaim_session_time', $sessionTime);
+        // 2. Fallback: ถ้า Session ส่วนตัวไม่มีหรือหมดอายุ ให้ตรวจสอบ Session ส่วนกลางจาก main_setting (Priority 2: Shared Fallback)
+        $globalToken = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
+            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')));
+            
+        $globalUser = DB::table('main_setting')->where('name', 'eclaim_session_user')->value('value') ?: 'ผู้ใช้งาน e-Claim';
+        $globalTime = DB::table('main_setting')->where('name', 'eclaim_session_time')->value('value') ?: date('Y-m-d H:i:s');
 
-            return response()->json([
-                'connected' => true,
-                'user' => $sessionUser,
-                'connected_at' => $sessionTime,
-                'auth_method' => Session::get('eclaim_auth_method', 'Session Cookie (จากฐานข้อมูล / Extension)')
-            ]);
+        if ($globalToken) {
+            $globalToken = $this->cleanToken($globalToken);
+            $probePassed = false;
+            try {
+                $headers = $this->getEclaimBrowserHeaders($globalToken);
+                $probeUrl = "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do";
+                $probeRes = Http::withHeaders($headers)->withoutVerifying()->timeout(8)->get($probeUrl);
+                $html = (string)$probeRes->body();
+
+                if (
+                    $probeRes->status() === 200 &&
+                    stripos($html, 'Error Page') === false &&
+                    stripos($html, 'frmErr') === false &&
+                    stripos($html, 'คุณไม่มีสิทธิ์') === false &&
+                    stripos($html, 'ประกาศใช้งานระบบ SSO') === false &&
+                    stripos($html, 'SSO (ThaiD)') === false &&
+                    (stripos($html, 'Logout') !== false || stripos($html, 'ออกจากระบบ') !== false || stripos($html, 'ยินดีต้อนรับ') !== false || stripos($html, 'maininscl') !== false)
+                ) {
+                    $probePassed = true;
+                    if (preg_match('/(?:ยินดีต้อนรับ|สวัสดี|ชื่อ)\s*[:：]?\s*([^\r\n<\[]+)/u', $html, $m)) {
+                        $extracted = trim(strip_tags($m[1]));
+                        if (stripos($extracted, 'Audit User') === false && stripos($extracted, 'SSO') === false) {
+                            $globalUser = $extracted;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                $probePassed = false;
+            }
+
+            if ($probePassed) {
+                Session::put('eclaim_session_token', $globalToken);
+                Session::put('eclaim_session_user', $globalUser);
+                Session::put('eclaim_session_time', $globalTime);
+
+                return response()->json([
+                    'connected' => true,
+                    'user' => $globalUser,
+                    'connected_at' => $globalTime,
+                    'auth_method' => 'Session ส่วนกลาง (แชร์จาก main_setting)'
+                ]);
+            }
         }
 
-        // กรณี Probe ไม่ผ่าน หรือ Session หมดอายุ / ยังไม่ได้ล็อกอิน ThaiD
+        // กรณีทั้งส่วนตัวและส่วนกลางยังไม่ได้ต่อ หรือหมดอายุ
         return response()->json([
             'connected' => false,
-            'message' => 'Session e-Claim ยังไม่ได้เข้าสู่ระบบ ThaiD หรือหมดอายุแล้ว (กรุณาเปิด e-Claim ใน Chrome ล็อกอินด้วย ThaiD ให้เสร็จสิ้น แล้วกดซิงก์ Session ใหม่อีกครั้ง)'
+            'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ (กรุณาเข้าสู่ระบบด้วย ThaiD หรือกดซิงก์ Session จาก Extension)'
         ]);
     }
 
@@ -562,16 +644,30 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * ดึงค่า Active Session Token (DB main_setting -> Cache -> Session)
+     * ดึงค่า Active Session Token (Users Table -> Session -> DB main_setting -> Cache)
      */
     protected function getActiveEclaimToken()
     {
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
-        
-        $token = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
-            ?: Session::get('eclaim_session_token')));
+        $token = null;
+
+        // 1. ตรวจสอบ User-Specific ก่อน
+        if (auth()->check()) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                $token = DB::table('users')->where('id', auth()->id())->value('eclaim_session_token');
+            }
+            if (!$token) {
+                $token = Session::get('eclaim_session_token');
+            }
+        }
+
+        // 2. Fallback ไป main_setting
+        if (!$token) {
+            $token = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
+                ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode) 
+                ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')
+                ?: Session::get('eclaim_session_token')));
+        }
 
         if ($token) {
             $token = $this->cleanToken($token);
@@ -598,7 +694,7 @@ class EclaimBotController extends Controller
         // ถ้ายังไม่มีชื่อผู้ใช้ ให้ลอง probe ดึงชื่อผู้ใช้จริงจาก e-Claim
         if (!$user) {
             try {
-                $headers = $this->getEclaimHeaders($token);
+                $headers = $this->getEclaimBrowserHeaders($token);
                 $probeRes = Http::withHeaders($headers)
                     ->withoutVerifying()
                     ->timeout(4)
@@ -615,12 +711,24 @@ class EclaimBotController extends Controller
             $user = 'เจ้าหน้าที่ e-Claim';
         }
 
-        // 1. Ensure main_setting value column is LONGTEXT
+        // 1. บันทึกลง users table ของผู้ใช้งานปัจจุบัน
+        if (auth()->check()) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                    DB::table('users')->where('id', auth()->id())->update([
+                        'eclaim_session_token' => $token,
+                        'eclaim_session_user' => $user,
+                        'eclaim_session_time' => $now,
+                    ]);
+                }
+            } catch (\Exception $e) {}
+        }
+
+        // 2. บันทึกลง main_setting เป็น Fallback ส่วนกลาง
         try {
             DB::statement("ALTER TABLE main_setting MODIFY COLUMN value LONGTEXT NULL");
         } catch (\Exception $e) {}
 
-        // Save to Database (main_setting) for hospital-wide sharing
         DB::table('main_setting')->updateOrInsert(
             ['name' => 'eclaim_session_token'],
             ['name_th' => 'e-Claim Session Token', 'value' => $token]
@@ -634,7 +742,7 @@ class EclaimBotController extends Controller
             ['name_th' => 'e-Claim Session Connected Time', 'value' => $now]
         );
 
-        // 2. Save to Cache & Session
+        // 3. Save to Cache & Session
         \Illuminate\Support\Facades\Cache::put('eclaim_session_token_' . $hcode, $token, 7200);
         \Illuminate\Support\Facades\Cache::put('eclaim_session_token_global', $token, 7200);
         \Illuminate\Support\Facades\Cache::put('eclaim_session_user_' . $hcode, $user, 7200);
@@ -648,7 +756,7 @@ class EclaimBotController extends Controller
         return response()->json([
             'status' => 'success',
             'connected' => true,
-            'message' => 'เชื่อมต่อระบบ e-Claim สำเร็จแล้ว (บันทึกลงฐานข้อมูล แชร์ให้ผู้ใช้ทุกคนใน รพ.)',
+            'message' => 'เชื่อมต่อระบบ e-Claim สำเร็จแล้ว (' . $user . ')',
             'user' => $user
         ]);
     }
@@ -660,18 +768,31 @@ class EclaimBotController extends Controller
     {
         $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
         
-        // 1. Clear Database (Update ค่าเป็นว่าง แทนการลบ record เพื่อรักษาโครงสร้างตารางไว้)
+        // 1. ล้างค่าใน users table ของ User ปัจจุบัน
+        if (auth()->check()) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                    DB::table('users')->where('id', auth()->id())->update([
+                        'eclaim_session_token' => null,
+                        'eclaim_session_user' => null,
+                        'eclaim_session_time' => null,
+                    ]);
+                }
+            } catch (\Exception $e) {}
+        }
+
+        // 2. Clear Database (main_setting)
         DB::table('main_setting')
             ->whereIn('name', ['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'])
             ->update(['value' => '']);
 
-        // 2. Clear Cache
+        // 3. Clear Cache
         \Illuminate\Support\Facades\Cache::forget('eclaim_session_token_' . $hcode);
         \Illuminate\Support\Facades\Cache::forget('eclaim_session_token_global');
         \Illuminate\Support\Facades\Cache::forget('eclaim_session_user_' . $hcode);
         \Illuminate\Support\Facades\Cache::forget('eclaim_session_time_' . $hcode);
 
-        // 3. Clear Session
+        // 4. Clear Session
         Session::forget(['eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time', 'eclaim_auth_method', 'thaid_pending_session']);
 
         return response()->json([

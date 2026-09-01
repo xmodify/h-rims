@@ -7700,15 +7700,14 @@ class ImportController extends Controller
         $stm_lgo_kidney = DB::select("
             SELECT
                 stm_filename ,
-                round_no ,
+                COALESCE(round_no, repno) AS round_no ,
                 COUNT(*) AS count_no,
                 SUM(compensate_kidney) AS compensate_kidney,
                 MAX(receive_no)   AS receive_no,
                 MAX(receipt_date) AS receipt_date,
                 MAX(receipt_by)   AS receipt_by
             FROM stm_lgo_kidney
-            WHERE ((CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500)
-                + (CAST(SUBSTRING(repno, 11, 2) AS UNSIGNED) >= 10)) = ?
+            WHERE (CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500) = ?
             GROUP BY repno
             ORDER BY (CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500) DESC,
                 CAST(SUBSTRING(repno, 11, 2) AS UNSIGNED) DESC,
@@ -7735,30 +7734,30 @@ class ImportController extends Controller
             )
             ->whereNotNull('repno')
             ->where('repno', '<>', '')
-            ->whereRaw('((CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500) + IF(CAST(SUBSTRING(repno, 11, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->whereRaw('(CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500) = ?', [$budget_year])
             ->groupBy('month_no')
             ->get()
             ->keyBy('month_no');
 
-        // Order months from Oct (10) to Sep (9)
-        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        // Order months from M01 (Oct) to M12 (Sep)
+        $monthOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         
         $byShort = substr($budget_year, -2);
         $prevByShort = substr($budget_year - 1, -2);
 
         $monthNames = [
-            10 => 'ต.ค. ' . $prevByShort, 
-            11 => 'พ.ย. ' . $prevByShort, 
-            12 => 'ธ.ค. ' . $prevByShort,
-            1 => 'ม.ค. ' . $byShort, 
-            2 => 'ก.พ. ' . $byShort, 
-            3 => 'มี.ค. ' . $byShort,
-            4 => 'เม.ย. ' . $byShort, 
-            5 => 'พ.ค. ' . $byShort, 
-            6 => 'มิ.ย. ' . $byShort,
-            7 => 'ก.ค. ' . $byShort, 
-            8 => 'ส.ค. ' . $byShort, 
-            9 => 'ก.ย. ' . $byShort
+            1 => 'ต.ค. ' . $prevByShort, 
+            2 => 'พ.ย. ' . $prevByShort, 
+            3 => 'ธ.ค. ' . $prevByShort,
+            4 => 'ม.ค. ' . $byShort, 
+            5 => 'ก.พ. ' . $byShort, 
+            6 => 'มี.ค. ' . $byShort,
+            7 => 'เม.ย. ' . $byShort, 
+            8 => 'พ.ค. ' . $byShort, 
+            9 => 'มิ.ย. ' . $byShort,
+            10 => 'ก.ค. ' . $byShort, 
+            11 => 'ส.ค. ' . $byShort, 
+            12 => 'ก.ย. ' . $byShort
         ];
 
         $labels = [];
@@ -7895,8 +7894,12 @@ class ImportController extends Controller
         ]);
 
         DB::table('stm_lgo_kidney')
-            ->where('round_no', $request->round_no)
+            ->where(function ($q) use ($request) {
+                $q->where('round_no', $request->round_no)
+                    ->orWhere('repno', $request->round_no);
+            })
             ->update([
+                'round_no' => $request->round_no,
                 'receive_no' => $request->receive_no,
                 'receipt_date' => $request->receipt_date,
                 'receipt_by' => auth()->user()->name ?? 'system',

@@ -142,6 +142,25 @@ function hideEclaimThaidModal() {
 
 // Open ThaiD QR Modal & Start Login Flow
 function openEclaimThaidQrModal(onSuccessCallback) {
+    @php
+        $is_thaid_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid');
+    @endphp
+    const isThaidLicensed = @json($is_thaid_licensed);
+    if (!isThaidLicensed) {
+        if (typeof showLicenseRequiredAlert === 'function') {
+            showLicenseRequiredAlert();
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'License Expired',
+                text: 'กรุณาติดต่อผู้พัฒนา',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#3b82f6',
+                borderRadius: '15px'
+            });
+        }
+        return;
+    }
     onThaidLoginSuccessCallback = onSuccessCallback || null;
     showEclaimThaidModal();
     startThaidQrLogin();
@@ -323,7 +342,7 @@ function cleanupThaidSession() {
     }
 }
 
-// Event Listeners for Modal Close
+// Event Listeners for Modal Close & Action Interception
 document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('modalEclaimThaidQr');
     if (modalEl) {
@@ -331,6 +350,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (window.jQuery) {
         $('#modalEclaimThaidQr').on('hidden.bs.modal', cleanupThaidSession);
+    }
+
+    const isThaidLicensed = @json(\App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid'));
+    if (!isThaidLicensed) {
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('#btnBotRepSearch, #btnBotStmSearch, #btnStartAutoPull, #btnBotSearch, #btnEclaimRepLoginPopup, #btnEclaimStmLoginPopup, #btnEclaimStmSrtLoginPopup, #btnEclaimStmPvtLoginPopup, #btnEclaimStmOfcLoginPopup, #btnEclaimStmLgoLoginPopup, #btnEclaimStmBmtLoginPopup, #btnEclaimStmBkkLoginPopup');
+            if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                showLicenseRequiredAlert();
+                return false;
+            }
+        }, true);
     }
 });
 </script>

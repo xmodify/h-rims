@@ -355,7 +355,7 @@ class CheckEclaimController extends Controller
         return redirect()->back()->with('success', "นำเข้าข้อมูล E-Claim สำเร็จรวม " . $successCount . " รายการ");
     }
 
-    // ฟังก์ชันรับ API จาก Chrome Extension
+    // ฟังก์ชันรับ API จาก Chrome Extension (ดึงจากหน้าเว็บ e-Claim Client/home - ใช้งานฟรี)
     public function sync_eclaim_extension(Request $request)
     {
         $payload = $request->all();

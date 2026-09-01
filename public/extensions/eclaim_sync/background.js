@@ -59,76 +59,81 @@ async function performHeartbeatPing() {
 // ============================================================
 let syncDebounceTimer = null;
 
+async function executeSyncSession(source = 'background') {
+    try {
+        const getCookiesFor = (query) => new Promise(resolve => chrome.cookies.getAll(query, resolve));
+
+        const [cUrl, cDomain, cNhso, cIam, cHome, cRoot] = await Promise.all([
+            getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
+            getCookiesFor({ domain: "eclaim.nhso.go.th" }),
+            getCookiesFor({ domain: ".nhso.go.th" }),
+            getCookiesFor({ domain: "iam.nhso.go.th" }),
+            getCookiesFor({ url: "https://eclaim.nhso.go.th/Client/home" }),
+            getCookiesFor({ url: "https://eclaim.nhso.go.th/" })
+        ]);
+
+        const cookieMap = new Map();
+        [...(cUrl || []), ...(cDomain || []), ...(cNhso || []), ...(cIam || []), ...(cHome || []), ...(cRoot || [])].forEach(c => {
+            if (c && c.name && c.value) {
+                cookieMap.set(c.name, c.value);
+            }
+        });
+
+        const hasAuthToken = cookieMap.has('ACCESS_TOKEN') || cookieMap.has('STEEXWDE') || cookieMap.has('AUTH_SESSION_ID');
+        if (!cookieMap.has('JSESSIONID') || !hasAuthToken) {
+            return { success: false, message: 'ยังไม่ได้เข้าสู่ระบบ e-Claim หรือ Token ยังไม่ครบ' };
+        }
+
+        const cleanCookies = [];
+        for (let [k, v] of cookieMap.entries()) {
+            if (k.startsWith('_ga') || k === '_gid' || k === '_gat' || k === '_gcl_au' || k.startsWith('__')) {
+                continue;
+            }
+            cleanCookies.push(`${k}=${v}`);
+        }
+        const fullCookieString = cleanCookies.join('; ');
+
+        // Read settings from storage
+        const settings = await chrome.storage.local.get(['apiUrl', 'hospCode']);
+        const baseUrl = (settings.apiUrl && settings.apiUrl.trim()) ? settings.apiUrl.trim() : DEFAULT_BASE_URL;
+        const hcode = (settings.hospCode && settings.hospCode.trim()) ? settings.hospCode.trim() : '10989';
+        const targetUrl = baseUrl.replace(/\/+$/, '') + '/eclaim/session-sync';
+
+        console.log(`[RiMS Sync] Syncing session (${source}) to:`, targetUrl);
+
+        const res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                token: fullCookieString,
+                hospcode: hcode
+            })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.status === 'success') {
+            console.log('[RiMS Sync] Session synced successfully:', data);
+            return { success: true, user: data.user };
+        } else {
+            console.warn('[RiMS Sync] Session sync rejected:', data.message || res.status);
+            return { success: false, message: data.message || 'License Expired กรุณาติดต่อผู้พัฒนา' };
+        }
+    } catch (err) {
+        console.warn('[RiMS Sync] Sync failed:', err);
+        return { success: false, message: err.message };
+    }
+}
+
 async function autoSyncSessionToRims(source = 'background') {
     if (syncDebounceTimer) {
         clearTimeout(syncDebounceTimer);
     }
 
-    syncDebounceTimer = setTimeout(async () => {
-        try {
-            const getCookiesFor = (query) => new Promise(resolve => chrome.cookies.getAll(query, resolve));
-
-            const [cUrl, cDomain, cNhso, cIam, cHome, cRoot] = await Promise.all([
-                getCookiesFor({ url: "https://eclaim.nhso.go.th/webComponent/main/MainWebAction.do" }),
-                getCookiesFor({ domain: "eclaim.nhso.go.th" }),
-                getCookiesFor({ domain: ".nhso.go.th" }),
-                getCookiesFor({ domain: "iam.nhso.go.th" }),
-                getCookiesFor({ url: "https://eclaim.nhso.go.th/Client/home" }),
-                getCookiesFor({ url: "https://eclaim.nhso.go.th/" })
-            ]);
-
-            const cookieMap = new Map();
-            [...(cUrl || []), ...(cDomain || []), ...(cNhso || []), ...(cIam || []), ...(cHome || []), ...(cRoot || [])].forEach(c => {
-                if (c && c.name && c.value) {
-                    cookieMap.set(c.name, c.value);
-                }
-            });
-
-            const hasAuthToken = cookieMap.has('ACCESS_TOKEN') || cookieMap.has('STEEXWDE') || cookieMap.has('AUTH_SESSION_ID');
-            if (!cookieMap.has('JSESSIONID') || !hasAuthToken) {
-                console.log('[RiMS Sync] ข้ามการ Sync: ยังไม่ได้ล็อกอิน ThaiD หรือ Token ยังไม่ครบสมบูรณ์');
-                return;
-            }
-
-            const cleanCookies = [];
-            for (let [k, v] of cookieMap.entries()) {
-                if (k.startsWith('_ga') || k === '_gid' || k === '_gat' || k === '_gcl_au' || k.startsWith('__')) {
-                    continue;
-                }
-                cleanCookies.push(`${k}=${v}`);
-            }
-            const fullCookieString = cleanCookies.join('; ');
-
-            // Read settings from storage
-            const settings = await chrome.storage.local.get(['apiUrl', 'hospCode']);
-            const baseUrl = (settings.apiUrl && settings.apiUrl.trim()) ? settings.apiUrl.trim() : DEFAULT_BASE_URL;
-            const hcode = (settings.hospCode && settings.hospCode.trim()) ? settings.hospCode.trim() : '10989';
-            const targetUrl = baseUrl.replace(/\/+$/, '') + '/eclaim/session-sync';
-
-            console.log(`[RiMS Sync] Auto-syncing session (${source}) to:`, targetUrl);
-
-            const res = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    token: fullCookieString,
-                    hospcode: hcode
-                })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                console.log('[RiMS Sync] Session synced successfully:', data);
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                console.warn('[RiMS Sync] Session sync skipped/rejected:', errData.message || res.status);
-            }
-        } catch (err) {
-            console.warn('[RiMS Sync] Auto-sync failed:', err);
-        }
+    syncDebounceTimer = setTimeout(() => {
+        executeSyncSession(source);
     }, 1500); // 1.5s debounce to prevent flood
 }
 
@@ -148,6 +153,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message && message.action === 'sync_session') {
         autoSyncSessionToRims('message_request');
         sendResponse({ status: 'started' });
+        return true;
+    } else if (message && message.action === 'sync_session_now') {
+        executeSyncSession('popup_direct').then(res => sendResponse(res));
+        return true;
     }
     return true;
 });

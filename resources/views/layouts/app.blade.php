@@ -1226,7 +1226,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-01 10.00
+                                V.69-09-01 15.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -2255,11 +2255,11 @@
     }
 
     function showLicenseRequiredAlert(e) {
-        if (e) e.preventDefault();
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
         Swal.fire({
             icon: 'warning',
-            title: 'สำหรับ License เท่านั้น',
-            text: 'กรุณาลงทะเบียน License ที่เมนูตั้งค่าระบบ',
+            title: 'License Expired',
+            text: 'กรุณาติดต่อผู้พัฒนา',
             confirmButtonText: 'ตกลง',
             confirmButtonColor: '#3b82f6',
             borderRadius: '15px'

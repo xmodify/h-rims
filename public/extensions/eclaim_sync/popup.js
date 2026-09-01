@@ -169,9 +169,15 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
         // 3. Fallback: Ask background service worker to sync
         if (!cookieMap.has('JSESSIONID')) {
             try {
-                const response = await chrome.runtime.sendMessage({ action: 'sync_session' });
-                if (response && response.status === 'started') {
-                    updateStatus("🔄 ส่งคำขอให้ระบบ Background ซิงก์เรียบร้อยแล้ว", "#198754");
+                const response = await new Promise(resolve => {
+                    chrome.runtime.sendMessage({ action: 'sync_session_now' }, resolve);
+                });
+                if (response) {
+                    if (response.success) {
+                        updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว! (" + (response.user || '') + ")", "#198754");
+                    } else {
+                        updateStatus("❌ ผิดพลาด: " + (response.message || 'License Expired กรุณาติดต่อผู้พัฒนา'), "red");
+                    }
                     return;
                 }
             } catch (e) {
@@ -210,10 +216,10 @@ document.getElementById('syncSessionBtn').addEventListener('click', async () => 
             body: JSON.stringify({ token: fullCookieString, hospcode: hcode })
         });
         const data = await res.json();
-        if (data.status === 'success') {
+        if (res.ok && data.status === 'success') {
             updateStatus("✅ ซิงก์ Session กับ RiMS สำเร็จแล้ว! (" + (data.user || '') + ")", "#198754");
         } else {
-            updateStatus("ผิดพลาด: " + (data.message || 'บันทึกไม่สำเร็จ'), "red");
+            updateStatus("❌ ผิดพลาด: " + (data.message || 'License Expired กรุณาติดต่อผู้พัฒนา'), "red");
         }
     } catch (err) {
         updateStatus("เชื่อมต่อ RiMS ไม่ได้: " + err.message, "red");

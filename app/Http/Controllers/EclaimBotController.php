@@ -44,6 +44,28 @@ class EclaimBotController extends Controller
     public function __construct()
     {
         $this->middleware('auth')->except(['saveSessionFromExtension']);
+        $this->middleware(function ($request, $next) {
+            $allowedWithoutLicense = ['saveSessionFromExtension', 'getStatus'];
+            $currentAction = $request->route() ? $request->route()->getActionMethod() : '';
+            
+            if (!in_array($currentAction, $allowedWithoutLicense)) {
+                if (!\App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid')) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'License Expired: กรุณาติดต่อผู้พัฒนา'
+                        ], 403);
+                    }
+                    return response()->view('errors.license_error', [
+                        'licenseInfo' => [
+                            'status' => 'expired',
+                            'message' => 'สิทธิ์การใช้งาน e-Claim ThaiD (sync_eclaim_thaid) หมดอายุแล้ว กรุณาติดต่อผู้พัฒนา'
+                        ]
+                    ], 403);
+                }
+            }
+            return $next($request);
+        })->except(['saveSessionFromExtension']);
     }
 
     /**
@@ -139,6 +161,10 @@ class EclaimBotController extends Controller
      */
     public function saveSessionFromExtension(Request $request)
     {
+        if (!\App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid')) {
+            return response()->json(['status' => 'error', 'message' => 'License Expired กรุณาติดต่อผู้พัฒนา'], 403);
+        }
+
         $token = $this->cleanToken($request->token);
         if (!$token) {
             return response()->json(['status' => 'error', 'message' => 'ไม่พบ Session Token ที่ถูกต้อง'], 400);

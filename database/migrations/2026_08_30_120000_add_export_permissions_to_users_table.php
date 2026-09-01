@@ -11,26 +11,34 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'allow_export_f16_eclaim')) {
-                $table->string('allow_export_f16_eclaim', 1)->default('N')->after('allow_hosfin');
-            }
-            if (!Schema::hasColumn('users', 'allow_export_f16_fdh')) {
-                $table->string('allow_export_f16_fdh', 1)->default('N')->after('allow_export_f16_eclaim');
-            }
-            if (!Schema::hasColumn('users', 'allow_export_ssop')) {
-                $table->string('allow_export_ssop', 1)->default('N')->after('allow_export_f16_fdh');
-            }
-            if (!Schema::hasColumn('users', 'allow_export_aipn')) {
-                $table->string('allow_export_aipn', 1)->default('N')->after('allow_export_ssop');
-            }
-            if (!Schema::hasColumn('users', 'allow_export_csop')) {
-                $table->string('allow_export_csop', 1)->default('N')->after('allow_export_aipn');
-            }
-            if (!Schema::hasColumn('users', 'allow_export_cipn')) {
-                $table->string('allow_export_cipn', 1)->default('N')->after('allow_export_csop');
-            }
-        });
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                if (!Schema::hasColumn('users', 'allow_check_right')) {
+                    $table->string('allow_check_right', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_hosfin')) {
+                    $table->string('allow_hosfin', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_f16_eclaim')) {
+                    $table->string('allow_export_f16_eclaim', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_f16_fdh')) {
+                    $table->string('allow_export_f16_fdh', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_ssop')) {
+                    $table->string('allow_export_ssop', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_aipn')) {
+                    $table->string('allow_export_aipn', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_csop')) {
+                    $table->string('allow_export_csop', 1)->default('N');
+                }
+                if (!Schema::hasColumn('users', 'allow_export_cipn')) {
+                    $table->string('allow_export_cipn', 1)->default('N');
+                }
+            });
+        }
     }
 
     /**
@@ -38,20 +46,24 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $columns = [
-                'allow_export_f16_eclaim',
-                'allow_export_f16_fdh',
-                'allow_export_ssop',
-                'allow_export_aipn',
-                'allow_export_csop',
-                'allow_export_cipn',
-            ];
-            foreach ($columns as $col) {
-                if (Schema::hasColumn('users', $col)) {
-                    $table->dropColumn($col);
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                $columns = [
+                    'allow_check_right',
+                    'allow_hosfin',
+                    'allow_export_f16_eclaim',
+                    'allow_export_f16_fdh',
+                    'allow_export_ssop',
+                    'allow_export_aipn',
+                    'allow_export_csop',
+                    'allow_export_cipn',
+                ];
+                foreach ($columns as $col) {
+                    if (Schema::hasColumn('users', $col)) {
+                        $table->dropColumn($col);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 };

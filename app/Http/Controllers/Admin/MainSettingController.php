@@ -186,11 +186,17 @@ class MainSettingController extends Controller
                         'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
                         'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
                         'allow_debtor', 'allow_debtor_lock', 'allow_debtor_acc', 'allow_receipt',
-                        'allow_nhso_endpoint', 'allow_aopod_death', 'allow_hosfin'
+                        'allow_nhso_endpoint', 'allow_aopod_death', 'allow_check_right', 'allow_hosfin',
+                        'allow_export_f16_eclaim', 'allow_export_f16_fdh', 'allow_export_ssop',
+                        'allow_export_aipn', 'allow_export_csop', 'allow_export_cipn'
                     ];
-                    DB::table('users')->where('status', 'admin')->update(
-                        array_fill_keys($permissionColumns, 'Y')
-                    );
+                    $existingCols = \Illuminate\Support\Facades\Schema::getColumnListing('users');
+                    $validPermissionColumns = array_intersect($permissionColumns, $existingCols);
+                    if (!empty($validPermissionColumns)) {
+                        DB::table('users')->where('status', 'admin')->update(
+                            array_fill_keys($validPermissionColumns, 'Y')
+                        );
+                    }
 
                     // Backfill stat and station from claim_type if it was renamed but not cleaned up yet
                     if (\Illuminate\Support\Facades\Schema::hasColumn('rep_sss_ssop', 'claim_type')) {

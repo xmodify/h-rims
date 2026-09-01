@@ -1312,16 +1312,17 @@ class MainSettingController extends Controller
             $git_user = 'xmodify'; // ฝังชื่อ User ไว้ในโค้ดเลยเพื่อความง่าย
 
             $base_path = base_path();
+            $git_cmd = 'git -c safe.directory=*';
 
             // หากมีการตั้งค่า Token ไว้ ให้ทำการอัปเดต Remote URL ก่อน
             if (!empty($git_token)) {
                 $remote_url = "https://{$git_user}:{$git_token}@github.com/xmodify/h-rims.git";
-                \App\Helpers\PlaywrightHelper::runSyncCommand("git remote set-url origin {$remote_url}", $base_path);
+                \App\Helpers\PlaywrightHelper::runSyncCommand("{$git_cmd} remote set-url origin {$remote_url}", $base_path);
             }
 
             // รันคำสั่งอัปเดต: Reset -> Pull -> Clear Cache
-            \App\Helpers\PlaywrightHelper::runSyncCommand("git reset --hard", $base_path);
-            $pullRes = \App\Helpers\PlaywrightHelper::runSyncCommand("git pull origin main", $base_path);
+            \App\Helpers\PlaywrightHelper::runSyncCommand("{$git_cmd} reset --hard", $base_path);
+            $pullRes = \App\Helpers\PlaywrightHelper::runSyncCommand("{$git_cmd} pull origin main", $base_path);
             \App\Helpers\PlaywrightHelper::runSyncCommand("php artisan optimize:clear", $base_path);
 
             $output = $pullRes['output'] ?? '';

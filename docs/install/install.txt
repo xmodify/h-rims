@@ -76,3 +76,10 @@
 	composer install --no-dev --optimize-autoloader
 	php artisan optimize:clear
 
+#################################################################
+กรณีติดปัญหา "fatal: detected dubious ownership in repository"
+----------------------------------------------------------------
+	เปิด CMD หรือ PowerShell (Run as Administrator) แล้วรันคำสั่ง:
+		git config --system --add safe.directory *
+	หรือ
+		git config --global --add safe.directory *

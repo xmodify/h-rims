@@ -149,7 +149,7 @@
                                     <div class="card-header bg-white border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-table text-primary"></i>
-                                            <span class="badge bg-primary fs-6 fw-bold">{{ $tab['name'] }}.txt</span>
+                                            <span class="badge bg-primary fs-6 fw-bold" id="pane-ktb-badge-filename-{{ $tab['key'] }}">{{ $tab['name'] }}.txt</span>
                                             <span class="text-muted small">({{ $tab['desc'] }})</span>
                                             <span class="text-muted small ms-2"><i class="bi bi-info-circle me-1"></i>คลิกที่หัวคอลัมน์เพื่อเรียงลำดับ (Sort)</span>
                                         </div>
@@ -479,6 +479,7 @@
 
                 if (res.success) {
                     state.headers = res.headers || {};
+                    state.fileNames = res.file_names || {};
                     state.tables = res.tables || {};
                     state.rawFiles = res.raw_files || {};
                     state.counts = res.counts || {};
@@ -494,8 +495,10 @@
                         const paneCountEl = $('#pane-ktb-count-' + k);
                         const rawTextarea = $('#preview-raw-ktb-' + k);
 
+                        const fileName = (state.fileNames && state.fileNames[k]) ? state.fileNames[k] : (k + '.txt');
                         badgeEl.text(count);
                         paneCountEl.text(count + ' แถว');
+                        $('#pane-ktb-badge-filename-' + k).text(fileName);
 
                         if (count > 0) {
                             badgeEl.removeClass('badge-count-zero').addClass('badge-count-success');
@@ -577,7 +580,7 @@
             }
 
             for (const k of fileKeys) {
-                const fileName = k + '.txt';
+                const fileName = (state.fileNames && state.fileNames[k]) ? state.fileNames[k] : (k + '.txt');
                 const fileContent = state.rawFiles[k] || '';
 
                 const fileHandle = await targetDir.getFileHandle(fileName, { create: true });

@@ -35,6 +35,7 @@ class F16KtbExportController extends Controller
             return response()->json([
                 'success' => true,
                 'files' => $preview['files'],
+                'file_names' => $preview['file_names'],
                 'raw_files' => $preview['raw_files'],
                 'tables' => $preview['tables'],
                 'headers' => $preview['headers'],

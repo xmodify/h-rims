@@ -107,14 +107,56 @@ class F16KtbExportService
             }
         }
 
+        $fileNames = $this->getKtbFileNames($vns);
+
         return [
             'files' => $filesData,
+            'file_names' => $fileNames,
             'raw_files' => $rawFiles,
             'tables' => $tables,
             'headers' => $headers,
             'counts' => $counts,
             'subfolder_name' => 'F16_KTB_' . strtoupper($activityCode) . '_' . date('Ymd_His')
         ];
+    }
+
+    /**
+     * สร้างชื่อไฟล์ตามมาตรฐาน 16 แฟ้ม KTB / สปสช. [รหัสแฟ้มข้อมูล + YY + MM + xxxx.txt]
+     * เช่น INS69090001.txt, PAT69090001.txt, OPD69090001.txt, ODX69090001.txt, ADP69090001.txt, DRU69090001.txt
+     */
+    public function getKtbFileNames(array $vns): array
+    {
+        $vstdate = null;
+        if (!empty($vns)) {
+            try {
+                $firstVn = $vns[0];
+                $vRow = DB::connection('hosxp')->table('vn_stat')->where('vn', $firstVn)->value('vstdate');
+                if ($vRow) {
+                    $vstdate = $vRow;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if ($vstdate) {
+            $ts = strtotime($vstdate);
+            $year = (int)date('Y', $ts) + 543;
+            $yy = substr((string)$year, -2);
+            $mm = date('m', $ts);
+        } else {
+            $year = (int)date('Y') + 543;
+            $yy = substr((string)$year, -2);
+            $mm = date('m');
+        }
+
+        $suffix = $yy . $mm . '0001.txt';
+
+        $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
+        $names = [];
+        foreach ($allFileKeys as $k) {
+            $names[$k] = $k . $suffix;
+        }
+
+        return $names;
     }
 
     /**
@@ -251,9 +293,11 @@ class F16KtbExportService
         ];
 
         $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
+        $fileNames = $this->getKtbFileNames($vns);
 
         foreach ($allFileKeys as $key) {
-            $filePath = $tempDir . '/' . $key . '.txt';
+            $realFileName = $fileNames[$key] ?? ($key . '.txt');
+            $filePath = $tempDir . '/' . $realFileName;
             $rows = $filesData[$key] ?? [];
             $content = '';
 
@@ -277,9 +321,10 @@ class F16KtbExportService
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
             foreach ($allFileKeys as $key) {
-                $txtFile = $tempDir . '/' . $key . '.txt';
+                $realFileName = $fileNames[$key] ?? ($key . '.txt');
+                $txtFile = $tempDir . '/' . $realFileName;
                 if (file_exists($txtFile)) {
-                    $zip->addFile($txtFile, $key . '.txt');
+                    $zip->addFile($txtFile, $realFileName);
                 }
             }
             $zip->close();
@@ -287,7 +332,8 @@ class F16KtbExportService
 
         // Clean up temp text files
         foreach ($allFileKeys as $key) {
-            @unlink($tempDir . '/' . $key . '.txt');
+            $realFileName = $fileNames[$key] ?? ($key . '.txt');
+            @unlink($tempDir . '/' . $realFileName);
         }
         @rmdir($tempDir);
 

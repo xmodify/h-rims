@@ -24,8 +24,7 @@ class F16KtbExportService
         $eclaimData = F16EclaimExportService::generate16Files($vns);
         $rawFiles = $eclaimData['files'] ?? [];
 
-        // 2. ดึงข้อมูลสัญญาณชีพ (Vitals) และข้อมูลคัดกรอง/ANC สำหรับเติมใน STATUS1 / GRAVIDA
-        $vitalsMap = $this->getVitalsMap($vns);
+        // 2. ดึงข้อมูลการฝากครรภ์/ANC สำหรับเติมใน GRAVIDA / GA_WEEK / LMP
         $ancMap = $this->getAncMap($vns);
 
         // KTB Health Platform รองรับและใช้งานเฉพาะ 6 แฟ้มหลัก: INS, PAT, OPD, ODX, ADP, DRU
@@ -53,7 +52,7 @@ class F16KtbExportService
 
             // จัดกลุ่มและเติมข้อมูลเฉพาะของแฟ้ม ADP
             if ($key === 'ADP' && !empty($rows)) {
-                $rows = $this->enrichAndGroupAdpRows($rows, $vitalsMap, $ancMap);
+                $rows = $this->enrichAndGroupAdpRows($rows, $ancMap);
             }
 
             $result[$key] = $rows;
@@ -218,9 +217,9 @@ class F16KtbExportService
     }
 
     /**
-     * รวมยอดและกรองข้อมูลแฟ้ม ADP พร้อมเติมค่า STATUS1 และ GRAVIDA
+     * รวมยอดและกรองข้อมูลแฟ้ม ADP พร้อมเติมค่า GRAVIDA / GA_WEEK / LMP
      */
-    protected function enrichAndGroupAdpRows(array $rows, array $vitalsMap, array $ancMap): array
+    protected function enrichAndGroupAdpRows(array $rows, array $ancMap): array
     {
         $grouped = [];
         foreach ($rows as $r) {
@@ -235,12 +234,7 @@ class F16KtbExportService
             $rate = trim((string)($r['RATE'] ?? '0'));
             $gKey = "{$seq}_{$type}_{$code}_{$rate}";
 
-            // เติม STATUS1 ถ้ายังว่างอยู่
-            if (empty($r['STATUS1']) && isset($vitalsMap[$seq])) {
-                $r['STATUS1'] = $vitalsMap[$seq];
-            }
-
-            // เติม GRAVIDA, GA_WEEK, LMP
+            // เติม GRAVIDA, GA_WEEK, LMP ถ้ามีข้อมูลจาก ANC
             if (isset($ancMap[$seq])) {
                 if (empty($r['GRAVIDA'])) $r['GRAVIDA'] = (string)($ancMap[$seq]['gravida'] ?? '');
                 if (empty($r['GA_WEEK'])) $r['GA_WEEK'] = (string)($ancMap[$seq]['ga_week'] ?? '');

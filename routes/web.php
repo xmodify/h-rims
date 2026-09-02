@@ -33,6 +33,7 @@ use App\Http\Controllers\ImportSssController;
 use App\Http\Controllers\EclaimBotController;
 use App\Http\Controllers\KtbHealthPlatformController;
 use App\Http\Controllers\F16KtbExportController;
+use App\Http\Controllers\ClaimAuditController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1083,3 +1084,10 @@ Route::get('debtor/adjust_log/1102050101_310', [\App\Http\Controllers\DebtorAdjC
 
 Route::get('debtor/payment_log/1102050102_106', [DebtorController::class, '_1102050102_106_payment_log']);
 Route::get('debtor/payment_log/1102050102_107', [DebtorController::class, '_1102050102_107_payment_log']);
+
+// Pre-Audit Claim C-Codes (ตาสีแดง 👁️)
+Route::middleware(['auth'])->group(function () {
+    Route::get('claim/audit/visit_details', [ClaimAuditController::class, 'visitDetails'])->name('claim.audit.visit_details');
+    Route::get('claim/audit/admission_details', [ClaimAuditController::class, 'admissionDetails'])->name('claim.audit.admission_details');
+    Route::post('claim/audit/batch_check', [ClaimAuditController::class, 'batchCheck'])->name('claim.audit.batch_check');
+});

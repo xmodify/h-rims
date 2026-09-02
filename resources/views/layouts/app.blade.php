@@ -1226,7 +1226,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-02 11.00
+                                V.69-09-02 23.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -2276,6 +2276,9 @@
 
     <!-- Global e-Claim ThaiD QR Code Modal -->
     <x-eclaim_thaid_qr_modal />
+
+    <!-- Global Pre-Audit Modal (ตาสีแดง 👁️) -->
+    @include('components.pre_audit_modal')
 </body>
 
 </html>

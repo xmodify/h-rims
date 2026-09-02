@@ -20,13 +20,14 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        // Exclude internal calculated / dynamic session settings from being manually edited
+        // Exclude internal calculated / dynamic session settings and AOPOD settings (managed in /admin/aopod) from being manually edited
         $excludeFromDisplay = [
             'aopod_death_pct_patient', 'aopod_death_details_patient',
             'aopod_death_pct_person', 'aopod_death_details_person',
             'aopod_death_pct_clinicmember', 'aopod_death_details_clinicmember',
             'aopod_death_pct_death', 'aopod_death_details_death',
-            'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'
+            'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time',
+            'aopod_token', 'aopod_url_api_death'
         ];
 
         $settings = MainSetting::orderBy('name_th', 'asc')
@@ -69,7 +70,6 @@ class MainSettingController extends Controller
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Integration Tokens' => $integrationTokens,
-            'AOPOD Setting' => ['aopod_token', 'aopod_url_api_death'],
             'Provider ID (Health ID)' => [
                 'provider_id_active',
                 'health_id_client_id',

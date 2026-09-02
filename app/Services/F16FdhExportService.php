@@ -628,7 +628,7 @@ class F16FdhExportService
         if (!empty($vnsList)) {
             try {
                 $erRows = collect(DB::connection('hosxp')->select("
-                    SELECT er.vn, er.er_emergency_type, er.er_emergency_level_id,
+                    SELECT er.vn, er.er_pt_type, er.er_emergency_type, er.er_emergency_level_id,
                            TIME_FORMAT(COALESCE(er.er_time_1, er.enter_er_time), '%H%i') as aetime
                     FROM er_regist er
                     WHERE er.vn IN ($vnPlaceholders)
@@ -638,14 +638,14 @@ class F16FdhExportService
                 $referInByVn = $referIns->keyBy('vn');
 
                 foreach ($visits as $v) {
-                    $hasEr = $erRows->has($v->vn);
+                    $er = $erRows->get($v->vn);
+                    $isErEmergency = $er && (($er->er_pt_type == 2) || in_array((string)$er->er_emergency_type, ['1', '2']));
                     $ro = $referOutByVn->get($v->vn);
                     $ri = $referInByVn->get($v->vn);
                     $ucae = trim((string)($v->nhso_ucae_type_code ?? ''));
                     $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
 
-                    if ($hasEr || $ro || $ri || $isUcae) {
-                        $er = $erRows->get($v->vn);
+                    if ($isErEmergency || $ro || $ri || $isUcae) {
                         $aerVisits->push((object)[
                             'vn' => $v->vn,
                             'hn' => $v->hn,

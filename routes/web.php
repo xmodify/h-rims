@@ -77,6 +77,19 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::post('aopod/save-token', [\App\Http\Controllers\Admin\AopodController::class, 'updateToken'])->name('aopod.save-token');
     Route::get('logs/schedule/notify/test', [MainSettingController::class, 'testTelegramConnection'])->name('logs.schedule.notify.test');
     Route::post('logs/schedule/notify/send', [MainSettingController::class, 'manualNotifySend'])->name('logs.schedule.notify.send');
+    Route::post('main_setting/test-ai', [MainSettingController::class, 'testAiConnection'])->name('main_setting.test_ai');
+
+    // AI Knowledge Base (RAG)
+    Route::get('rag-knowledge', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'index'])->name('rag.index');
+    Route::get('rag-knowledge/categories', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'listCategories'])->name('rag.categories.list');
+    Route::post('rag-knowledge/categories', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'saveCategory'])->name('rag.categories.save');
+    Route::delete('rag-knowledge/categories/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'deleteCategory'])->name('rag.categories.delete');
+    Route::post('rag-knowledge/settings', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'saveSettings'])->name('rag.settings.save');
+    Route::post('rag-knowledge/upload', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'upload'])->name('rag.upload');
+    Route::post('rag-knowledge/ask', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'ask'])->name('rag.ask');
+    Route::get('rag-knowledge/{id}/chunks', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'chunks'])->name('rag.chunks');
+    Route::post('rag-knowledge/{id}/reindex', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reindex'])->name('rag.reindex');
+    Route::delete('rag-knowledge/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'destroy'])->name('rag.destroy');
 });
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {

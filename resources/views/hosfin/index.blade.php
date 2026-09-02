@@ -135,6 +135,13 @@
                     @if($hasData)
                         <div class="d-flex align-items-center gap-2 ms-lg-auto">
                             <!-- Action Buttons -->
+                            @if(\App\Services\Ai\AiService::isActive())
+                                <button type="button" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom text-white" 
+                                        onclick="openHosFinAiModal()"
+                                        style="font-size: 0.85rem; height: 48px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;">
+                                    <i class="bi bi-robot fs-5"></i> AI วิเคราะห์วิกฤต & แนวโน้ม
+                                </button>
+                            @endif
                             <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-tb-custom" 
                                style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;">
                                 <i class="bi bi-file-earmark-spreadsheet text-success" style="font-size: 1.1rem;"></i> งบทดลอง
@@ -679,6 +686,170 @@
             }, 250); // Small timeout to ensure canvas is fully rendered in DOM
         });
     });
+
+    // AI Financial Diagnosis Modal Logic
+    function openHosFinAiModal() {
+        $('#hosFinAiModal').modal('show');
+        if (!window.hosFinAnalysisLoaded) {
+            fetchHosFinAiAnalysis();
+        }
+    }
+
+    function fetchHosFinAiAnalysis() {
+        const loading = document.getElementById('aiAnalysisLoading');
+        const content = document.getElementById('aiAnalysisContent');
+        const errBox = document.getElementById('aiAnalysisError');
+
+        loading.classList.remove('d-none');
+        content.classList.add('d-none');
+        errBox.classList.add('d-none');
+
+        const prompt = "ช่วยวิเคราะห์สรุปสถานการณ์วิกฤตทางการเงิน HosFin ของโรงพยาบาล ณ งวดล่าสุดนี้อย่างละเอียด โดยครอบคลุม 4 หัวข้อสำคัญ:\n1. บทสรุปสุขภาพการเงินและสภาพคล่องปัจจุบัน (เงินบำรุง, Risk Score, Current Ratio, Cash Ratio)\n2. ชี้เป้าสาเหตุของวิกฤตและคอขวด (ลูกหนี้ค้างท่อสิทธิ์ข้าราชการ/UC, หนี้ค่ายาค้างจ่าย)\n3. การคาดการณ์แนวโน้ม 3-6 เดือนข้างหน้า (หากไม่มีการปรับปรุง)\n4. แผนปฏิบัติการเร่งด่วนและข้อเสนอแนะเชิงกลยุทธ์สำหรับผู้บริหารและฝ่ายการเงิน\n\nพร้อมอ้างอิงระเบียบและแนวทางบริหารลูกหนี้ที่เกี่ยวข้องครับ";
+
+        fetch(`{{ route('admin.rag.ask') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ question: prompt })
+        })
+        .then(res => res.json())
+        .then(data => {
+            loading.classList.add('d-none');
+            if (data.success && data.answer) {
+                window.hosFinAnalysisLoaded = true;
+                content.classList.remove('d-none');
+                
+                // Simple Markdown renderer
+                let formatted = data.answer
+                    .replace(/^### (.*$)/gim, '<h6 class="fw-bold text-dark mt-3 mb-2 border-bottom pb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> $1</h6>')
+                    .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
+                    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                    .replace(/^\* (.*$)/gim, '<li class="mb-1">$1</li>')
+                    .replace(/^- (.*$)/gim, '<li class="mb-1">$1</li>')
+                    .replace(/\n\n/gim, '<br>')
+                    .replace(/\n/gim, '<br>');
+
+                document.getElementById('aiAnalysisText').innerHTML = formatted;
+
+                // Render sources
+                const srcContainer = document.getElementById('aiAnalysisSources');
+                if (data.sources && data.sources.length > 0) {
+                    let srcHtml = '<div class="mt-3 pt-3 border-top"><small class="fw-bold text-muted d-block mb-1"><i class="bi bi-bookmark-check-fill text-success me-1"></i> แหล่งข้อมูลอ้างอิง:</small><div class="d-flex flex-wrap gap-2">';
+                    data.sources.forEach(s => {
+                        srcHtml += `<span class="badge bg-light text-dark border small" title="${s.snippet}"><i class="bi bi-file-earmark-text me-1"></i>${s.title} ${s.page ? `(หน้า ${s.page})` : ''}</span>`;
+                    });
+                    srcHtml += '</div></div>';
+                    srcContainer.innerHTML = srcHtml;
+                } else {
+                    srcContainer.innerHTML = '';
+                }
+            } else {
+                errBox.classList.remove('d-none');
+                errBox.textContent = data.message || 'ไม่สามารถวิเคราะห์ข้อมูลได้';
+            }
+        })
+        .catch(err => {
+            loading.classList.add('d-none');
+            errBox.classList.remove('d-none');
+            errBox.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err;
+        });
+    }
+
+    function continueInChatbot() {
+        $('#hosFinAiModal').modal('hide');
+        if (typeof toggleAiChat === 'function') {
+            toggleAiChat();
+        }
+    }
 </script>
+
+<!-- HosFin AI Analysis Modal -->
+<div class="modal fade" id="hosFinAiModal" tabindex="-1" aria-labelledby="hosFinAiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header text-white py-3" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-white bg-opacity-20 p-2 rounded-circle">
+                        <i class="bi bi-robot fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="hosFinAiModalLabel">
+                            AI วินิจฉัยวิกฤตสุขภาพการเงิน & แนวโน้ม (Executive Summary)
+                        </h5>
+                        <small class="text-white-50">วิเคราะห์ข้อมูลอัตโนมัติจาก HosFin และมาตรฐานบัญชีลูกหนี้ รพ. ด้วย Google Gemini</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light bg-opacity-25">
+                <!-- Summary Snapshot Card -->
+                <div class="card border rounded-3 p-3 mb-4 bg-white shadow-sm">
+                    <div class="row g-3 text-center text-md-start align-items-center">
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold">งวดบัญชีวิเคราะห์</span>
+                            <h5 class="fw-bold text-dark mb-0 mt-1">{{ $latestPeriodLabel }}</h5>
+                            <small class="text-muted">ปีงบ {{ $budgetYear }}</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold">ระดับความเสี่ยง (Risk Score)</span>
+                            <h5 class="fw-bold text-danger mb-0 mt-1">ระดับ {{ $riskScore }} / 7</h5>
+                            <small class="badge bg-danger bg-opacity-10 text-danger border border-danger small">{{ $riskScoreLevelLabel }}</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold">เงินบำรุงคงเหลือสุทธิ (105)</span>
+                            <h5 class="fw-bold {{ $latestMetrics['105']['val'] < 0 ? 'text-danger' : 'text-success' }} mb-0 mt-1">
+                                {{ number_format($latestMetrics['105']['val'], 2) }} <span class="fs-6 fw-normal">บาท</span>
+                            </h5>
+                            <small class="text-muted">Current Ratio: {{ $latestMetrics['100']['val'] }} | Cash: {{ $latestMetrics['102']['val'] }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small fw-bold">ระยะเวลาเก็บหนี้ / ค้างจ่าย</span>
+                            <div class="small mt-1">
+                                <span class="d-block text-danger fw-bold"><i class="bi bi-clock-history me-1"></i> จ่ายค่ายา: {{ $latestMetrics['260']['val'] }} วัน</span>
+                                <span class="d-block text-warning-custom"><i class="bi bi-receipt me-1"></i> เก็บหนี้ข้าราชการ: {{ $latestMetrics['262']['val'] }} วัน</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="aiAnalysisLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <h6 class="fw-bold text-dark mb-1">กำลังประมวลผลการวิเคราะห์สุขภาพการเงิน...</h6>
+                    <small class="text-muted">AI กำลังวิเคราะห์ดัชนีชี้วัดทั้ง 13 ตัว, กราฟรายรับ-รายจ่าย และเทียบเคียงมาตรฐานบัญชีลูกหนี้</small>
+                </div>
+
+                <!-- Error Box -->
+                <div id="aiAnalysisError" class="alert alert-danger d-none my-3"></div>
+
+                <!-- Analysis Result Content -->
+                <div id="aiAnalysisContent" class="card border rounded-3 p-4 bg-white shadow-sm d-none">
+                    <div id="aiAnalysisText" class="fs-6" style="line-height: 1.8; color: #1e293b;"></div>
+                    <div id="aiAnalysisSources"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light py-2 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> พิมพ์รายงานสรุป
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> วิเคราะห์ใหม่อีกครั้ง
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm px-4 rounded-pill fw-bold" onclick="continueInChatbot()">
+                        <i class="bi bi-chat-dots-fill me-1"></i> ถามเจาะลึกต่อกับ RiMS Copilot 🤖
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endif
 @endsection

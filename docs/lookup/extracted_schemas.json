@@ -32702,5 +32702,221 @@
                 }
             ]
         }
+    },
+    "rag_documents": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "category_id": {
+                "type": "bigint(20) unsigned",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "title": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "filename": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "file_path": {
+                "type": "varchar(500)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "file_type": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "file_size": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "chunk_count": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "status": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": "pending",
+                "extra": ""
+            },
+            "error_message": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "rag_documents_status_index": [
+                {
+                    "column": "status",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "rag_chunks": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "document_id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "chunk_index": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "content": {
+                "type": "mediumtext",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "embedding": {
+                "type": "longtext",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "page_number": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "rag_chunks_document_id_index": [
+                {
+                    "column": "document_id",
+                    "unique": false
+                }
+            ],
+            "rag_chunks_chunk_index_index": [
+                {
+                    "column": "chunk_index",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "rag_categories": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "name": {
+                "type": "varchar(150)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "description": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "color": {
+                "type": "varchar(30)",
+                "nullable": false,
+                "default": "#198754",
+                "extra": ""
+            },
+            "sort_order": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ]
+        }
     }
 }

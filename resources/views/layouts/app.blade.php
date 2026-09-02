@@ -1226,7 +1226,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-02 23.00
+                                V.69-09-03 03.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1278,6 +1278,12 @@
                                                 href="{{ route('admin.main_setting') }}">
                                                 <i class="bi bi-gear-fill me-2 text-secondary"></i> Main Setting
                                             </a>
+                                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ route('admin.rag.index') }}">
+                                                    <i class="bi bi-robot me-2 text-primary"></i> คลังความรู้ AI (RAG)
+                                                </a>
+                                            @endif
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ route('admin.users.index') }}">
                                                 <i class="bi bi-people-fill me-2 text-primary"></i> Manage User
@@ -2279,6 +2285,13 @@
 
     <!-- Global Pre-Audit Modal (ตาสีแดง 👁️) -->
     @include('components.pre_audit_modal')
+
+    <!-- Global AI Chatbot Floating Widget (🤖) -->
+    @auth
+        @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
+            @include('components.ai_chatbot_widget')
+        @endif
+    @endauth
 </body>
 
 </html>

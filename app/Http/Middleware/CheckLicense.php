@@ -77,11 +77,14 @@ class CheckLicense
             } elseif (
                 str_starts_with($path, 'hosfin/trial_balance/import') ||
                 str_starts_with($path, 'hosfin/trial_balance/analyze_mdb') ||
-                str_starts_with($path, 'hosfin/trial_balance/delete') ||
                 str_starts_with($path, 'hosfin/mappings/store') ||
                 str_starts_with($path, 'hosfin/mappings/delete')
             ) {
                 $module = 'hosfin';
+            } elseif (
+                str_starts_with($path, 'admin/rag-knowledge')
+            ) {
+                $module = 'ai_knowledge';
             }
         }
 
@@ -109,6 +112,7 @@ class CheckLicense
                 'sync_eclaim_thaid' => 'ระบบเชื่อมต่อและดึงข้อมูล e-Claim ด้วย ThaID QR',
                 'debtor_control' => 'ระบบทะเบียนคุมลูกหนี้ (DebtorControl)',
                 'hosfin' => 'ระบบรายงานสถานะการเงินการคลัง (HosFin)',
+                'ai_knowledge' => 'ระบบคลังความรู้ AI อัจฉริยะ (AI Knowledge Base)',
             ];
 
             $moduleName = $moduleMetaNames[$module] ?? $module;

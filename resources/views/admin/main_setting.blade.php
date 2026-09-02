@@ -124,7 +124,7 @@
                                                 'health_id_client_id', 'health_id_client_secret',
                                                 'provider_id_client_id', 'provider_id_secret_key',
                                                 'moph_alert_client_id', 'moph_alert_client_secret',
-                                                'ktb_password'
+                                                'ktb_password', 'ai_api_key'
                                             ]);
                                         @endphp
                                         <tr>
@@ -465,10 +465,8 @@
                 } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'เชื่อมต่อล้มเหลว',
-                        text: 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User, Pass, Secret Key และ Hospital Code ในการตั้งค่า',
-                        confirmButtonText: 'ตกลง',
-                        confirmButtonColor: '#d33'
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อทดสอบ Token ได้'
                     });
                 }
             })

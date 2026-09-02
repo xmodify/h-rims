@@ -27,7 +27,8 @@ class MainSettingController extends Controller
             'aopod_death_pct_clinicmember', 'aopod_death_details_clinicmember',
             'aopod_death_pct_death', 'aopod_death_details_death',
             'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time',
-            'aopod_token', 'aopod_url_api_death'
+            'aopod_token', 'aopod_url_api_death',
+            'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_embed_model'
         ];
 
         $settings = MainSetting::orderBy('name_th', 'asc')
@@ -126,6 +127,16 @@ class MainSettingController extends Controller
         }
 
         return redirect()->back()->with('success', 'แก้ไขข้อมูลสำเร็จ');
+    }
+
+    /**
+     * Test AI & LLM Connection
+     */
+    public function testAiConnection()
+    {
+        $aiService = app(\App\Services\Ai\AiService::class);
+        $result = $aiService->testConnection();
+        return response()->json($result);
     }
     #######################################################################################################################################    
     // UP Structure ------------------------------------------------------------
@@ -264,6 +275,27 @@ class MainSettingController extends Controller
                             }
                         } catch (\Throwable $ex) {
                             \Illuminate\Support\Facades\Log::warning("fdh_claim_status cleanup warning: " . $ex->getMessage());
+                        }
+                    }
+
+                    // Ensure default AI & LLM settings exist in main_setting
+                    $defaultAiSettings = [
+                        ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
+                        ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
+                        ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
+                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama)', 'value' => 'http://localhost:11434'],
+                        ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
+                        ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
+                    ];
+                    foreach ($defaultAiSettings as $as) {
+                        $existing = DB::table('main_setting')->where('name', $as['name'])->first();
+                        if (!$existing) {
+                            DB::table('main_setting')->insert([
+                                'name' => $as['name'],
+                                'name_th' => $as['name_th'],
+                                'value' => $as['value']
+                            ]);
+                            $details[] = "+setting:{$as['name']}";
                         }
                     }
 
@@ -1089,6 +1121,8 @@ class MainSettingController extends Controller
             $colObj = $table->mediumText($colName);
         } elseif (strpos($type, 'text') !== false) {
             $colObj = $table->text($colName);
+        } elseif (strpos($type, 'json') !== false) {
+            $colObj = $table->json($colName);
         } elseif (strpos($type, 'timestamp') !== false) {
             $colObj = $table->timestamp($colName);
         } elseif (strpos($type, 'datetime') !== false) {

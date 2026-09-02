@@ -297,14 +297,25 @@
                     <span id="f16ExportProgressText" class="fw-bold text-primary small"></span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                    @php
+                        $is_f16_eclaim_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_eclaim === 'Y');
+                    @endphp
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal" data-dismiss="modal" onclick="closeF16Modal()">
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
                     <button type="button" class="btn btn-outline-secondary px-3 fw-bold" id="btnExecuteF16Export" onclick="executeF16DirectoryExport()">
-                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @if($is_f16_eclaim_licensed)
+                            <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16ExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @else
+                            <i class="bi bi-lock-fill text-warning me-1"></i> <span id="btnExecuteF16ExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @endif
                     </button>
                     <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnSendF16EclaimApi" onclick="sendF16ToEclaimApi()" style="background: linear-gradient(135deg, #0e939a 0%, #17b7be 100%); border: none;">
-                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16EclaimApiText">🚀 ส่งข้อมูลเข้า e-Claim ผ่าน API</span>
+                        @if($is_f16_eclaim_licensed)
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16EclaimApiText">🚀 ส่งข้อมูลเข้า e-Claim ผ่าน API</span>
+                        @else
+                            <i class="bi bi-lock-fill text-warning me-1"></i> <span id="btnSendF16EclaimApiText">🚀 ส่งข้อมูลเข้า e-Claim ผ่าน API</span>
+                        @endif
                     </button>
                 </div>
             </div>
@@ -313,6 +324,8 @@
 </div>
 
 <script>
+    const isF16EclaimLicensed = @json($is_f16_eclaim_licensed);
+
     // Global State for F16 e-Claim Export
     window._f16ExportState = {
         vns: [],
@@ -610,6 +623,21 @@
      * บันทึกไฟล์ .txt ทั้ง 17 แฟ้ม e-Claim ลงโฟลเดอร์โดยตรงผ่าน File System Access API
      */
     window.executeF16DirectoryExport = async function() {
+        if (!isF16EclaimLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Required',
+                    text: 'ฟังก์ชันส่งออกข้อมูล 16 แฟ้ม (export_f16_eclaim) สงวนสิทธิ์เฉพาะผู้มี License กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0e939a'
+                });
+            }
+            return;
+        }
+
         const state = window._f16ExportState;
         if (!state.vns || state.vns.length === 0) {
             alert('ไม่พบรายการที่เลือก');
@@ -798,6 +826,21 @@
      * =========================================================================
      */
     window.sendF16ToEclaimApi = function() {
+        if (!isF16EclaimLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Required',
+                    text: 'ฟังก์ชันส่งออกข้อมูล 16 แฟ้ม (export_f16_eclaim) สงวนสิทธิ์เฉพาะผู้มี License กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0e939a'
+                });
+            }
+            return;
+        }
+
         const state = window._f16ExportState;
         if (!state.vns || state.vns.length === 0) {
             if (typeof Swal !== 'undefined') {

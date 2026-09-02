@@ -1,3 +1,6 @@
+@php
+    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_aipn === 'Y');
+@endphp
 @extends('layouts.app')
 
 @section('content')
@@ -1357,6 +1360,24 @@
                     $('#table-aipn-prev-ipdx').DataTable(dtConfigPrev);
                     $('#table-aipn-prev-ipop').DataTable(dtConfigPrev);
                     $('#table-aipn-prev-billitems').DataTable(dtConfigPrev);
+
+                    // Update download button state based on audit & license
+                    const btnDownload = document.getElementById('btn-download-aipn');
+                    const isAipnLicensed = @json($is_aipn_licensed);
+
+                    if (errorCount > 0) {
+                        btnDownload.disabled = true;
+                        btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> มีข้อผิดพลาด Pre-Audit (${errorCount} เคส)`;
+                        btnDownload.className = 'btn btn-danger px-4';
+                    } else if (!isAipnLicensed) {
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-lock-fill me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
+                        btnDownload.className = 'btn btn-outline-danger px-4 fw-bold';
+                    } else {
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
+                        btnDownload.className = 'btn btn-success px-4';
+                    }
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -1377,6 +1398,23 @@
     };
 
     window.downloadAIPNZip = function() {
+        const isAipnLicensed = @json($is_aipn_licensed);
+        if (!isAipnLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Expired',
+                    text: 'ฟังก์ชันดาวน์โหลดไฟล์ AIPN (.zip) สงวนสิทธิ์เฉพาะผู้มี License (export_aipn) กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#3b82f6',
+                    borderRadius: '15px'
+                });
+            }
+            return;
+        }
+
         const sessionNo = document.getElementById('export_session_no').value;
         
         // Dynamic form submit for ZIP download

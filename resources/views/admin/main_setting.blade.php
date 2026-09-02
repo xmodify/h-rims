@@ -231,7 +231,11 @@
                             'export_aipn' => ['icon' => 'bi-file-earmark-medical-fill', 'color' => 'success', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลประกันสังคมผู้ป่วยใน (AIPN Export)'],
                             'export_csop' => ['icon' => 'bi-file-earmark-zip-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยนอก (CSOP Export)'],
                             'export_cipn' => ['icon' => 'bi-file-earmark-lock-fill', 'color' => 'warning', 'desc' => 'ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลสวัสดิการข้าราชการผู้ป่วยใน (CIPN Export)'],
+                            'export_f16_eclaim' => ['icon' => 'bi-file-earmark-code-fill', 'color' => 'info', 'desc' => 'ครอบคลุมการส่งออกข้อมูล 16 แฟ้ม e-Claim'],
+                            'export_f16_fdh' => ['icon' => 'bi-cloud-arrow-up-fill', 'color' => 'primary', 'desc' => 'ครอบคลุมการส่งออกข้อมูล 16 แฟ้ม FDH MOPH Claim'],
+                            'sync_eclaim_thaid' => ['icon' => 'bi-qr-code-scan', 'color' => 'info', 'desc' => 'ระบบเชื่อมต่อและดึงข้อมูล e-Claim ผ่าน QR ThaID'],
                             'debtor_control' => ['icon' => 'bi-cash-coin', 'color' => 'purple', 'desc' => 'ระบบทะเบียนคุมลูกหนี้ และบันทึกการรับชำระหนี้ (DebtorControl)'],
+                            'hosfin' => ['icon' => 'bi-graph-up-arrow', 'color' => 'success', 'desc' => 'ระบบรายงานสถานะการเงินการคลัง (HosFin)'],
                         ];
                     @endphp
 

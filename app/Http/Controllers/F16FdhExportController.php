@@ -14,13 +14,6 @@ class F16FdhExportController extends Controller
      */
     public function preview(Request $request)
     {
-        if (!LicenseVerificationService::isModuleLicensed('export_f16_fdh') || (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_export_f16_fdh !== 'Y')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'คุณไม่มีสิทธิ์ในการส่งออกข้อมูล 16 แฟ้ม FDH'
-            ], 403);
-        }
-
         $type = $request->input('type');
         $isIp = $type === 'ip' || $request->boolean('is_ip');
         if (!$type && !$request->has('is_ip')) {

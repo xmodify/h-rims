@@ -487,7 +487,7 @@ Route::get('claim_op/sss_detail', [ClaimOpController::class, 'sss_detail']);
     Route::post('claim_op/sss_stm_import', [ImportSssController::class, 'import_stm']);
     Route::get('claim_op/sss_chronic_feedback_list', [ImportSssController::class, 'get_feedback_list']);
 Route::match(['get', 'post'], 'claim_op/sss_export_ssop', [\App\Http\Controllers\SssExportController::class, 'sss_export_ssop'])->middleware('rims_license');
-Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('rims_license');
+Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview']);
 Route::post('f16_eclaim_export/preview', [\App\Http\Controllers\F16EclaimExportController::class, 'preview'])->name('f16_eclaim_export.preview');
 Route::post('f16_eclaim_export/export-data', [\App\Http\Controllers\F16EclaimExportController::class, 'exportData'])->name('f16_eclaim_export.export_data');
 Route::post('f16_eclaim_export/send-api', [\App\Http\Controllers\F16EclaimExportController::class, 'sendApi'])->name('f16_eclaim_export.send_api');
@@ -500,7 +500,7 @@ Route::match(['get', 'post'], 'claim_op/csop_31', [ClaimOpController::class, 'cs
 Route::get('claim_op/csop_detail', [ClaimOpController::class, 'csop_detail']);
 Route::post('import/csop_rep_save', [\App\Http\Controllers\ImportCsController::class, 'import_rep_csop']);
 Route::match(['get', 'post'], 'claim_op/csop_export', [\App\Http\Controllers\CsopExportController::class, 'csop_export'])->middleware('rims_license');
-Route::post('claim_op/csop_export_preview', [\App\Http\Controllers\CsopExportController::class, 'csop_export_preview'])->middleware('rims_license');
+Route::post('claim_op/csop_export_preview', [\App\Http\Controllers\CsopExportController::class, 'csop_export_preview']);
 Route::get('claim_op/csop_rep_errors', [ClaimOpController::class, 'csop_rep_errors']);
 Route::get('claim_op/sss_rep_errors', [ClaimOpController::class, 'sss_rep_errors']);
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);
@@ -527,8 +527,8 @@ Route::match(['get', 'post'], 'claim_ip/srt', [ClaimIpController::class, 'srt'])
 Route::get('claim_ip/srt/visit_details', [ClaimIpController::class, 'get_ip_visit_details']);
 Route::match(['get', 'post'], 'claim_ip/sss', [ClaimIpController::class, 'sss']);
 Route::match(['get', 'post'], 'claim_ip/sss_export_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_aipn'])->middleware('rims_license');
-Route::post('claim_ip/sss_export_preview_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview_aipn'])->middleware('rims_license');
-Route::get('claim_ip/sss_an_details', [\App\Http\Controllers\SssExportController::class, 'sss_an_details'])->middleware('rims_license');
+Route::post('claim_ip/sss_export_preview_aipn', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview_aipn']);
+Route::get('claim_ip/sss_an_details', [\App\Http\Controllers\SssExportController::class, 'sss_an_details']);
 Route::get('claim_ip/sss_detail', [ClaimIpController::class, 'sss_detail']);
 Route::get('claim_ip/sss_rep_errors', [ClaimIpController::class, 'sss_rep_errors']);
 Route::post('claim_ip/rep_sss_aipn_import', [ImportSssController::class, 'import_aipn_rep']);
@@ -579,21 +579,23 @@ Route::post('ktb/f16_export', [F16KtbExportController::class, 'exportZip']);
 Route::get('ktb/download_zip/{fileName}', [F16KtbExportController::class, 'downloadZip']);
 
 // HosFin System Routes
-Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('hosfin', [App\Http\Controllers\HosFinController::class, 'index'])->name('hosfin.index');
     Route::get('hosfin/trial_balance', [App\Http\Controllers\HosFinController::class, 'trial_balance'])->name('hosfin.trial_balance');
-    Route::post('hosfin/trial_balance/import', [App\Http\Controllers\HosFinController::class, 'import'])->name('hosfin.trial_balance.import');
-    Route::post('hosfin/trial_balance/analyze_mdb', [App\Http\Controllers\HosFinController::class, 'analyzeMdb'])->name('hosfin.trial_balance.analyze_mdb');
-    Route::post('hosfin/trial_balance/import_mdb_period', [App\Http\Controllers\HosFinController::class, 'importMdbPeriod'])->name('hosfin.trial_balance.import_mdb_period');
-    Route::delete('hosfin/trial_balance/delete', [App\Http\Controllers\HosFinController::class, 'delete_period'])->name('hosfin.trial_balance.delete');
-
-    // Mappings and Ratio Reports
     Route::get('hosfin/mappings', [App\Http\Controllers\HosFinController::class, 'mappings_search'])->name('hosfin.mappings.search');
-    Route::post('hosfin/mappings/store', [App\Http\Controllers\HosFinController::class, 'mappings_store'])->name('hosfin.mappings.store');
-    Route::delete('hosfin/mappings/delete', [App\Http\Controllers\HosFinController::class, 'mappings_delete'])->name('hosfin.mappings.delete');
     Route::get('hosfin/unmapped_accounts', [App\Http\Controllers\HosFinController::class, 'get_unmapped_accounts'])->name('hosfin.unmapped_accounts');
     Route::get('hosfin/ratio_report', [App\Http\Controllers\HosFinController::class, 'ratio_report'])->name('hosfin.ratio_report');
     Route::get('hosfin/ratio_report/export', [App\Http\Controllers\HosFinController::class, 'ratio_report_export'])->name('hosfin.ratio_report.export');
+
+    // Mutations / Imports guarded by rims_license
+    Route::middleware(['rims_license:hosfin'])->group(function () {
+        Route::post('hosfin/trial_balance/import', [App\Http\Controllers\HosFinController::class, 'import'])->name('hosfin.trial_balance.import');
+        Route::post('hosfin/trial_balance/analyze_mdb', [App\Http\Controllers\HosFinController::class, 'analyzeMdb'])->name('hosfin.trial_balance.analyze_mdb');
+        Route::post('hosfin/trial_balance/import_mdb_period', [App\Http\Controllers\HosFinController::class, 'importMdbPeriod'])->name('hosfin.trial_balance.import_mdb_period');
+        Route::delete('hosfin/trial_balance/delete', [App\Http\Controllers\HosFinController::class, 'delete_period'])->name('hosfin.trial_balance.delete');
+        Route::post('hosfin/mappings/store', [App\Http\Controllers\HosFinController::class, 'mappings_store'])->name('hosfin.mappings.store');
+        Route::delete('hosfin/mappings/delete', [App\Http\Controllers\HosFinController::class, 'mappings_delete'])->name('hosfin.mappings.delete');
+    });
 });
 
 // Debtor -------------------------------------------------------------------------------------------------------------------------

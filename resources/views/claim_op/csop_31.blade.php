@@ -1905,10 +1905,16 @@
                     });
 
                     const btnDownload = document.getElementById('btnDownloadCSOP');
+                    const isCsopLicensed = @json($is_csop_licensed);
+
                     if (hasError) {
                         btnDownload.disabled = true;
                         btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> มีข้อผิดพลาด Pre-Audit (${errorCount} เคส)`;
                         btnDownload.className = 'btn btn-danger px-4';
+                    } else if (!isCsopLicensed) {
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-lock-fill me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)`;
+                        btnDownload.className = 'btn btn-outline-danger px-4 fw-bold';
                     } else {
                         btnDownload.disabled = false;
                         btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)`;
@@ -1933,6 +1939,23 @@
     };
 
     window.downloadCSOPExportZip = function() {
+        const isCsopLicensed = @json($is_csop_licensed);
+        if (!isCsopLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Expired',
+                    text: 'ฟังก์ชันดาวน์โหลดไฟล์ CSOP (.zip) สงวนสิทธิ์เฉพาะผู้มี License (export_csop) กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#3b82f6',
+                    borderRadius: '15px'
+                });
+            }
+            return;
+        }
+
         const sessionId = document.getElementById('export_session_id').value;
         const stationId = document.getElementById('export_station_id').value;
         const tflag = document.getElementById('export_tflag').value;

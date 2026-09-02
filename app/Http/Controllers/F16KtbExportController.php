@@ -31,10 +31,15 @@ class F16KtbExportController extends Controller
         }
 
         try {
-            $filesData = $this->exportService->generate16Files($vns, $activityCode);
+            $preview = $this->exportService->getPreviewData($vns, $activityCode);
             return response()->json([
                 'success' => true,
-                'files' => $filesData,
+                'files' => $preview['files'],
+                'raw_files' => $preview['raw_files'],
+                'tables' => $preview['tables'],
+                'headers' => $preview['headers'],
+                'counts' => $preview['counts'],
+                'subfolder_name' => $preview['subfolder_name'],
                 'total_keys' => count($vns),
                 'activity_code' => $activityCode
             ]);

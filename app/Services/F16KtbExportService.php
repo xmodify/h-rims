@@ -63,6 +63,61 @@ class F16KtbExportService
     }
 
     /**
+     * ดึงข้อมูล Preview พร้อม Raw Files, Headers, Tables สำหรับ Modal
+     */
+    public function getPreviewData(array $vns, string $activityCode = 'S01'): array
+    {
+        $filesData = $this->generate16Files($vns, $activityCode);
+        $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
+
+        $defaultHeaders = [
+            'INS' => ['HN', 'INSCL', 'SUBTYPE', 'CID', 'HCODE', 'DATEEXP', 'HOSPMAIN', 'HOSPSUB', 'GOVCODE', 'GOVNAME', 'PERMITNO', 'DOCNO', 'OWNRPID', 'OWNNAME', 'AN', 'SEQ', 'SUBINSCL', 'RELINSCL', 'HTYPE'],
+            'PAT' => ['HCODE', 'HN', 'CHANGWAT', 'AMPHUR', 'DOB', 'SEX', 'MARRIAGE', 'OCCUPA', 'NATION', 'PERSON_ID', 'NAMEPAT', 'TITLE', 'FNAME', 'LNAME', 'IDTYPE'],
+            'OPD' => ['HN', 'CLINIC', 'DATEOPD', 'TIMEOPD', 'SEQ', 'UUC', 'DETAIL', 'BTEMP', 'SBP', 'DBP', 'PR', 'RR', 'OPTYPE', 'TYPEIN', 'TYPEOUT'],
+            'ODX' => ['HN', 'DATEDX', 'CLINIC', 'DIAG', 'DXTYPE', 'DRDX', 'PERSON_ID', 'SEQ'],
+            'ADP' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM'],
+            'DRU' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRICE', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'SIGCODE', 'SIGTEXT', 'PROVIDER', 'SP_ITEM'],
+        ];
+
+        $rawFiles = [];
+        $tables = [];
+        $headers = [];
+        $counts = [];
+
+        foreach ($allFileKeys as $key) {
+            $rows = $filesData[$key] ?? [];
+            $counts[$key] = count($rows);
+
+            if (!empty($rows)) {
+                $fileHeaders = array_keys($rows[0]);
+                $headers[$key] = $fileHeaders;
+                $tableRows = [];
+                $rawText = implode('|', $fileHeaders) . "\r\n";
+                foreach ($rows as $row) {
+                    $tableRows[] = array_values($row);
+                    $rawText .= implode('|', array_values($row)) . "\r\n";
+                }
+                $tables[$key] = $tableRows;
+                $rawFiles[$key] = $rawText;
+            } else {
+                $fileHeaders = $defaultHeaders[$key] ?? [];
+                $headers[$key] = $fileHeaders;
+                $tables[$key] = [];
+                $rawFiles[$key] = implode('|', $fileHeaders) . "\r\n";
+            }
+        }
+
+        return [
+            'files' => $filesData,
+            'raw_files' => $rawFiles,
+            'tables' => $tables,
+            'headers' => $headers,
+            'counts' => $counts,
+            'subfolder_name' => 'F16_KTB_' . strtoupper($activityCode) . '_' . date('Ymd_His')
+        ];
+    }
+
+    /**
      * ดึงข้อมูลสัญญาณชีพจาก opdscreen
      */
     protected function getVitalsMap(array $vns): array
@@ -186,6 +241,15 @@ class F16KtbExportService
         }
 
         // KTB Health Platform รองรับเฉพาะ 6 แฟ้ม: INS, PAT, OPD, ODX, ADP, DRU
+        $defaultHeaders = [
+            'INS' => ['HN', 'INSCL', 'SUBTYPE', 'CID', 'HCODE', 'DATEEXP', 'HOSPMAIN', 'HOSPSUB', 'GOVCODE', 'GOVNAME', 'PERMITNO', 'DOCNO', 'OWNRPID', 'OWNNAME', 'AN', 'SEQ', 'SUBINSCL', 'RELINSCL', 'HTYPE'],
+            'PAT' => ['HCODE', 'HN', 'CHANGWAT', 'AMPHUR', 'DOB', 'SEX', 'MARRIAGE', 'OCCUPA', 'NATION', 'PERSON_ID', 'NAMEPAT', 'TITLE', 'FNAME', 'LNAME', 'IDTYPE'],
+            'OPD' => ['HN', 'CLINIC', 'DATEOPD', 'TIMEOPD', 'SEQ', 'UUC', 'DETAIL', 'BTEMP', 'SBP', 'DBP', 'PR', 'RR', 'OPTYPE', 'TYPEIN', 'TYPEOUT'],
+            'ODX' => ['HN', 'DATEDX', 'CLINIC', 'DIAG', 'DXTYPE', 'DRDX', 'PERSON_ID', 'SEQ'],
+            'ADP' => ['HN', 'AN', 'DATEOPD', 'TYPE', 'CODE', 'QTY', 'RATE', 'SEQ', 'CAGCODE', 'DOSE', 'CA_TYPE', 'SERIALNO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'QTYDAY', 'TMLTCODE', 'STATUS1', 'BI', 'CLINIC', 'ITEMSRC', 'PROVIDER', 'GRAVIDA', 'GA_WEEK', 'DCIP/E_SCREEN', 'LMP', 'SP_ITEM'],
+            'DRU' => ['HCODE', 'HN', 'AN', 'CLINIC', 'PERSON_ID', 'DATE_SERV', 'DID', 'DIDNAME', 'AMOUNT', 'DRUGPRICE', 'DRUGCOST', 'DIDSTD', 'UNIT', 'UNIT_PACK', 'SEQ', 'DRUGREMARK', 'PA_NO', 'TOTCOPAY', 'USE_STATUS', 'TOTAL', 'SIGCODE', 'SIGTEXT', 'PROVIDER', 'SP_ITEM'],
+        ];
+
         $allFileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
 
         foreach ($allFileKeys as $key) {
@@ -199,9 +263,12 @@ class F16KtbExportService
                 foreach ($rows as $row) {
                     $content .= implode('|', array_values($row)) . "\r\n";
                 }
+            } else {
+                $headers = $defaultHeaders[$key] ?? [];
+                $content .= implode('|', $headers) . "\r\n";
             }
 
-            file_put_contents($filePath, iconv('UTF-8', 'TIS-620//IGNORE', $content));
+            file_put_contents($filePath, $content);
         }
 
         $zipFileName = 'F16_KTB_' . $activityCode . '_' . date('Ymd_His') . '.zip';

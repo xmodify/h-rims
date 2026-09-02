@@ -318,14 +318,25 @@
                     <span id="f16FdhExportProgressText" class="fw-bold text-primary small"></span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                    @php
+                        $is_f16_fdh_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_fdh') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_fdh === 'Y');
+                    @endphp
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal" data-dismiss="modal" onclick="closeFdhModal()">
                         <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
                     </button>
                     <button type="button" class="btn btn-outline-secondary px-3 fw-bold" id="btnExecuteF16FdhExport" onclick="executeF16FdhDirectoryExport()">
-                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16FdhExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @if($is_f16_fdh_licensed)
+                            <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16FdhExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @else
+                            <i class="bi bi-lock-fill text-warning me-1"></i> <span id="btnExecuteF16FdhExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                        @endif
                     </button>
                     <button type="button" class="btn text-white px-4 fw-bold shadow-sm" id="btnSendF16FdhApi" onclick="sendF16ToFdhApi()" style="background: linear-gradient(135deg, #198754 0%, #20c997 100%); border: none;">
-                        <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16FdhApiText">🚀 ส่งข้อมูลเข้า FDH ผ่าน API</span>
+                        @if($is_f16_fdh_licensed)
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> <span id="btnSendF16FdhApiText">🚀 ส่งข้อมูลเข้า FDH ผ่าน API</span>
+                        @else
+                            <i class="bi bi-lock-fill text-warning me-1"></i> <span id="btnSendF16FdhApiText">🚀 ส่งข้อมูลเข้า FDH ผ่าน API</span>
+                        @endif
                     </button>
                 </div>
             </div>
@@ -334,6 +345,8 @@
 </div>
 
 <script>
+    const isF16FdhLicensed = @json($is_f16_fdh_licensed);
+
     // Global State for F16 FDH Export
     window._f16FdhExportState = {
         keys: [],
@@ -672,6 +685,21 @@
      * บันทึกไฟล์ .txt ทั้ง 17 แฟ้ม FDH ลงโฟลเดอร์โดยตรงผ่าน File System Access API
      */
     window.executeF16FdhDirectoryExport = async function() {
+        if (!isF16FdhLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Expired',
+                    text: 'กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0e939a'
+                });
+            }
+            return;
+        }
+
         const state = window._f16FdhExportState;
         if (!state.keys || state.keys.length === 0) {
             alert('ไม่พบรายการที่เลือก');
@@ -858,6 +886,21 @@
      * =========================================================================
      */
     window.sendF16ToFdhApi = function() {
+        if (!isF16FdhLicensed) {
+            if (typeof showLicenseRequiredAlert === 'function') {
+                showLicenseRequiredAlert();
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'License Expired',
+                    text: 'กรุณาติดต่อผู้พัฒนา',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0e939a'
+                });
+            }
+            return;
+        }
+
         const state = window._f16FdhExportState;
         if (!state.keys || state.keys.length === 0) {
             if (typeof Swal !== 'undefined') {

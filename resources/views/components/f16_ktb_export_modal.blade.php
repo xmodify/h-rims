@@ -139,27 +139,31 @@
                     </div>
 
                     <!-- Tab Contents Container -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-primary fs-6 fw-bold" id="f16KtbCurrentFileTitle">ADP.txt</span>
-                                <span class="text-muted small" id="f16KtbCurrentFileDesc">ข้อมูลรายการบริการส่งเสริมป้องกันโรค (PPFS)</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="input-group input-group-sm" style="width: 220px;">
-                                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                                    <input type="text" class="form-control" id="f16KtbSearchInput" placeholder="ค้นหาในตาราง..." onkeyup="filterKtbCurrentTable()">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body p-2">
-                            <div class="tab-content" id="f16KtbTabContent">
-                                @foreach($fileTabs as $tab)
-                                    <div class="tab-pane fade {{ $tab['key'] === 'ADP' ? 'show active' : '' }}" 
-                                         id="f16-ktb-pane-{{ $tab['key'] }}" 
-                                         role="tabpanel">
+                    <div class="tab-content" id="f16KtbTabContent">
+                        @foreach($fileTabs as $tab)
+                            <div class="tab-pane fade {{ $tab['key'] === 'ADP' ? 'show active' : '' }}" 
+                                 id="f16-ktb-pane-{{ $tab['key'] }}" 
+                                 role="tabpanel">
+                                <!-- Card Container for each file -->
+                                <div class="card border shadow-sm" style="border-color: #cbd5e1; border-radius: 8px; overflow: hidden;">
+                                    <div class="card-header bg-white border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-table text-primary"></i>
+                                            <span class="badge bg-primary fs-6 fw-bold">{{ $tab['name'] }}.txt</span>
+                                            <span class="text-muted small">({{ $tab['desc'] }})</span>
+                                            <span class="text-muted small ms-2"><i class="bi bi-info-circle me-1"></i>คลิกที่หัวคอลัมน์เพื่อเรียงลำดับ (Sort)</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-light text-secondary border px-2 py-1" id="pane-ktb-count-{{ $tab['key'] }}">0 แถว</span>
+                                            <div class="input-group input-group-sm" style="width: 200px;">
+                                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                                <input type="text" class="form-control" id="f16KtbSearchInput-{{ $tab['key'] }}" placeholder="ค้นหาในตาราง..." onkeyup="filterKtbTable('{{ $tab['key'] }}')">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0 bg-white">
                                         <div class="f16-ktb-table-container">
-                                            <table class="table table-sm table-hover table-striped mb-0 w-100" id="f16-ktb-table-{{ $tab['key'] }}">
+                                            <table class="table table-sm table-hover table-striped mb-0 text-nowrap small w-100" id="f16-ktb-table-{{ $tab['key'] }}">
                                                 <thead>
                                                     <tr id="f16-ktb-thead-{{ $tab['key'] }}">
                                                         <th>กำลังโหลด...</th>
@@ -173,26 +177,71 @@
                                             </table>
                                         </div>
                                     </div>
-                                @endforeach
+
+                                    <!-- Collapsible Raw Text Section -->
+                                    <div class="card-footer bg-light border-top p-0">
+                                        <button class="btn btn-sm btn-light w-100 text-start d-flex justify-content-between align-items-center py-2 px-3 text-secondary border-0" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#raw-ktb-{{ $tab['key'] }}-collapse" 
+                                                aria-expanded="false" 
+                                                aria-controls="raw-ktb-{{ $tab['key'] }}-collapse">
+                                            <span class="fw-bold">
+                                                <i class="bi bi-file-earmark-code text-primary me-1"></i> ดูไฟล์ข้อความดิบ {{ $tab['name'] }}.txt (Raw Text)
+                                            </span>
+                                            <i class="bi bi-chevron-down text-muted"></i>
+                                        </button>
+                                        <div class="collapse" id="raw-ktb-{{ $tab['key'] }}-collapse">
+                                            <div class="p-3 position-relative bg-white border-top">
+                                                <button class="btn btn-xs btn-outline-secondary position-absolute end-0 top-0 m-3 shadow-sm" 
+                                                        type="button"
+                                                        onclick="copyF16KtbRawText('{{ $tab['key'] }}')" 
+                                                        style="font-size: 0.75rem; z-index: 10;">
+                                                    <i class="bi bi-clipboard me-1"></i> คัดลอก Raw Text
+                                                </button>
+                                                <textarea class="form-control text-monospace bg-light text-dark p-3 small" 
+                                                          id="preview-raw-ktb-{{ $tab['key'] }}" 
+                                                          rows="6" 
+                                                          readonly 
+                                                          style="font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre;">(ไม่มีข้อมูล)</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
 
-                    <!-- Action Result / Progress Section -->
-                    <div class="mt-3 p-3 bg-white rounded border d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fw-bold text-dark"><i class="bi bi-info-circle text-primary me-1"></i> โครงสร้างไฟล์:</span>
-                            <span class="text-muted small ms-1">รูปแบบ 16 แฟ้ม e-Claim สปสช. พ.ศ. ๒๕๖๔ ตามคู่มือ KTB Health Platform 1 OCT 2025</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
-                                <i class="bi bi-x-lg me-1"></i> ปิด
-                            </button>
-                            <button type="button" class="btn btn-primary px-4 shadow" id="btnKtbDownloadZip" onclick="executeKtbZipExport()">
-                                <i class="bi bi-file-earmark-zip-fill me-1"></i> ดาวน์โหลดไฟล์ 16 แฟ้ม (KTB .ZIP)
-                            </button>
+                    <!-- Export Folder Options (Switch style like e-Claim / FDH) -->
+                    <div class="card border-0 shadow-sm mt-3 bg-white">
+                        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+                            <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="f16KtbCreateSubfolderSwitch" checked>
+                                <label class="form-check-label fw-bold text-dark small cursor-pointer" for="f16KtbCreateSubfolderSwitch">
+                                    <i class="bi bi-folder-plus text-primary me-1"></i>สร้างโฟลเดอร์ย่อยตามสิทธิและวันเวลาอัตโนมัติ 
+                                    <span class="text-muted fw-normal" id="f16KtbSubfolderPreviewText">(เช่น F16_KTB_S01_25690902_1118)</span>
+                                </label>
+                            </div>
+                            <span class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>เขียนไฟล์ .txt ทั้ง 6 แฟ้ม KTB ลงโฟลเดอร์โดยตรง
+                            </span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer (Exact layout like FDH / e-Claim) -->
+            <div class="modal-footer bg-white py-3 px-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <span id="f16KtbExportProgressText" class="fw-bold text-primary small"></span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> ปิดหน้าต่าง
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-3 fw-bold" id="btnExecuteF16KtbExport" onclick="executeF16KtbDirectoryExport()">
+                        <i class="bi bi-folder-check me-1"></i> <span id="btnExecuteF16KtbExportText">ส่งออกโฟลเดอร์ (.txt)</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -200,14 +249,174 @@
 </div>
 
 <script>
-    var globalKtbF16Data = {};
-    var currentKtbTab = 'ADP';
-    var currentKtbKeys = [];
-    var currentKtbActivity = 'S01';
-    var currentKtbActivityTitle = 'ชุดบริการตรวจประเมินสุขภาพกาย/จิต (SCR)';
+    // Global State for F16 KTB Export
+    window._f16KtbExportState = {
+        keys: [],
+        activityCode: 'S01',
+        activityTitle: '',
+        headers: {},
+        tables: {},
+        rawFiles: {},
+        counts: {},
+        subfolderName: ''
+    };
+
+    window._f16KtbSortState = {};
+
+    function escapeHtmlKtb(text) {
+        if (text === null || text === undefined) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     /**
-     * ฟังก์ชันเปิด Modal ส่งออก 16 แฟ้ม KTB
+     * Render thead for table
+     */
+    window.renderF16KtbTableHead = function(key) {
+        const headers = window._f16KtbExportState.headers[key] || [];
+        const thead = document.querySelector(`#f16-ktb-thead-${key}`);
+        if (!thead || headers.length === 0) return;
+
+        let html = '';
+        for (let colIdx = 0; colIdx < headers.length; colIdx++) {
+            const h = headers[colIdx];
+            html += `<th class="f16-ktb-sortable-th" onclick="sortF16KtbTable('${key}', ${colIdx})" title="คลิกเพื่อเรียงตาม ${escapeHtmlKtb(h)}">
+                <div class="d-flex align-items-center justify-content-between gap-1">
+                    <span>${escapeHtmlKtb(h)}</span>
+                    <span class="sort-icon text-muted small"><i class="bi bi-arrow-down-up"></i></span>
+                </div>
+            </th>`;
+        }
+        thead.innerHTML = html;
+    };
+
+    /**
+     * Render tbody for table
+     */
+    window.renderF16KtbTableBody = function(key) {
+        const rows = window._f16KtbExportState.tables[key] || [];
+        const tbody = document.getElementById(`f16-ktb-tbody-${key}`);
+        if (!tbody) return;
+
+        if (rows.length === 0) {
+            const colCount = $(`#f16-ktb-table-${key} thead th`).length || 1;
+            tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i> ไม่มีรายการในแฟ้มนี้</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        const maxRows = Math.min(rows.length, 300);
+        for (let r = 0; r < maxRows; r++) {
+            const row = rows[r];
+            html += '<tr>';
+            for (let c = 0; c < row.length; c++) {
+                const cell = row[c] !== null && row[c] !== undefined ? row[c] : '';
+                html += `<td>${escapeHtmlKtb(cell)}</td>`;
+            }
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    };
+
+    /**
+     * Sort table column
+     */
+    window.sortF16KtbTable = function(key, colIdx) {
+        const tableData = window._f16KtbExportState.tables[key];
+        if (!tableData || tableData.length === 0) return;
+
+        const currentSort = window._f16KtbSortState[key] || { col: -1, dir: 'asc' };
+        let newDir = 'asc';
+        if (currentSort.col === colIdx) {
+            newDir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+        }
+        window._f16KtbSortState[key] = { col: colIdx, dir: newDir };
+
+        tableData.sort(function(a, b) {
+            let valA = (a[colIdx] !== undefined && a[colIdx] !== null) ? a[colIdx].toString().trim() : '';
+            let valB = (b[colIdx] !== undefined && b[colIdx] !== null) ? b[colIdx].toString().trim() : '';
+
+            const numA = parseFloat(valA);
+            const numB = parseFloat(valB);
+            if (!isNaN(numA) && !isNaN(numB) && valA === numA.toString() && valB === numB.toString()) {
+                return newDir === 'asc' ? numA - numB : numB - numA;
+            }
+
+            const cmp = valA.localeCompare(valB, 'th', { numeric: true, sensitivity: 'base' });
+            return newDir === 'asc' ? cmp : -cmp;
+        });
+
+        $(`#f16-ktb-table-${key} th.f16-ktb-sortable-th`).each(function(idx) {
+            const iconEl = $(this).find('.sort-icon i');
+            if (idx === colIdx) {
+                iconEl.removeClass('bi-arrow-down-up bi-sort-down bi-sort-up text-muted')
+                      .addClass(newDir === 'asc' ? 'bi-sort-up text-primary fw-bold' : 'bi-sort-down text-primary fw-bold');
+                $(this).addClass('bg-primary-subtle');
+            } else {
+                iconEl.removeClass('bi-sort-down bi-sort-up text-primary fw-bold')
+                      .addClass('bi-arrow-down-up text-muted');
+                $(this).removeClass('bg-primary-subtle');
+            }
+        });
+
+        renderF16KtbTableBody(key);
+    };
+
+    /**
+     * Copy Raw Text
+     */
+    window.copyF16KtbRawText = function(key) {
+        const textarea = document.getElementById('preview-raw-ktb-' + key);
+        if (!textarea || !textarea.value) return;
+
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            if (typeof Swal !== 'undefined') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1800,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'คัดลอก ' + key + '.txt สำเร็จ'
+                });
+            } else {
+                alert('คัดลอก ' + key + '.txt สำเร็จ');
+            }
+        }).catch(() => {
+            textarea.select();
+            document.execCommand('copy');
+            alert('คัดลอก ' + key + '.txt สำเร็จ');
+        });
+    };
+
+    /**
+     * Switch File Tab
+     */
+    window.switchKtbFileTab = function(key) {
+        // Tab bootstrap handles pane visibility
+    };
+
+    /**
+     * Filter table search
+     */
+    window.filterKtbTable = function(key) {
+        const query = ($('#f16KtbSearchInput-' + key).val() || '').toLowerCase();
+        const rows = $(`#f16-ktb-tbody-${key} tr`);
+        rows.each(function () {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(query) > -1);
+        });
+    };
+
+    /**
+     * Open F16 KTB Modal
      */
     window.openF16KtbModal = function(keys, activityCode, activityTitle) {
         activityCode = activityCode || 'S01';
@@ -219,7 +428,8 @@
                     icon: 'warning',
                     title: 'กรุณาเลือกรายการ',
                     text: 'กรุณาติ๊กเลือกรายการในตารางอย่างน้อย 1 รายการก่อนส่งออก 16 แฟ้ม KTB',
-                    confirmButtonText: 'ตกลง'
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#0077b6'
                 });
             } else {
                 alert('กรุณาติ๊กเลือกรายการในตารางอย่างน้อย 1 รายการก่อนส่งออก 16 แฟ้ม KTB');
@@ -227,169 +437,235 @@
             return;
         }
 
-        currentKtbKeys = keys;
-        currentKtbActivity = activityCode;
-        currentKtbActivityTitle = activityTitle || ('[' + activityCode + ']');
+        const state = window._f16KtbExportState;
+        state.keys = keys;
+        state.activityCode = activityCode;
+        state.activityTitle = activityTitle || ('[' + activityCode + ']');
+        state.headers = {};
+        state.tables = {};
+        state.rawFiles = {};
+        state.counts = {};
+        state.subfolderName = 'F16_KTB_' + activityCode.toUpperCase() + '_' + Date.now();
+        window._f16KtbSortState = {};
 
-        $('#f16KtbModalActivityTitle').text(currentKtbActivityTitle);
+        $('#f16KtbModalActivityTitle').text(state.activityTitle);
         $('#f16KtbModalSelectedBadge').text(keys.length + ' รายการที่เลือก');
+        $('#f16KtbExportProgressText').text('');
 
-        // Reset state
+        // Reset UI State
         $('#f16KtbLoadingOverlay').show();
         $('#f16KtbMainContent').hide();
-        $('#btnKtbDownloadZip').prop('disabled', false).html('<i class="bi bi-file-earmark-zip-fill me-1"></i> ดาวน์โหลดไฟล์ 16 แฟ้ม (KTB .ZIP)');
+        $('#btnExecuteF16KtbExport').prop('disabled', true);
 
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('f16KtbExportModal'));
-            modal.show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('f16KtbExportModal')).show();
         } else {
             $('#f16KtbExportModal').modal('show');
         }
 
-        // Fetch preview data
+        // Fetch Preview Data
         $.ajax({
             url: "{{ url('ktb/f16_preview') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                keys: currentKtbKeys,
-                activity_code: currentKtbActivity
+                keys: state.keys,
+                activity_code: state.activityCode
             },
             success: function (res) {
+                $('#f16KtbLoadingOverlay').hide();
+                $('#f16KtbMainContent').fadeIn(200);
+                $('#btnExecuteF16KtbExport').prop('disabled', false);
+
                 if (res.success) {
-                    globalKtbF16Data = res.files || {};
-                    renderAllKtbTables(globalKtbF16Data);
-                    $('#f16KtbLoadingOverlay').hide();
-                    $('#f16KtbMainContent').fadeIn(200);
+                    state.headers = res.headers || {};
+                    state.tables = res.tables || {};
+                    state.rawFiles = res.raw_files || {};
+                    state.counts = res.counts || {};
+                    state.subfolderName = res.subfolder_name || ('F16_KTB_' + activityCode.toUpperCase() + '_' + Date.now());
+
+                    $('#f16KtbSubfolderPreviewText').text('(เช่น ' + state.subfolderName + ')');
+
+                    // Update 6 Tabs
+                    const fileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
+                    fileKeys.forEach(function(k) {
+                        const count = state.counts[k] || 0;
+                        const badgeEl = $('#f16-ktb-badge-' + k);
+                        const paneCountEl = $('#pane-ktb-count-' + k);
+                        const rawTextarea = $('#preview-raw-ktb-' + k);
+
+                        badgeEl.text(count);
+                        paneCountEl.text(count + ' แถว');
+
+                        if (count > 0) {
+                            badgeEl.removeClass('badge-count-zero').addClass('badge-count-success');
+                            rawTextarea.val(state.rawFiles[k] || '');
+                        } else {
+                            badgeEl.removeClass('badge-count-success').addClass('badge-count-zero');
+                            rawTextarea.val('(ไม่มีข้อมูลสำหรับแฟ้มนี้)');
+                        }
+
+                        renderF16KtbTableHead(k);
+                        renderF16KtbTableBody(k);
+                    });
+
+                    // Activate ADP tab by default
+                    $('#f16-ktb-tab-ADP').trigger('click');
                 } else {
-                    showKtbError(res.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถประมวลผล 16 แฟ้ม KTB ได้', 'error');
+                    } else {
+                        alert(res.message || 'ไม่สามารถประมวลผล 16 แฟ้ม KTB ได้');
+                    }
                 }
             },
             error: function (xhr) {
-                showKtbError(xhr.responseJSON?.message || 'ไม่สามารถเชื่อมต่อ Server ได้');
+                $('#f16KtbLoadingOverlay').hide();
+                const errMsg = xhr.responseJSON?.message || 'ไม่สามารถเชื่อมต่อ Server ได้';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('ข้อผิดพลาด', errMsg, 'error');
+                } else {
+                    alert(errMsg);
+                }
             }
         });
     };
-
-    window.showKtbError = function(msg) {
-        $('#f16KtbLoadingOverlay').html(`
-            <div class="text-danger py-4">
-                <i class="bi bi-exclamation-triangle fs-1 mb-2"></i>
-                <h6 class="fw-bold">เกิดข้อผิดพลาด</h6>
-                <p class="small text-muted mb-3">${msg}</p>
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
-            </div>
-        `);
-    };
-
-    window.renderAllKtbTables = function(data) {
-        for (var fileKey in data) {
-            if (!data.hasOwnProperty(fileKey)) continue;
-            var rows = data[fileKey];
-            var count = rows.length;
-            $('#f16-ktb-badge-' + fileKey).text(count);
-
-            if (count > 0) {
-                $('#f16-ktb-badge-' + fileKey).removeClass('badge-count-zero bg-secondary').addClass('badge-count-success');
-                var headers = Object.keys(rows[0]);
-                
-                // Render thead
-                var thHtml = '';
-                for (var i = 0; i < headers.length; i++) {
-                    thHtml += '<th class="f16-ktb-sortable-th">' + headers[i] + '</th>';
-                }
-                $('#f16-ktb-thead-' + fileKey).html(thHtml);
-
-                // Render tbody
-                var trHtml = '';
-                var maxRows = Math.min(rows.length, 200);
-                for (var j = 0; j < maxRows; j++) {
-                    var r = rows[j];
-                    trHtml += '<tr>';
-                    for (var k = 0; k < headers.length; k++) {
-                        var h = headers[k];
-                        var val = r[h] !== null && r[h] !== undefined ? r[h] : '';
-                        trHtml += '<td>' + escapeKtbHtml(val) + '</td>';
-                    }
-                    trHtml += '</tr>';
-                }
-                $('#f16-ktb-tbody-' + fileKey).html(trHtml);
-            } else {
-                $('#f16-ktb-badge-' + fileKey).removeClass('badge-count-success bg-success').addClass('badge-count-zero');
-                $('#f16-ktb-thead-' + fileKey).html('<th>ไม่มีข้อมูล</th>');
-                $('#f16-ktb-tbody-' + fileKey).html('<tr><td class="text-center text-muted py-3">ไม่มีรายการในแฟ้มนี้</td></tr>');
-            }
-        }
-        switchKtbFileTab(currentKtbTab);
-    };
-
-    window.switchKtbFileTab = function(key) {
-        currentKtbTab = key;
-        $('#f16KtbCurrentFileTitle').text(key + '.txt');
-        var tabDescMap = {
-            'INS': 'ข้อมูลสิทธิการรักษาพยาบาล',
-            'PAT': 'ข้อมูลประวัติผู้ป่วยและที่อยู่',
-            'OPD': 'ข้อมูลการตรวจรักษา OPD และสัญญาณชีพ',
-            'ORF': 'ข้อมูลการส่งต่อผู้ป่วยนอก (Refer Out)',
-            'ODX': 'ข้อมูลการวินิจฉัยโรคผู้ป่วยนอก (ICD-10)',
-            'OOP': 'ข้อมูลหัตถการผู้ป่วยนอก (ICD-9)',
-            'IPD': 'ข้อมูลการรับบริการผู้ป่วยใน',
-            'IRF': 'ข้อมูลการส่งต่อผู้ป่วยใน',
-            'IDX': 'ข้อมูลการวินิจฉัยโรคผู้ป่วยใน',
-            'IOP': 'ข้อมูลหัตถการผ่าตัดผู้ป่วยใน',
-            'CHT': 'ข้อมูลสรุปยอดค่ารักษาพยาบาล',
-            'CHA': 'ข้อมูลสรุปค่าบริการแจกแจงตามหมวด 20 หมวด',
-            'AER': 'ข้อมูลอุบัติเหตุ ฉุกเฉิน และส่งต่อ',
-            'ADP': 'ข้อมูลบริการเสริม/อุปกรณ์/ส่งเสริมป้องกันโรค (PPFS KTB)',
-            'LVD': 'ข้อมูลการลากลับบ้าน',
-            'DRU': 'ข้อมูลรายการสั่งใช้ยาและเวชภัณฑ์',
-            'LABFU': 'ข้อมูลผลตรวจทางห้องปฏิบัติการติดตามการรักษา'
-        };
-        $('#f16KtbCurrentFileDesc').text(tabDescMap[key] || '');
-        filterKtbCurrentTable();
-    };
-
-    window.filterKtbCurrentTable = function() {
-        var query = ($('#f16KtbSearchInput').val() || '').toLowerCase();
-        var rows = $('#f16-ktb-tbody-' + currentKtbTab + ' tr');
-        rows.each(function () {
-            var text = $(this).text().toLowerCase();
-            $(this).toggle(text.indexOf(query) > -1);
-        });
-    };
-
-    function escapeKtbHtml(str) {
-        if (typeof str !== 'string') return str;
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
 
     /**
-     * สั่งสร้างและดาวน์โหลดไฟล์ Zip
+     * บันทึกไฟล์ .txt ทั้ง 6 แฟ้ม KTB ลงโฟลเดอร์โดยตรงผ่าน File System Access API
+     */
+    window.executeF16KtbDirectoryExport = async function() {
+        const state = window._f16KtbExportState;
+        if (!state.keys || state.keys.length === 0) {
+            alert('ไม่พบรายการที่เลือก');
+            return;
+        }
+
+        // Check Browser Support for Directory Picker
+        if (!('showDirectoryPicker' in window)) {
+            executeKtbZipExport();
+            return;
+        }
+
+        let dirHandle;
+        try {
+            // 1. Open Native Folder Selection Dialog
+            dirHandle = await window.showDirectoryPicker({
+                mode: 'readwrite',
+                startIn: 'downloads'
+            });
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Directory Picker Error:', err);
+            }
+            return;
+        }
+
+        // Show Exporting Indicator
+        const btn = $('#btnExecuteF16KtbExport');
+        const originalHtml = btn.html();
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>กำลังส่งออกไฟล์ .txt...');
+        $('#f16KtbExportProgressText').text('⏳ กำลังเตรียมไฟล์ .txt ทั้ง 6 แฟ้ม KTB...');
+
+        const fileKeys = ['INS', 'PAT', 'OPD', 'ODX', 'ADP', 'DRU'];
+
+        try {
+            const createSubfolder = $('#f16KtbCreateSubfolderSwitch').is(':checked');
+            let targetDir = dirHandle;
+            if (createSubfolder) {
+                targetDir = await dirHandle.getDirectoryHandle(state.subfolderName, { create: true });
+            }
+
+            for (const k of fileKeys) {
+                const fileName = k + '.txt';
+                const fileContent = state.rawFiles[k] || '';
+
+                const fileHandle = await targetDir.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(fileContent);
+                await writable.close();
+            }
+
+            btn.prop('disabled', false).html(originalHtml);
+            $('#f16KtbExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งออกสำเร็จครบ 6 แฟ้ม KTB (.txt)</span>');
+
+            const folderDisplay = createSubfolder ? state.subfolderName : dirHandle.name;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งออก 16 แฟ้ม (KTB .txt) สำเร็จเรียบร้อย!',
+                    html: `
+                        <div class="text-start p-3 bg-light rounded small mt-2">
+                            <div class="mb-1"><b>📁 โฟลเดอร์:</b> <code class="text-primary fs-6">${folderDisplay}</code></div>
+                            <div class="mb-1"><b>📄 จำนวนไฟล์:</b> ครบ 6 แฟ้มหลัก KTB (.txt)</div>
+                            <div class="mb-0"><b>👥 ผู้รับบริการ:</b> ${state.keys.length} รายการ</div>
+                        </div>
+                        <div class="mt-3 text-muted small">
+                            เปิดหน้าเว็บ <b>Krungthai Digital Health Platform (healthplatform.krungthai.com)</b> เลือก <b>Text Format (.TXT)</b> แล้วเลือกไฟล์ .txt จากโฟลเดอร์นี้เพื่อนำเข้าได้ทันที
+                        </div>
+                    `,
+                    confirmButtonText: 'รับทราบ',
+                    confirmButtonColor: '#0077b6'
+                });
+            } else {
+                alert('ส่งออกสำเร็จเรียบร้อยที่โฟลเดอร์: ' + folderDisplay);
+            }
+        } catch (writeErr) {
+            btn.prop('disabled', false).html(originalHtml);
+            $('#f16KtbExportProgressText').text('');
+            console.error('File write error:', writeErr);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('เกิดข้อผิดพลาดในการเขียนไฟล์', writeErr.message, 'error');
+            } else {
+                alert('เกิดข้อผิดพลาดในการเขียนไฟล์: ' + writeErr.message);
+            }
+        }
+    };
+
+    /**
+     * สั่งสร้างและดาวน์โหลดไฟล์ 16 แฟ้ม .ZIP (คลิกเดียวจบ โหลดไฟล์ Zip ลงเครื่องทันที)
      */
     window.executeKtbZipExport = function() {
-        if (!currentKtbKeys || currentKtbKeys.length === 0) return;
+        const state = window._f16KtbExportState;
+        if (!state.keys || state.keys.length === 0) {
+            alert('ไม่พบรายการที่เลือก');
+            return;
+        }
 
-        var btn = $('#btnKtbDownloadZip');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> กำลังบีบอัดไฟล์ Zip...');
+        const btn = $('#btnKtbDownloadZip');
+        const originalHtml = btn.html();
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>กำลังบีบอัดไฟล์ Zip...');
+        $('#f16KtbExportProgressText').text('⏳ กำลังสร้างไฟล์ Zip 16 แฟ้ม KTB...');
 
         $.ajax({
             url: "{{ url('ktb/f16_export') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
-                keys: currentKtbKeys,
-                activity_code: currentKtbActivity
+                keys: state.keys,
+                activity_code: state.activityCode
             },
             success: function (res) {
-                btn.prop('disabled', false).html('<i class="bi bi-file-earmark-zip-fill me-1"></i> ดาวน์โหลดไฟล์ 16 แฟ้ม (KTB .ZIP)');
+                btn.prop('disabled', false).html(originalHtml);
+                $('#f16KtbExportProgressText').html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>ดาวน์โหลดไฟล์ Zip สำเร็จ</span>');
                 if (res.success && res.download_url) {
                     window.location.href = res.download_url;
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',
-                            title: 'ส่งออกไฟล์ 16 แฟ้ม สำเร็จ!',
-                            html: 'ดาวน์โหลดไฟล์ <strong>' + res.zip_file_name + '</strong> เรียบร้อยแล้ว<br><small class="text-muted">สามารถนำไฟล์ Zip นี้ไปอัปโหลดขึ้นระบบ Krungthai Digital Health Platform ได้ทันที</small>',
-                            confirmButtonText: 'ตกลง'
+                            title: 'ส่งออกไฟล์ 16 แฟ้ม (.ZIP) สำเร็จ!',
+                            html: `
+                                <div class="text-start p-3 bg-light rounded small mt-2">
+                                    <div class="mb-1"><b>📦 ชื่อไฟล์:</b> <code class="text-primary fs-6">${res.zip_file_name}</code></div>
+                                    <div class="mb-1"><b>📄 เนื้อหา:</b> 6 แฟ้มมาตรฐาน KTB (.txt)</div>
+                                    <div class="mb-0"><b>👥 ผู้รับบริการ:</b> ${state.keys.length} รายการ</div>
+                                </div>
+                                <div class="mt-3 text-muted small">
+                                    ไฟล์ .zip ถูกดาวน์โหลดลงเครื่องเรียบร้อยแล้ว ท่านสามารถแตกไฟล์ (Extract) แล้วนำไฟล์ .txt ทั้ง 6 แฟ้มไปอัปโหลดขึ้นระบบ <b>Krungthai Digital Health Platform</b> ได้ทันที
+                                </div>
+                            `,
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#0077b6'
                         });
                     }
                 } else {
@@ -397,7 +673,8 @@
                 }
             },
             error: function (xhr) {
-                btn.prop('disabled', false).html('<i class="bi bi-file-earmark-zip-fill me-1"></i> ดาวน์โหลดไฟล์ 16 แฟ้ม (KTB .ZIP)');
+                btn.prop('disabled', false).html(originalHtml);
+                $('#f16KtbExportProgressText').text('');
                 alert(xhr.responseJSON?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ Server');
             }
         });

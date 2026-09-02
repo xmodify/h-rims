@@ -43,11 +43,9 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importFeedbackModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
-                            @if($is_aipn_licensed)
                             <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedAIPN()">
                                 <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก AIPN (.zip)
                             </button>
-                            @endif
                         </div>
                     </form>
                 </div>
@@ -81,9 +79,7 @@
                         <table id="t_search" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_aipn_licensed)
                                     <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
-                                    @endif
                                     <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
@@ -110,11 +106,9 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
-                                    @if($is_aipn_licensed)
                                     <td class="text-center">
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>
-                                    @endif
                                     <td class="text-center">
                                         @php
                                             $btn_color = ($row->auth_code == 'Y' && empty($row->rep_error)) ? 'btn-outline-success' : 'btn-outline-danger';
@@ -335,9 +329,7 @@
                         <table id="t_warning" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_aipn_licensed)
                                     <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
-                                    @endif
                                     <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
@@ -367,11 +359,9 @@
                                 @endphp
                                 @foreach($warning as $row) 
                                 <tr>
-                                    @if($is_aipn_licensed)
                                     <td class="text-center">
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>
-                                    @endif
                                     <td class="text-center">
                                         @php
                                             $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : 'btn-outline-success';

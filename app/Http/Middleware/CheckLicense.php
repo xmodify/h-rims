@@ -26,7 +26,7 @@ class CheckLicense
             'admin/main_setting/*',
             'admin/license/request',
             'admin/license/verify',
-            'check/sss_equipdev_aipn*'
+            'import/stm_ofc_cipn*'
         ];
 
         foreach ($whitelist as $pattern) {
@@ -38,19 +38,49 @@ class CheckLicense
         // 1. Auto-detect module from request path if not explicitly passed
         if ($module === null) {
             $path = $request->path();
-            if (str_starts_with($path, 'claim_op/sss_export')) {
+            if (str_starts_with($path, 'claim_op/sss_export_ssop')) {
                 $module = 'export_ssop';
-            } elseif (str_starts_with($path, 'claim_op/csop_export')) {
+            } elseif (str_starts_with($path, 'claim_op/csop_export') && !str_starts_with($path, 'claim_op/csop_export_preview')) {
                 $module = 'export_csop';
-            } elseif (str_contains($path, 'aipn')) {
+            } elseif (
+                str_starts_with($path, 'claim_ip/sss_export_aipn') ||
+                str_starts_with($path, 'check/sss_equipdev_aipn')
+            ) {
                 $module = 'export_aipn';
-            } elseif (str_contains($path, 'cipn')) {
+            } elseif (
+                str_starts_with($path, 'claim_ip/cipn_export') ||
+                str_starts_with($path, 'claim_ip/sss_export_cipn')
+            ) {
                 $module = 'export_cipn';
+            } elseif (
+                str_starts_with($path, 'f16_eclaim_export/export-data') ||
+                str_starts_with($path, 'f16_eclaim_export/send-api') ||
+                str_starts_with($path, 'f16_eclaim_export/check-token')
+            ) {
+                $module = 'export_f16_eclaim';
+            } elseif (
+                str_starts_with($path, 'f16_fdh_export/export-data') ||
+                str_starts_with($path, 'f16_fdh_export/send-api') ||
+                str_starts_with($path, 'f16_fdh_export/check-token')
+            ) {
+                $module = 'export_f16_fdh';
+            } elseif (
+                str_starts_with($path, 'import/eclaim-bot/thaid-qr') ||
+                str_starts_with($path, 'import/eclaim-bot/generate-qr') ||
+                str_starts_with($path, 'import/eclaim-bot/verify-login')
+            ) {
+                $module = 'sync_eclaim_thaid';
             } elseif (
                 str_starts_with($path, 'debtor/acc_ledger')
             ) {
                 $module = 'debtor_control';
-            } elseif (str_starts_with($path, 'hosfin')) {
+            } elseif (
+                str_starts_with($path, 'hosfin/trial_balance/import') ||
+                str_starts_with($path, 'hosfin/trial_balance/analyze_mdb') ||
+                str_starts_with($path, 'hosfin/trial_balance/delete') ||
+                str_starts_with($path, 'hosfin/mappings/store') ||
+                str_starts_with($path, 'hosfin/mappings/delete')
+            ) {
                 $module = 'hosfin';
             }
         }
@@ -74,6 +104,9 @@ class CheckLicense
                 'export_aipn' => 'ระบบส่งออกข้อมูลประกันสังคม AIPN',
                 'export_csop' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CSOP',
                 'export_cipn' => 'ระบบส่งออกข้อมูลสวัสดิการข้าราชการ CIPN',
+                'export_f16_eclaim' => 'ระบบส่งออกข้อมูล 16 แฟ้ม e-Claim',
+                'export_f16_fdh' => 'ระบบส่งออกข้อมูล 16 แฟ้ม FDH MOPH Claim',
+                'sync_eclaim_thaid' => 'ระบบเชื่อมต่อและดึงข้อมูล e-Claim ด้วย ThaID QR',
                 'debtor_control' => 'ระบบทะเบียนคุมลูกหนี้ (DebtorControl)',
                 'hosfin' => 'ระบบรายงานสถานะการเงินการคลัง (HosFin)',
             ];

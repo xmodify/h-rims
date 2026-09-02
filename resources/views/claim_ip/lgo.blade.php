@@ -113,14 +113,9 @@
               <i class="bi bi-x-circle me-1"></i> ปิดหน้าต่าง
             </button>
             <div class="d-flex gap-2">
-              @php
-                $is_f16_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_f16_eclaim') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_f16_eclaim === 'Y');
-              @endphp
-              @if($is_f16_licensed)
               <button type="button" class="btn text-white fw-bold px-4 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSingleAnEclaim()">
                 <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้มเคสนี้
               </button>
-              @endif
             </div>
           </div>
         </div>

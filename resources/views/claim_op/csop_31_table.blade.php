@@ -53,11 +53,9 @@
                             <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadModalErrors();">
                                 <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
                             </button>
-                            @if($is_csop_licensed)
                             <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedCSOP()">
                                 <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก CSOP (.zip)
                             </button>
-                            @endif
                         </div>
                     </form>
                 </div>
@@ -84,7 +82,7 @@
                         <table id="t_{{ $tab['id'] }}" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_csop_licensed && $tab['show_checkbox'])
+                                    @if($tab['show_checkbox'])
                                     <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
                                     @endif
                                     <th class="text-center">ตรวจสอบ</th>
@@ -121,7 +119,7 @@
                                     $has_invoice = (($row->csop_invno && $row->csop_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0')) ? 'true' : 'false';
                                 @endphp
                                 <tr data-has-error="{{ $row->rep_error ? 'true' : 'false' }}" data-has-invoice="{{ $has_invoice }}">
-                                    @if($is_csop_licensed && $tab['show_checkbox'])
+                                    @if($tab['show_checkbox'])
                                     <td class="text-center">
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>

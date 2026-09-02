@@ -92,14 +92,20 @@
                     <!-- Hidden input for category selection to keep JS functionality working -->
                     <input type="hidden" id="select_category" value="all">
                     
+                    @php
+                        $is_hosfin_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('hosfin');
+                    @endphp
+
                     <!-- Import Button -->
-                    <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
-                        <i class="bi bi-file-earmark-excel"></i> นำเข้างบทดลอง (Excel)
+                    <button type="button" class="btn btn-upload-custom d-flex align-items-center gap-1 text-nowrap shadow-sm" 
+                        @if($is_hosfin_licensed) data-bs-toggle="modal" data-bs-target="#importModal" @else onclick="showLicenseRequiredAlert(event)" @endif>
+                        <i class="bi {{ $is_hosfin_licensed ? 'bi-file-earmark-excel' : 'bi-lock-fill text-warning' }}"></i> นำเข้างบทดลอง (Excel)
                     </button>
 
                     <!-- Import MDB Button -->
-                    <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#importMdbModal">
-                        <i class="bi bi-database-fill-up"></i> นำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
+                    <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" 
+                        @if($is_hosfin_licensed) data-bs-toggle="modal" data-bs-target="#importMdbModal" @else onclick="showLicenseRequiredAlert(event)" @endif>
+                        <i class="bi {{ $is_hosfin_licensed ? 'bi-database-fill-up' : 'bi-lock-fill text-warning' }}"></i> นำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
                     </button>
                 </div>
             </div>
@@ -164,7 +170,8 @@
                         <!-- Actions inside Tab content -->
                         <div class="d-flex gap-2">
                             @if($selectedPeriod !== 'all' && count($data) > 0)
-                                <button type="button" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" onclick="deletePeriod('{{ $selectedPeriod }}', '{{ $periodLabel }}')">
+                                <button type="button" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" 
+                                    @if($is_hosfin_licensed) onclick="deletePeriod('{{ $selectedPeriod }}', '{{ $periodLabel }}')" @else onclick="showLicenseRequiredAlert(event)" @endif>
                                     <i class="bi bi-trash"></i> ลบข้อมูลรอบนี้
                                 </button>
                             @endif
@@ -294,8 +301,9 @@
                                 ยังไม่มีการนำเข้างบทดลองในรอบบัญชีนี้ หรือ ข้อมูลถูกลบออกไปแล้ว
                             </p>
                             @if($selectedPeriod !== 'all')
-                                <button type="button" class="btn btn-success rounded-pill px-4" onclick="openImportModalWithPeriod('{{ $selectedPeriod }}')">
-                                    <i class="bi bi-file-earmark-arrow-up me-1"></i> เริ่มนำเข้าข้อมูลเดือนนี้
+                                <button type="button" class="btn btn-success rounded-pill px-4" 
+                                    @if($is_hosfin_licensed) onclick="openImportModalWithPeriod('{{ $selectedPeriod }}')" @else onclick="showLicenseRequiredAlert(event)" @endif>
+                                    <i class="bi {{ $is_hosfin_licensed ? 'bi-file-earmark-arrow-up' : 'bi-lock-fill text-warning' }} me-1"></i> เริ่มนำเข้าข้อมูลเดือนนี้
                                 </button>
                             @endif
                         </div>

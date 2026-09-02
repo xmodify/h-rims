@@ -49,11 +49,9 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
-                            @if($is_f16_licensed)
                             <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16SSSPPFS()">
                                 <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
                             </button>
-                            @endif
                         </div>
                     </form>
                 </div>
@@ -79,11 +77,7 @@
                         <table id="t_search" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_f16_licensed)
                                     <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
-                                    @else
-                                    <th class="text-center">#</th> 
-                                    @endif
                                     <th class="text-center">สถานะ</th>
                                     <th class="text-center">เบิก/ส่ง</th>
                                     <th class="text-center">วัน-เวลา | Q</th>     
@@ -104,11 +98,7 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
-                                    @if($is_f16_licensed)
                                     <td class="text-center"><input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}"></td>
-                                    @else
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    @endif
                                     <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
@@ -187,11 +177,7 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_f16_licensed)
                                     <th class="text-center no-sort" rowspan="2" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
-                                    @else
-                                    <th class="text-center" rowspan="2">#</th>  
-                                    @endif
                                     <th class="text-center" rowspan="2">สถานะ</th>
                                     <th class="text-center" rowspan="2">ERROR</th>
                                     <th class="text-center" rowspan="2">เบิก/ส่ง</th>
@@ -222,11 +208,7 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
-                                    @if($is_f16_licensed)
                                     <td class="text-center"><input type="checkbox" class="form-check-input chk_f16_visit" value="{{ $row->seq }}"></td>
-                                    @else
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    @endif
                                     <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">

@@ -1209,7 +1209,7 @@
                                     </a>
                                 </li>
                             @endif
-                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('hosfin') && (Auth::user()->status == 'admin' || Auth::user()->allow_hosfin == 'Y'))
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_hosfin == 'Y')
                                 <li class="nav-item">
                                     <a class="nav-link nav-link-modern" href="{{ url('hosfin') }}">
                                         <i class="bi bi-bank me-1" style="color: #10b981;"></i> HosFin
@@ -1226,7 +1226,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-01 15.00
+                                V.69-09-02 11.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

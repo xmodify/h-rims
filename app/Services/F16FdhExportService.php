@@ -639,13 +639,28 @@ class F16FdhExportService
 
                 foreach ($visits as $v) {
                     $er = $erRows->get($v->vn);
-                    $isErEmergency = $er && (($er->er_pt_type == 2) || in_array((string)$er->er_emergency_type, ['1', '2']));
                     $ro = $referOutByVn->get($v->vn);
                     $ri = $referInByVn->get($v->vn);
-                    $ucae = trim((string)($v->nhso_ucae_type_code ?? ''));
-                    $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+                    $hasRefer = !empty($ro) || !empty($ri);
 
-                    if ($isErEmergency || $ro || $ri || $isUcae) {
+                    $hipCode = strtoupper(trim((string)($v->hipdata_code ?? '')));
+                    $isUcs = in_array($hipCode, ['UCS', 'WEL']);
+
+                    // ลำดับ UCAE: 1. visit_pttype -> 2. er_pt_type (เฉพาะ UCS) -> 3. 'N' (ถ้ามี Refer)
+                    $rawUcae = trim((string)($v->nhso_ucae_type_code ?? ($v->ucae ?? '')));
+                    if (empty($rawUcae) && $isUcs && $er) {
+                        if ($er->er_pt_type == 2) $rawUcae = 'A';
+                        elseif ($er->er_pt_type == 1) $rawUcae = 'E';
+                    }
+
+                    $isUcaeClaim = $isUcs && in_array($rawUcae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+                    // ถ้าไม่ใช่ UCS: UCAE ต้องว่างเด็ดขาด (ไม่ใส่ A/E)
+                    $finalUcae = $isUcs ? ($isUcaeClaim ? $rawUcae : ($hasRefer ? 'N' : '')) : '';
+
+                    // แฟ้ม AER จะส่งเฉพาะ:
+                    // 1. เคสที่มี Refer (In หรือ Out) สำหรับทุกสิทธิ
+                    // 2. เคสสิทธิ UCS ที่ประสงค์เบิก A/E
+                    if ($hasRefer || $isUcaeClaim) {
                         $aerVisits->push((object)[
                             'vn' => $v->vn,
                             'hn' => $v->hn,
@@ -657,7 +672,9 @@ class F16FdhExportService
                             'refer_no' => $ro->refer_number ?? ($ri->refer_number ?? ''),
                             'refmaino' => $ro->refer_hospcode ?? '',
                             'refmaini' => $ri->refer_hospcode ?? '',
-                            'ucae' => $ucae ?: 'N'
+                            'ucae' => $finalUcae,
+                            'is_ucae_claim' => $isUcaeClaim,
+                            'has_refer' => $hasRefer
                         ]);
                     }
                 }
@@ -1033,8 +1050,8 @@ class F16FdhExportService
             $ireftype = !empty($refmaini) ? '1' : '';
             $refmaino = !empty($er->refmaino) ? self::formatHospcode($er->refmaino) : '';
             $oreftype = !empty($refmaino) ? '1100' : '';
-            $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z']) ? trim((string)$er->ucae) : 'N';
-            $emtype = '3';
+            $ucae = in_array(trim((string)($er->ucae ?? '')), ['A', 'E', 'I', 'O', 'C', 'Z', 'N']) ? trim((string)$er->ucae) : '';
+            $emtype = !empty($er->is_ucae_claim) ? '3' : '';
             $seq = $er->vn;
             $an = '';
 
@@ -1799,10 +1816,16 @@ class F16FdhExportService
         foreach ($admissions as $v) {
             $ro = $referOutByAn->get($v->an);
             $ri = $referInByAn->get($v->an);
-            $ucae = !empty($v->ipt_ac_ae) ? strtoupper(trim((string)$v->ipt_ac_ae)) : trim((string)($v->nhso_ucae_type_code ?? ''));
-            $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+            $hasRefer = !empty($ro) || !empty($ri);
 
-            if ($ro || $ri || $isUcae || !empty($v->ipt_ac_ae)) {
+            $hipCode = strtoupper(trim((string)($v->hipdata_code ?? '')));
+            $isUcs = in_array($hipCode, ['UCS', 'WEL']);
+
+            $rawUcae = !empty($v->ipt_ac_ae) ? strtoupper(trim((string)$v->ipt_ac_ae)) : trim((string)($v->nhso_ucae_type_code ?? ''));
+            $isUcaeClaim = $isUcs && in_array($rawUcae, ['A', 'E', 'I', 'O', 'C', 'Z']);
+            $finalUcae = $isUcs ? ($isUcaeClaim ? $rawUcae : ($hasRefer ? 'N' : '')) : '';
+
+            if ($hasRefer || $isUcaeClaim) {
                 $dateopd = self::formatDate($v->regdate);
                 $authae = '';
                 $aedate = $dateopd;
@@ -1813,8 +1836,8 @@ class F16FdhExportService
                 $ireftype = !empty($refmaini) ? '1' : '';
                 $refmaino = !empty($ro->refer_hospcode) ? self::formatHospcode($ro->refer_hospcode) : '';
                 $oreftype = !empty($refmaino) ? '1100' : '';
-                $ucaeVal = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z', 'N']) ? $ucae : 'N';
-                $emtype = !empty($v->ipt_ac_emtype) ? trim((string)$v->ipt_ac_emtype) : '3';
+                $ucaeVal = $finalUcae;
+                $emtype = $isUcaeClaim ? (!empty($v->ipt_ac_emtype) ? trim((string)$v->ipt_ac_emtype) : '3') : '';
                 $seq = $v->an;
                 $an = $v->an;
 

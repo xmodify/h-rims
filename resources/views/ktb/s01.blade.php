@@ -54,18 +54,30 @@
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white py-3">
-                    <h6 class="modal-title fw-bold mb-0">
-                        <i class="bi bi-info-circle-fill me-2"></i>รายละเอียดการรับบริการและสัญญาณชีพ
-                    </h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill fs-5"></i>
+                        <div>
+                            <h6 class="modal-title fw-bold mb-0">รายละเอียดการรับบริการและสัญญาณชีพ [S01] SCR</h6>
+                            <small class="text-white-50">ข้อมูลคัดกรอง สัญญาณชีพ และการตรวจสอบสิทธิ สปสช.</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-light text-danger rounded-pill px-3 fw-bold shadow-sm" onclick="openPreAuditFromCurrentVn()" title="จำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1"></i> Pre-Audit ตาสีแดง 👁️
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
                 </div>
                 <div class="modal-body" id="detailsModalBody">
                     <div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>
                 </div>
-                <div class="modal-footer border-0 bg-light py-2">
-                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-1"></i>ปิดหน้าต่าง
+                <div class="modal-footer border-0 bg-light py-2 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold shadow-sm" onclick="openPreAuditFromCurrentVn()">
+                        <i class="bi bi-eye-fill me-1"></i> ตรวจสอบ Pre-Audit สปสช. (ตาสีแดง 👁️)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> ปิดหน้าต่าง
                     </button>
                 </div>
             </div>
@@ -385,7 +397,17 @@
         window.openF16KtbModal(checkedVns, 'S01', '4.7.1 [S01] คัดกรองสุขภาพกาย/จิต (SCR)');
     }
 
+    window.currentKtbDetailVn = null;
+    function openPreAuditFromCurrentVn() {
+        if (window.currentKtbDetailVn && typeof openPreAuditModal === 'function') {
+            openPreAuditModal(window.currentKtbDetailVn);
+        } else if (window.currentKtbDetailVn) {
+            window.location.href = "{{ url('claim/audit/visit_details') }}?vn=" + window.currentKtbDetailVn;
+        }
+    }
+
     function showDetails(vn) {
+        window.currentKtbDetailVn = vn;
         var body = document.getElementById('detailsModalBody');
         if (!body) return;
         body.innerHTML = `
@@ -447,6 +469,140 @@
             } else {
                 endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
             }
+
+            let statusHtml = '';
+            if (!v.is_valid) {
+                statusHtml = `
+                <div class="col-12">
+                  <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
+                    <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
+                    <div class="w-100">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="fw-bold text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-danger text-white">[S01] SCR</span>
+                        </div>
+                      </div>
+                      <ul class="mb-0 ps-3 text-danger mt-1">${v.errors.map(err => `<li>${err}</li>`).join('')}</ul>
+                    </div>
+                  </div>
+                </div>`;
+            } else if (hasWarnings || !isEndpointDone) {
+                const warningsList = [];
+                if (!isEndpointDone) {
+                    warningsList.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
+                }
+                if (hasWarnings) {
+                    v.warnings.forEach(w => warningsList.push(w));
+                }
+                statusHtml = `
+                <div class="col-12">
+                  <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
+                    <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
+                    <div class="w-100">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="fw-bold text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ หรือมีคำเตือน</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-warning text-dark">[S01] SCR</span>
+                        </div>
+                      </div>
+                      <ul class="mb-0 ps-3 text-warning mt-1" style="color: #92400e !important;">${warningsList.map(w => `<li>${w}</li>`).join('')}</ul>
+                    </div>
+                  </div>
+                </div>`;
+            } else {
+                statusHtml = `
+                <div class="col-12">
+                  <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
+                    <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
+                    <div class="w-100">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="fw-bold text-dark">สถานะ: ข้อมูลพร้อมส่งออก 16 แฟ้ม KTB (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-success text-white">[S01] SCR</span>
+                        </div>
+                      </div>
+                      <div class="text-muted small mt-1">ข้อมูลถูกต้องครบถ้วนตามสเปกและทำการปิดสิทธิเรียบร้อยแล้ว</div>
+                    </div>
+                  </div>
+                </div>`;
+            }
+
+            const ucMoney = visit.uc_money !== undefined && visit.uc_money !== null
+                ? parseFloat(visit.uc_money)
+                : (parseFloat(visit.income || 0) - parseFloat(visit.rcpt_money || 0));
+
+            let html = `
+            <div class="row g-3">
+              ${statusHtml}
+
+              <!-- Col 1: ข้อมูลผู้ป่วย -->
+              <div class="col-md-4">
+                <div class="card border-0 bg-light-soft h-100 shadow-sm">
+                  <div class="card-body py-2 px-3">
+                    <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                    <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                      <tr><th class="text-muted" style="width:40%">HN</th><td class="fw-bold text-dark">${visit.hn}</td></tr>
+                      <tr><th class="text-muted">CID</th><td class="text-dark">${visit.cid || '-'}</td></tr>
+                      <tr><th class="text-muted">ชื่อ-สกุล</th><td class="text-dark fw-bold">${visit.ptname || '-'}</td></tr>
+                      <tr><th class="text-muted">สิทธิ์การรักษา</th><td class="text-dark">${visit.pttype || '-'}</td></tr>
+                      <tr><th class="text-muted">เพศ / อายุ</th><td class="text-dark">${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : (visit.sex || '-'))} / ${visit.age_y ?? '-'} ปี</td></tr>
+                      <tr><th class="text-muted">รพ.หลัก (Hospmain)</th><td class="text-dark fw-bold text-danger">${visit.hospmain || '-'}</td></tr>
+                      <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                      <tr><th class="text-muted">พร้อมส่ง</th><td>${(visit.confirm_and_locked === 'Y' || visit.claim === 'Y' || visit.is_sent == 1) ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                      <tr><th class="text-muted">Authen Code</th><td>${visit.auth_code ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>มี Authen</span>' : '<span class="badge bg-secondary py-0 px-2 text-white">ไม่มี Authen</span>'}</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Col 2: ข้อมูลทางคลินิก & สัญญาณชีพ -->
+              <div class="col-md-4">
+                <div class="card border-0 bg-light-soft h-100 shadow-sm">
+                  <div class="card-body py-2 px-3">
+                    <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก & สัญญาณชีพ</div>
+                    <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                      <tr><th class="text-muted" style="width:35%">วัน-เวลา | Q</th><td class="text-dark">${visit.vstdate} ${visit.vsttime} (Q: ${visit.oqueue || '-'})</td></tr>
+                      <tr><th class="text-muted">CC</th><td class="text-dark" style="word-break: break-all;">${visit.cc || '-'}</td></tr>
+                      <tr>
+                        <th class="text-muted">สัญญาณชีพ</th>
+                        <td class="text-dark">
+                          <div class="d-flex flex-wrap gap-1">
+                            <span class="badge bg-info text-dark" title="ความดันโลหิต">BP: ${visit.bps || '-'}/${visit.bpd || '-'}</span>
+                            <span class="badge bg-light text-dark border" title="ชีพจร">PR: ${visit.pulse || '-'}</span>
+                            <span class="badge bg-light text-dark border" title="อัตราหายใจ">RR: ${visit.rr || '-'}</span>
+                            <span class="badge bg-light text-dark border" title="อุณหภูมิ">BT: ${visit.temperature || '-'}°C</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th class="text-muted">กายภาพ</th>
+                        <td class="text-dark">
+                          <div class="d-flex flex-wrap gap-1">
+                            <span class="badge bg-light text-dark border" title="น้ำหนัก">BW: ${visit.bw || '-'} kg</span>
+                            <span class="badge bg-light text-dark border" title="ส่วนสูง">Ht: ${visit.height || '-'} cm</span>
+                            <span class="badge bg-primary text-white" title="ดัชนีมวลกาย">BMI: ${visit.bmi || '-'}</span>
+                            <span class="badge bg-warning text-dark" title="รอบเอว">รอบเอว: ${visit.waist || '-'} cm</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger" style="word-break: break-all;">${visit.pdx || '-'} ${visit.pdx_name ? '<span class="small fw-normal text-muted">(' + visit.pdx_name + ')</span>' : ''}</td></tr>
+                      <tr><th class="text-muted">SDX</th><td class="text-dark" style="word-break: break-all;">${data.sec_diags && data.sec_diags.length ? data.sec_diags.join(', ') : (visit.sdx || '-')}</td></tr>
+                      <tr><th class="text-muted">ICD-9</th><td class="text-dark" style="word-break: break-all;">${data.procedures && data.procedures.length ? data.procedures.join(', ') : (visit.icd9 || '-')}</td></tr>
+                      <tr><th class="text-muted">แพทย์</th><td class="text-dark">${visit.doctor_name || '-'} ${visit.doctor_license ? '<span class="text-muted small">(' + visit.doctor_license + ')</span>' : ''}</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
 
               <!-- Col 3: ข้อมูลการเงิน & การส่งออก KTB -->
               <div class="col-md-4">

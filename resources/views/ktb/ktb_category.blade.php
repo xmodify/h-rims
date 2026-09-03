@@ -54,18 +54,30 @@
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white py-3">
-                    <h6 class="modal-title fw-bold mb-0">
-                        <i class="bi bi-info-circle-fill me-2"></i>รายละเอียดการรับบริการและสัญญาณชีพ
-                    </h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill fs-5"></i>
+                        <div>
+                            <h6 class="modal-title fw-bold mb-0">รายละเอียดการรับบริการและสัญญาณชีพ (KTB)</h6>
+                            <small class="text-white-50">ข้อมูลคัดกรอง สัญญาณชีพ และการตรวจสอบสิทธิ สปสช.</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-light text-danger rounded-pill px-3 fw-bold shadow-sm" onclick="openPreAuditFromCurrentVn()" title="จำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1"></i> Pre-Audit ตาสีแดง 👁️
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
                 </div>
                 <div class="modal-body" id="detailsModalBody">
                     <div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>
                 </div>
-                <div class="modal-footer border-0 bg-light py-2">
-                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-1"></i>ปิดหน้าต่าง
+                <div class="modal-footer border-0 bg-light py-2 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold shadow-sm" onclick="openPreAuditFromCurrentVn()">
+                        <i class="bi bi-eye-fill me-1"></i> ตรวจสอบ Pre-Audit สปสช. (ตาสีแดง 👁️)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> ปิดหน้าต่าง
                     </button>
                 </div>
             </div>
@@ -388,7 +400,17 @@
         window.openF16KtbModal(checkedVns, ktbCurrentActivityCode, ktbCurrentPageTitle);
     }
 
+    window.currentKtbDetailVn = null;
+    function openPreAuditFromCurrentVn() {
+        if (window.currentKtbDetailVn && typeof openPreAuditModal === 'function') {
+            openPreAuditModal(window.currentKtbDetailVn);
+        } else if (window.currentKtbDetailVn) {
+            window.location.href = "{{ url('claim/audit/visit_details') }}?vn=" + window.currentKtbDetailVn;
+        }
+    }
+
     function showDetails(vn) {
+        window.currentKtbDetailVn = vn;
         var body = document.getElementById('detailsModalBody');
         if (!body) return;
         body.innerHTML = `
@@ -458,9 +480,14 @@
                   <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
                     <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
                     <div class="w-100">
-                      <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="fw-bold text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</span>
-                        <span class="badge bg-danger text-white">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-danger text-white">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        </div>
                       </div>
                       <ul class="mb-0 ps-3 text-danger mt-1">${v.errors.map(err => `<li>${err}</li>`).join('')}</ul>
                     </div>
@@ -479,9 +506,14 @@
                   <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
                     <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
                     <div class="w-100">
-                      <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="fw-bold text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ หรือมีคำเตือน</span>
-                        <span class="badge bg-warning text-dark">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-warning text-dark">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        </div>
                       </div>
                       <ul class="mb-0 ps-3 text-warning mt-1" style="color: #92400e !important;">${warningsList.map(w => `<li>${w}</li>`).join('')}</ul>
                     </div>
@@ -493,9 +525,14 @@
                   <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
                     <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
                     <div class="w-100">
-                      <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="fw-bold text-dark">สถานะ: ข้อมูลพร้อมส่งออก 16 แฟ้ม KTB (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</span>
-                        <span class="badge bg-success text-white">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-danger bg-white px-2 py-1 rounded-pill fw-bold shadow-sm" onclick="openPreAuditModal('${vn}')" title="เปิดหน้าต่างจำลอง C-Codes Pre-Audit สปสช.">
+                            <i class="bi bi-eye-fill me-1 text-danger"></i>Pre-Audit ตาสีแดง 👁️
+                          </button>
+                          <span class="badge bg-success text-white">[${ktbCurrentActivityCode}] ${ktbCurrentPageTitle}</span>
+                        </div>
                       </div>
                       <div class="text-muted small mt-1">ข้อมูลถูกต้องครบถ้วนตามสเปกและทำการปิดสิทธิเรียบร้อยแล้ว</div>
                     </div>

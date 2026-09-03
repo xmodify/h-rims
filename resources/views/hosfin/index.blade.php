@@ -22,6 +22,16 @@
     cursor: pointer;
     border: 1px solid #e2e8f0 !important;
   }
+  .executive-kpi-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .executive-kpi-card:hover {
+    transform: translateY(-4px) scale(1.015) !important;
+    box-shadow: 0 12px 22px -6px rgba(0, 0, 0, 0.1) !important;
+  }
+  .fw-black {
+    font-weight: 900 !important;
+  }
   .metric-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08) !important;
@@ -84,81 +94,276 @@
 <div class="container-fluid py-4 px-lg-5" style="background-color: #f8fafc;">
     <div class="row">
         <!-- Header banner -->
-        <div class="col-12 px-3 mb-4">
-            <div class="page-header-box mt-2" style="border-left-color: #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 18px 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="col-12 px-3 mb-3">
+            <div class="page-header-box mt-2" style="border-left-color: #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 16px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 w-100">
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <div>
-                            <h5 class="text-primary mb-1 fw-bold">
-                                <i class="bi bi-bank me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (HosFin Dashboard)
-                            </h5>
-                            <small class="text-muted d-inline-flex align-items-center gap-2">
-                                @if($hasData)
-                                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.75rem; height: 0.75rem;"></span>
-                                    ข้อมูลล่าสุด ณ งวดบัญชี: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                    <div>
+                        <h4 class="text-primary mb-1 fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-bank2 text-success"></i> ระบบบริหารการเงินการคลัง (HosFin Dashboard)
+                        </h4>
+                        <div class="text-muted d-inline-flex align-items-center gap-2 small flex-wrap mt-1">
+                            @if($hasData)
+                                @if(isset($periods) && count($periods) > 0)
+                                    <div class="d-inline-flex align-items-center gap-1.5 bg-white border border-success-subtle rounded-pill px-2.5 py-1 shadow-xs">
+                                        <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                                        <span class="small fw-bold text-success" style="font-size: 0.76rem;">งวดบัญชี:</span>
+                                        <select class="form-select form-select-sm border-0 py-0 ps-1 pe-4 fw-bold text-dark bg-transparent" 
+                                                style="font-size: 0.78rem; cursor: pointer; width: auto; box-shadow: none;" 
+                                                onchange="location.href='{{ url('hosfin') }}?period=' + this.value">
+                                            @foreach(array_reverse($periods) as $p)
+                                                @if(in_array($p['period'], $importedPeriods ?? []))
+                                                    <option value="{{ $p['period'] }}" {{ $p['period'] === $latestPeriod ? 'selected' : '' }}>
+                                                        {{ $p['label'] }} (ปีงบ {{ $budgetYear }})
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 @else
-                                    ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                                        <span class="spinner-grow spinner-grow-sm text-success me-1" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                                        ข้อมูลงวดบัญชีล่าสุด: <strong>{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
+                                    </span>
                                 @endif
-                            </small>
-                        </div>
-                        
-                        @if($hasData)
-                            @php
-                                $val105 = $latestMetrics['105']['val'];
-                                $isPositive105 = $val105 >= 0;
-                                $bgClass105 = $isPositive105 ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10';
-                                $borderClass105 = $isPositive105 ? 'border-success-subtle' : 'border-danger-subtle';
-                                $textClass105 = $isPositive105 ? 'text-success-custom' : 'text-danger';
-                                $label105 = $isPositive105 ? 'ปกติ (บวก)' : 'วิกฤต (ติดลบ)';
-                            @endphp
-                            <!-- Net Cash Balance Display (105) -->
-                            <div class="d-flex align-items-center rounded-3 shadow-sm border metric-card {{ $bgClass105 }} {{ $borderClass105 }} px-3" 
-                                 style="border-width: 1px !important; height: 48px; cursor: pointer; gap: 6px;"
-                                 data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (105)">
-                                <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">เงินบำรุงคงเหลือสุทธิ:</span>
-                                <div class="fw-bold {{ $textClass105 }}" style="font-size: 1.15rem; font-family: monospace; line-height: 1.1; font-weight: 800;">
-                                    {{ number_format($val105, 2) }} บาท
+
+                                <!-- Risk Score Badge prominently placed in Header -->
+                                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border shadow-xs {{ $riskScoreBgClass }} metric-card" 
+                                     style="cursor: pointer; transition: all 0.2s ease;" data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)" title="คลิกเพื่อดูเกณฑ์คะแนนความเสี่ยง">
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <i class="bi bi-shield-exclamation {{ $riskScoreTextClass }} fs-5"></i>
+                                        <span class="fw-bold text-dark" style="font-size: 0.82rem; letter-spacing: 0.3px;">Risk Score</span>
+                                    </div>
+                                    <span class="badge {{ $riskScoreNumBgClass ?? ($riskScore >= 6 ? 'bg-danger text-white' : ($riskScore > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-0.5 fw-black font-monospace shadow-xs" style="font-size: 0.92rem; line-height: 1.2;">
+                                        {{ $riskScore }}
+                                    </span>
+                                    <span class="badge {{ $riskScore >= 6 ? 'bg-danger text-white' : ($riskScore >= 3 ? 'bg-warning text-dark' : ($riskScore > 0 ? 'bg-success text-white' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.72rem;">
+                                        {{ $riskScoreLevelLabel }}
+                                    </span>
+                                    <i class="bi bi-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
                                 </div>
-                            </div>
-                            
-                            <!-- Risk Score Display -->
-                            <div class="d-flex align-items-center rounded-3 shadow-sm border metric-card {{ $riskScoreBgClass }} px-3" 
-                                 style="border-width: 1px !important; height: 48px; cursor: pointer; gap: 8px;"
-                                 data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)">
-                                <span class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">RISK SCORE:</span>
-                                <div class="fw-bold rounded {{ $riskScoreNumBgClass }} {{ $riskScoreTextClass }}" style="font-size: 1.6rem; font-family: monospace; line-height: 1.1; padding: 2px 8px; font-weight: 900;">
-                                    {{ $riskScore }}
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                    @if($hasData)
-                        <div class="d-flex align-items-center gap-2 ms-lg-auto">
-                            <!-- Action Buttons -->
-                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
-                                @php
-                                    $hasAiAccess = Auth::check() && (Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y');
-                                @endphp
-                                <button type="button" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom text-white" 
-                                        onclick="{{ $hasAiAccess ? 'openHosFinAiModal()' : 'showAiAccessDeniedAlert()' }}"
-                                        style="font-size: 0.85rem; height: 48px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
-                                        title="{{ $hasAiAccess ? 'คลิกเพื่อดูบทวิเคราะห์วิกฤตทางการเงินด้วย AI' : 'คุณไม่ได้รับสิทธิ์ใช้งาน AI' }}">
-                                    <i class="bi bi-robot fs-5"></i> AI วิเคราะห์วิกฤต & แนวโน้ม
-                                </button>
+
+                            @else
+                                ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
                             @endif
-                            <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-tb-custom" 
-                               style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;">
-                                <i class="bi bi-file-earmark-spreadsheet text-success" style="font-size: 1.1rem;"></i> งบทดลอง
-                            </a>
-                            <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom btn-rr-custom" 
-                               style="font-size: 0.85rem; height: 48px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;">
-                                <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.1rem;"></i> อัตราส่วนการเงิน
-                            </a>
                         </div>
-                    @endif
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 ms-lg-auto flex-wrap">
+
+                        <!-- Action Buttons (แบบที่ 1: Quick Buttons) -->
+                        @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
+                            @php
+                                $hasAiAccess = Auth::check() && (Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y');
+                            @endphp
+                            <button type="button" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom text-white" 
+                                    onclick="{{ $hasAiAccess ? 'openHosFinAiModal()' : 'showAiAccessDeniedAlert()' }}"
+                                    style="font-size: 0.85rem; height: 42px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
+                                    title="{{ $hasAiAccess ? 'คลิกเพื่อดูบทวิเคราะห์วิกฤตทางการเงินด้วย AI' : 'คุณไม่ได้รับสิทธิ์ใช้งาน AI' }}">
+                                <i class="bi bi-robot fs-5"></i> AI วิเคราะห์
+                            </button>
+                        @endif
+
+                        <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626; transition: all 0.25s ease;"
+                           title="รายงานเจ้าหนี้การค้าและบิลค้างชำระ (AP)">
+                            <i class="bi bi-receipt-cutoff" style="font-size: 1rem;"></i> เจ้าหนี้ (AP)
+                        </a>
+
+                        <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1; transition: all 0.25s ease;"
+                           title="รายงานลูกหนี้ค่ารักษาพยาบาลแยกตามสิทธิ (AR)">
+                            <i class="bi bi-wallet2" style="font-size: 1rem;"></i> ลูกหนี้ (AR)
+                        </a>
+
+                        <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309; transition: all 0.25s ease;"
+                           title="รายงานวิเคราะห์ต้นทุนบริการ (LC / MC / CC)">
+                            <i class="bi bi-pie-chart" style="font-size: 1rem;"></i> ต้นทุน (LC/MC/CC)
+                        </a>
+
+                        <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-rr-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;"
+                           title="รายงานอัตราส่วนทางการเงิน">
+                            <i class="bi bi-graph-up-arrow" style="font-size: 1rem;"></i> อัตราส่วน
+                        </a>
+
+                        <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-tb-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;"
+                           title="รายงานและนำเข้างบทดลอง (Trial Balance)">
+                            <i class="bi bi-file-earmark-spreadsheet" style="font-size: 1rem;"></i> งบทดลอง
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
+
+        @if($hasData)
+            @php
+                $val105 = $latestMetrics['105']['val'] ?? 0;
+                if ($val105 == 0) {
+                    $bgClass105 = '#f8fafc';
+                    $borderClass105 = '#e2e8f0';
+                    $textClass105 = '#64748b';
+                    $badgeBg105 = 'bg-secondary text-white';
+                    $iconClass105 = 'bi-dash-circle text-muted';
+                    $label105 = 'รอข้อมูล GL (0.00)';
+                } else {
+                    $isPositive105 = $val105 > 0;
+                    $bgClass105 = $isPositive105 ? '#f0fdf4' : '#fef2f2';
+                    $borderClass105 = $isPositive105 ? '#bbf7d0' : '#fecaca';
+                    $textClass105 = $isPositive105 ? '#15803d' : '#b91c1c';
+                    $badgeBg105 = $isPositive105 ? 'bg-success text-white' : 'bg-danger text-white';
+                    $iconClass105 = $isPositive105 ? 'bi-cash-coin text-success' : 'bi-exclamation-octagon-fill text-danger';
+                    $label105 = $isPositive105 ? 'ปกติ (บวก)' : 'วิกฤต (ติดลบ)';
+                }
+
+                $val104 = $latestMetrics['104']['val'] ?? 0;
+                $val100 = $latestMetrics['100']['val'] ?? 0;
+            @endphp
+
+            <!-- Executive Top KPI Cards Strip -->
+            <div class="col-12 px-3 mb-3">
+                <div class="row g-3">
+                    <!-- Card 1: เงินบำรุงคงเหลือสุทธิ (105) -->
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 metric-card executive-kpi-card" 
+                             style="background: {{ $bgClass105 }}; border: 1.5px solid {{ $borderClass105 }} !important; cursor: pointer;"
+                             data-code="105" data-name="เงินบำรุงคงเหลือสุทธิ (105)">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
+                                            เงินบำรุงคงเหลือสุทธิ (105)
+                                        </span>
+                                        <div class="fw-black mt-1" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; color: {{ $textClass105 }}; line-height: 1.2;">
+                                            {{ number_format($val105, 2) }}
+                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center shadow-xs" style="background: rgba(255,255,255,0.85); width: 42px; height: 42px;">
+                                        <i class="bi {{ $iconClass105 }} fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <span class="badge rounded-pill px-2.5 py-1 {{ $badgeBg105 }}" style="font-size: 0.72rem;">
+                                        สถานะ: {{ $label105 }}
+                                    </span>
+                                    <small class="text-muted" style="font-size: 0.73rem;">คลิกดูแนวโน้ม <i class="bi bi-arrow-up-right"></i></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: เงินสดและเงินฝากธนาคาร (Cash & Bank Balance) -->
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 executive-kpi-card bg-white" 
+                             style="border: 1.5px solid #a7f3d0 !important; background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); cursor: pointer;"
+                             data-bs-toggle="modal" data-bs-target="#cashBankModal" onclick="openCashModal()">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
+                                            เงินสดและเงินฝากธนาคาร (CASH)
+                                        </span>
+                                        <div class="fw-black mt-1 text-success" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($cashBalance ?? 0, 2) }}
+                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
+                                                {{ number_format($cashAccountsCount ?? 0) }} บัญชีเงินฝาก (GL)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success shadow-xs" style="width: 42px; height: 42px;">
+                                        <i class="bi bi-cash-stack fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
+                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
+                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    </span>
+                                    <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสมุดบัญชี <i class="bi bi-arrow-up-right"></i></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: เจ้าหนี้การค้าค้างจ่าย (AP) -->
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 executive-kpi-card bg-white" 
+                             style="border: 1.5px solid #fecaca !important; background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%); cursor: pointer;"
+                             data-bs-toggle="modal" data-bs-target="#hosfinApModal" onclick="openApModal()">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
+                                            หนี้สินเจ้าหนี้การค้า (AP)
+                                        </span>
+                                        <div class="fw-black mt-1 text-danger" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($apUnpaidSum ?? 0, 2) }}
+                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
+                                                {{ number_format($apUnpaidCount ?? 0) }} บิลค้างชำระ (GL)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 42px; height: 42px;">
+                                        <i class="bi bi-receipt-cutoff fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
+                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
+                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    </span>
+                                    <small class="text-danger fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปเจ้าหนี้ <i class="bi bi-arrow-up-right"></i></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: ลูกหนี้ค่ารักษาค้างรับ (AR) -->
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4 h-100 executive-kpi-card bg-white" 
+                             style="border: 1.5px solid #bfdbfe !important; background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%); cursor: pointer;"
+                             data-bs-toggle="modal" data-bs-target="#hosfinArModal" onclick="openArModal()">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
+                                            ลูกหนี้ค่ารักษาพยาบาล (AR)
+                                        </span>
+                                        <div class="fw-black mt-1 text-primary" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($arOutstandingSum ?? 0, 2) }}
+                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
+                                                {{ number_format($arAccountCount ?? 0) }} ผังลูกหนี้ (GL)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 42px; height: 42px;">
+                                        <i class="bi bi-wallet2 fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
+                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
+                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    </span>
+                                    <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         @if($hasData)
             <!-- Dynamic Trend Chart Section -->
@@ -178,16 +383,24 @@
         @endif
 
         @if(!$hasData)
-            <!-- Placeholder when no data imported -->
+            <!-- Placeholder when no GL data synced -->
             <div class="col-12 px-3 mb-4">
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-body p-5 text-center">
-                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='%2394a3b8' class='bi bi-folder-plus' viewBox='0 0 16 16'><path d='m.5 3 .04.875L.5 3.875z'/><path d='M1.5 15a.5.5 0 0 0 .5.5h12a.5.5 0 0 0 .5-.5V4H1.5zM2 5h12v9H2zM0 3c0-1.105.895-2 2-2h3.933a2 2 0 0 1 1.664.89l.818 1.228A1 1 0 0 0 9.25 3.5h4.75a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm8.5 5.5v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 1 0-1h2v-2a.5.5 0 0 1 1 0v2h2a.5.5 0 0 1 0 1z'/></svg>" alt="No Data" class="mb-3" style="opacity: 0.5;">
-                        <h5 class="text-muted fw-bold">ยินดีต้อนรับสู่ระบบข้อมูลบัญชีหน่วยงาน HosFin</h5>
-                        <p class="text-secondary small mb-4" style="max-width: 500px; margin: 0 auto;">ขณะนี้ยังไม่มีข้อมูลบัญชีหน่วยงานนำเข้าในระบบ กรุณานำเข้าข้อมูลไฟล์งบกระทรวง (.zip) ที่ปุ่มเข้าใช้งานด้านล่างเพื่อเริ่มการประมวลผลดัชนีชี้วัดของผู้บริหาร</p>
-                        <a href="{{ url('hosfin/trial_balance') }}" class="btn btn-success rounded-pill px-4 shadow-sm">
-                            <i class="bi bi-file-earmark-arrow-up me-1"></i> ไปหน้านำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
+                <div class="card border-0 shadow-sm rounded-4 p-5 mx-auto text-center" style="max-width: 720px; background: #ffffff; border: 1.5px dashed #cbd5e1 !important;">
+                    <div class="rounded-circle text-success p-4 mx-auto mb-3 shadow-xs" style="width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; background: #ecfdf5; border: 2px solid #a7f3d0;">
+                        <i class="bi bi-cloud-arrow-down-fill text-success" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2">ยังไม่มีข้อมูลจากระบบ GL (รอการเชื่อมต่อ)</h4>
+                    <p class="text-muted mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                        หน้าบริหารการเงินการคลัง (HosFin Dashboard) นี้ประมวลผลข้อมูลสดจากโปรแกรม <strong>Rims GL Sync</strong><br>
+                        กรุณาเปิดโปรแกรม <strong>Rims GL Sync</strong> และกดปุ่ม <strong>[ 🚀 ซิงค์ข้อมูลทันที ]</strong> เพื่อนำเข้าข้อมูลสมุดรายวัน
+                    </p>
+                    <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+                        <a href="{{ asset('downloads/Rims-GL-Sync.zip') }}" class="btn btn-success rounded-pill px-4 py-2.5 fw-bold shadow-sm d-flex align-items-center gap-2" style="font-size: 0.9rem;">
+                            <i class="bi bi-download"></i> ดาวน์โหลด Rims GL Sync (.zip)
                         </a>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2.5 fw-bold d-flex align-items-center gap-2" onclick="location.reload()" style="font-size: 0.9rem;">
+                            <i class="bi bi-arrow-clockwise"></i> ตรวจสอบสถานะใหม่
+                        </button>
                     </div>
                 </div>
             </div>
@@ -369,10 +582,330 @@
     </div>
 </div>
 
+<!-- AP Creditors Overview Modal -->
+<div class="modal fade" id="hosfinApModal" tabindex="-1" aria-labelledby="hosfinApModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-receipt-cutoff fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="hosfinApModalLabel">สรุปสถานะหนี้สินเจ้าหนี้การค้า (Accounts Payable Overview)</h5>
+                        <small class="text-white-50">ข้อมูลจากสมุดรายวัน GL และแฟ้มตั้งหนี้-จ่ายชำระล่าสุด</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- 3 Highlights Top Strip -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-danger">
+                            <small class="text-muted fw-bold d-block">ยอดหนี้ค้างจ่ายรวม</small>
+                            <span class="fs-5 fw-black text-danger font-monospace">{{ number_format($apUnpaidSum, 2) }}</span>
+                            <small class="text-muted d-block">บาท</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-dark">
+                            <small class="text-muted fw-bold d-block">จำนวนบิลค้างชำระ</small>
+                            <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($apUnpaidCount) }}</span>
+                            <small class="text-muted d-block">ใบ</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-primary">
+                            <small class="text-muted fw-bold d-block">บริษัทคู่ค้าที่ค้างจ่าย</small>
+                            <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($apTotalVendorsCount) }}</span>
+                            <small class="text-muted d-block">บริษัท</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Creditors Table -->
+                <div class="card border-0 shadow-sm rounded-3 bg-white mb-3">
+                    <div class="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                        <strong class="text-dark small"><i class="bi bi-trophy-fill text-warning me-1"></i> เจ้าหนี้ที่มียอดค้างชำระสูงสุด 8 อันดับแรก</strong>
+                        <span class="badge bg-danger-subtle text-danger border rounded-pill">Top Creditors</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="ps-3" style="width: 40px;">#</th>
+                                    <th>ชื่อบริษัทคู่ค้า / เจ้าหนี้</th>
+                                    <th>หมวดหมู่</th>
+                                    <th class="text-center">บิลค้างจ่าย</th>
+                                    <th class="text-end pe-3">หนี้คงเหลือ (บาท)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($apTopCreditors as $idx => $creditor)
+                                    <tr>
+                                        <td class="ps-3 fw-bold text-muted">{{ $idx + 1 }}</td>
+                                        <td class="fw-bold text-dark">{{ $creditor->vendor_name }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ $creditor->category ?: 'ทั่วไป' }}</span></td>
+                                        <td class="text-center font-monospace">{{ number_format($creditor->unpaid_bills) }} ใบ</td>
+                                        <td class="text-end pe-3 font-monospace fw-bold text-danger">{{ number_format($creditor->remaining_debt, 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center py-3 text-muted">ไม่มีรายการหนี้สินค้างชำระ</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Executive Insight Box -->
+                <div class="p-3 rounded-3 bg-white border" style="border-left: 4px solid #ef4444 !important; font-size: 0.82rem; line-height: 1.6;">
+                    <strong class="text-danger d-block mb-1"><i class="bi bi-lightbulb-fill text-warning me-1"></i> ข้อเสนอแนะการบริหารหนี้สินสำหรับผู้บริหาร:</strong>
+                    หนี้สินส่วนใหญ่กระจุกตัวในกลุ่มยาและเวชภัณฑ์หลัก แนะนำจัดลำดับจ่ายเช็คตาม Credit Term และยอดส่วนลดรับ เพื่อรักษาสภาพคล่องหมุนเวียน (Current Ratio) ไม่ให้ต่ำกว่าเกณฑ์วิกฤต
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                <a href="{{ url('hosfin/ap_report') }}" class="btn btn-danger btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-up-right"></i> ดูรายงานเจ้าหนี้ & บิลทั้งหมด 52 บริษัท (หน้ารายงานเต็ม)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AR Debtors Overview Modal -->
+<div class="modal fade" id="hosfinArModal" tabindex="-1" aria-labelledby="hosfinArModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-wallet2 fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="hosfinArModalLabel">สรุปสถานะลูกหนี้ค่ารักษาพยาบาล (Accounts Receivable Overview)</h5>
+                        <small class="text-white-50">ข้อมูลการตั้งเบิก ชดเชย และลูกหนี้ค้างท่อแยกตามสิทธิกองทุนหลัก</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- 3 Highlights Top Strip -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-info">
+                            <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับคงเหลือ</small>
+                            <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($arOutstandingSum, 2) }}</span>
+                            <small class="text-muted d-block">บาท</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-success">
+                            <small class="text-muted fw-bold d-block">ยอดตั้งเบิกสะสมรวม</small>
+                            <span class="fs-5 fw-black text-success font-monospace">{{ number_format($arTotalBilled, 2) }}</span>
+                            <small class="text-muted d-block">บาท</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-warning">
+                            <small class="text-muted fw-bold d-block">ชดเชยที่รับเงินแล้ว</small>
+                            <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($arTotalCollected, 2) }}</span>
+                            <small class="text-muted d-block">({{ $arTotalBilled > 0 ? round(($arTotalCollected / $arTotalBilled) * 100, 1) : 0 }}%)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rights Group Breakdown Table -->
+                <div class="card border-0 shadow-sm rounded-3 bg-white mb-3">
+                    <div class="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                        <strong class="text-dark small"><i class="bi bi-pie-chart-fill text-primary me-1"></i> ยอดลูกหนี้และสถานะชดเชยแยกตามสิทธิกองทุน</strong>
+                        <span class="badge bg-primary-subtle text-primary border rounded-pill">Funds Breakdown</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="ps-3">สิทธิกองทุนการรักษา</th>
+                                    <th class="text-center">ผังบัญชี</th>
+                                    <th class="text-end">ยอดตั้งเบิก (บาท)</th>
+                                    <th class="text-end">ชดเชยแล้ว (บาท)</th>
+                                    <th class="text-end pe-3 text-primary">ลูกหนี้คงค้าง (บาท)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($arTypeSummaries as $ts)
+                                    <tr>
+                                        <td class="ps-3 fw-bold text-dark">
+                                            <i class="bi bi-tag-fill text-primary me-1"></i> {{ $ts->debtor_type ?: 'ทั่วไป' }}
+                                        </td>
+                                        <td class="text-center font-monospace">{{ $ts->account_count }}</td>
+                                        <td class="text-end font-monospace">{{ number_format($ts->total_billed, 2) }}</td>
+                                        <td class="text-end font-monospace text-success">{{ number_format($ts->total_collected, 2) }}</td>
+                                        <td class="text-end pe-3 font-monospace fw-bold {{ $ts->outstanding_balance > 0.01 ? 'text-primary' : 'text-muted' }}">
+                                            {{ number_format($ts->outstanding_balance, 2) }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center py-3 text-muted">ไม่มีข้อมูลลูกหนี้</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Executive Insight Box -->
+                <div class="p-3 rounded-3 bg-white border" style="border-left: 4px solid #0284c7 !important; font-size: 0.82rem; line-height: 1.6;">
+                    <strong class="text-primary d-block mb-1"><i class="bi bi-lightbulb-fill text-warning me-1"></i> ข้อเสนอแนะการบริหารลูกหนี้สำหรับผู้บริหาร:</strong>
+                    ควรเร่งติดตามการตัดหนี้สูญและ Reprocess ข้อมูลที่ติด C ของกองทุน สปสช. (UC) และข้าราชการ/อปท. เพื่อเร่งเงินชดเชยกลับเข้าสู่บัญชีเงินบำรุงโรงพยาบาลให้เร็วที่สุด
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                <a href="{{ url('hosfin/ar_report') }}" class="btn btn-primary btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-up-right"></i> ดูรายงานลูกหนี้แยกตามผังบัญชี (หน้ารายงานเต็ม)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 3: รายละเอียดบัญชีเงินสดและเงินฝากธนาคาร (Cash & Bank Accounts) -->
+<div class="modal fade" id="cashBankModal" tabindex="-1" aria-labelledby="cashBankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center text-white" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cash-stack fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="cashBankModalLabel">
+                            สมุดบัญชีเงินสดและเงินฝากธนาคารทั้งหมด (Cash & Bank)
+                        </h5>
+                        <small class="text-white-50">ข้อมูลจากงบทดลอง GL งวดล่าสุด: {{ $latestPeriodLabel }} (ปีงบประมาณ {{ $budgetYear }})</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- KPI Highlight Banner inside Modal -->
+                <div class="card border-0 rounded-4 shadow-xs p-3 mb-3 bg-white" style="border-left: 5px solid #10b981 !important;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <span class="text-muted small fw-bold text-uppercase">ยอดเงินสดและเงินฝากธนาคารรวมสุทธิ</span>
+                            <div class="fs-4 fw-black text-success font-monospace mt-0.5">
+                                {{ number_format($cashBalance ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
+                                รวม {{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table of Accounts -->
+                <div class="card border-0 rounded-4 shadow-xs overflow-hidden bg-white mb-3">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="ps-3" style="width: 40px;">#</th>
+                                    <th>รหัสบัญชี</th>
+                                    <th>ชื่อบัญชี / เลขที่บัญชีธนาคาร</th>
+                                    <th class="text-end pe-3 text-success">ยอดคงเหลือ (บาท)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php $cIdx = 1; @endphp
+                                @forelse($cashBankAccounts as $ca)
+                                    <tr>
+                                        <td class="ps-3 text-muted fw-bold">{{ $cIdx++ }}</td>
+                                        <td class="font-monospace fw-bold text-primary">{{ $ca->account_code }}</td>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ $ca->account_name }}</div>
+                                        </td>
+                                        <td class="text-end pe-3 font-monospace fw-bold {{ $ca->net_balance > 0 ? 'text-success' : ($ca->net_balance < 0 ? 'text-danger' : 'text-muted') }}">
+                                            {{ number_format($ca->net_balance, 2) }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">ไม่พบข้อมูลบัญชีเงินสด</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="table-light border-top border-2">
+                                <tr class="fw-bold align-middle">
+                                    <th colspan="3" class="ps-3 py-2.5 text-secondary">
+                                        <i class="bi bi-calculator me-1"></i> รวมเงินสดและเงินฝากธนาคารทั้งหมด:
+                                    </th>
+                                    <th class="text-end pe-3 py-2.5 font-monospace text-success fs-6">
+                                        {{ number_format($cashBalance ?? 0, 2) }}
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 bg-white border small text-muted" style="border-left: 4px solid #10b981 !important; line-height: 1.6;">
+                    <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle-fill text-success me-1"></i> หมายเหตุการเงิน:</strong>
+                    ยอดเงินสดและเงินฝากธนาคารรวม <strong>{{ number_format($cashBalance ?? 0, 2) }} บาท</strong> คือสภาพคล่องที่เป็นเงินสดจริงทั้งหมดที่โรงพยาบาลมีอยู่ (กลุ่มบัญชี 1003X) อ้างอิงตามงบทดลอง HosFin GL งวด {{ $latestPeriodLabel }}
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                <a href="{{ url('hosfin/trial_balance') }}" class="btn btn-success btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> ดูงบทดลองแบบเต็ม (Trial Balance)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
 <script>
+
+    function openCashModal() {
+        const el = document.getElementById('cashBankModal');
+        if (el) {
+            if (typeof $ !== 'undefined' && typeof $(el).modal === 'function') {
+                $(el).modal('show');
+            } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        }
+    }
+    function openApModal() {
+        const el = document.getElementById('hosfinApModal');
+        if (el) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            } else if (typeof $ !== 'undefined' && typeof $(el).modal === 'function') {
+                $(el).modal('show');
+            }
+        }
+    }
+    function openArModal() {
+        const el = document.getElementById('hosfinArModal');
+        if (el) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            } else if (typeof $ !== 'undefined' && typeof $(el).modal === 'function') {
+                $(el).modal('show');
+            }
+        }
+    }
+
     // Injected variables
     const chartLabels = @json($chartLabels);
     const chartData = @json($chartData);
@@ -566,12 +1099,22 @@
         card.addEventListener('click', function() {
             const code = this.getAttribute('data-code');
             const name = this.getAttribute('data-name');
+            if (!code || typeof latestMetrics === 'undefined' || !latestMetrics[code]) {
+                return;
+            }
             
             // Get latest month data
-            const definition = ratioDefs[code] || { numerator_name: '', denominator_name: '', unit: '', precision: 2 };
-            const numVal = latestMetrics[code]['num'];
-            const denVal = latestMetrics[code]['den'];
-            const resVal = latestMetrics[code]['val'];
+            const definition = Object.assign({}, ratioDefs[code] || { numerator_name: '-', denominator_name: '-', unit: '', precision: 2 });
+            if (code === 'RISK_SCORE') {
+                definition.numerator_name = 'คะแนนความเสี่ยงที่ได้';
+                definition.denominator_name = 'เกณฑ์ประเมินคะแนนเต็ม';
+                definition.unit = 'คะแนน';
+                definition.precision = 0;
+            }
+
+            const numVal = (latestMetrics[code]['num'] !== undefined) ? latestMetrics[code]['num'] : 0;
+            const denVal = (latestMetrics[code]['den'] !== undefined) ? latestMetrics[code]['den'] : 0;
+            const resVal = (latestMetrics[code]['val'] !== undefined) ? latestMetrics[code]['val'] : 0;
 
             // Set modal labels and values
             document.getElementById('trendModalLabel').innerHTML = `<i class="bi bi-graph-up me-2 text-warning"></i> แนวโน้มรายงวดบัญชี: ${name}`;

@@ -32924,5 +32924,981 @@
                 }
             ]
         }
+    },
+    "hosfin_gl_accounts": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "account_code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_type": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "account_category": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "normal_balance": {
+                "type": "varchar(10)",
+                "nullable": false,
+                "default": "DR",
+                "extra": ""
+            },
+            "is_active": {
+                "type": "tinyint(4)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cost_type": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "OTHER",
+                "extra": ""
+            },
+            "service_type": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "direct",
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_accounts_code_unique": [
+                {
+                    "column": "account_code",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_accounts_type_index": [
+                {
+                    "column": "account_type",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_journals": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "voucher_no": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "voucher_date": {
+                "type": "date",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "journal_type": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "JV",
+                "extra": ""
+            },
+            "description": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "total_debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "total_credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "posted_status": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "posted",
+                "extra": ""
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "fiscal_month": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "external_ref": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "apar": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_journals_voucher_no_unique": [
+                {
+                    "column": "voucher_no",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_journals_date_index": [
+                {
+                    "column": "voucher_date",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_journals_type_index": [
+                {
+                    "column": "journal_type",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_journals_period_index": [
+                {
+                    "column": "fiscal_year",
+                    "unique": false
+                },
+                {
+                    "column": "fiscal_month",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_journal_items": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "journal_id": {
+                "type": "bigint(20) unsigned",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "voucher_no": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "item_no": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "account_code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "description": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "department": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_items_voucher_no_index": [
+                {
+                    "column": "voucher_no",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_items_account_code_index": [
+                {
+                    "column": "account_code",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_items_journal_id_index": [
+                {
+                    "column": "journal_id",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_daily_summaries": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "summary_date": {
+                "type": "date",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "total_income": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "total_expense": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "net_cash_flow": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "cash_balance": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "voucher_count": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_daily_date_unique": [
+                {
+                    "column": "summary_date",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_daily_year_index": [
+                {
+                    "column": "fiscal_year",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_monthly_balances": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "fiscal_month": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "account_code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "account_type": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "beginning_debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "beginning_credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "period_debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "period_credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "ending_debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "ending_credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_monthly_key_unique": [
+                {
+                    "column": "fiscal_year",
+                    "unique": true
+                },
+                {
+                    "column": "fiscal_month",
+                    "unique": true
+                },
+                {
+                    "column": "account_code",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_monthly_account_index": [
+                {
+                    "column": "account_code",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_sync_logs": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "sync_type": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": "full",
+                "extra": ""
+            },
+            "records_count": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "status": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "success",
+                "extra": ""
+            },
+            "message": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "agent_ip": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "agent_version": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "duration_seconds": {
+                "type": "decimal(8,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_sync_status_index": [
+                {
+                    "column": "status",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_sync_created_index": [
+                {
+                    "column": "created_at",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_subledgers": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "subledger_code": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "vendor_name": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "category": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "raw_note": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_subledgers_code_unique": [
+                {
+                    "column": "subledger_code",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_subledgers_vendor_index": [
+                {
+                    "column": "vendor_name",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_subledgers_category_index": [
+                {
+                    "column": "category",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_ap_bills": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "vendor_name": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "category": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "bill_no": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "bill_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "account_code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "total_credit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "total_debit": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "remaining_debt": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "is_paid": {
+                "type": "tinyint(4)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_ap_bills_bill_acc_unique": [
+                {
+                    "column": "bill_no",
+                    "unique": true
+                },
+                {
+                    "column": "account_code",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_ap_bills_vendor_index": [
+                {
+                    "column": "vendor_name",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_ap_bills_paid_index": [
+                {
+                    "column": "is_paid",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_ap_bills_year_index": [
+                {
+                    "column": "fiscal_year",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_ar_debtors": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "account_code": {
+                "type": "varchar(50)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "account_name": {
+                "type": "varchar(255)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "debtor_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "total_billed": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "total_collected": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "outstanding_balance": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "fiscal_month": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_ar_debtors_period_acc_unique": [
+                {
+                    "column": "fiscal_year",
+                    "unique": true
+                },
+                {
+                    "column": "fiscal_month",
+                    "unique": true
+                },
+                {
+                    "column": "account_code",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_ar_debtors_type_index": [
+                {
+                    "column": "debtor_type",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "hosfin_gl_cost_summaries": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "fiscal_year": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "2569",
+                "extra": ""
+            },
+            "fiscal_month": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "1",
+                "extra": ""
+            },
+            "lc_amount": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "mc_amount": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "cc_amount": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "other_cost": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "total_cost": {
+                "type": "decimal(15,2)",
+                "nullable": false,
+                "default": "0.00",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hosfin_gl_cost_period_unique": [
+                {
+                    "column": "fiscal_year",
+                    "unique": true
+                },
+                {
+                    "column": "fiscal_month",
+                    "unique": true
+                }
+            ]
+        }
     }
 }

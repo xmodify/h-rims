@@ -75,10 +75,8 @@ class CheckLicense
             ) {
                 $module = 'debtor_control';
             } elseif (
-                str_starts_with($path, 'hosfin/trial_balance/import') ||
-                str_starts_with($path, 'hosfin/trial_balance/analyze_mdb') ||
-                str_starts_with($path, 'hosfin/mappings/store') ||
-                str_starts_with($path, 'hosfin/mappings/delete')
+                $path === 'hosfin' ||
+                str_starts_with($path, 'hosfin/')
             ) {
                 $module = 'hosfin';
             } elseif (

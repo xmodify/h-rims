@@ -33,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+        Paginator::useBootstrapFive();
         // 1. บังคับ URL พื้นฐานตามที่ตั้งค่าใน .env (APP_URL)
         // วิธีนี้จะช่วยแก้ปัญหาเวลา Proxy หรือ Alias แล้ว Link เจนออกมาผิด Port หรือผิด Path
         if (!app()->runningInConsole()) {

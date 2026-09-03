@@ -1,0 +1,7 @@
+{
+  "api_url": "http://127.0.0.1/rims/api/hosfin/gl/sync",
+  "api_token": "rims-gl-token-2569-secret",
+  "db_path": "D:\\Project Laravel\\h-rims\\docs\\GL69_huataphangospital.accdb",
+  "sync_interval_minutes": 30,
+  "batch_size": 250
+}

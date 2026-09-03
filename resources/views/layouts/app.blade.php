@@ -1173,7 +1173,7 @@
                                     </a>
                                 </li>
                             @endif
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_hosfin == 'Y')
+                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('hosfin') && (Auth::user()->status == 'admin' || Auth::user()->allow_hosfin == 'Y'))
                                 <li class="nav-item">
                                     <a class="nav-link nav-link-modern" href="{{ url('hosfin') }}">
                                         <i class="bi bi-bank me-1" style="color: #10b981;"></i> HosFin
@@ -1190,7 +1190,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-03 23.30
+                                V.69-09-04 04.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1245,7 +1245,7 @@
                                             @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ route('admin.rag.index') }}">
-                                                    <i class="bi bi-robot me-2 text-primary"></i> คลังความรู้ AI (RAG)
+                                                    <i class="bi bi-robot me-2 text-primary"></i> คลังความรู้ AI
                                                 </a>
                                             @endif
                                             <a class="dropdown-item dropdown-item-modern"
@@ -1282,8 +1282,11 @@
                                             @endif
                                         @endif
                                     @endauth
-                                    <!-- -->
                                     <div class="dropdown-divider opacity-10"></div>
+                                    <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
+                                        data-bs-target="#downloadToolsModal">
+                                        <i class="bi bi-cloud-arrow-down-fill me-2 text-primary"></i> Download
+                                    </a>
                                     <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
                                         data-bs-target="#editProfileModal">
                                         <i class="bi bi-person-circle me-2 text-success"></i> Edit Profile
@@ -2249,6 +2252,9 @@
 
     <!-- Global Pre-Audit Modal (ตาสีแดง 👁️) -->
     @include('components.pre_audit_modal')
+
+    <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
+    @include('components.download_tools_modal')
 
     <!-- Global AI Chatbot Floating Widget (🤖) -->
     @auth

@@ -52,24 +52,111 @@ class HosFinController extends Controller
     /**
      * HosFin System Dashboard index
      */
-    public function index()
+    public function index(Request $request)
     {
-        $latestPeriod = DB::table('hosfin_trial_balance')
-            ->orderBy('acc_period', 'desc')
-            ->value('acc_period');
+        // 1. HosFin Dashboard is strictly powered by Live GL Data
+        $hasGlData = DB::table('hosfin_gl_journal_items')->exists();
+        if (!$hasGlData) {
+            $budgetYear = self::getCurrentBudgetYear();
+            $ratioDefs = self::getRatioDefinitions();
 
-        if (!$latestPeriod) {
+            // Build 12 fiscal periods list for the current fiscal year
+            $periods = [];
+            $chartLabels = [];
+            $monthlyRevenueExpenseTrend = [];
+
+            for ($m = 10; $m <= 12; $m++) {
+                $p = sprintf('%04d-%02d', $budgetYear - 1, $m);
+                $lbl = self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2);
+                $periods[] = ['month' => $m, 'year' => $budgetYear - 1, 'period' => $p, 'label' => $lbl];
+                $chartLabels[] = $lbl;
+                $monthlyRevenueExpenseTrend[$lbl] = ['revenue' => 0.0, 'expense' => 0.0];
+            }
+            for ($m = 1; $m <= 9; $m++) {
+                $p = sprintf('%04d-%02d', $budgetYear, $m);
+                $lbl = self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2);
+                $periods[] = ['month' => $m, 'year' => $budgetYear, 'period' => $p, 'label' => $lbl];
+                $chartLabels[] = $lbl;
+                $monthlyRevenueExpenseTrend[$lbl] = ['revenue' => 0.0, 'expense' => 0.0];
+            }
+
+            $latestMetrics = [];
+            $chartData = [];
+            $statusMap = [];
+
+            foreach ($ratioDefs as $code => $def) {
+                $latestMetrics[$code] = [
+                    'val' => 0.0,
+                    'num' => 0.0,
+                    'den' => 0.0,
+                    'num_label' => $def['num_label'] ?? '',
+                    'den_label' => $def['den_label'] ?? '',
+                    'unit' => $def['unit'] ?? '',
+                ];
+                $chartData[$code] = array_fill(0, 12, 0.0);
+                $statusMap[$code] = [
+                    'label' => '0.00',
+                    'class' => 'text-muted border-secondary',
+                    'bg' => 'bg-secondary bg-opacity-10',
+                ];
+            }
+
             return view('hosfin.index', [
-                'hasData' => false,
-                'latestPeriodLabel' => '',
-                'budgetYear' => self::getCurrentBudgetYear(),
-                'latestMetrics' => [],
-                'chartLabels' => [],
-                'chartData' => [],
-                'statusMap' => [],
-                'ratioDefs' => []
+                'hasData' => true,
+                'isGlEmpty' => true,
+                'latestPeriod' => sprintf('%04d-10', $budgetYear - 1),
+                'latestPeriodLabel' => 'รอซิงค์ข้อมูล GL (ปีงบประมาณ ' . $budgetYear . ')',
+                'budgetYear' => $budgetYear,
+                'latestMetrics' => $latestMetrics,
+                'chartLabels' => $chartLabels,
+                'chartData' => $chartData,
+                'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend,
+                'statusMap' => $statusMap,
+                'ratioDefs' => $ratioDefs,
+                'riskScore' => 0,
+                'riskScoreBgClass' => 'bg-secondary-subtle border-secondary-subtle',
+                'riskScoreTextClass' => 'text-muted',
+                'riskScoreNumBgClass' => 'bg-secondary',
+                'riskScoreLevelLabel' => 'รอข้อมูล GL',
+                'apUnpaidSum' => 0.0,
+                'apUnpaidCount' => 0,
+                'apTotalVendorsCount' => 0,
+                'apTopCreditors' => collect([]),
+                'arOutstandingSum' => 0.0,
+                'arTotalBilled' => 0.0,
+                'arTotalCollected' => 0.0,
+                'arAccountCount' => 0,
+                'arTypeSummaries' => collect([]),
+                'cashBalance' => 0.0,
+                'cashAccountsCount' => 0,
+                'cashBankAccounts' => collect([]),
+                'glSyncTimeText' => 'ยังไม่มีการซิงค์ข้อมูล (รอเชื่อมต่อจากโปรแกรม Rims GL Sync)',
+                'glSyncSuccess' => false,
+                'latestImportFilename' => 'GL_SYNC',
+                'periods' => $periods,
+                'importedPeriods' => [],
             ]);
         }
+
+        // Ensure GL_SYNC rows exist in trial balance for this GL data
+        $hasGlSyncRows = DB::table('hosfin_trial_balance')->where('import_filename', 'GL_SYNC')->exists();
+        if (!$hasGlSyncRows) {
+            self::syncTrialBalanceFromGl();
+        }
+
+        $requestedPeriod = $request->input('period');
+
+        $latestPeriod = null;
+        if ($requestedPeriod && DB::table('hosfin_trial_balance')->where('import_filename', 'GL_SYNC')->where('acc_period', $requestedPeriod)->exists()) {
+            $latestPeriod = $requestedPeriod;
+        } else {
+            $latestPeriod = DB::table('hosfin_trial_balance')
+                ->where('import_filename', 'GL_SYNC')
+                ->orderBy('acc_period', 'desc')
+                ->value('acc_period');
+        }
+
+        $latestImportFilename = 'GL_SYNC';
 
         // Parse budget year from latest period
         list($calYear, $calMonth) = explode('-', $latestPeriod);
@@ -100,8 +187,9 @@ class HosFinController extends Controller
         $prevFyEndPeriod = sprintf('%04d-09', $budgetYear - 1);
         $queryPeriods = array_merge($validPeriods, [$prevFyEndPeriod]);
 
-        // Check which periods actually have data imported in DB
+        // Check which periods actually have data imported in DB (from GL_SYNC)
         $importedPeriods = DB::table('hosfin_trial_balance')
+            ->where('import_filename', 'GL_SYNC')
             ->whereIn('acc_period', $validPeriods)
             ->distinct()
             ->pluck('acc_period')
@@ -118,10 +206,11 @@ class HosFinController extends Controller
         $lengths = array_keys($prefixLengths);
         rsort($lengths);
 
-        // 2. Fetch all trial balance rows
+        // 2. Fetch all trial balance rows purely from GL_SYNC
         $trial_balance = DB::table('hosfin_trial_balance')
+            ->where('import_filename', 'GL_SYNC')
             ->whereIn('acc_period', $queryPeriods)
-            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month']);
+            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month', 'import_filename']);
 
         // 3. Prefix matching in PHP memory
         $grouped = [];
@@ -564,6 +653,115 @@ class HosFinController extends Controller
             }
         }
 
+        $apUnpaidSum = 0;
+        $apUnpaidCount = 0;
+        $apTotalVendorsCount = 0;
+        $apUnpaidSum = 0;
+        $apUnpaidCount = 0;
+        $apTotalVendorsCount = 0;
+        $apTopCreditors = collect();
+
+        $arOutstandingSum = 0;
+        $arTotalBilled = 0;
+        $arTotalCollected = 0;
+        $arAccountCount = 0;
+        $arTypeSummaries = collect();
+
+        $cashBalance = 0;
+        $cashAccountsCount = 0;
+        $cashBankAccounts = collect();
+
+        $latestSyncLog = null;
+        $glSyncTimeText = 'ยังไม่มีการซิงค์ (รอเชื่อมต่อ)';
+        $glSyncSuccess = false;
+
+        try {
+            // Check latest successful GL sync log
+            $latestSyncLog = \App\Models\HosfinGlSyncLog::where('status', 'success')->latest('id')->first();
+            if ($latestSyncLog && $latestSyncLog->created_at) {
+                $dt = \Carbon\Carbon::parse($latestSyncLog->created_at);
+                $thaiYear = ($dt->year + 543) % 100;
+                $thaiMonths = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                $monthName = $thaiMonths[$dt->month] ?? '';
+                $glSyncTimeText = $dt->day . ' ' . $monthName . ' ' . $thaiYear . ' ' . $dt->format('H:i') . ' น.';
+                $glSyncSuccess = true;
+            }
+
+            // AP from GL
+            $apUnpaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 0)->sum('remaining_debt');
+            $apUnpaidCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->count();
+            $apTotalVendorsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->distinct('vendor_name')->count('vendor_name');
+            $apTopCreditors = \App\Models\HosfinGlApBill::select(
+                    'vendor_name',
+                    DB::raw('MAX(category) as category'),
+                    DB::raw('COUNT(*) as total_bills'),
+                    DB::raw('SUM(CASE WHEN is_paid = 0 THEN 1 ELSE 0 END) as unpaid_bills'),
+                    DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt')
+                )
+                ->groupBy('vendor_name')
+                ->having('remaining_debt', '>', 0)
+                ->orderBy('remaining_debt', 'desc')
+                ->limit(8)
+                ->get();
+
+            // AR from GL (Accounts Receivable หมวด 1102)
+            $arTotals = DB::table('hosfin_gl_journal_items')
+                ->where('account_code', 'like', '1102%')
+                ->select(
+                    DB::raw('SUM(debit) as total_dr'),
+                    DB::raw('SUM(credit) as total_cr'),
+                    DB::raw('SUM(debit - credit) as net_outstanding'),
+                    DB::raw('COUNT(DISTINCT account_code) as total_accounts')
+                )
+                ->first();
+
+            $arOutstandingSum = (float)($arTotals->net_outstanding ?? 0);
+            $arTotalBilled = (float)($arTotals->total_dr ?? 0);
+            $arTotalCollected = (float)($arTotals->total_cr ?? 0);
+            $arAccountCount = (int)($arTotals->total_accounts ?? 0);
+            $arTypeSummaries = \App\Models\HosfinGlArDebtor::select(
+                    'debtor_type',
+                    DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                    DB::raw('SUM(total_billed) as total_billed'),
+                    DB::raw('SUM(total_collected) as total_collected'),
+                    DB::raw('SUM(outstanding_balance) as outstanding_balance')
+                )
+                ->groupBy('debtor_type')
+                ->orderBy('outstanding_balance', 'desc')
+                ->get();
+
+            // CASH from GL (hosfin_gl_journal_items)
+            $hasGlJournals = DB::table('hosfin_gl_journal_items')->exists();
+
+            if ($hasGlJournals) {
+                $cashMappings = DB::table('hosfin_dtl_mappings')
+                    ->where('group_code', '1003X')
+                    ->pluck('account_code')
+                    ->toArray();
+
+                $cashBankAccounts = DB::table('hosfin_gl_journal_items as i')
+                    ->select('i.account_code', 'i.account_name', DB::raw('SUM(i.debit - i.credit) as net_balance'))
+                    ->where(function($q) use ($cashMappings) {
+                        $q->where('i.account_code', 'like', '1003%')
+                          ->orWhere('i.account_code', 'like', '1101%');
+                        foreach ($cashMappings as $c) {
+                            $q->orWhere('i.account_code', 'like', $c . '%');
+                        }
+                    })
+                    ->groupBy('i.account_code', 'i.account_name')
+                    ->having('net_balance', '<>', 0)
+                    ->orderBy('net_balance', 'desc')
+                    ->get();
+
+                $cashBalance = (float)$cashBankAccounts->sum('net_balance');
+                $cashAccountsCount = $cashBankAccounts->count();
+            } else {
+                $cashBalance = 0;
+                $cashAccountsCount = 0;
+                $cashBankAccounts = collect();
+            }
+        } catch (\Throwable $e) {}
+
         return view('hosfin.index', [
             'hasData' => true,
             'latestPeriodLabel' => $latestPeriodLabel,
@@ -578,7 +776,25 @@ class HosFinController extends Controller
             'riskScoreTextClass' => $riskScoreTextClass,
             'riskScoreNumBgClass' => $riskScoreNumBgClass,
             'riskScoreLevelLabel' => $riskScoreLevelLabel,
-            'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend
+            'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend,
+            'apUnpaidSum' => $apUnpaidSum,
+            'apUnpaidCount' => $apUnpaidCount,
+            'apTotalVendorsCount' => $apTotalVendorsCount,
+            'apTopCreditors' => $apTopCreditors,
+            'arOutstandingSum' => $arOutstandingSum,
+            'arTotalBilled' => $arTotalBilled,
+            'arTotalCollected' => $arTotalCollected,
+            'arAccountCount' => $arAccountCount,
+            'arTypeSummaries' => $arTypeSummaries,
+            'cashBalance' => $cashBalance,
+            'cashAccountsCount' => $cashAccountsCount,
+            'cashBankAccounts' => $cashBankAccounts,
+            'glSyncTimeText' => $glSyncTimeText,
+            'glSyncSuccess' => $glSyncSuccess,
+            'latestImportFilename' => $latestImportFilename,
+            'latestPeriod' => $latestPeriod,
+            'periods' => $periods,
+            'importedPeriods' => $importedPeriods,
         ]);
     }
 
@@ -1433,7 +1649,25 @@ class HosFinController extends Controller
         // 2. Fetch all trial balance rows for all valid periods in one single query
         $trial_balance = DB::table('hosfin_trial_balance')
             ->whereIn('acc_period', $queryPeriods)
-            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month']);
+            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month', 'import_filename']);
+
+        // Deduplicate: If an acc_period has multiple import sources (e.g. manual file and GL_SYNC), pick one
+        $periodPreferredSource = [];
+        $sources = $trial_balance->groupBy('acc_period');
+        foreach ($sources as $p => $rows) {
+            $distinctFiles = $rows->pluck('import_filename')->unique();
+            if ($distinctFiles->count() > 1) {
+                $manual = $distinctFiles->first(fn($f) => $f !== 'GL_SYNC');
+                $periodPreferredSource[$p] = $manual ?: $distinctFiles->first();
+            }
+        }
+
+        if (!empty($periodPreferredSource)) {
+            $trial_balance = $trial_balance->filter(function($tb) use ($periodPreferredSource) {
+                $preferred = $periodPreferredSource[$tb->acc_period] ?? null;
+                return !$preferred || $tb->import_filename === $preferred;
+            });
+        }
 
         // 3. Perform prefix matching in PHP memory (50x faster than MySQL non-equality LIKE JOINs)
         $grouped = [];
@@ -1770,7 +2004,7 @@ class HosFinController extends Controller
     /**
      * Define the 29 standard ratio report formulas and groups
      */
-    private static function getRatioDefinitions()
+    public static function getRatioDefinitions()
     {
         return [
             '100' => [
@@ -2085,4 +2319,350 @@ class HosFinController extends Controller
             ],
         ];
     }
+
+    /**
+     * GL Report: Accounts Payable (AP Creditors & Unpaid Bills)
+     */
+    public function ap_report(Request $request)
+    {
+        $totalUnpaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 0)->sum('remaining_debt');
+        $totalUnpaidBillsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->count();
+        $totalPaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 1)->sum('total_debit');
+        $totalPaidBillsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 1)->count();
+        $totalVendorsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->distinct('vendor_name')->count('vendor_name');
+
+        $vendorsSummary = \App\Models\HosfinGlApBill::select(
+                'vendor_name',
+                DB::raw('MAX(category) as category'),
+                DB::raw('COUNT(*) as total_bills'),
+                DB::raw('SUM(CASE WHEN is_paid = 0 THEN 1 ELSE 0 END) as unpaid_bills'),
+                DB::raw('SUM(total_credit) as total_credit'),
+                DB::raw('SUM(total_debit) as total_debit'),
+                DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt')
+            )
+            ->groupBy('vendor_name')
+            ->orderBy('remaining_debt', 'desc')
+            ->get();
+
+        $bills = \App\Models\HosfinGlApBill::orderBy('remaining_debt', 'desc')
+                       ->orderBy('bill_date', 'desc')
+                       ->get();
+
+        $activeTab = $request->input('tab', 'vendor');
+
+        return view('hosfin.ap_report', [
+            'activeTab' => $activeTab,
+            'totalUnpaidSum' => $totalUnpaidSum,
+            'totalUnpaidBillsCount' => $totalUnpaidBillsCount,
+            'totalPaidSum' => $totalPaidSum,
+            'totalPaidBillsCount' => $totalPaidBillsCount,
+            'totalVendorsCount' => $totalVendorsCount,
+            'vendorsSummary' => $vendorsSummary,
+            'bills' => $bills,
+        ]);
+    }
+
+    /**
+     * AJAX: Get bills for a specific AP vendor
+     */
+    public function ap_vendor_bills(Request $request)
+    {
+        $vendor = trim($request->input('vendor', ''));
+        if ($vendor === '') {
+            return response()->json(['status' => 'error', 'message' => 'Vendor name is required'], 400);
+        }
+
+        $bills = \App\Models\HosfinGlApBill::where('vendor_name', $vendor)
+            ->orderBy('remaining_debt', 'desc')
+            ->orderBy('bill_date', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'vendor' => $vendor,
+            'total_bills' => $bills->count(),
+            'unpaid_bills' => $bills->where('is_paid', 0)->count(),
+            'total_credit' => (float)$bills->sum('total_credit'),
+            'total_debit' => (float)$bills->sum('total_debit'),
+            'remaining_debt' => (float)$bills->where('is_paid', 0)->sum('remaining_debt'),
+            'bills' => $bills,
+        ]);
+    }
+
+    /**
+     * GL Report: Accounts Receivable (AR Debtors by Fund/Right)
+     */
+    public function ar_report(Request $request)
+    {
+        $typeSummaries = \App\Models\HosfinGlArDebtor::select(
+                'debtor_type',
+                DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                DB::raw('SUM(total_billed) as total_billed'),
+                DB::raw('SUM(total_collected) as total_collected'),
+                DB::raw('SUM(outstanding_balance) as outstanding_balance')
+            )
+            ->groupBy('debtor_type')
+            ->orderBy('outstanding_balance', 'desc')
+            ->get();
+
+        $totalBilled = (float)\App\Models\HosfinGlArDebtor::sum('total_billed');
+        $totalCollected = (float)\App\Models\HosfinGlArDebtor::sum('total_collected');
+        $totalOutstanding = (float)\App\Models\HosfinGlArDebtor::sum('outstanding_balance');
+
+        $debtors = \App\Models\HosfinGlArDebtor::orderBy('outstanding_balance', 'desc')->get();
+
+        return view('hosfin.ar_report', [
+            'typeSummaries' => $typeSummaries,
+            'totalBilled' => $totalBilled,
+            'totalCollected' => $totalCollected,
+            'totalOutstanding' => $totalOutstanding,
+            'debtors' => $debtors,
+        ]);
+    }
+
+    /**
+     * GL Report: Hospital Service Cost Analysis (LC / MC / CC)
+     */
+    public function cost_report(Request $request)
+    {
+        $costSummaries = \App\Models\HosfinGlCostSummary::orderBy('fiscal_year', 'asc')
+            ->orderBy('fiscal_month', 'asc')
+            ->get();
+
+        $totalLc = (float)\App\Models\HosfinGlCostSummary::sum('lc_amount');
+        $totalMc = (float)\App\Models\HosfinGlCostSummary::sum('mc_amount');
+        $totalCc = (float)\App\Models\HosfinGlCostSummary::sum('cc_amount');
+        $totalOther = (float)\App\Models\HosfinGlCostSummary::sum('other_cost');
+        $totalCost = (float)\App\Models\HosfinGlCostSummary::sum('total_cost');
+
+        $lcPercent = $totalCost > 0 ? round(($totalLc / $totalCost) * 100, 1) : 0;
+        $mcPercent = $totalCost > 0 ? round(($totalMc / $totalCost) * 100, 1) : 0;
+        $ccPercent = $totalCost > 0 ? round(($totalCc / $totalCost) * 100, 1) : 0;
+
+        $topAccounts = DB::table('hosfin_gl_accounts as a')
+            ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
+            ->where('a.account_code', 'like', '5%')
+            ->select(
+                'a.account_code',
+                'a.account_name',
+                'a.cost_type',
+                'a.service_type',
+                DB::raw('SUM(COALESCE(i.debit, 0) - COALESCE(i.credit, 0)) as net_expense'),
+                DB::raw('COUNT(i.id) as tx_count')
+            )
+            ->groupBy('a.account_code', 'a.account_name', 'a.cost_type', 'a.service_type')
+            ->orderBy('net_expense', 'desc')
+            ->get();
+
+        return view('hosfin.cost_report', [
+            'costSummaries' => $costSummaries,
+            'totalLc' => $totalLc,
+            'totalMc' => $totalMc,
+            'totalCc' => $totalCc,
+            'totalOther' => $totalOther,
+            'totalCost' => $totalCost,
+            'lcPercent' => $lcPercent,
+            'mcPercent' => $mcPercent,
+            'ccPercent' => $ccPercent,
+            'topAccounts' => $topAccounts,
+        ]);
+    }
+
+    /**
+     * Recalculate Trial Balance and Metrics directly from Live GL Journals
+     */
+    public function recalculate_from_gl(Request $request)
+    {
+        $hasGlData = DB::table('hosfin_gl_journal_items')->exists();
+        if (!$hasGlData) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบข้อมูลสมุดรายวันในระบบ GL กรุณาเปิดโปรแกรม Rims GL Sync แล้วกด "ซิงค์ข้อมูลทันที" ก่อน'
+            ], 422);
+        }
+
+        try {
+            $count = self::syncTrialBalanceFromGl();
+
+            return response()->json([
+                'success' => true,
+                'message' => "ประมวลผลข้อมูลจาก GL สำเร็จเรียบร้อย! อัปเดตงบทดลองและดัชนีทางการเงิน $count รายการ",
+                'records_count' => $count
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการประมวลผลจาก GL: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Aggregate GL Journal Items into Trial Balance rows (Live Daily GL Calculation)
+     */
+    public static function syncTrialBalanceFromGl()
+    {
+        // 1. Fetch raw journal activity grouped by year, month, account
+        $rows = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->select(
+                'j.fiscal_year as j_fy',
+                'j.fiscal_month as j_fm',
+                'i.account_code',
+                DB::raw("MAX(i.account_name) as account_name"),
+                DB::raw("SUM(COALESCE(i.debit, 0)) as total_debit"),
+                DB::raw("SUM(COALESCE(i.credit, 0)) as total_credit")
+            )
+            ->whereNotNull('i.account_code')
+            ->where('i.account_code', '<>', '')
+            ->whereNotNull('j.fiscal_year')
+            ->groupBy('j.fiscal_year', 'j.fiscal_month', 'i.account_code')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return 0;
+        }
+
+        // Account names lookup from mappings
+        $nameMap = DB::table('hosfin_dtl_mappings')
+            ->select('account_code', 'account_name')
+            ->distinct()
+            ->pluck('account_name', 'account_code')
+            ->toArray();
+
+        // 2. Group by budget year
+        $byBudgetYear = [];
+        foreach ($rows as $r) {
+            $fy = intval($r->j_fy);
+            $fm = intval($r->j_fm);
+            
+            if ($fm === 0) {
+                // Opening balance of fiscal year
+                $byBudgetYear[$fy][0]['accounts'][$r->account_code] = [
+                    'name' => $r->account_name ?: ($nameMap[$r->account_code] ?? $r->account_code),
+                    'dr_month' => (float)$r->total_debit,
+                    'cr_month' => (float)$r->total_credit,
+                ];
+                continue;
+            }
+
+            // Calculate calendar year and month for period
+            // Month 1 = Oct (cal_month 10, cal_year fy-1)
+            // Month 2 = Nov (cal_month 11, cal_year fy-1)
+            // Month 3 = Dec (cal_month 12, cal_year fy-1)
+            // Month 4 = Jan (cal_month 1, cal_year fy)
+            // ...
+            // Month 12 = Sep (cal_month 9, cal_year fy)
+            if ($fm >= 1 && $fm <= 3) {
+                $cMonth = $fm + 9;
+                $cYear = $fy - 1;
+            } else {
+                $cMonth = $fm - 3;
+                $cYear = $fy;
+            }
+
+            $period = sprintf('%04d-%02d', $cYear, $cMonth);
+            $byBudgetYear[$fy][$fm]['period'] = $period;
+            $byBudgetYear[$fy][$fm]['cYear'] = $cYear;
+            $byBudgetYear[$fy][$fm]['cMonth'] = $cMonth;
+            $byBudgetYear[$fy][$fm]['accounts'][$r->account_code] = [
+                'name' => $r->account_name ?: ($nameMap[$r->account_code] ?? $r->account_code),
+                'dr_month' => (float)$r->total_debit,
+                'cr_month' => (float)$r->total_credit,
+            ];
+        }
+
+        // 3. For each budget year, build chronological cumulative periods (fm 1 to 12)
+        $trialBalanceInserts = [];
+        $affectedPeriods = [];
+
+        foreach ($byBudgetYear as $fy => $monthsData) {
+            // Keep cumulative running totals across the fiscal year for each account
+            $runningNet = []; // account_code => ['dr' => float, 'cr' => float]
+
+            // Seed with opening balances (fm = 0)
+            if (isset($monthsData[0]['accounts'])) {
+                foreach ($monthsData[0]['accounts'] as $accCode => $accData) {
+                    $runningNet[$accCode] = [
+                        'dr' => $accData['dr_month'],
+                        'cr' => $accData['cr_month']
+                    ];
+                }
+            }
+
+            for ($fm = 1; $fm <= 12; $fm++) {
+                if (!isset($monthsData[$fm])) {
+                    continue;
+                }
+
+                $mInfo = $monthsData[$fm];
+                $period = $mInfo['period'];
+                $affectedPeriods[] = $period;
+
+                // Collect all accounts present in either this month or in running balance
+                $allAccountsInScope = array_unique(array_merge(
+                    array_keys($runningNet),
+                    array_keys($mInfo['accounts'])
+                ));
+
+                foreach ($allAccountsInScope as $accCode) {
+                    $accData = $mInfo['accounts'][$accCode] ?? null;
+                    $drMonth = $accData ? $accData['dr_month'] : 0.0;
+                    $crMonth = $accData ? $accData['cr_month'] : 0.0;
+
+                    $prevDr = $runningNet[$accCode]['dr'] ?? 0.0;
+                    $prevCr = $runningNet[$accCode]['cr'] ?? 0.0;
+
+                    $netDr = $prevDr + $drMonth;
+                    $netCr = $prevCr + $crMonth;
+
+                    // Update running
+                    $runningNet[$accCode] = [
+                        'dr' => $netDr,
+                        'cr' => $netCr
+                    ];
+
+                    $cleanName = $nameMap[$accCode] ?? ($accData ? $accData['name'] : $accCode);
+
+                    $trialBalanceInserts[] = [
+                        'acc_year' => $mInfo['cYear'],
+                        'acc_month' => $mInfo['cMonth'],
+                        'acc_period' => $period,
+                        'main_account_code' => substr($accCode, 0, 4),
+                        'account_code' => $accCode,
+                        'account_name' => $cleanName,
+                        'debit_bf' => round($prevDr, 2),
+                        'credit_bf' => round($prevCr, 2),
+                        'debit_month' => round($drMonth, 2),
+                        'credit_month' => round($crMonth, 2),
+                        'debit_net' => round($netDr, 2),
+                        'credit_net' => round($netCr, 2),
+                        'import_filename' => 'GL_SYNC',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+            }
+        }
+
+        // 4. Save to hosfin_trial_balance as GL_SYNC (Live GL Real-time Data)
+        if (!empty($trialBalanceInserts)) {
+            $affectedPeriods = array_unique($affectedPeriods);
+            DB::transaction(function() use ($affectedPeriods, $trialBalanceInserts) {
+                // Delete previous GL_SYNC rows for affected periods
+                DB::table('hosfin_trial_balance')
+                    ->where('import_filename', 'GL_SYNC')
+                    ->whereIn('acc_period', $affectedPeriods)
+                    ->delete();
+
+                foreach (array_chunk($trialBalanceInserts, 250) as $chunk) {
+                    DB::table('hosfin_trial_balance')->insert($chunk);
+                }
+            });
+            return count($trialBalanceInserts);
+        }
+
+        return 0;
+    }
 }
+

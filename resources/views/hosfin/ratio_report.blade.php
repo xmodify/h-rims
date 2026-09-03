@@ -81,10 +81,10 @@
 
         <!-- Header -->
         <div class="col-12 px-3 mb-3">
-            <div class="page-header-box mt-2" style="border-left-color: #0284c7 !important;">
+            <div class="page-header-box mt-2" style="border-left-color: #10b981 !important;">
                 <div>
                     <h5 class="text-primary mb-0 fw-bold">
-                        <i class="bi bi-graph-up text-info me-2"></i> วิเคราะห์อัตราส่วนทางการเงิน (Ratio Analysis)
+                        <i class="bi bi-graph-up text-success me-2"></i> วิเคราะห์อัตราส่วนทางการเงิน (Ratio Analysis)
                     </h5>
                     <small class="text-muted">คำนวณอัตราส่วนสภาพคล่อง ประสิทธิภาพการดำเนินงาน และกำไรของโรงพยาบาล</small>
                 </div>

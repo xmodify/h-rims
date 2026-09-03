@@ -27,9 +27,11 @@
                 <button type="button" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ล้างบทสนทนา" onclick="clearAiChatHistory()">
                     <i class="bi bi-trash3"></i>
                 </button>
+                @if(auth()->check() && auth()->user()->status === 'admin')
                 <a href="{{ route('admin.rag.index') }}" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ไปยังคลังความรู้">
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>
+                @endif
                 <button type="button" class="btn btn-sm btn-link text-white p-1 text-decoration-none" title="ปิดหน้าต่าง" onclick="toggleAiChatbot()">
                     <i class="bi bi-x-lg fs-6"></i>
                 </button>
@@ -374,6 +376,13 @@
 <script>
     const AI_STORAGE_KEY = 'hrims_ai_chat_history';
 
+    // ป้องกัน Bootstrap modal ไม่ให้ดักจับ Focus ออกจาก RiMS Copilot ทำให้พิมพ์ได้ตลอดเวลาแม้มี Modal เปิดอยู่
+    document.addEventListener('focusin', function(e) {
+        if (e.target && e.target.closest && e.target.closest('#aiChatbotWindow')) {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
     // Toggle Chatbot Window
     function toggleAiChatbot() {
         const win = document.getElementById('aiChatbotWindow');
@@ -384,12 +393,32 @@
 
         if (win.classList.contains('active')) {
             icon.innerHTML = '<i class="bi bi-x-lg"></i>';
-            document.getElementById('aiChatInput').focus();
+            setTimeout(() => {
+                const input = document.getElementById('aiChatInput');
+                if (input) input.focus();
+            }, 100);
             scrollChatToBottom();
         } else {
             icon.innerHTML = '<i class="bi bi-robot"></i>';
         }
     }
+
+    // Alias สำหรับฟังก์ชันเรียกเปิดปิด
+    window.toggleAiChat = toggleAiChatbot;
+    window.toggleAiChatbot = toggleAiChatbot;
+
+    // Helper สำหรับส่ง Prompt ต่อเนื่องจากหน้าอื่น
+    window.openAiChatWithPrompt = function(promptText) {
+        const win = document.getElementById('aiChatbotWindow');
+        if (win && !win.classList.contains('active')) {
+            toggleAiChatbot();
+        }
+        const input = document.getElementById('aiChatInput');
+        if (input && promptText) {
+            input.value = promptText;
+            setTimeout(() => input.focus(), 250);
+        }
+    };
 
     // Scroll messages to bottom
     function scrollChatToBottom() {

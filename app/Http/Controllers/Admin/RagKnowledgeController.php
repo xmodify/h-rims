@@ -303,6 +303,14 @@ class RagKnowledgeController extends Controller
      */
     public function ask(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || ($user->status !== 'admin' && ($user->allow_ai_copilot ?? 'N') !== 'Y')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'คุณไม่ได้รับสิทธิ์ใช้งาน RiMS Copilot กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์'
+            ], 403);
+        }
+
         $request->validate([
             'question' => 'required|string|min:1'
         ], [

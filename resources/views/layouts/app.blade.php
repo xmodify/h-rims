@@ -2289,7 +2289,9 @@
     <!-- Global AI Chatbot Floating Widget (🤖) -->
     @auth
         @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
-            @include('components.ai_chatbot_widget')
+            @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
+                @include('components.ai_chatbot_widget')
+            @endif
         @endif
     @endauth
 </body>

@@ -135,10 +135,14 @@
                     @if($hasData)
                         <div class="d-flex align-items-center gap-2 ms-lg-auto">
                             <!-- Action Buttons -->
-                            @if(\App\Services\Ai\AiService::isActive())
+                            @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
+                                @php
+                                    $hasAiAccess = Auth::check() && (Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y');
+                                @endphp
                                 <button type="button" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom text-white" 
-                                        onclick="openHosFinAiModal()"
-                                        style="font-size: 0.85rem; height: 48px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;">
+                                        onclick="{{ $hasAiAccess ? 'openHosFinAiModal()' : 'showAiAccessDeniedAlert()' }}"
+                                        style="font-size: 0.85rem; height: 48px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
+                                        title="{{ $hasAiAccess ? 'คลิกเพื่อดูบทวิเคราะห์วิกฤตทางการเงินด้วย AI' : 'คุณไม่ได้รับสิทธิ์ใช้งาน AI' }}">
                                     <i class="bi bi-robot fs-5"></i> AI วิเคราะห์วิกฤต & แนวโน้ม
                                 </button>
                             @endif
@@ -761,12 +765,25 @@
 
     function continueInChatbot() {
         $('#hosFinAiModal').modal('hide');
-        if (typeof toggleAiChat === 'function') {
-            toggleAiChat();
+        if (typeof window.openAiChatWithPrompt === 'function') {
+            window.openAiChatWithPrompt('ขอปรึกษาเจาะลึกเกี่ยวกับสถานการณ์การเงินและแนวทางแก้ไขของ HosFin');
+        } else if (typeof toggleAiChatbot === 'function') {
+            toggleAiChatbot();
         }
+    }
+
+    function showAiAccessDeniedAlert() {
+        Swal.fire({
+            icon: 'warning',
+            title: 'ไม่มีสิทธิ์เข้าถึงระบบ AI',
+            text: 'คุณไม่ได้รับสิทธิ์ใช้งานระบบ AI (RiMS Copilot) กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์การใช้งาน',
+            confirmButtonColor: '#4f46e5',
+            confirmButtonText: 'ตกลง'
+        });
     }
 </script>
 
+@if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
 <!-- HosFin AI Analysis Modal -->
 <div class="modal fade" id="hosFinAiModal" tabindex="-1" aria-labelledby="hosFinAiModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">

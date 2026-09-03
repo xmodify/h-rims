@@ -39,6 +39,7 @@ class User extends Authenticatable
         'allow_aopod_death',
         'allow_check_right',
         'allow_hosfin',
+        'allow_ai_copilot',
         'allow_export_f16_eclaim',
         'allow_export_f16_fdh',
         'allow_export_ssop',

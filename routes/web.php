@@ -86,7 +86,6 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::delete('rag-knowledge/categories/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'deleteCategory'])->name('rag.categories.delete');
     Route::post('rag-knowledge/settings', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'saveSettings'])->name('rag.settings.save');
     Route::post('rag-knowledge/upload', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'upload'])->name('rag.upload');
-    Route::post('rag-knowledge/ask', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'ask'])->name('rag.ask');
     Route::get('rag-knowledge/{id}/chunks', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'chunks'])->name('rag.chunks');
     Route::post('rag-knowledge/{id}/reindex', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reindex'])->name('rag.reindex');
     Route::delete('rag-knowledge/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'destroy'])->name('rag.destroy');
@@ -94,6 +93,8 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('debtor/lock_debtor', [DebtorController::class, 'lock_debtor'])->name('admin.lock_debtor');
+    // AI Knowledge Base (RAG) Ask Q&A - เข้าถึงได้ทุกสิทธิ์ที่ล็อกอิน
+    Route::post('rag-knowledge/ask', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'ask'])->name('admin.rag.ask');
 });
 
 Route::get('debtor/acc_ledger', [DebtorAccController::class, 'index'])->middleware(['auth'])->name('debtor.acc_ledger');

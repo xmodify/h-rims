@@ -109,6 +109,7 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
+                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><i class="bi bi-robot me-1"></i>RiMS Copilot</span> @endif
                                                     @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
                                                     @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
                                                     @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
@@ -147,6 +148,7 @@
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
+                                                    data-allow_ai_copilot="{{ $user->allow_ai_copilot }}"
                                                     data-allow_export_f16_eclaim="{{ $user->allow_export_f16_eclaim }}"
                                                     data-allow_export_f16_fdh="{{ $user->allow_export_f16_fdh }}"
                                                     data-allow_export_ssop="{{ $user->allow_export_ssop }}"
@@ -251,6 +253,7 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
+                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><i class="bi bi-robot me-1"></i>RiMS Copilot</span> @endif
                                                     @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
                                                     @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
                                                     @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
@@ -289,6 +292,7 @@
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                                     data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-allow_hosfin="{{ $user->allow_hosfin }}"
+                                                    data-allow_ai_copilot="{{ $user->allow_ai_copilot }}"
                                                     data-allow_export_f16_eclaim="{{ $user->allow_export_f16_eclaim }}"
                                                     data-allow_export_f16_fdh="{{ $user->allow_export_f16_fdh }}"
                                                     data-allow_export_ssop="{{ $user->allow_export_ssop }}"
@@ -511,6 +515,14 @@
                                             <label class="form-check-label small text-success fw-bold" for="add_allow_hosfin">HosFin</label>
                                         </div>
                                     </div>
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_ai_copilot" id="add_allow_ai_copilot" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -821,6 +833,14 @@
                                             <label class="form-check-label small text-success fw-bold" for="edit_allow_hosfin">HosFin</label>
                                         </div>
                                     </div>
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_ai_copilot" id="edit_allow_ai_copilot" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -1008,6 +1028,7 @@
             $('#edit_allow_nhso_endpoint').prop('checked', (data.allow_nhso_endpoint || $btn.attr('data-allow_nhso_endpoint')) === 'Y');
             $('#edit_allow_aopod_death').prop('checked', (data.allow_aopod_death || $btn.attr('data-allow_aopod_death')) === 'Y');
             $('#edit_allow_hosfin').prop('checked', (data.allow_hosfin || $btn.attr('data-allow_hosfin')) === 'Y');
+            $('#edit_allow_ai_copilot').prop('checked', (data.allow_ai_copilot || $btn.attr('data-allow_ai_copilot')) === 'Y');
             $('#edit_allow_export_f16_eclaim').prop('checked', (data.allow_export_f16_eclaim || $btn.attr('data-allow_export_f16_eclaim')) === 'Y');
             $('#edit_allow_export_f16_fdh').prop('checked', (data.allow_export_f16_fdh || $btn.attr('data-allow_export_f16_fdh')) === 'Y');
             $('#edit_allow_export_ssop').prop('checked', (data.allow_export_ssop || $btn.attr('data-allow_export_ssop')) === 'Y');

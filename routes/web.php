@@ -598,6 +598,7 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::post('hosfin/mappings/store', [App\Http\Controllers\HosFinController::class, 'mappings_store'])->name('hosfin.mappings.store');
     Route::delete('hosfin/mappings/delete', [App\Http\Controllers\HosFinController::class, 'mappings_delete'])->name('hosfin.mappings.delete');
     Route::post('hosfin/recalculate_gl', [App\Http\Controllers\HosFinController::class, 'recalculate_from_gl'])->name('hosfin.recalculate_gl');
+    Route::post('hosfin/ai_analyze', [App\Http\Controllers\HosFinController::class, 'ai_analyze'])->name('hosfin.ai_analyze');
 });
 
 // Debtor -------------------------------------------------------------------------------------------------------------------------

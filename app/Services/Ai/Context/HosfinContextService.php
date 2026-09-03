@@ -113,6 +113,69 @@ class HosfinContextService
             $text .= "12. [307] Net Margin: {$netMargin} % (กำไรสุทธิ: " . number_format($netIncome, 2) . " บาท จากกลุ่ม 3007X / กลุ่ม 3006Y รายได้รวม)\n";
             $text .= "13. [RISK SCORE] คะแนนความเสี่ยงวิกฤต: {$riskScore} / 7 ({$riskLabel}) จากเกณฑ์ 5 ด้านหลัก (CR<1.5, QR<1.0, Cash<0.8, NWC<0, กำไร<0)\n";
 
+            // Append Live GL Intelligence (AP, AR, Cost LC/MC/CC, Cash)
+            if (Schema::hasTable('hosfin_gl_ap_bills')) {
+                $totalUnpaidAp = (float)DB::table('hosfin_gl_ap_bills')->where('is_paid', 0)->sum('remaining_debt');
+                $totalUnpaidApCount = (int)DB::table('hosfin_gl_ap_bills')->where('is_paid', 0)->count();
+                $topCreditors = DB::table('hosfin_gl_ap_bills')
+                    ->select('vendor_name', DB::raw('SUM(remaining_debt) as remaining_debt'), DB::raw('COUNT(*) as total_bills'))
+                    ->where('is_paid', 0)
+                    ->groupBy('vendor_name')
+                    ->orderBy('remaining_debt', 'desc')
+                    ->limit(5)
+                    ->get();
+
+                $text .= "\nข้อมูลเจ้าหนี้การค้าจริงจากระบบ GL (AP Bills):\n"
+                      . "- หนี้ค้างชำระรวม: " . number_format($totalUnpaidAp, 2) . " บาท จากทั้งหมด " . number_format($totalUnpaidApCount) . " บิล\n";
+                if ($topCreditors->isNotEmpty()) {
+                    $text .= "- เจ้าหนี้ค้างจ่ายสูงสุด 5 อันดับแรก: " . $topCreditors->map(fn($v) => "{$v->vendor_name} (" . number_format($v->remaining_debt, 2) . " บ.)")->implode(', ') . "\n";
+                }
+            }
+
+            if (Schema::hasTable('hosfin_gl_ar_debtors')) {
+                $totalArOutstanding = (float)DB::table('hosfin_gl_ar_debtors')->sum('outstanding_balance');
+                $arTypeSummaries = DB::table('hosfin_gl_ar_debtors')
+                    ->select('debtor_type', DB::raw('SUM(outstanding_balance) as outstanding'))
+                    ->groupBy('debtor_type')
+                    ->orderBy('outstanding', 'desc')
+                    ->get();
+
+                $text .= "\nข้อมูลลูกหนี้ค่ารักษาพยาบาลจริงจากระบบ GL (AR Debtors):\n"
+                      . "- ลูกหนี้คงค้างรอชดเชยรวม: " . number_format($totalArOutstanding, 2) . " บาท\n"
+                      . "- ยอดค้างแยกตามสิทธิ: " . $arTypeSummaries->map(fn($s) => ($s->debtor_type ?: 'ทั่วไป') . " (" . number_format($s->outstanding, 2) . " บ.)")->implode(', ') . "\n";
+            }
+
+            if (Schema::hasTable('hosfin_gl_cost_summaries')) {
+                $totalCost = (float)DB::table('hosfin_gl_cost_summaries')->sum('total_cost');
+                $totalLc = (float)DB::table('hosfin_gl_cost_summaries')->sum('lc_amount');
+                $totalMc = (float)DB::table('hosfin_gl_cost_summaries')->sum('mc_amount');
+                $totalCc = (float)DB::table('hosfin_gl_cost_summaries')->sum('cc_amount');
+
+                $lcPct = $totalCost > 0 ? round(($totalLc / $totalCost) * 100, 1) : 0;
+                $mcPct = $totalCost > 0 ? round(($totalMc / $totalCost) * 100, 1) : 0;
+                $ccPct = $totalCost > 0 ? round(($totalCc / $totalCost) * 100, 1) : 0;
+
+                $text .= "\nโครงสร้างต้นทุนบริการจริงจากระบบ GL (Cost LC / MC / CC):\n"
+                      . "- ต้นทุนรวมทั้งสิ้น: " . number_format($totalCost, 2) . " บาท\n"
+                      . "- MC (ค่าวัสดุ ยา และเวชภัณฑ์): " . number_format($totalMc, 2) . " บาท ({$mcPct}%)\n"
+                      . "- LC (ค่าแรงและบุคลากร): " . number_format($totalLc, 2) . " บาท ({$lcPct}%)\n"
+                      . "- CC (ค่าลงทุนและเสื่อมราคา): " . number_format($totalCc, 2) . " บาท ({$ccPct}%)\n";
+            }
+
+            if (Schema::hasTable('hosfin_gl_accounts') && Schema::hasTable('hosfin_gl_journal_items')) {
+                $cashBank = DB::table('hosfin_gl_accounts as a')
+                    ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
+                    ->where('a.account_code', 'like', '1101%')
+                    ->select('a.account_code', 'a.account_name', DB::raw('SUM(COALESCE(i.debit, 0) - COALESCE(i.credit, 0)) as balance'))
+                    ->groupBy('a.account_code', 'a.account_name')
+                    ->having('balance', '<>', 0)
+                    ->get();
+                $totalCash = (float)$cashBank->sum('balance');
+
+                $text .= "\nข้อมูลเงินสดและเงินฝากธนาคารจริงจากระบบ GL:\n"
+                      . "- ยอดเงินสดและเงินฝากธนาคารคงเหลือรวม: " . number_format($totalCash, 2) . " บาท (จาก " . $cashBank->count() . " บัญชี)\n";
+            }
+
             return [
                 'text' => $text,
                 'period' => $period,

@@ -1251,16 +1251,13 @@
         content.classList.add('d-none');
         errBox.classList.add('d-none');
 
-        const prompt = "ช่วยวิเคราะห์สรุปสถานการณ์วิกฤตทางการเงิน HosFin ของโรงพยาบาล ณ งวดล่าสุดนี้อย่างละเอียด โดยครอบคลุม 4 หัวข้อสำคัญ:\n1. บทสรุปสุขภาพการเงินและสภาพคล่องปัจจุบัน (เงินบำรุง, Risk Score, Current Ratio, Cash Ratio)\n2. ชี้เป้าสาเหตุของวิกฤตและคอขวด (ลูกหนี้ค้างท่อสิทธิ์ข้าราชการ/UC, หนี้ค่ายาค้างจ่าย)\n3. การคาดการณ์แนวโน้ม 3-6 เดือนข้างหน้า (หากไม่มีการปรับปรุง)\n4. แผนปฏิบัติการเร่งด่วนและข้อเสนอแนะเชิงกลยุทธ์สำหรับผู้บริหารและฝ่ายการเงิน\n\nพร้อมอ้างอิงระเบียบและแนวทางบริหารลูกหนี้ที่เกี่ยวข้องครับ";
-
-        fetch(`{{ route('admin.rag.ask') }}`, {
+        fetch(`{{ route('hosfin.ai_analyze') }}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
-            },
-            body: JSON.stringify({ question: prompt })
+            }
         })
         .then(res => res.json())
         .then(data => {
@@ -1275,8 +1272,8 @@
                     .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
                     .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-                    .replace(/^\* (.*$)/gim, '<li class="mb-1">$1</li>')
-                    .replace(/^- (.*$)/gim, '<li class="mb-1">$1</li>')
+                    .replace(/^\* (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
+                    .replace(/^- (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
                     .replace(/\n\n/gim, '<br>')
                     .replace(/\n/gim, '<br>');
 
@@ -1285,9 +1282,9 @@
                 // Render sources
                 const srcContainer = document.getElementById('aiAnalysisSources');
                 if (data.sources && data.sources.length > 0) {
-                    let srcHtml = '<div class="mt-3 pt-3 border-top"><small class="fw-bold text-muted d-block mb-1"><i class="bi bi-bookmark-check-fill text-success me-1"></i> แหล่งข้อมูลอ้างอิง:</small><div class="d-flex flex-wrap gap-2">';
+                    let srcHtml = '<div class="mt-3 pt-3 border-top"><small class="fw-bold text-muted d-block mb-1"><i class="bi bi-bookmark-check-fill text-success me-1"></i> ฐานข้อมูล GL อ้างอิง:</small><div class="d-flex flex-wrap gap-2">';
                     data.sources.forEach(s => {
-                        srcHtml += `<span class="badge bg-light text-dark border small" title="${s.snippet}"><i class="bi bi-file-earmark-text me-1"></i>${s.title} ${s.page ? `(หน้า ${s.page})` : ''}</span>`;
+                        srcHtml += `<span class="badge bg-light text-dark border small" title="${s.snippet || ''}"><i class="bi bi-database-check text-primary me-1"></i>${s.title}</span>`;
                     });
                     srcHtml += '</div></div>';
                     srcContainer.innerHTML = srcHtml;
@@ -1309,7 +1306,7 @@
     function continueInChatbot() {
         $('#hosFinAiModal').modal('hide');
         if (typeof window.openAiChatWithPrompt === 'function') {
-            window.openAiChatWithPrompt('ขอปรึกษาเจาะลึกเกี่ยวกับสถานการณ์การเงินและแนวทางแก้ไขของ HosFin');
+            window.openAiChatWithPrompt('ขอปรึกษาเจาะลึกเกี่ยวกับสถานการณ์การเงินและแนวทางแก้ไขของ HosFin จากข้อมูล GL');
         } else if (typeof toggleAiChatbot === 'function') {
             toggleAiChatbot();
         }
@@ -1340,7 +1337,7 @@
                         <h5 class="modal-title fw-bold mb-0 text-white" id="hosFinAiModalLabel">
                             AI วินิจฉัยวิกฤตสุขภาพการเงิน & แนวโน้ม (Executive Summary)
                         </h5>
-                        <small class="text-white-50">วิเคราะห์ข้อมูลอัตโนมัติจาก HosFin และมาตรฐานบัญชีลูกหนี้ รพ. ด้วย Google Gemini</small>
+                        <small class="text-white-50"><i class="bi bi-cpu me-1"></i> วิเคราะห์ข้อมูลอัตโนมัติเจาะลึกจากฐานข้อมูลบัญชี GL จริง (สมุดรายวัน, เจ้าหนี้ AP, ลูกหนี้ AR, ต้นทุน LC/MC/CC)</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1375,6 +1372,31 @@
                             </div>
                         </div>
                     </div>
+                    @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
+                    <div class="row g-3 text-center text-md-start align-items-center mt-2 pt-2 border-top">
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> หนี้เจ้าหนี้การค้า (AP)</span>
+                            <h6 class="fw-bold text-danger mb-0 mt-1">{{ number_format($apUnpaidSum, 2) }} บาท</h6>
+                            <small class="text-muted">ค้างจ่าย {{ number_format($apUnpaidCount) }} บิล ({{ $apTotalVendorsCount }} บริษัท)</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษา (AR)</span>
+                            <h6 class="fw-bold text-dark mb-0 mt-1">{{ number_format($arOutstandingSum, 2) }} บาท</h6>
+                            <small class="text-muted">จาก {{ number_format($arAccountCount) }} ผังบัญชี</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <span class="text-muted small fw-bold"><i class="bi bi-safe text-success me-1"></i> เงินสด & เงินฝากธนาคาร GL</span>
+                            <h6 class="fw-bold text-success mb-0 mt-1">{{ number_format($cashBalance, 2) }} บาท</h6>
+                            <small class="text-muted">{{ $cashAccountsCount }} บัญชีเงินฝาก</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small fw-bold"><i class="bi bi-pie-chart text-info me-1"></i> แหล่งข้อมูลบัญชี</span>
+                            <div class="small mt-1">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle"><i class="bi bi-check-circle-fill me-1"></i> บัญชีแยกประเภท GL จริง</span>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Loading State -->

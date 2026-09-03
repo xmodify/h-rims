@@ -370,7 +370,8 @@ class ClaimPreAuditService
         $ucae = strtoupper(trim((string)($visit->ucae ?? ($visit->ipt_ac_ae ?? ''))));
         $isUcae = in_array($ucae, ['A', 'E', 'I', 'O', 'C', 'Z']);
 
-        if ($isErEmergency || $hasReferOut || $hasReferIn || $isUcae) {
+        // Rule C851 และ C852: ตรวจเฉพาะเคสที่เป็นอุบัติเหตุฉุกเฉินจริง (ER Emergency หรือเบิก A/E)
+        if ($isErEmergency || $isUcae) {
             $aedate = $visit->er_vstdate ?: ($referOut->refer_date ?? ($referIn->refer_date ?? $vstdate));
             $aetime = $visit->er_time ?: ($referOut->refer_time ?? ($referIn->refer_time ?? $visit->vsttime));
 
@@ -421,21 +422,21 @@ class ClaimPreAuditService
                     'location' => 'ห้องฉุกเฉิน (ER Register) -> เวลาเกิดเหตุ / เวลาเข้าตรวจ ER'
                 ];
             }
+        }
 
-            // Rule C853: รหัสสถานพยาบาลส่งต่อ (Refer Hospcode) ไม่ถูกต้องหรือไม่ครบ 5 หลัก
-            if ($hasReferOut && !empty($referOut->refer_hospcode) && strlen(trim($referOut->refer_hospcode)) < 5) {
-                $info = self::lookupCode('853', 'รหัสสถานพยาบาลที่ส่งต่อไม่ถูกต้อง', 'ตรวจสอบรหัสสถานพยาบาลส่งต่อให้ถูกต้อง 5 หลัก');
-                $issues[] = [
-                    'code' => '853',
-                    'type' => 'C-Code',
-                    'severity' => 'danger',
-                    'file' => 'AER',
-                    'title' => "ข้อผิดพลาด 853: รหัสสถานพยาบาลส่งต่อออก (Refer Out) ไม่ถูกต้อง ('{$referOut->refer_hospcode}')",
-                    'description' => $info['description'],
-                    'guide' => $info['guide'],
-                    'location' => 'ระบบส่งต่อ (Refer Out) -> รหัสสถานพยาบาลปลายทาง'
-                ];
-            }
+        // Rule C853: รหัสสถานพยาบาลส่งต่อ (Refer Hospcode) ไม่ถูกต้องหรือไม่ครบ 5 หลัก (ตรวจทุกเคสที่มี Refer)
+        if ($hasReferOut && !empty($referOut->refer_hospcode) && strlen(trim($referOut->refer_hospcode)) < 5) {
+            $info = self::lookupCode('853', 'รหัสสถานพยาบาลที่ส่งต่อไม่ถูกต้อง', 'ตรวจสอบรหัสสถานพยาบาลส่งต่อให้ถูกต้อง 5 หลัก');
+            $issues[] = [
+                'code' => '853',
+                'type' => 'C-Code',
+                'severity' => 'danger',
+                'file' => 'AER',
+                'title' => "ข้อผิดพลาด 853: รหัสสถานพยาบาลส่งต่อออก (Refer Out) ไม่ถูกต้อง ('{$referOut->refer_hospcode}')",
+                'description' => $info['description'],
+                'guide' => $info['guide'],
+                'location' => 'ระบบส่งต่อ (Refer Out) -> รหัสสถานพยาบาลปลายทาง'
+            ];
         }
 
         // =========================================================================

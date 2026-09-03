@@ -1042,8 +1042,9 @@ class F16FdhExportService
         foreach ($aerVisits as $er) {
             $dateopd = self::formatDate($er->vstdate);
             $authae = '';
-            $aedate = $dateopd;
-            $aetime = $er->aetime ?: '';
+            $isAe = !empty($er->is_ucae_claim);
+            $aedate = $isAe ? $dateopd : '';
+            $aetime = $isAe ? ($er->aetime ?: '') : '';
             $aetype = '';
             $referno = trim((string)($er->refer_no ?: ''));
             $refmaini = !empty($er->refmaini) ? self::formatHospcode($er->refmaini) : '';
@@ -1828,8 +1829,8 @@ class F16FdhExportService
             if ($hasRefer || $isUcaeClaim) {
                 $dateopd = self::formatDate($v->regdate);
                 $authae = '';
-                $aedate = $dateopd;
-                $aetime = !empty($ro->refer_time) ? self::formatTime($ro->refer_time) : (!empty($ri->refer_time) ? self::formatTime($ri->refer_time) : self::formatTime($v->regtime));
+                $aedate = $isUcaeClaim ? $dateopd : '';
+                $aetime = $isUcaeClaim ? (!empty($ro->refer_time) ? self::formatTime($ro->refer_time) : (!empty($ri->refer_time) ? self::formatTime($ri->refer_time) : self::formatTime($v->regtime))) : '';
                 $aetype = '';
                 $referno = trim((string)($ro->refer_number ?? ($ri->refer_number ?? '')));
                 $refmaini = !empty($ri->refer_hospcode) ? self::formatHospcode($ri->refer_hospcode) : '';

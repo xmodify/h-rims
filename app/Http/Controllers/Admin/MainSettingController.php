@@ -132,8 +132,21 @@ class MainSettingController extends Controller
     /**
      * Test AI & LLM Connection
      */
-    public function testAiConnection()
+    public function testAiConnection(Request $request)
     {
+        if ($request->filled('api_key')) {
+            MainSetting::where('name', 'ai_api_key')->update(['value' => trim($request->api_key)]);
+        }
+        if ($request->filled('model_name')) {
+            MainSetting::where('name', 'ai_model_name')->update(['value' => trim($request->model_name)]);
+        }
+        if ($request->filled('provider')) {
+            MainSetting::where('name', 'ai_provider')->update(['value' => trim($request->provider)]);
+        }
+        if ($request->filled('api_url')) {
+            MainSetting::where('name', 'ai_api_url')->update(['value' => trim($request->api_url)]);
+        }
+
         $aiService = app(\App\Services\Ai\AiService::class);
         $result = $aiService->testConnection();
         return response()->json($result);

@@ -92,32 +92,6 @@
         </div>
     </div>
 
-    <!-- 3 Connected Contexts Banner -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0f9ff 100%); border-left: 4px solid #10b981 !important;">
-        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-success text-white p-2 rounded-3 shadow-sm">
-                    <i class="bi bi-diagram-3-fill fs-4"></i>
-                </div>
-                <div>
-                    <h6 class="mb-1 fw-bold text-dark">RiMS Copilot Multi-System Context Architecture (3 เสาหลัก)</h6>
-                    <small class="text-muted">ผสานความรู้จากคู่มือสเปกราชการ ร่วมกับฐานข้อมูลจริงของ HOSxP และระบบบัญชี HosFin เพื่อการตรวจสอบและวิเคราะห์ที่แม่นยำ</small>
-                </div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <span class="badge bg-white text-success border shadow-sm px-3 py-2 rounded-pill small">
-                    <i class="bi bi-book-half me-1"></i> 1. RAG ระเบียบเบิกจ่ายกองทุน
-                </span>
-                <span class="badge bg-white text-primary border shadow-sm px-3 py-2 rounded-pill small">
-                    <i class="bi bi-hospital me-1"></i> 2. Master Data HOSxP (ค่ารักษา/กองทุน)
-                </span>
-                <span class="badge bg-white text-info border shadow-sm px-3 py-2 rounded-pill small">
-                    <i class="bi bi-cash-stack me-1"></i> 3. งบทดลอง HosFin (11 งวด)
-                </span>
-            </div>
-        </div>
-    </div>
-
     <!-- Category Filter Pills -->
     <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
         <span class="text-muted small fw-bold me-1"><i class="bi bi-funnel-fill me-1 text-primary"></i> หมวดหมู่:</span>
@@ -144,40 +118,40 @@
                 <small class="text-muted">เอกสารทั้งหมดที่ถูกแปลงเป็น Vector สำหรับระบบ RAG</small>
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#categoriesModal" onclick="loadCategoriesTable()">
+                <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#categoriesModal" onclick="loadCategoriesTable()">
                     <i class="bi bi-tags me-1"></i> จัดการหมวดหมู่
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
+                <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#uploadDocModal">
                     <i class="bi bi-plus-circle me-1"></i> เพิ่มเอกสาร
                 </button>
             </div>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-3">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table id="ragDocumentsTable" class="table table-hover table-striped align-middle mb-0 w-100" style="font-size: 0.88rem;">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-4" style="width: 5%;">#</th>
-                            <th style="width: 30%;">ชื่อเอกสาร / ไฟล์</th>
-                            <th style="width: 15%;">หมวดหมู่</th>
-                            <th style="width: 8%;">ประเภท</th>
-                            <th style="width: 10%;">ขนาด</th>
-                            <th style="width: 12%;">ย่อหน้า</th>
-                            <th style="width: 10%;">สถานะ</th>
-                            <th class="text-end pe-4" style="width: 10%;">จัดการ</th>
+                            <th class="text-center" style="width: 5%;">#</th>
+                            <th style="width: 28%;">ชื่อเอกสาร / ไฟล์</th>
+                            <th style="width: 14%;">หมวดหมู่</th>
+                            <th class="text-center" style="width: 8%;">ประเภท</th>
+                            <th class="text-end" style="width: 10%;">ขนาด</th>
+                            <th class="text-center" style="width: 11%;">ย่อหน้า</th>
+                            <th class="text-center" style="width: 11%;">สถานะ</th>
+                            <th class="text-center" style="width: 13%;">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($documents as $doc)
+                        @foreach($documents as $doc)
                             <tr>
-                                <td class="ps-4 fw-bold text-muted">{{ $doc->id }}</td>
+                                <td class="text-center fw-bold text-muted">{{ $doc->id }}</td>
                                 <td>
                                     <div class="fw-bold text-dark">{{ $doc->title }}</div>
                                     <small class="text-muted font-monospace"><i class="bi bi-file-earmark me-1"></i>{{ $doc->filename }}</small>
                                 </td>
                                 <td>
                                     @if($doc->category)
-                                        <span class="badge rounded-pill px-2.5 py-1 text-white fw-normal" style="background-color: {{ $doc->category->color }}; font-size: 0.78rem;">
+                                        <span class="badge rounded-pill px-2.5 py-1 text-white fw-normal shadow-sm" style="background-color: {{ $doc->category->color }}; font-size: 0.78rem;">
                                             {{ $doc->category->name }}
                                         </span>
                                     @else
@@ -186,20 +160,20 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2.5 py-1 text-uppercase fw-bold">
                                         .{{ $doc->file_type }}
                                     </span>
                                 </td>
-                                <td class="text-muted small">
+                                <td class="text-end text-muted">
                                     {{ number_format($doc->file_size / 1024, 1) }} KB
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <span class="badge bg-info bg-opacity-10 text-info border px-2.5 py-1 rounded-pill fw-bold">
                                         {{ number_format($doc->chunk_count) }} Chunks
                                     </span>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     @if($doc->status === 'completed')
                                         <span class="badge bg-success rounded-pill px-2.5 py-1 text-white fw-bold">
                                             <i class="bi bi-check-circle me-1"></i> พร้อมใช้งาน
@@ -214,36 +188,24 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="text-end pe-4">
+                                <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-info rounded-pill px-2.5 me-1" title="ดูย่อหน้าความรู้" onclick="viewDocChunks({{ $doc->id }}, '{{ addslashes($doc->title) }}')">
+                                        <button type="button" class="btn btn-outline-info rounded-pill px-2.5 me-1 shadow-sm" title="ดูย่อหน้าความรู้" onclick="viewDocChunks({{ $doc->id }}, '{{ addslashes($doc->title) }}')">
                                             <i class="bi bi-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-warning rounded-pill px-2.5 me-1" title="ประมวลผล Vector ใหม่" onclick="reindexDoc({{ $doc->id }})">
+                                        <button type="button" class="btn btn-outline-warning rounded-pill px-2.5 me-1 shadow-sm" title="ประมวลผล Vector ใหม่" onclick="reindexDoc({{ $doc->id }})">
                                             <i class="bi bi-arrow-repeat"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger rounded-pill px-2.5" title="ลบเอกสาร" onclick="deleteDoc({{ $doc->id }}, '{{ addslashes($doc->title) }}')">
+                                        <button type="button" class="btn btn-outline-danger rounded-pill px-2.5 shadow-sm" title="ลบเอกสาร" onclick="deleteDoc({{ $doc->id }}, '{{ addslashes($doc->title) }}')">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-muted opacity-50"></i>
-                                    ยังไม่มีเอกสารในคลังความรู้ AI คลิกปุ่ม <strong>"อัปโหลดเอกสารใหม่"</strong> เพื่อเริ่มต้น
-                                </td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
-            @if($documents->hasPages())
-                <div class="p-3 border-top d-flex justify-content-end">
-                    {{ $documents->links('pagination::bootstrap-5') }}
-                </div>
-            @endif
         </div>
     </div>
 </div>
@@ -548,9 +510,68 @@
     .pointer {
         cursor: pointer;
     }
+    /* DataTables Custom Polish */
+    #ragDocumentsTable_wrapper .dataTables_filter input {
+        border-radius: 20px;
+        padding: 0.35rem 0.85rem;
+        border: 1px solid #cbd5e1;
+        outline: none;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+    #ragDocumentsTable_wrapper .dataTables_filter input:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.15);
+    }
+    #ragDocumentsTable_wrapper .dataTables_length select {
+        border-radius: 8px;
+        padding: 0.3rem 1.8rem 0.3rem 0.6rem;
+        border: 1px solid #cbd5e1;
+        font-size: 0.85rem;
+    }
+    #ragDocumentsTable thead th {
+        font-weight: 600;
+        font-size: 0.84rem;
+        color: #475569;
+        background-color: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+    }
 </style>
 
 <script>
+    // Initialize DataTables
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof $ !== 'undefined' && $('#ragDocumentsTable').length > 0) {
+            $('#ragDocumentsTable').DataTable({
+                language: {
+                    search: "ค้นหาเอกสาร:",
+                    searchPlaceholder: "พิมพ์ชื่อเอกสาร, หมวดหมู่, ชนิดไฟล์...",
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    infoEmpty: "ไม่มีเอกสารในระบบ",
+                    infoFiltered: "(ค้นหาจากทั้งหมด _MAX_ รายการ)",
+                    paginate: {
+                        first: "หน้าแรก",
+                        previous: "ก่อนหน้า",
+                        next: "ถัดไป",
+                        last: "หน้าสุดท้าย"
+                    },
+                    zeroRecords: '<div class="text-center py-4 text-muted"><i class="bi bi-search fs-3 d-block mb-2 opacity-50"></i>ไม่พบเอกสารที่ค้นหา</div>'
+                },
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                order: [[0, 'desc']], // Sort by ID descending
+                columnDefs: [
+                    { targets: [0, 3, 5, 6, 7], className: 'text-center align-middle' },
+                    { targets: [4], className: 'text-end align-middle' },
+                    { targets: [1, 2], className: 'align-middle' },
+                    { targets: [7], orderable: false } // Actions column not sortable
+                ],
+                responsive: true
+            });
+        }
+    });
+
     // Toggle API Key Peek
     function toggleKeyVisibility() {
         const input = document.getElementById('settingApiKey');
@@ -654,8 +675,12 @@
         spinner.classList.remove('d-none');
         icon.classList.add('d-none');
 
+        const form = document.getElementById('aiSettingsForm');
+        const formData = form ? new FormData(form) : new FormData();
+
         fetch('{{ route("admin.main_setting.test_ai") }}', {
             method: 'POST',
+            body: formData,
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'

@@ -41,7 +41,7 @@ class RagKnowledgeController extends Controller
             $query->where('category_id', $selectedCategory);
         }
 
-        $documents = $query->orderBy('id', 'desc')->paginate(10);
+        $documents = $query->orderBy('id', 'desc')->get();
         $totalDocs = RagDocument::count();
         $totalChunks = RagChunk::count();
         $categories = RagCategory::withCount('documents')->orderBy('sort_order', 'asc')->get();

@@ -169,6 +169,10 @@ class AiService
 
         $res = Http::withoutVerifying()
             ->timeout(20)
+            ->withHeaders([
+                'x-goog-api-key' => $apiKey,
+                'Content-Type' => 'application/json'
+            ])
             ->post($url, [
                 'content' => [
                     'parts' => [
@@ -195,10 +199,8 @@ class AiService
 
         $model = self::getModelName();
         if (empty($model) || in_array($model, ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'], true)) {
-            $model = 'gemini-3.6-flash';
+            $model = 'gemini-flash-latest';
         }
-
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
             'contents' => [
@@ -219,17 +221,49 @@ class AiService
             ];
         }
 
-        $res = Http::withoutVerifying()
-            ->timeout(60)
-            ->post($url, $payload);
+        // Resilient fallback order if primary model experiences high demand spike (503/429)
+        $modelsToTry = array_values(array_unique([$model, 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-3.5-flash']));
+        $lastError = null;
 
-        if (!$res->successful()) {
-            $err = $res->json()['error']['message'] ?? $res->body();
-            throw new \Exception("Gemini Chat Error: " . $err);
+        foreach ($modelsToTry as $currentModel) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$currentModel}:generateContent?key={$apiKey}";
+
+            try {
+                $res = Http::withoutVerifying()
+                    ->timeout(30)
+                    ->withHeaders([
+                        'x-goog-api-key' => $apiKey,
+                        'Content-Type' => 'application/json'
+                    ])
+                    ->post($url, $payload);
+
+                if ($res->successful()) {
+                    $data = $res->json();
+                    return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'ไม่พบคำตอบจาก AI';
+                }
+
+                $err = $res->json()['error']['message'] ?? $res->body();
+                $lastError = $err;
+
+                // If high demand spike or 503/429, try next fallback model
+                if ($res->status() === 503 || $res->status() === 429 || str_contains($err, 'demand') || str_contains($err, 'RESOURCE_EXHAUSTED')) {
+                    Log::warning("Gemini model {$currentModel} busy: {$err}. Trying next fallback...");
+                    usleep(500000);
+                    continue;
+                }
+
+                throw new \Exception("Gemini Chat Error: " . $err);
+            } catch (\Exception $e) {
+                $lastError = $e->getMessage();
+                if (str_contains($lastError, 'timed out') || str_contains($lastError, 'demand')) {
+                    Log::warning("Gemini model {$currentModel} timed out or busy. Trying next fallback...");
+                    continue;
+                }
+                throw $e;
+            }
         }
 
-        $data = $res->json();
-        return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'ไม่พบคำตอบจาก AI';
+        throw new \Exception("Gemini Chat Error: " . ($lastError ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ Gemini API'));
     }
 
     // ==========================================

@@ -42,8 +42,11 @@ var (
 	getCursorPos         = user32.NewProc("GetCursorPos")
 	setForegroundWindow  = user32.NewProc("SetForegroundWindow")
 	destroyWindow        = user32.NewProc("DestroyWindow")
+	findWindowW          = user32.NewProc("FindWindowW")
 
 	getModuleHandleW     = kernel32.NewProc("GetModuleHandleW")
+	createMutexW         = kernel32.NewProc("CreateMutexW")
+	closeHandle          = kernel32.NewProc("CloseHandle")
 	createFontW          = gdi32.NewProc("CreateFontW")
 	getOpenFileNameW     = comdlg32.NewProc("GetOpenFileNameW")
 	shell_NotifyIconW    = shell32.NewProc("Shell_NotifyIconW")
@@ -593,6 +596,28 @@ func LOWORD(l uintptr) uintptr {
 
 func runGUI(cfgPath string) {
 	runtime.LockOSThread()
+
+	// Single Instance Protection via Named Mutex
+	const ERROR_ALREADY_EXISTS = 183
+	mutexName, _ := syscall.UTF16PtrFromString("Local\\RimsGLSync_SingleInstance_Mutex_v1")
+	hMutex, _, errMutex := createMutexW.Call(0, 0, uintptr(unsafe.Pointer(mutexName)))
+	if errMutex == syscall.Errno(ERROR_ALREADY_EXISTS) || hMutex == 0 {
+		// An existing instance is already running!
+		// Restore and bring existing window to the front
+		className, _ := syscall.UTF16PtrFromString("RimsGLSyncWinClass")
+		windowTitle, _ := syscall.UTF16PtrFromString("Rims GL Sync - ระบบเชื่อมต่อฐานข้อมูลบัญชีโรงพยาบาล")
+		existingHwnd, _, _ := findWindowW.Call(uintptr(unsafe.Pointer(className)), uintptr(unsafe.Pointer(windowTitle)))
+		if existingHwnd != 0 {
+			showWindow.Call(existingHwnd, 9 /* SW_RESTORE */)
+			showWindow.Call(existingHwnd, 5 /* SW_SHOW */)
+			setForegroundWindow.Call(existingHwnd)
+		}
+		if hMutex != 0 {
+			closeHandle.Call(hMutex)
+		}
+		return
+	}
+	defer closeHandle.Call(hMutex)
 
 	cfg, err := loadConfig(cfgPath)
 	if err != nil {

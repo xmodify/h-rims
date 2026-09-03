@@ -515,14 +515,6 @@
                                             <label class="form-check-label small text-success fw-bold" for="add_allow_hosfin">HosFin</label>
                                         </div>
                                     </div>
-                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
-                                    <div class="col">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="allow_ai_copilot" id="add_allow_ai_copilot" value="Y">
-                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
-                                        </div>
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
 
@@ -618,6 +610,14 @@
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" name="allow_aopod_death" id="add_allow_aopod_death" value="Y">
                                             <label class="form-check-label small text-success fw-bold" for="add_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="allow_ai_copilot" id="add_allow_ai_copilot" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
                                         </div>
                                     </div>
                                     @endif
@@ -833,14 +833,6 @@
                                             <label class="form-check-label small text-success fw-bold" for="edit_allow_hosfin">HosFin</label>
                                         </div>
                                     </div>
-                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
-                                    <div class="col">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input p_switch" type="checkbox" name="allow_ai_copilot" id="edit_allow_ai_copilot" value="Y">
-                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
-                                        </div>
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
 
@@ -936,6 +928,14 @@
                                         <div class="form-check form-switch">
                                             <input class="form-check-input p_switch" type="checkbox" name="allow_aopod_death" id="edit_allow_aopod_death" value="Y">
                                             <label class="form-check-label small text-success fw-bold" for="edit_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                    <div class="col">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input p_switch" type="checkbox" name="allow_ai_copilot" id="edit_allow_ai_copilot" value="Y">
+                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
                                         </div>
                                     </div>
                                     @endif

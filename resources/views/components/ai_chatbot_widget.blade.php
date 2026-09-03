@@ -20,7 +20,7 @@
                 </div>
                 <div>
                     <h6 class="mb-0 fw-bold text-white fs-6">RiMS Copilot</h6>
-                    <small class="text-white-50" style="font-size: 0.72rem;">ผู้ช่วย AI สืบค้นระเบียบ & การเบิกจ่าย</small>
+                    <small class="text-white-50" style="font-size: 0.72rem;">ผู้ช่วย AI: มอนิเตอร์การเงินการคลัง • ตรวจสอบ HOSxP • เบิกจ่ายกองทุนต่าง ๆ</small>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-1">
@@ -44,8 +44,8 @@
             <div class="ai-msg-row ai-msg-incoming">
                 <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
                 <div class="ai-msg-bubble">
-                    <p class="mb-1">สวัสดีครับ! ผมคือ <strong>ผู้ช่วย AI อัจฉริยะของ RiMS</strong> 🩺✨</p>
-                    <p class="mb-0 small text-muted">มีข้อสงสัยเรื่องระเบียบ สิทธิการรักษา รหัส C-Deny หรือการใช้งานระบบ สามารถพิมพ์ถามผมได้เลยครับ</p>
+                    <p class="mb-1">สวัสดีครับ! ผมคือ <strong>RiMS Copilot</strong> 🩺✨</p>
+                    <p class="mb-0 small text-muted">ผู้ช่วย AI ประจำระบบมอนิเตอร์สถานะการเงินการคลังโรงพยาบาล พร้อมช่วยวิเคราะห์งบทดลอง ตรวจสอบการตั้งค่า HOSxP และหลักเกณฑ์การเบิกจ่ายกองทุนต่าง ๆ สอบถามได้เลยครับ</p>
                 </div>
             </div>
 

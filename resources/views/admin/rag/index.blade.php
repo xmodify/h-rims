@@ -92,6 +92,32 @@
         </div>
     </div>
 
+    <!-- 3 Connected Contexts Banner -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0f9ff 100%); border-left: 4px solid #10b981 !important;">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-success text-white p-2 rounded-3 shadow-sm">
+                    <i class="bi bi-diagram-3-fill fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">RiMS Copilot Multi-System Context Architecture (3 เสาหลัก)</h6>
+                    <small class="text-muted">ผสานความรู้จากคู่มือสเปกราชการ ร่วมกับฐานข้อมูลจริงของ HOSxP และระบบบัญชี HosFin เพื่อการตรวจสอบและวิเคราะห์ที่แม่นยำ</small>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-white text-success border shadow-sm px-3 py-2 rounded-pill small">
+                    <i class="bi bi-book-half me-1"></i> 1. RAG ระเบียบเบิกจ่ายกองทุน
+                </span>
+                <span class="badge bg-white text-primary border shadow-sm px-3 py-2 rounded-pill small">
+                    <i class="bi bi-hospital me-1"></i> 2. Master Data HOSxP (ค่ารักษา/กองทุน)
+                </span>
+                <span class="badge bg-white text-info border shadow-sm px-3 py-2 rounded-pill small">
+                    <i class="bi bi-cash-stack me-1"></i> 3. งบทดลอง HosFin (11 งวด)
+                </span>
+            </div>
+        </div>
+    </div>
+
     <!-- Category Filter Pills -->
     <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
         <span class="text-muted small fw-bold me-1"><i class="bi bi-funnel-fill me-1 text-primary"></i> หมวดหมู่:</span>

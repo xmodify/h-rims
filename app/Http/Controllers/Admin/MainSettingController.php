@@ -28,7 +28,6 @@ class MainSettingController extends Controller
             'aopod_death_pct_death', 'aopod_death_details_death',
             'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time',
             'aopod_token', 'aopod_url_api_death',
-            'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_embed_model'
         ];
 
         $settings = MainSetting::orderBy('name_th', 'asc')
@@ -71,6 +70,14 @@ class MainSettingController extends Controller
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Integration Tokens' => $integrationTokens,
+            'RiMS Copilot (AI & LLM)' => [
+                'ai_active',
+                'ai_provider',
+                'ai_api_key',
+                'ai_model_name',
+                'ai_embed_model',
+                'ai_api_url'
+            ],
             'Provider ID (Health ID)' => [
                 'provider_id_active',
                 'health_id_client_id',
@@ -135,16 +142,16 @@ class MainSettingController extends Controller
     public function testAiConnection(Request $request)
     {
         if ($request->filled('api_key')) {
-            MainSetting::where('name', 'ai_api_key')->update(['value' => trim($request->api_key)]);
+            MainSetting::updateOrInsert(['name' => 'ai_api_key'], ['value' => trim($request->api_key), 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)']);
         }
         if ($request->filled('model_name')) {
-            MainSetting::where('name', 'ai_model_name')->update(['value' => trim($request->model_name)]);
+            MainSetting::updateOrInsert(['name' => 'ai_model_name'], ['value' => trim($request->model_name), 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)']);
         }
         if ($request->filled('provider')) {
-            MainSetting::where('name', 'ai_provider')->update(['value' => trim($request->provider)]);
+            MainSetting::updateOrInsert(['name' => 'ai_provider'], ['value' => trim($request->provider), 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)']);
         }
         if ($request->filled('api_url')) {
-            MainSetting::where('name', 'ai_api_url')->update(['value' => trim($request->api_url)]);
+            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($request->api_url), 'name_th' => 'AI Base URL (สำหรับ Ollama)']);
         }
 
         $aiService = app(\App\Services\Ai\AiService::class);
@@ -882,11 +889,16 @@ class MainSettingController extends Controller
                         ['name' => 'ktb_company_id', 'name_th' => 'KTB Corporate Company ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_user_id', 'name_th' => 'KTB Corporate User ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_password', 'name_th' => 'KTB Corporate Password (EDC)', 'value' => ''],
+                        ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
+                        ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
+                        ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
+                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama)', 'value' => 'http://localhost:11434'],
+                        ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
+                        ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
                     ];
 
-                    // Clean up obsolete settings dynamically
-                    $activeNames = collect($main_setting)->pluck('name')->toArray();
-                    MainSetting::whereNotIn('name', $activeNames)->delete();
+                    // Clean up only known obsolete/deprecated keys (never wipe user-configured settings)
+                    MainSetting::whereIn('name', ['opoh_token', 'opoh_url_api_death'])->delete();
 
                     foreach ($main_setting as $row) {
                         MainSetting::firstOrCreate(

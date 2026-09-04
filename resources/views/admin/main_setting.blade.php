@@ -121,6 +121,7 @@
                                             $isSensitive = in_array($row->name, [
                                                 'fdh_pass', 'fdh_secretKey', 'telegram_token', 'aopod_token', 
                                                 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary',
+                                                'telegram_chat_id_notify_summary',
                                                 'health_id_client_id', 'health_id_client_secret',
                                                 'provider_id_client_id', 'provider_id_secret_key',
                                                 'moph_alert_client_id', 'moph_alert_client_secret',
@@ -133,7 +134,7 @@
                                                 <small class="text-muted">{{ $row->name }}</small>
                                             </td>
                                             <td class="border-0">
-                                                @if(in_array($row->name, ['provider_id_active', 'moph_alert_active']))
+                                                @if(in_array($row->name, ['provider_id_active', 'moph_alert_active', 'ai_active']))
                                                     <span class="badge bg-{{ $row->value === 'Y' ? 'success' : 'secondary' }} rounded-pill text-white fw-bold px-3 py-2">
                                                         {{ $row->value === 'Y' ? 'เปิดใช้งาน (ON)' : 'ปิดใช้งาน (OFF)' }}
                                                     </span>

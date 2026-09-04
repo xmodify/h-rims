@@ -68,6 +68,18 @@
     font-weight: 700;
     font-size: 0.95rem;
   }
+  .hover-bg {
+    transition: background-color 0.15s ease-in-out;
+  }
+  .hover-bg:hover {
+    background-color: #f1f5f9;
+  }
+  .shadow-xs {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  .table-row-selected {
+    background-color: rgba(2, 132, 199, 0.06) !important;
+  }
 </style>
 
 <div class="container-fluid pt-2 pb-4 px-lg-5" style="background-color: #f8fafc;">
@@ -128,24 +140,117 @@
                 </div>
             </div>
         @else
-            <!-- Dynamic Trend Chart Section -->
+            @php
+                $categories = [
+                    'LIQUID' => ['label' => '1. อัตราส่วนวิเคราะห์สภาพคล่อง (Liquidity Ratios)', 'codes' => ['100', '101', '102', '103', '104', '105', '105.1']],
+                    'ACTIVITY' => ['label' => '2. อัตราส่วนวิเคราะห์ประสิทธิภาพการดำเนินงาน (Activity Ratios)', 'codes' => ['260', '261', '262', '263', '264']],
+                    'PROFIT' => ['label' => '3. อัตราส่วนวิเคราะห์ความสามารถในการทำกำไร (Profitability Ratios)', 'codes' => ['302', '303', '304', '305', '306', '307', '310', '311', '312', '313', '314', '315', '316', '320', '321', '333', '334', 'NI']],
+                ];
+            @endphp
+
+            <!-- Dynamic Trend Chart Section with Multi-Ratio Comparison Checkboxes -->
             <div class="col-12 mb-4">
-                <div class="card card-trend border-0 shadow-sm rounded-3">
+                <div class="card card-trend border-0 shadow-sm rounded-4" style="border: 1.5px solid #e2e8f0 !important;">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                             <div>
-                                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-primary me-1"></i> กราฟแนวโน้มแสดงความเคลื่อนไหวอัตราส่วนการเงินประจำแต่ละเดือน</h6>
-                                <small class="text-muted">วาดแนวโน้มรายเดือนเปรียบเทียบตามช่วงเวลาปีงบประมาณ {{ $budgetYear }}</small>
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-graph-up text-primary"></i> กราฟแนวโน้มแสดงความเคลื่อนไหวและเปรียบเทียบอัตราส่วนการเงิน
+                                </h6>
+                                <small class="text-muted">เลือกทำเครื่องหมายถูก (Checkbox) เพื่อพล็อตเปรียบเทียบหลายอัตราส่วนพร้อมกันในรอบปีงบประมาณ {{ $budgetYear }}</small>
                             </div>
-                            <div style="min-width: 250px;">
-                                <select id="selectChartMetric" class="form-select form-select-sm" style="font-size: 0.85rem;">
-                                    @foreach($ratios as $code => $r)
-                                        <option value="{{ $code }}" {{ $code === '100' ? 'selected' : '' }}>{{ $code }} - {{ $r['name'] }}</option>
-                                    @endforeach
-                                </select>
+
+                            <!-- Comparison Controls Toolbar -->
+                            <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                                <!-- Quick Presets Button Group -->
+                                <div class="btn-group btn-group-sm shadow-xs" role="group" aria-label="Quick Presets">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyPreset('liquidity')" title="เปรียบเทียบ Current, Quick, Cash Ratio">
+                                        <i class="bi bi-droplet-fill text-primary"></i> สภาพคล่อง
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyPreset('profit')" title="เปรียบเทียบ Operating, Net, EBITDA Margin">
+                                        <i class="bi bi-pie-chart-fill text-danger"></i> กำไร
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyPreset('activity')" title="เปรียบเทียบ ระยะเวลาเรียกเก็บหนี้/ชำระหนี้">
+                                        <i class="bi bi-clock-history text-warning"></i> เก็บหนี้
+                                    </button>
+                                </div>
+
+                                <!-- Checkbox Multi-select Dropdown -->
+                                <div class="dropdown" id="compareDropdownContainer">
+                                    <button class="btn btn-primary btn-sm dropdown-toggle rounded-pill px-3 shadow-sm d-flex align-items-center gap-1.5" 
+                                            type="button" id="compareDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" 
+                                            style="font-size: 0.85rem; font-weight: 700;">
+                                        <i class="bi bi-check2-square"></i>
+                                        <span>เลือกกราฟเปรียบเทียบ</span>
+                                        <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold" id="selectedCountBadge">1</span>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-3 rounded-4" style="width: 400px; max-height: 480px; overflow-y: auto; z-index: 1060; border: 1.5px solid #cbd5e1 !important;">
+                                        <!-- Dropdown header -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                            <span class="fw-bold text-dark small"><i class="bi bi-ui-checks-grid me-1 text-primary"></i> ติ๊กเลือกอัตราส่วนเพื่อเปรียบเทียบ</span>
+                                            <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 small" onclick="clearAllMetrics()">
+                                                <i class="bi bi-arrow-counterclockwise"></i> รีเซ็ต
+                                            </button>
+                                        </div>
+
+                                        <!-- Search inside dropdown -->
+                                        <div class="mb-2">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                                <input type="text" class="form-control border-start-0" id="searchRatioCheckbox" placeholder="ค้นหาชื่อ หรือ รหัส..." style="font-size: 0.82rem;">
+                                            </div>
+                                        </div>
+
+                                        <!-- Checkbox List grouped by category -->
+                                        <div id="ratioCheckboxList">
+                                            @foreach($categories as $catKey => $catInfo)
+                                                <div class="category-checkbox-group mb-2.5">
+                                                    <div class="fw-bold text-secondary text-uppercase mb-1 px-1" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                                        {{ $catInfo['label'] }}
+                                                    </div>
+                                                    @foreach($catInfo['codes'] as $code)
+                                                        @if(isset($ratios[$code]))
+                                                            @php $r = $ratios[$code]; @endphp
+                                                            <div class="form-check ratio-checkbox-item py-1 px-2 rounded hover-bg" data-code="{{ $code }}" data-name="{{ strtolower($code . ' ' . $r['name']) }}">
+                                                                <input class="form-check-input chart-metric-checkbox" type="checkbox" value="{{ $code }}" id="chk_{{ str_replace('.', '_', $code) }}" style="cursor: pointer;">
+                                                                <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="chk_{{ str_replace('.', '_', $code) }}" style="cursor: pointer; font-size: 0.82rem;">
+                                                                    <span class="text-dark">
+                                                                        <strong class="text-primary font-monospace">{{ $code }}</strong> - {{ $r['name'] }}
+                                                                    </span>
+                                                                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.7rem;">{{ $r['unit'] }}</span>
+                                                                </label>
+                                                            </div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- DataLabels switch -->
+                                <div class="form-check form-switch mb-0 ms-1 d-flex align-items-center gap-1" title="เปิด/ปิด การแสดงตัวเลขบนจุดกราฟ">
+                                    <input class="form-check-input" type="checkbox" id="toggleDataLabels" checked style="cursor: pointer;">
+                                    <label class="form-check-label small text-muted text-nowrap" for="toggleDataLabels" style="cursor: pointer; font-size: 0.78rem;">ตัวเลขบนกราฟ</label>
+                                </div>
                             </div>
                         </div>
-                        <div class="chart-container" style="position: relative; height:280px; width:100%">
+
+                        <!-- Active Selected Ratio Badges Bar -->
+                        <div class="d-flex align-items-center gap-1.5 flex-wrap pt-2 mt-1 border-top" id="activeRatioBadgesBar" style="border-color: #f1f5f9 !important;">
+                            <span class="text-muted small fw-bold me-1" style="font-size: 0.78rem;">
+                                <i class="bi bi-layers-half text-primary me-1"></i> รายการเปรียบเทียบ:
+                            </span>
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap" id="activeBadgesContainer">
+                                <!-- Javascript renders active pills here -->
+                            </div>
+                            <div class="ms-auto d-flex align-items-center gap-2">
+                                <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1" id="axisInfoBadge" style="font-size: 0.72rem; display: none;"></span>
+                            </div>
+                        </div>
+
+                        <!-- Chart Canvas -->
+                        <div class="chart-container mt-3" style="position: relative; height: 320px; width:100%">
                             <canvas id="ratioTrendChart"></canvas>
                         </div>
                     </div>
@@ -209,26 +314,19 @@
                             <table id="ratio_report_table" class="table table-hover table-custom mb-0 align-middle">
                                 <thead>
                                     <tr>
-                                        <th class="text-center" style="width: 80px;">รหัส</th>
+                                        <th class="text-center" style="width: 55px;" title="เลือกเพื่อพล็อตกราฟเปรียบเทียบ">กราฟ</th>
+                                        <th class="text-center" style="width: 75px;">รหัส</th>
                                         <th style="min-width: 250px;">ชื่ออัตราส่วนทางการเงิน</th>
                                         <th style="min-width: 300px;">สูตรการคำนวณและตัวเลขรายละเอียดของยอดเงิน</th>
-                                        <th class="text-end" style="width: 150px;">ผลลัพธ์</th>
-                                        <th class="text-center" style="width: 100px;">หน่วย</th>
-                                        <th class="text-center" style="width: 150px;">เกณฑ์ประเมิน</th>
+                                        <th class="text-end" style="width: 140px;">ผลลัพธ์</th>
+                                        <th class="text-center" style="width: 90px;">หน่วย</th>
+                                        <th class="text-center" style="width: 140px;">เกณฑ์ประเมิน</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php
-                                        $categories = [
-                                            'LIQUID' => ['label' => '1. อัตราส่วนวิเคราะห์สภาพคล่อง (Liquidity Ratios)', 'codes' => ['100', '101', '102', '103', '104', '105', '105.1']],
-                                            'ACTIVITY' => ['label' => '2. อัตราส่วนวิเคราะห์ประสิทธิภาพการดำเนินงาน (Activity Ratios)', 'codes' => ['260', '261', '262', '263', '264']],
-                                            'PROFIT' => ['label' => '3. อัตราส่วนวิเคราะห์ความสามารถในการทำกำไร (Profitability Ratios)', 'codes' => ['302', '303', '304', '305', '306', '307', '310', '311', '312', '313', '314', '315', '316', '320', '321', '333', '334']],
-                                        ];
-                                    @endphp
-
                                     @foreach($categories as $catKey => $catInfo)
                                         <tr class="ratio-group-header">
-                                            <td colspan="6">{{ $catInfo['label'] }}</td>
+                                            <td colspan="7">{{ $catInfo['label'] }}</td>
                                         </tr>
                                         @foreach($catInfo['codes'] as $code)
                                             @if(isset($ratios[$code]))
@@ -268,9 +366,14 @@
                                                         else { $statusLabel = '🔴 วิกฤต (ติดลบ)'; $statusBadge = 'badge-danger'; }
                                                     }
                                                 @endphp
-                                                <tr>
-                                                    <td class="text-center fw-bold text-secondary">{{ $code }}</td>
-                                                    <td>
+                                                <tr id="tbl_row_{{ str_replace('.', '_', $code) }}">
+                                                    <td class="text-center">
+                                                        <div class="form-check d-flex justify-content-center mb-0">
+                                                            <input class="form-check-input table-ratio-checkbox" type="checkbox" value="{{ $code }}" id="tbl_chk_{{ str_replace('.', '_', $code) }}" style="cursor: pointer; width: 18px; height: 18px;" title="เลือกเพื่อเปรียบเทียบในกราฟ">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center fw-bold text-secondary ratio-code-cell">{{ $code }}</td>
+                                                    <td class="ratio-name-cell">
                                                         <div class="fw-bold text-dark">{{ $r['name'] }}</div>
                                                         <small class="text-muted math-formula">{{ $r['numerator_name'] }} ÷ {{ $r['denominator_name'] }}</small>
                                                     </td>
@@ -430,12 +533,30 @@
         downloadLink.click();
     }
 
-    // Chart.js Configuration
+    // Chart.js Configuration & Multi-Ratio Comparison
     @if(count($importedPeriods) > 0)
         const chartDataMap = @json($chartData);
         const chartLabels = Object.keys(chartDataMap); // Monthly period labels
+        const ratioMetaMap = @json($ratios);
         
         let chart = null;
+        let selectedMetrics = ['100']; // default to Current Ratio
+
+        // 12 Modern Harmonious Line Colors for multi-comparison
+        const palette = [
+            { border: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }, // Emerald Green
+            { border: '#0284c7', bg: 'rgba(2, 132, 199, 0.15)' },   // Sky Blue
+            { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },  // Amber
+            { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },   // Red
+            { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },  // Purple
+            { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.15)' },   // Cyan
+            { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },  // Pink
+            { border: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' },  // Indigo
+            { border: '#14b8a6', bg: 'rgba(20, 184, 166, 0.15)' },  // Teal
+            { border: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },  // Orange
+            { border: '#64748b', bg: 'rgba(100, 116, 139, 0.15)' }, // Slate
+            { border: '#84cc16', bg: 'rgba(132, 204, 22, 0.15)' }   // Lime
+        ];
 
         // Custom plugin to draw vertical dashed line on hover
         const hoverLinePlugin = {
@@ -453,23 +574,150 @@
                     ctx.moveTo(x, topY);
                     ctx.lineTo(x, bottomY);
                     ctx.lineWidth = 1.5;
-                    ctx.strokeStyle = '#64748b'; // Slate color
-                    ctx.setLineDash([3, 3]); // Dashed line
+                    ctx.strokeStyle = '#64748b';
+                    ctx.setLineDash([3, 3]);
                     ctx.stroke();
                     ctx.restore();
                 }
             }
         };
 
-        function updateChart(metricCode) {
-            const dataValues = chartLabels.map(label => chartDataMap[label][metricCode] || 0.0);
-            
-            // Get metric name from dropdown selection
-            const dropdown = document.getElementById('selectChartMetric');
-            const metricName = dropdown.options[dropdown.selectedIndex].text;
+        function updateChart(metricsArray) {
+            if (Array.isArray(metricsArray)) {
+                selectedMetrics = metricsArray.filter(c => ratioMetaMap[c] !== undefined);
+            } else if (typeof metricsArray === 'string') {
+                selectedMetrics = [metricsArray];
+            }
+            if (selectedMetrics.length === 0) {
+                selectedMetrics = ['100'];
+            }
+
+            // 1. Sync Dropdown Checkboxes
+            document.querySelectorAll('.chart-metric-checkbox').forEach(chk => {
+                chk.checked = selectedMetrics.includes(chk.value);
+            });
+
+            // 2. Sync Table Checkboxes and Row Highlight
+            document.querySelectorAll('.table-ratio-checkbox').forEach(chk => {
+                const isChecked = selectedMetrics.includes(chk.value);
+                chk.checked = isChecked;
+                const row = chk.closest('tr');
+                if (row) {
+                    if (isChecked) {
+                        row.classList.add('table-row-selected');
+                    } else {
+                        row.classList.remove('table-row-selected');
+                    }
+                }
+            });
+
+            // 3. Update Badges Count
+            const countBadge = document.getElementById('selectedCountBadge');
+            if (countBadge) countBadge.innerText = selectedMetrics.length;
+            const activeCount = document.getElementById('activeRatioCount');
+            if (activeCount) activeCount.innerText = selectedMetrics.length;
+
+            // 4. Render Active Badge Pills
+            const badgesContainer = document.getElementById('activeBadgesContainer');
+            if (badgesContainer) {
+                badgesContainer.innerHTML = '';
+                selectedMetrics.forEach((code, idx) => {
+                    const meta = ratioMetaMap[code] || { name: code, unit: '' };
+                    const color = palette[idx % palette.length];
+                    const pill = document.createElement('span');
+                    pill.className = 'badge d-inline-flex align-items-center gap-1.5 py-1 px-2.5 rounded-pill shadow-xs me-1 mb-1';
+                    pill.style.backgroundColor = color.bg;
+                    pill.style.color = color.border;
+                    pill.style.border = `1.5px solid ${color.border}`;
+                    pill.style.fontSize = '0.8rem';
+                    pill.style.fontWeight = '600';
+                    pill.innerHTML = `
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${color.border};"></span>
+                        <span>${code} - ${meta.name}</span>
+                        <span class="text-muted small">(${meta.unit})</span>
+                        <i class="bi bi-x-circle-fill ms-1 text-danger opacity-75 hover-opacity-100" style="cursor: pointer; font-size: 0.85rem;" title="นำออกจากการเปรียบเทียบ" onclick="toggleMetric('${code}', false)"></i>
+                    `;
+                    badgesContainer.appendChild(pill);
+                });
+            }
+
+            // 5. Units & Dual Scales Handling (Smart Axis)
+            const showDataLabels = document.getElementById('toggleDataLabels') ? document.getElementById('toggleDataLabels').checked : true;
+            const isSingle = selectedMetrics.length === 1;
+
+            const distinctUnits = [...new Set(selectedMetrics.map(c => ratioMetaMap[c]?.unit || ''))];
+            const hasSecondaryAxis = distinctUnits.length >= 2;
+            const primaryUnit = distinctUnits[0] || '';
+            const secondaryUnit = distinctUnits[1] || '';
+
+            const axisInfoBadge = document.getElementById('axisInfoBadge');
+            if (axisInfoBadge) {
+                if (hasSecondaryAxis) {
+                    axisInfoBadge.style.display = '';
+                    axisInfoBadge.innerHTML = `<i class="bi bi-arrows-expand text-primary me-1"></i> แกนซ้าย: <strong>${primaryUnit}</strong> | แกนขวา: <strong>${secondaryUnit}</strong>`;
+                } else {
+                    axisInfoBadge.style.display = 'none';
+                }
+            }
+
+            // 6. Build Chart Datasets
+            const datasets = selectedMetrics.map((code, idx) => {
+                const meta = ratioMetaMap[code] || { name: code, unit: '', precision: 2 };
+                const dataValues = chartLabels.map(label => chartDataMap[label][code] !== undefined ? chartDataMap[label][code] : 0.0);
+                const color = palette[idx % palette.length];
+                const isSecondary = hasSecondaryAxis && meta.unit !== primaryUnit;
+
+                if (isSingle) {
+                    // Single Metric Style: Gradient fill + Dynamic color
+                    return {
+                        label: `${code} - ${meta.name}`,
+                        unit: meta.unit,
+                        data: dataValues,
+                        borderWidth: 3.5,
+                        yAxisID: 'y',
+                        fill: {
+                            target: 'origin',
+                            above: 'rgba(16, 185, 129, 0.15)',
+                            below: 'rgba(239, 68, 68, 0.15)'
+                        },
+                        tension: 0.35,
+                        pointBackgroundColor: (context) => {
+                            const val = context.raw ?? 0;
+                            return val < 0 ? '#ef4444' : '#10b981';
+                        },
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        segment: {
+                            borderColor: (ctxSegment) => {
+                                const val = ctxSegment.p0.parsed.y;
+                                return val < 0 ? '#ef4444' : '#10b981';
+                            }
+                        }
+                    };
+                } else {
+                    // Multiple Metrics Style: Crisp colored lines
+                    return {
+                        label: `${code} - ${meta.name}`,
+                        unit: meta.unit,
+                        data: dataValues,
+                        borderWidth: 2.8,
+                        borderColor: color.border,
+                        backgroundColor: color.border,
+                        yAxisID: isSecondary ? 'y1' : 'y',
+                        fill: false,
+                        tension: 0.3,
+                        pointBackgroundColor: color.border,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5,
+                        pointRadius: 4.5,
+                        pointHoverRadius: 7
+                    };
+                }
+            });
 
             const ctx = document.getElementById('ratioTrendChart').getContext('2d');
-            
             if (chart) {
                 chart.destroy();
             }
@@ -479,34 +727,7 @@
                 plugins: [ChartDataLabels, hoverLinePlugin],
                 data: {
                     labels: chartLabels,
-                    datasets: [{
-                        label: metricName,
-                        data: dataValues,
-                        borderWidth: 3.5,
-                        // Fill positive area with green, negative area with red
-                        fill: {
-                            target: 'origin',
-                            above: 'rgba(16, 185, 129, 0.15)', // Green above 0
-                            below: 'rgba(239, 68, 68, 0.15)'  // Red below 0
-                        },
-                        tension: 0.35,
-                        // Points background color: Green if positive, Red if negative
-                        pointBackgroundColor: (context) => {
-                            const val = context.raw ?? 0;
-                            return val < 0 ? '#ef4444' : '#10b981';
-                        },
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1.5,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        // Line segment border color: Green for positive segment, Red for negative segment
-                        segment: {
-                            borderColor: (ctxSegment) => {
-                                const val = ctxSegment.p0.parsed.y;
-                                return val < 0 ? '#ef4444' : '#10b981';
-                            }
-                        }
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -517,15 +738,25 @@
                     },
                     layout: {
                         padding: {
-                            top: 24,
+                            top: isSingle ? 24 : 26,
                             bottom: 12,
                             left: 10,
-                            right: 15
+                            right: hasSecondaryAxis ? 20 : 15
                         }
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: !isSingle,
+                            position: 'top',
+                            align: 'center',
+                            labels: {
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                borderRadius: 4,
+                                usePointStyle: false,
+                                padding: 15,
+                                font: { size: 11, weight: 'bold' }
+                            }
                         },
                         tooltip: {
                             backgroundColor: '#0f172a',
@@ -534,54 +765,80 @@
                             padding: 10,
                             callbacks: {
                                 label: function(context) {
-                                    return ' ' + context.dataset.label + ': ' + context.raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    const unit = context.dataset.unit ? ' ' + context.dataset.unit : '';
+                                    const val = context.raw !== undefined && context.raw !== null ? Number(context.raw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+                                    return ' ' + context.dataset.label + ': ' + val + unit;
                                 }
                             }
                         },
                         datalabels: {
-                            // Align above the line for positive values, below for negative values
-                            align: function(context) {
-                                return context.dataset.data[context.dataIndex] < 0 ? 'bottom' : 'top';
+                            display: function(context) {
+                                return showDataLabels;
                             },
-                            anchor: 'end',
-                            // Dynamic dataLabel background: Green if positive, Red if negative
-                            backgroundColor: function(context) {
+                            clamp: true,
+                            offset: 4,
+                            align: function(context) {
                                 const val = context.dataset.data[context.dataIndex];
-                                return val < 0 ? '#ef4444' : '#10b981';
+                                if (val < 0) return 'bottom';
+                                if (isSingle) return 'top';
+                                return (context.datasetIndex % 2 === 0) ? 'top' : 'bottom';
+                            },
+                            anchor: function(context) {
+                                const val = context.dataset.data[context.dataIndex];
+                                if (val < 0) return 'start';
+                                if (isSingle) return 'end';
+                                return (context.datasetIndex % 2 === 0) ? 'end' : 'start';
+                            },
+                            backgroundColor: function(context) {
+                                if (isSingle) {
+                                    const val = context.dataset.data[context.dataIndex];
+                                    return val < 0 ? '#ef4444' : '#10b981';
+                                }
+                                return context.dataset.borderColor || '#0284c7';
                             },
                             borderRadius: 4,
-                            color: 'white',
+                            color: '#ffffff',
                             font: {
                                 weight: 'bold',
                                 size: 9
                             },
                             formatter: function(value) {
+                                if (value === null || value === undefined || isNaN(value)) return '';
                                 if (Math.abs(value) < 50) {
                                     return Number(value).toFixed(2);
                                 } else {
-                                    return Number(value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    return Number(value).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
                                 }
                             },
                             padding: {
-                                top: 3.5,
-                                bottom: 3.5,
-                                left: 6,
-                                right: 6
+                                top: 2.5,
+                                bottom: 2.5,
+                                left: 4.5,
+                                right: 4.5
                             }
                         }
                     },
                     scales: {
                         y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: primaryUnit ? `หน่วย (${primaryUnit})` : '',
+                                color: '#64748b',
+                                font: { size: 11, weight: '600' }
+                            },
                             grid: {
                                 color: function(context) {
                                     if (context.tick && context.tick.value === 0) {
-                                        return '#475569'; // Bold slate-grey line at Y = 0
+                                        return '#475569';
                                     }
                                     return '#f1f5f9';
                                 },
                                 lineWidth: function(context) {
                                     if (context.tick && context.tick.value === 0) {
-                                        return 2.5; // Thicker line at Y = 0
+                                        return 2;
                                     }
                                     return 1;
                                 }
@@ -600,10 +857,35 @@
                                 }
                             }
                         },
-                        x: {
-                            grid: {
-                                display: false
+                        y1: {
+                            type: 'linear',
+                            display: hasSecondaryAxis,
+                            position: 'right',
+                            title: {
+                                display: hasSecondaryAxis,
+                                text: secondaryUnit ? `หน่วย (${secondaryUnit})` : '',
+                                color: '#64748b',
+                                font: { size: 11, weight: '600' }
                             },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    if (Math.abs(value) >= 1000000) {
+                                        return (value / 1000000).toFixed(1) + 'M';
+                                    }
+                                    if (Math.abs(value) >= 1000) {
+                                        return (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
                             ticks: {
                                 color: '#64748b',
                                 font: { size: 11, weight: '500' }
@@ -614,14 +896,71 @@
             });
         }
 
-        // Initialize chart on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateChart('100'); // Default to Current Ratio
-        });
+        // Global Helper Functions for Checkbox and Presets
+        window.toggleMetric = function(code, forceState) {
+            const exists = selectedMetrics.includes(code);
+            const newState = forceState !== undefined ? forceState : !exists;
+            if (newState && !exists) {
+                selectedMetrics.push(code);
+            } else if (!newState && exists) {
+                selectedMetrics = selectedMetrics.filter(c => c !== code);
+            }
+            if (selectedMetrics.length === 0) {
+                selectedMetrics = ['100']; // default fallback
+            }
+            updateChart(selectedMetrics);
+        };
 
-        // Update chart when dropdown selection changes
-        document.getElementById('selectChartMetric').addEventListener('change', function() {
-            updateChart(this.value);
+        window.applyPreset = function(preset) {
+            if (preset === 'liquidity') {
+                updateChart(['100', '101', '102']);
+            } else if (preset === 'profit') {
+                updateChart(['302', '303', '304', '307']);
+            } else if (preset === 'activity') {
+                updateChart(['260', '261', '262', '264']);
+            } else if (preset === 'return') {
+                updateChart(['310', '311', '321']);
+            } else {
+                updateChart(['100']);
+            }
+        };
+
+        window.clearAllMetrics = function() {
+            updateChart(['100']);
+        };
+
+        // Event Listeners for Checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize chart with Current Ratio
+            updateChart('100');
+
+            // Listen to checkbox changes inside dropdown and table
+            document.addEventListener('change', function(e) {
+                if (e.target && (e.target.classList.contains('chart-metric-checkbox') || e.target.classList.contains('table-ratio-checkbox'))) {
+                    const code = e.target.value;
+                    toggleMetric(code, e.target.checked);
+                }
+            });
+
+            // Explicit listener for DataLabels switch
+            const toggleDataLabels = document.getElementById('toggleDataLabels');
+            if (toggleDataLabels) {
+                toggleDataLabels.addEventListener('change', function() {
+                    updateChart(selectedMetrics);
+                });
+            }
+
+            // Filter inside dropdown
+            const searchRatioCheckbox = document.getElementById('searchRatioCheckbox');
+            if (searchRatioCheckbox) {
+                searchRatioCheckbox.addEventListener('input', function() {
+                    const q = this.value.toLowerCase().trim();
+                    document.querySelectorAll('.ratio-checkbox-item').forEach(item => {
+                        const name = item.getAttribute('data-name') || '';
+                        item.style.display = name.includes(q) ? '' : 'none';
+                    });
+                });
+            }
         });
 
         // Search Ratio Table client-side filter
@@ -646,13 +985,13 @@
                         return;
                     }
 
-                    const codeCell = row.querySelector('td:first-child');
+                    const codeCell = row.querySelector('.ratio-code-cell');
                     const code = codeCell ? codeCell.innerText.toLowerCase() : '';
                     
-                    const nameDiv = row.querySelector('td:nth-child(2) div');
+                    const nameDiv = row.querySelector('.ratio-name-cell div');
                     const name = nameDiv ? nameDiv.innerText.toLowerCase() : '';
                     
-                    const formulaSmall = row.querySelector('td:nth-child(2) small');
+                    const formulaSmall = row.querySelector('.ratio-name-cell small');
                     const formula = formulaSmall ? formulaSmall.innerText.toLowerCase() : '';
 
                     if (code.includes(query) || name.includes(query) || formula.includes(query)) {

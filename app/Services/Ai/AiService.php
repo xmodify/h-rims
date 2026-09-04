@@ -38,7 +38,14 @@ class AiService
      */
     public static function getApiUrl()
     {
-        $url = self::getSetting('ai_api_url', env('AI_API_URL', 'http://localhost:11434'));
+        $provider = self::getProvider();
+        $defaultUrl = ($provider === 'gemini') ? 'https://generativelanguage.googleapis.com' : 'http://localhost:11434';
+        $url = self::getSetting('ai_api_url', env('AI_API_URL', $defaultUrl));
+
+        if ($provider === 'gemini' && (empty($url) || strpos($url, 'localhost:11434') !== false)) {
+            return 'https://generativelanguage.googleapis.com';
+        }
+
         return rtrim($url, '/');
     }
 

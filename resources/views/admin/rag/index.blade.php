@@ -343,9 +343,31 @@
                             </select>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">AI Base URL (สำหรับ Ollama)</label>
-                            <input type="text" class="form-control font-monospace small" id="settingApiUrl" name="ai_api_url" value="{{ $aiConfig['api_url'] }}" placeholder="http://localhost:11434">
+                        <div class="col-md-6" id="wrapperApiUrl">
+                            <label class="form-label fw-bold small text-muted" id="labelApiUrl">
+                                AI Base URL
+                                @if($aiConfig['provider'] === 'gemini')
+                                    <span class="text-muted fw-normal">(Google Cloud Official API)</span>
+                                @elseif($aiConfig['provider'] === 'ollama')
+                                    <span class="text-primary fw-normal">(สำหรับ Ollama)</span>
+                                @else
+                                    <span class="text-primary fw-normal">(สำหรับ OpenAI / DeepSeek / Custom)</span>
+                                @endif
+                            </label>
+                            <input type="text" class="form-control font-monospace small {{ $aiConfig['provider'] === 'gemini' ? 'bg-light' : '' }}" 
+                                id="settingApiUrl" name="ai_api_url" 
+                                value="{{ $aiConfig['api_url'] }}" 
+                                placeholder="{{ $aiConfig['provider'] === 'gemini' ? 'https://generativelanguage.googleapis.com' : 'http://localhost:11434' }}"
+                                {{ $aiConfig['provider'] === 'gemini' ? 'readonly' : '' }}>
+                            <small class="text-muted" id="helpApiUrl">
+                                @if($aiConfig['provider'] === 'gemini')
+                                    <span class="text-success"><i class="bi bi-shield-check me-1"></i>เชื่อมต่อ Google Cloud Official API โดยตรง (ไม่ต้องแก้ไข)</span>
+                                @elseif($aiConfig['provider'] === 'ollama')
+                                    ระบุ URL ของ Ollama เช่น <code>http://localhost:11434</code> หรือ IP เครื่องในเครือข่าย
+                                @else
+                                    ระบุ Endpoint API เช่น <code>https://api.deepseek.com/v1</code>
+                                @endif
+                            </small>
                         </div>
 
                         <div class="col-12">
@@ -360,7 +382,7 @@
                                     <i class="bi bi-eye" id="keyPeekIcon"></i>
                                 </button>
                             </div>
-                            <small class="text-muted">สำหรับ Gemini ขอรับ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none">Google AI Studio</a></small>
+                            <small class="text-muted" id="keyHelpText">สำหรับ Gemini ขอรับ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none">Google AI Studio</a></small>
                         </div>
 
                         <div class="col-md-6">
@@ -570,6 +592,17 @@
                 responsive: true
             });
         }
+        // Auto-sync provider display on page load and modal open
+        const currentProviderEl = document.getElementById('settingProvider');
+        if (currentProviderEl) {
+            handleProviderChange(currentProviderEl.value, false);
+        }
+        $('#aiSettingsModal').on('show.bs.modal', function () {
+            const provEl = document.getElementById('settingProvider');
+            if (provEl) {
+                handleProviderChange(provEl.value, false);
+            }
+        });
     });
 
     // Toggle API Key Peek
@@ -586,27 +619,66 @@
     }
 
     // Provider Presets with Auto-Matching Models
-    function handleProviderChange(val) {
+    function handleProviderChange(val, isUserChange = true) {
         const urlInput = document.getElementById('settingApiUrl');
+        const urlLabel = document.getElementById('labelApiUrl');
+        const urlHelp = document.getElementById('helpApiUrl');
         const modelInput = document.getElementById('settingModelName');
         const embedInput = document.getElementById('settingEmbedModel');
         const note = document.getElementById('keyRequiredNote');
+        const keyHelp = document.getElementById('keyHelpText');
 
         if (val === 'gemini') {
-            urlInput.value = 'https://generativelanguage.googleapis.com';
-            modelInput.value = 'gemini-3.6-flash';
-            embedInput.value = 'gemini-embedding-001';
-            note.textContent = '(จำเป็นสำหรับ Gemini)';
+            if (urlLabel) urlLabel.innerHTML = 'AI Base URL <span class="text-muted fw-normal">(Google Cloud Official API)</span>';
+            if (urlHelp) urlHelp.innerHTML = '<span class="text-success"><i class="bi bi-shield-check me-1"></i>เชื่อมต่อ Google Official Cloud API โดยตรง (ไม่ต้องแก้ไข)</span>';
+            if (urlInput) {
+                urlInput.placeholder = 'https://generativelanguage.googleapis.com';
+                urlInput.readOnly = true;
+                urlInput.classList.add('bg-light');
+                if (isUserChange || !urlInput.value || urlInput.value.includes('localhost:11434')) {
+                    urlInput.value = 'https://generativelanguage.googleapis.com';
+                }
+            }
+            if (isUserChange) {
+                if (modelInput) modelInput.value = 'gemini-3.6-flash';
+                if (embedInput) embedInput.value = 'gemini-embedding-001';
+            }
+            if (note) note.textContent = '(จำเป็นสำหรับ Gemini)';
+            if (keyHelp) keyHelp.innerHTML = 'สำหรับ Gemini ขอรับ API Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none fw-bold">Google AI Studio</a>';
         } else if (val === 'ollama') {
-            urlInput.value = 'http://localhost:11434';
-            modelInput.value = 'gemma4:e4b';
-            embedInput.value = 'nomic-embed-text';
-            note.textContent = '(ไม่ต้องใช้สำหรับ Ollama)';
-        } else {
-            urlInput.value = 'https://api.deepseek.com/v1';
-            modelInput.value = 'deepseek-chat';
-            embedInput.value = 'bge-m3';
-            note.textContent = '(จำเป็น)';
+            if (urlLabel) urlLabel.innerHTML = 'AI Base URL <span class="text-primary fw-normal">(สำหรับ Ollama Local Server)</span>';
+            if (urlHelp) urlHelp.innerHTML = 'ระบุ URL ของ Ollama เช่น <code>http://localhost:11434</code> หรือ IP เครื่องในเครือข่าย';
+            if (urlInput) {
+                urlInput.placeholder = 'http://localhost:11434';
+                urlInput.readOnly = false;
+                urlInput.classList.remove('bg-light');
+                if (isUserChange || !urlInput.value || urlInput.value.includes('googleapis.com')) {
+                    urlInput.value = 'http://localhost:11434';
+                }
+            }
+            if (isUserChange) {
+                if (modelInput) modelInput.value = 'gemma4:e4b';
+                if (embedInput) embedInput.value = 'nomic-embed-text';
+            }
+            if (note) note.textContent = '(ไม่ต้องใช้สำหรับ Ollama)';
+            if (keyHelp) keyHelp.textContent = 'Ollama ทำงานแบบ Local/Offline ภายในเครื่องหรือเครือข่าย ไม่จำเป็นต้องระบุ API Key';
+        } else { // openai_compatible
+            if (urlLabel) urlLabel.innerHTML = 'AI Base URL <span class="text-primary fw-normal">(สำหรับ OpenAI / DeepSeek / Custom)</span>';
+            if (urlHelp) urlHelp.innerHTML = 'ระบุ Endpoint API เช่น <code>https://api.deepseek.com/v1</code>';
+            if (urlInput) {
+                urlInput.placeholder = 'https://api.deepseek.com/v1';
+                urlInput.readOnly = false;
+                urlInput.classList.remove('bg-light');
+                if (isUserChange || !urlInput.value || urlInput.value.includes('localhost:11434') || urlInput.value.includes('googleapis.com')) {
+                    urlInput.value = 'https://api.deepseek.com/v1';
+                }
+            }
+            if (isUserChange) {
+                if (modelInput) modelInput.value = 'deepseek-chat';
+                if (embedInput) embedInput.value = 'bge-m3';
+            }
+            if (note) note.textContent = '(จำเป็น)';
+            if (keyHelp) keyHelp.textContent = 'ระบุ API Key ของผู้ให้บริการ เช่น DeepSeek หรือ OpenAI';
         }
     }
 

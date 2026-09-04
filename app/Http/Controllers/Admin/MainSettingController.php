@@ -151,7 +151,7 @@ class MainSettingController extends Controller
             MainSetting::updateOrInsert(['name' => 'ai_provider'], ['value' => trim($request->provider), 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)']);
         }
         if ($request->filled('api_url')) {
-            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($request->api_url), 'name_th' => 'AI Base URL (สำหรับ Ollama)']);
+            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($request->api_url), 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)']);
         }
 
         $aiService = app(\App\Services\Ai\AiService::class);
@@ -303,7 +303,7 @@ class MainSettingController extends Controller
                         ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
                         ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
                         ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
-                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama)', 'value' => 'http://localhost:11434'],
+                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
                         ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
                     ];
@@ -892,7 +892,7 @@ class MainSettingController extends Controller
                         ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
                         ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
                         ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
-                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama)', 'value' => 'http://localhost:11434'],
+                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
                         ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
                     ];

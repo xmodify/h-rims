@@ -64,11 +64,19 @@ class RagKnowledgeController extends Controller
      */
     public function saveSettings(Request $request)
     {
+        $provider = $request->input('ai_provider', 'gemini');
+        $apiUrl = trim($request->input('ai_api_url', ''));
+        if ($provider === 'gemini' && (empty($apiUrl) || strpos($apiUrl, 'localhost:11434') !== false)) {
+            $apiUrl = 'https://generativelanguage.googleapis.com';
+        } elseif ($provider === 'ollama' && empty($apiUrl)) {
+            $apiUrl = 'http://localhost:11434';
+        }
+
         $settings = [
             'ai_active' => ($request->has('ai_active') && in_array($request->input('ai_active'), ['Y', '1', 'on', true], true)) ? 'Y' : 'N',
-            'ai_provider' => $request->input('ai_provider', 'gemini'),
+            'ai_provider' => $provider,
             'ai_api_key' => $request->input('ai_api_key', ''),
-            'ai_api_url' => $request->input('ai_api_url', 'http://localhost:11434'),
+            'ai_api_url' => $apiUrl,
             'ai_model_name' => $request->input('ai_model_name', 'gemini-1.5-flash'),
             'ai_embed_model' => $request->input('ai_embed_model', 'text-embedding-004'),
         ];

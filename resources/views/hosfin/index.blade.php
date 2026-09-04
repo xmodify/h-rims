@@ -163,6 +163,12 @@
                             </button>
                         @endif
 
+                        <a href="{{ url('hosfin/cash_register') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669; transition: all 0.25s ease;"
+                           title="ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร (Cash Register)">
+                            <i class="bi bi-cash-stack" style="font-size: 1rem;"></i> รับ-จ่าย (Cash)
+                        </a>
+
                         <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
                            style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626; transition: all 0.25s ease;"
                            title="รายงานเจ้าหนี้การค้าและบิลค้างชำระ (AP)">

@@ -6775,6 +6775,12 @@ public function sss_ppfs(Request $request)
                     AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
                     AND (o.an = "" OR o.an IS NULL)
                     AND o.vstdate BETWEEN ? AND ?
+                    AND NOT EXISTS (
+                        SELECT 1 
+                        FROM opitemrece kidney 
+                        LEFT JOIN nondrugitems n ON n.icode = kidney.icode 
+                        WHERE kidney.vn = o.vn AND n.billcode = "71641"
+                    )
                     GROUP BY o.vn ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
                 ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b]);
@@ -6823,12 +6829,21 @@ public function sss_ppfs(Request $request)
                 GROUP BY cid, vstdate
             ) ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             LEFT JOIN doctor doc ON doc.code = o.doctor
+            LEFT JOIN (
+                SELECT op.vn,
+                    MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
+                FROM opitemrece op
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn
+            ) op_data ON op_data.vn = o.vn
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
             AND (o.an = "" OR o.an IS NULL)
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
+            AND COALESCE(op_data.is_kidney, 0) = 0
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 
         $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
         if (!file_exists($ncd_json_path)) {

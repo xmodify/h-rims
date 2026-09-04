@@ -588,6 +588,8 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::get('hosfin/ap_report', [App\Http\Controllers\HosFinController::class, 'ap_report'])->name('hosfin.ap_report');
     Route::get('hosfin/ap_vendor_bills', [App\Http\Controllers\HosFinController::class, 'ap_vendor_bills'])->name('hosfin.ap_vendor_bills');
     Route::get('hosfin/ar_report', [App\Http\Controllers\HosFinController::class, 'ar_report'])->name('hosfin.ar_report');
+    Route::get('hosfin/cash_register', [App\Http\Controllers\HosFinController::class, 'cash_register'])->name('hosfin.cash_register');
+    Route::get('hosfin/cash_register/export', [App\Http\Controllers\HosFinController::class, 'cash_register_export'])->name('hosfin.cash_register.export');
     Route::get('hosfin/cost_report', [App\Http\Controllers\HosFinController::class, 'cost_report'])->name('hosfin.cost_report');
 
     // Mutations / Imports

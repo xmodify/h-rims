@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Hosfin_Trial_Balance;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class HosFinController extends Controller
 {
@@ -43,7 +45,7 @@ class HosFinController extends Controller
     /**
      * Get Thai short month name
      */
-    private static function getThaiMonthName($monthNum)
+    public static function getThaiMonthName($monthNum)
     {
         $months = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         return $months[intval($monthNum)] ?? '';
@@ -3170,6 +3172,439 @@ class HosFinController extends Controller
         $out .= "4. **เป้าหมายเงินบำรุงสุทธิ (Target 105 Recovery):** กำหนดเป้าหมายดึงเงินบำรุงคงเหลือสุทธิ (105) ให้ขยับเข้าใกล้ศูนย์และกลับมาเป็นบวกภายใน 2-3 ไตรมาส\n";
 
         return $out;
+    }
+
+    /**
+     * Cash & Bank Register (ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร)
+     */
+    public function cash_register(Request $request)
+    {
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
+
+        $fyStart = ($budgetYear - 544) . '-10-01'; // 2025-10-01
+        $fyEnd   = ($budgetYear - 543) . '-09-30'; // 2026-09-30
+
+        $selectedPeriod = $request->input('period', 'all');
+        $selectedAccount = $request->input('account_code', 'all');
+        $viewMode = $request->input('view_mode', $selectedPeriod === 'all' ? 'monthly' : 'daily');
+        if ($selectedPeriod !== 'all' && $viewMode === 'monthly') {
+            $viewMode = 'daily';
+        }
+        if ($selectedPeriod === 'all' && $viewMode === 'daily') {
+            $viewMode = 'monthly';
+        }
+        $txType = $request->input('type', 'all'); // 'all', 'dr', 'cr'
+        $search = trim($request->input('search', ''));
+
+        // 1. Build 12 fiscal periods
+        $periods = [];
+        for ($m = 10; $m <= 12; $m++) {
+            $fm = $m - 9;
+            $y = $budgetYear - 544;
+            $p = sprintf('%04d-%02d', $y, $m);
+            $periods[$p] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year_ce'      => $y,
+                'period'       => $p,
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2),
+                'start_date'   => date('Y-m-01', strtotime("$y-$m-01")),
+                'end_date'     => date('Y-m-t', strtotime("$y-$m-01")),
+            ];
+        }
+        for ($m = 1; $m <= 9; $m++) {
+            $fm = $m + 3;
+            $y = $budgetYear - 543;
+            $p = sprintf('%04d-%02d', $y, $m);
+            $periods[$p] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year_ce'      => $y,
+                'period'       => $p,
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2),
+                'start_date'   => date('Y-m-01', strtotime("$y-$m-01")),
+                'end_date'     => date('Y-m-t', strtotime("$y-$m-01")),
+            ];
+        }
+
+        if ($selectedPeriod !== 'all' && !isset($periods[$selectedPeriod])) {
+            $selectedPeriod = 'all';
+        }
+
+        $startDate = $selectedPeriod === 'all' ? $fyStart : $periods[$selectedPeriod]['start_date'];
+        $endDate   = $selectedPeriod === 'all' ? $fyEnd   : $periods[$selectedPeriod]['end_date'];
+        $selectedPeriodLabel = $selectedPeriod === 'all' ? 'ภาพรวมทั้งปีงบประมาณ ' . $budgetYear : 'ประจำงวด ' . $periods[$selectedPeriod]['label'];
+
+        // 2. Query Cash & Bank Accounts (1101%)
+        $accounts = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->select(
+                'i.account_code',
+                'i.account_name',
+                DB::raw('COUNT(*) as tx_count'),
+                DB::raw('SUM(CASE WHEN j.voucher_date < "' . $fyStart . '" THEN i.debit - i.credit ELSE 0 END) as ob'),
+                DB::raw('SUM(CASE WHEN j.voucher_date BETWEEN "' . $fyStart . '" AND "' . $fyEnd . '" THEN i.debit ELSE 0 END) as total_dr'),
+                DB::raw('SUM(CASE WHEN j.voucher_date BETWEEN "' . $fyStart . '" AND "' . $fyEnd . '" THEN i.credit ELSE 0 END) as total_cr')
+            )
+            ->groupBy('i.account_code', 'i.account_name')
+            ->orderBy('i.account_code')
+            ->get();
+
+        $selectedAccountName = 'รวมทุกบัญชีเงินสดและเงินฝากธนาคาร';
+        if ($selectedAccount !== 'all') {
+            $accObj = $accounts->firstWhere('account_code', $selectedAccount);
+            if ($accObj) {
+                $selectedAccountName = $accObj->account_code . ' : ' . $accObj->account_name;
+            }
+        }
+
+        // 3. Opening Balance before startDate
+        $obQuery = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->where('j.voucher_date', '<', $startDate);
+
+        if ($selectedAccount !== 'all') {
+            $obQuery->where('i.account_code', $selectedAccount);
+        }
+        $openingBalance = floatval($obQuery->select(DB::raw('SUM(i.debit - i.credit) as ob'))->value('ob') ?: 0.0);
+
+        // 4. Period Summary
+        $periodSummaryQuery = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->whereBetween('j.voucher_date', [$startDate, $endDate]);
+
+        if ($selectedAccount !== 'all') {
+            $periodSummaryQuery->where('i.account_code', $selectedAccount);
+        }
+
+        $periodSummary = $periodSummaryQuery->select(
+            DB::raw('SUM(i.debit) as total_dr'),
+            DB::raw('SUM(i.credit) as total_cr'),
+            DB::raw('COUNT(DISTINCT j.id) as voucher_count'),
+            DB::raw('COUNT(i.id) as item_count')
+        )->first();
+
+        $totalDr = floatval($periodSummary->total_dr ?? 0);
+        $totalCr = floatval($periodSummary->total_cr ?? 0);
+        $netCashFlow = $totalDr - $totalCr;
+        $endingBalance = $openingBalance + $netCashFlow;
+        $totalVouchers = intval($periodSummary->voucher_count ?? 0);
+
+        // 5. Monthly breakdown (for 12 months overview)
+        $monthlyRows = [];
+        $runningMonthlyOB = floatval(
+            DB::table('hosfin_gl_journal_items as i')
+                ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+                ->where('i.account_code', 'like', '1101%')
+                ->when($selectedAccount !== 'all', fn($q) => $q->where('i.account_code', $selectedAccount))
+                ->where('j.voucher_date', '<', $fyStart)
+                ->select(DB::raw('SUM(i.debit - i.credit) as ob'))
+                ->value('ob') ?: 0.0
+        );
+
+        foreach ($periods as $p => $pInfo) {
+            $mTotals = DB::table('hosfin_gl_journal_items as i')
+                ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+                ->where('i.account_code', 'like', '1101%')
+                ->when($selectedAccount !== 'all', fn($q) => $q->where('i.account_code', $selectedAccount))
+                ->whereBetween('j.voucher_date', [$pInfo['start_date'], $pInfo['end_date']])
+                ->select(
+                    DB::raw('SUM(i.debit) as dr'),
+                    DB::raw('SUM(i.credit) as cr'),
+                    DB::raw('COUNT(DISTINCT j.id) as voucher_count')
+                )
+                ->first();
+
+            $mDr = floatval($mTotals->dr ?? 0);
+            $mCr = floatval($mTotals->cr ?? 0);
+            $mNet = $mDr - $mCr;
+            $mEnd = $runningMonthlyOB + $mNet;
+
+            $monthlyRows[$p] = [
+                'period'        => $p,
+                'fiscal_month'  => $pInfo['fiscal_month'],
+                'label'         => $pInfo['label'],
+                'opening_bal'   => $runningMonthlyOB,
+                'dr'            => $mDr,
+                'cr'            => $mCr,
+                'net'           => $mNet,
+                'ending_bal'    => $mEnd,
+                'voucher_count' => intval($mTotals->voucher_count ?? 0),
+            ];
+            $runningMonthlyOB = $mEnd;
+        }
+
+        // 6. Daily breakdown (when a specific month is selected)
+        $dailyRows = [];
+        $dailyTransactionsByDate = [];
+        if ($selectedPeriod !== 'all') {
+            $rawDaily = DB::table('hosfin_gl_journal_items as i')
+                ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+                ->where('i.account_code', 'like', '1101%')
+                ->when($selectedAccount !== 'all', fn($q) => $q->where('i.account_code', $selectedAccount))
+                ->whereBetween('j.voucher_date', [$startDate, $endDate])
+                ->select(
+                    'j.voucher_date',
+                    DB::raw('SUM(i.debit) as dr'),
+                    DB::raw('SUM(i.credit) as cr'),
+                    DB::raw('COUNT(DISTINCT j.id) as voucher_count'),
+                    DB::raw('COUNT(i.id) as item_count')
+                )
+                ->groupBy('j.voucher_date')
+                ->orderBy('j.voucher_date', 'asc')
+                ->get();
+
+            $curDailyRunning = $openingBalance;
+            foreach ($rawDaily as $d) {
+                $dDr = floatval($d->dr);
+                $dCr = floatval($d->cr);
+                $dNet = $dDr - $dCr;
+                $dEnd = $curDailyRunning + $dNet;
+
+                $dailyRows[$d->voucher_date] = [
+                    'date'          => $d->voucher_date,
+                    'opening_bal'   => $curDailyRunning,
+                    'dr'            => $dDr,
+                    'cr'            => $dCr,
+                    'net'           => $dNet,
+                    'ending_bal'    => $dEnd,
+                    'voucher_count' => intval($d->voucher_count),
+                    'item_count'    => intval($d->item_count)
+                ];
+                $curDailyRunning = $dEnd;
+            }
+        }
+
+        // 7. Ledger Transactions Query
+        $ledgerQuery = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->whereBetween('j.voucher_date', [$startDate, $endDate]);
+
+        if ($selectedAccount !== 'all') {
+            $ledgerQuery->where('i.account_code', $selectedAccount);
+        }
+
+        $ledgerItems = $ledgerQuery->select(
+            'j.id as journal_id',
+            'j.voucher_no',
+            'j.voucher_date',
+            'j.description as journal_desc',
+            'i.id as item_id',
+            'i.account_code',
+            'i.account_name',
+            'i.debit',
+            'i.credit',
+            'i.description as item_desc'
+        )
+        ->orderBy('j.voucher_date', 'asc')
+        ->orderBy('j.id', 'asc')
+        ->orderBy('i.id', 'asc')
+        ->get();
+
+        // Calculate running balance row by row (Preserves true running balance)
+        $runningBal = $openingBalance;
+        foreach ($ledgerItems as $item) {
+            $drVal = floatval($item->debit);
+            $crVal = floatval($item->credit);
+            $runningBal += ($drVal - $crVal);
+            $item->running_balance = $runningBal;
+            $item->display_desc = !empty($item->item_desc) ? $item->item_desc : $item->journal_desc;
+            $item->tx_type = ($drVal > 0) ? 'dr' : 'cr';
+
+            if ($selectedPeriod !== 'all') {
+                $dailyTransactionsByDate[$item->voucher_date][] = $item;
+            }
+        }
+
+        // Chart series data
+        $chartLabels = [];
+        $chartDr = [];
+        $chartCr = [];
+        $chartBal = [];
+        if ($selectedPeriod === 'all') {
+            foreach ($monthlyRows as $pKey => $mRow) {
+                $chartLabels[] = $mRow['label'];
+                $chartDr[] = round($mRow['dr'], 2);
+                $chartCr[] = round($mRow['cr'], 2);
+                $chartBal[] = round($mRow['ending_bal'], 2);
+            }
+        } else {
+            foreach ($dailyRows as $dDate => $dRow) {
+                $chartLabels[] = date('d/m', strtotime($dDate));
+                $chartDr[] = round($dRow['dr'], 2);
+                $chartCr[] = round($dRow['cr'], 2);
+                $chartBal[] = round($dRow['ending_bal'], 2);
+            }
+        }
+
+        return view('hosfin.cash_register', [
+            'budgetYear'             => $budgetYear,
+            'yearChoices'            => $yearChoices,
+            'periods'                => $periods,
+            'selectedPeriod'         => $selectedPeriod,
+            'selectedPeriodLabel'    => $selectedPeriodLabel,
+            'accounts'               => $accounts,
+            'selectedAccount'        => $selectedAccount,
+            'selectedAccountName'    => $selectedAccountName,
+            'viewMode'               => $viewMode,
+            'txType'                 => $txType,
+            'search'                 => $search,
+            'openingBalance'         => $openingBalance,
+            'totalDr'                => $totalDr,
+            'totalCr'                => $totalCr,
+            'netCashFlow'            => $netCashFlow,
+            'endingBalance'          => $endingBalance,
+            'totalVouchers'          => $totalVouchers,
+            'monthlyRows'            => $monthlyRows,
+            'dailyRows'              => $dailyRows,
+            'dailyTransactionsByDate'=> $dailyTransactionsByDate,
+            'ledgerItems'            => $ledgerItems,
+            'chartLabels'            => $chartLabels,
+            'chartDr'                => $chartDr,
+            'chartCr'                => $chartCr,
+            'chartBal'               => $chartBal,
+        ]);
+    }
+
+    /**
+     * Export Cash & Bank Register to Excel (.xlsx)
+     */
+    public function cash_register_export(Request $request)
+    {
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $selectedPeriod = $request->input('period', 'all');
+        $selectedAccount = $request->input('account_code', 'all');
+        $txType = $request->input('type', 'all');
+        $search = trim($request->input('search', ''));
+
+        $fyStart = ($budgetYear - 544) . '-10-01';
+        $fyEnd   = ($budgetYear - 543) . '-09-30';
+
+        if ($selectedPeriod !== 'all') {
+            $pParts = explode('-', $selectedPeriod);
+            if (count($pParts) === 2) {
+                $y = intval($pParts[0]);
+                $m = intval($pParts[1]);
+                $startDate = date('Y-m-01', strtotime("$y-$m-01"));
+                $endDate   = date('Y-m-t', strtotime("$y-$m-01"));
+                $periodLabel = self::getThaiMonthName($m) . ' ' . substr((string)($m >= 10 ? $budgetYear - 1 : $budgetYear), -2);
+            } else {
+                $startDate = $fyStart;
+                $endDate = $fyEnd;
+                $periodLabel = 'ทั้งปีงบประมาณ ' . $budgetYear;
+            }
+        } else {
+            $startDate = $fyStart;
+            $endDate = $fyEnd;
+            $periodLabel = 'ทั้งปีงบประมาณ ' . $budgetYear;
+        }
+
+        // Opening balance
+        $obQuery = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->where('j.voucher_date', '<', $startDate);
+        if ($selectedAccount !== 'all') {
+            $obQuery->where('i.account_code', $selectedAccount);
+        }
+        $openingBalance = floatval($obQuery->select(DB::raw('SUM(i.debit - i.credit) as ob'))->value('ob') ?: 0.0);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('ทะเบียนรับ-จ่าย');
+
+        // Header Title
+        $sheet->setCellValue('A1', 'ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร (Cash & Bank Register)');
+        $sheet->setCellValue('A2', "ปีงบประมาณ: {$budgetYear} | งวด: {$periodLabel} | บัญชี: {$selectedAccount}");
+        $sheet->mergeCells('A1:H1');
+        $sheet->mergeCells('A2:H2');
+        $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal('center');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getFont()->setSize(11);
+
+        // Summary Bar
+        $sheet->setCellValue('A4', 'ยอดยกมาต้นงวด:');
+        $sheet->setCellValue('B4', $openingBalance);
+        $sheet->getStyle('B4')->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('A4:B4')->getFont()->setBold(true);
+
+        // Headers
+        $headers = ['วันที่', 'เลขที่เอกสาร', 'รหัสบัญชี', 'ชื่อบัญชี', 'รายการ / คำอธิบาย', 'รายรับ (เดบิต Dr)', 'รายจ่าย (เครดิต Cr)', 'ยอดคงเหลือสะสม'];
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        foreach ($headers as $idx => $h) {
+            $sheet->setCellValue($cols[$idx] . '6', $h);
+        }
+        $sheet->getStyle('A6:H6')->getFont()->setBold(true);
+        $sheet->getStyle('A6:H6')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+              ->getStartColor()->setARGB('FFE2E8F0');
+
+        $rowNum = 7;
+
+        $ledgerQuery = DB::table('hosfin_gl_journal_items as i')
+            ->join('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+            ->where('i.account_code', 'like', '1101%')
+            ->whereBetween('j.voucher_date', [$startDate, $endDate]);
+
+        if ($selectedAccount !== 'all') {
+            $ledgerQuery->where('i.account_code', $selectedAccount);
+        }
+
+        $items = $ledgerQuery->select(
+            'j.voucher_no',
+            'j.voucher_date',
+            'j.description as journal_desc',
+            'i.account_code',
+            'i.account_name',
+            'i.debit',
+            'i.credit',
+            'i.description as item_desc'
+        )
+        ->orderBy('j.voucher_date', 'asc')
+        ->orderBy('j.id', 'asc')
+        ->orderBy('i.id', 'asc')
+        ->get();
+
+        $running = $openingBalance;
+        foreach ($items as $item) {
+            $dr = floatval($item->debit);
+            $cr = floatval($item->credit);
+            $running += ($dr - $cr);
+            $desc = !empty($item->item_desc) ? $item->item_desc : $item->journal_desc;
+
+            // Apply filter after running balance is computed
+            if ($txType === 'dr' && $dr <= 0) continue;
+            if ($txType === 'cr' && $cr <= 0) continue;
+            if ($search !== '' && stripos($desc, $search) === false && stripos($item->voucher_no, $search) === false) continue;
+
+            $sheet->setCellValue('A' . $rowNum, $item->voucher_date);
+            $sheet->setCellValue('B' . $rowNum, $item->voucher_no);
+            $sheet->setCellValue('C' . $rowNum, $item->account_code);
+            $sheet->setCellValue('D' . $rowNum, $item->account_name);
+            $sheet->setCellValue('E' . $rowNum, $desc);
+            $sheet->setCellValue('F' . $rowNum, $dr > 0 ? $dr : 0);
+            $sheet->setCellValue('G' . $rowNum, $cr > 0 ? $cr : 0);
+            $sheet->setCellValue('H' . $rowNum, $running);
+
+            $sheet->getStyle('F' . $rowNum . ':H' . $rowNum)->getNumberFormat()->setFormatCode('#,##0.00');
+            $rowNum++;
+        }
+
+        foreach ($cols as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        $filename = "cash_register_{$budgetYear}_{$selectedPeriod}.xlsx";
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . urlencode($filename) . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 }
 

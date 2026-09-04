@@ -112,6 +112,21 @@ Route::get('/', function () {
 
 Auth::routes();
 
+// แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบ RiMS (Public PDF Download / View)
+Route::get('downloads/rims-request-form', function (\Illuminate\Http\Request $request) {
+    $path = public_path('downloads/แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบRiMS.pdf');
+    if (!file_exists($path)) {
+        abort(404, 'File not found');
+    }
+    if ($request->has('download') || $request->query('action') === 'download') {
+        return response()->download($path, 'แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบRiMS.pdf');
+    }
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบRiMS.pdf"'
+    ]);
+})->name('downloads.rims-request-form');
+
 // Moph Alert 2FA Routes
 Route::get('login/verify-2fa', [App\Http\Controllers\Auth\MophAlert2FAController::class, 'showVerifyForm'])->name('auth.2fa.index');
 Route::post('login/verify-2fa/verify', [App\Http\Controllers\Auth\MophAlert2FAController::class, 'verifyOTP'])->name('auth.2fa.verify');

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use ZipArchive;
 
 class ImportEdcController extends Controller
@@ -517,6 +518,8 @@ class ImportEdcController extends Controller
             if ($updatedCount > 0) $msg .= ", ปรับปรุง {$updatedCount} รายการ";
             if ($skippedCount > 0) $msg .= ", ข้ามที่ซ้ำ {$skippedCount} รายการ";
             if ($matchedCount > 0) $msg .= " (เชื่อมโยง HOSxP {$matchedCount} รายการ)";
+
+            Cache::flush();
 
             return response()->json([
                 'success' => true,

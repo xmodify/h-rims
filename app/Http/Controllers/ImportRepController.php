@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Carbon\Carbon;
 use App\Models\Rep_ucs;
@@ -843,6 +844,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_ucs', ['budget_year' => $redirectYear])
             ->with('rep_success', implode(', ', $allFileNames));
@@ -1592,6 +1595,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_ofc', ['budget_year' => $redirectYear])
             ->with('rep_success', implode(', ', $allFileNames));
@@ -2309,6 +2314,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_sss', ['budget_year' => $redirectYear])
             ->with('success', 'นำเข้าไฟล์ REP SSS สำเร็จ!');
@@ -2986,6 +2993,7 @@ class ImportRepController extends Controller
         });
 
         Rep_lgoexcel::truncate();
+        \Illuminate\Support\Facades\Cache::flush();
 
         // Redirect back to the budget year of the imported file
         $redirectYear = date('Y') + 543;
@@ -3693,6 +3701,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_bkk', ['budget_year' => $redirectYear])
             ->with('success', 'นำเข้าไฟล์ REP BKK สำเร็จ!');
@@ -4383,6 +4393,8 @@ class ImportRepController extends Controller
                 $redirectYear = $y + ($m >= 10 ? 1 : 0);
             }
         }
+
+        Cache::flush();
 
         return redirect()
             ->route('rep_bmt', ['budget_year' => $redirectYear])
@@ -5075,6 +5087,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_srt', ['budget_year' => $redirectYear])
             ->with('success', 'นำเข้าไฟล์ REP SRT สำเร็จ!');
@@ -5766,6 +5780,8 @@ class ImportRepController extends Controller
             }
         }
 
+        Cache::flush();
+
         return redirect()
             ->route('rep_pvt', ['budget_year' => $redirectYear])
             ->with('success', 'นำเข้าไฟล์ REP PVT สำเร็จ!');
@@ -5991,6 +6007,7 @@ class ImportRepController extends Controller
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
                 $deletedCount = DB::table($table)->where('rep_filename', $filename)->delete();
+                Cache::flush();
 
                 return response()->json([
                     'status' => 'success',

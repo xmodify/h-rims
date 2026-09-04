@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use ZipArchive;
 use SimpleXMLElement;
 
@@ -355,6 +356,7 @@ class ImportSssController extends Controller
                     'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าไฟล์ REP สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
@@ -470,6 +472,7 @@ class ImportSssController extends Controller
                     'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าไฟล์ STM สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
@@ -699,6 +702,7 @@ class ImportSssController extends Controller
                     'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าไฟล์โรคเรื้อรังสำเร็จเรียบร้อยแล้ว (นำเข้าทั้งหมด $processedCount รายการ, เรียนรู้รหัส TMT ใหม่ $newTpuCount รายการ, เรียนรู้โรคใหม่ $newDxCount รายการ)"
@@ -831,6 +835,7 @@ class ImportSssController extends Controller
             }
 
             File::deleteDirectory($extractPath);
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าบัญชีการยืนยันโรคเรื้อรัง (ACDCONF) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
@@ -1314,6 +1319,7 @@ class ImportSssController extends Controller
                 ], 400);
             }
 
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าไฟล์ REP (AIPN) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
@@ -1464,6 +1470,7 @@ class ImportSssController extends Controller
                 ], 400);
             }
 
+            Cache::flush();
             return response()->json([
                 'success' => true,
                 'message' => "นำเข้าไฟล์ STM (AIPN) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"

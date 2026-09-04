@@ -114,18 +114,18 @@
                     </div>
                     @endif
 
-                    <!-- Option 4: Chrome Extension -->
+                    <!-- Option 4: Sync e-Claim Client -->
                     <div class="{{ $cardCol }}">
                         <div class="card h-100 border-0 shadow-sm rounded-4 p-3 hover-lift bg-white">
                             <div class="d-flex align-items-start gap-3">
                                 <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                                    <i class="bi bi-puzzle-fill fs-4"></i>
+                                    <i class="bi bi-robot fs-4"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h6 class="fw-bold text-dark mb-1">Chrome Extension (RiMS)</h6>
-                                    <p class="text-muted small mb-3" style="font-size: 0.8rem; line-height: 1.4;">คู่มือติดตั้งและเชื่อมต่อส่วนเสริมเพื่อซิงก์ข้อมูล e-Claim สปสช.</p>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#{{ $extensionModalId }}">
-                                        <i class="bi bi-info-circle me-1"></i> วิธีติดตั้ง Extension
+                                    <h6 class="fw-bold text-dark mb-1">Sync e-Claim Client (ระบบใหม่)</h6>
+                                    <p class="text-muted small mb-3" style="font-size: 0.8rem; line-height: 1.4;">ซิงก์ตรงจาก e-Claim สปสช. (Client/home) ด้วย ThaiD Session</p>
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="openSyncEclaimClientModal('{{ $modalId }}')">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Sync e-Claim Client
                                     </button>
                                 </div>
                             </div>

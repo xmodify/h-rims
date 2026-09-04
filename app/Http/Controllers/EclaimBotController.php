@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Stm_ucs;
 use App\Models\Stm_ucsexcel;
 use App\Models\Stm_ofc;
@@ -1491,6 +1492,8 @@ class EclaimBotController extends Controller
             ], 500);
         }
 
+        Cache::flush();
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล Statement จาก e-Claim สำเร็จรวม {$importedCount} งวด (บันทึกข้อมูล {$totalImportedRows} รายการ)",
@@ -2332,6 +2335,8 @@ class EclaimBotController extends Controller
             ], 500);
         }
 
+        Cache::flush();
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล Statement LGO จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
@@ -2717,6 +2722,8 @@ class EclaimBotController extends Controller
             ], 500);
         }
 
+        Cache::flush();
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล Statement OFC (ข้าราชการ) จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
@@ -2993,6 +3000,8 @@ class EclaimBotController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement BKK ที่เลือกได้'], 500);
         }
 
+        Cache::flush();
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล Statement กทม. (BKK) จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
@@ -3268,6 +3277,8 @@ class EclaimBotController extends Controller
         if ($importedCount === 0) {
             return response()->json(['status' => 'error', 'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement BMT ที่เลือกได้'], 500);
         }
+
+        Cache::flush();
 
         return response()->json([
             'status' => 'success',
@@ -3547,6 +3558,8 @@ class EclaimBotController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement SRT ที่เลือกได้'], 500);
         }
 
+        Cache::flush();
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล Statement การรถไฟฯ (SRT) จาก e-Claim สำเร็จรวม {$importedCount} ไฟล์ (บันทึกข้อมูล {$totalImportedRows} รายการ)",
@@ -3824,6 +3837,8 @@ class EclaimBotController extends Controller
         if ($importedCount === 0) {
             return response()->json(['status' => 'error', 'message' => 'ไม่สามารถดาวน์โหลดหรือนำเข้า Statement PVT ที่เลือกได้'], 500);
         }
+
+        Cache::flush();
 
         return response()->json([
             'status' => 'success',

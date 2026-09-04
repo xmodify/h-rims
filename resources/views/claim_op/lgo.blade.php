@@ -970,7 +970,8 @@
       $(document).on('submit', '#form_budget_year', function(e) {
           e.preventDefault();
           loadDashboard({
-              budget_year: $(this).find('select[name="budget_year"]').val()
+              budget_year: $(this).find('select[name="budget_year"]').val(),
+              refresh: 1
           });
       });
 

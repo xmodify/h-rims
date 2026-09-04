@@ -118,6 +118,35 @@
             color: #047857;
             text-decoration: underline;
         }
+        .form-request-btn {
+            color: #475569;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.25s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+        }
+        .form-request-btn:hover {
+            color: #047857;
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.18);
+            transform: translateY(-1px);
+        }
+        .pdf-icon-badge {
+            color: #ef4444;
+            font-size: 1.05rem;
+            display: inline-flex;
+            align-items: center;
+            transition: transform 0.2s ease;
+        }
+        .form-request-btn:hover .pdf-icon-badge {
+            transform: scale(1.15);
+        }
         .form-label {
             font-size: 0.85rem;
             margin-bottom: 0.4rem;
@@ -207,6 +236,19 @@
                                 <span class="text-muted small">ยังไม่มีบัญชีผู้ใช้งานระบบ? </span>
                                 <a href="{{ route('register') }}" class="register-link small">สมัครสมาชิกใหม่ที่นี่</a>
                             </div>
+
+                            <!-- แบบฟอร์มขอความอนุเคราะห์เข้าใช้งาน RiMS -->
+                            <div class="text-center mt-3 pt-2">
+                                <a href="javascript:void(0);" 
+                                   class="form-request-btn small d-inline-flex align-items-center gap-2"
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#formRequestModal">
+                                    <span class="pdf-icon-badge">
+                                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                                    </span>
+                                    <span>แบบฟอร์มขอความอนุเคราะห์เข้าใช้งาน RiMS</span>
+                                </a>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -214,6 +256,129 @@
         </div>
     </div>
 </div>
+
+<!-- Modal แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบ RiMS -->
+<div class="modal fade" id="formRequestModal" tabindex="-1" aria-labelledby="formRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            
+            <!-- Modal Header -->
+            <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #fee2e2; color: #dc2626; font-size: 1.3rem;">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="formRequestModalLabel">
+                            แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบ RiMS
+                        </h5>
+                        <small class="text-muted">ดาวน์โหลด พิมพ์ หรือบันทึกแบบฟอร์มเพื่อส่งขอเปิดสิทธิ์การใช้งานระบบ</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill d-flex align-items-center gap-1 shadow-sm fw-semibold" onclick="printPdfDocument()" title="สั่งพิมพ์เอกสารนี้">
+                        <i class="bi bi-printer-fill text-primary"></i>
+                        <span>พิมพ์เอกสาร</span>
+                    </button>
+                    <a href="{{ route('downloads.rims-request-form', ['download' => 1]) }}" 
+                       download="แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบRiMS.pdf" 
+                       class="btn btn-success btn-sm px-3 rounded-pill d-flex align-items-center gap-1 shadow-sm fw-semibold text-white" 
+                       title="บันทึกไฟล์ PDF ลงเครื่อง">
+                        <i class="bi bi-download"></i>
+                        <span>บันทึก / ดาวน์โหลด</span>
+                    </a>
+                    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body (PDF Viewer) -->
+            <div class="modal-body p-0 position-relative" style="height: 72vh; background: #334155;">
+                <div id="pdfLoadingSpinner" class="position-absolute top-50 start-50 translate-middle text-center text-white" style="z-index: 0;">
+                    <div class="spinner-border text-light mb-2" role="status">
+                        <span class="visually-hidden">กำลังโหลด...</span>
+                    </div>
+                    <div class="small">กำลังโหลดเอกสาร PDF...</div>
+                </div>
+                <iframe id="pdfFrame" 
+                        data-src="{{ route('downloads.rims-request-form') }}#toolbar=1" 
+                        class="w-100 h-100 border-0 position-relative" 
+                        style="z-index: 1;"
+                        title="แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบ RiMS"
+                        onload="var sp = document.getElementById('pdfLoadingSpinner'); if(sp) sp.style.display='none';">
+                </iframe>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer d-flex justify-content-between align-items-center py-2 px-4 bg-light" style="border-top: 1px solid #e2e8f0;">
+                <div class="small text-muted d-flex align-items-center gap-1">
+                    <i class="bi bi-info-circle-fill text-success"></i>
+                    <span>กรุณากรอกข้อมูลในแบบฟอร์มให้ครบถ้วน จากนั้นส่งให้ผู้ดูแลระบบเพื่อเปิดสิทธิ์การใช้งาน</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold" onclick="printPdfDocument()">
+                        <i class="bi bi-printer me-1"></i> พิมพ์เอกสาร
+                    </button>
+                    <a href="{{ route('downloads.rims-request-form', ['download' => 1]) }}" 
+                       download="แบบฟอร์มขอความอนุเคราะห์เข้าใช้งานระบบRiMS.pdf" 
+                       class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-download me-1"></i> ดาวน์โหลด / บันทึก (Save)
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function printPdfDocument() {
+    const iframe = document.getElementById('pdfFrame');
+    if (iframe && iframe.contentWindow) {
+        try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            return;
+        } catch (e) {
+            console.warn('Direct iframe print failed, falling back to window.open:', e);
+        }
+    }
+    const pdfUrl = "{{ route('downloads.rims-request-form') }}";
+    const win = window.open(pdfUrl, '_blank');
+    if (win) {
+        win.focus();
+        setTimeout(function() {
+            try { win.print(); } catch(err) {}
+        }, 800);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('formRequestModal');
+    const trigger = document.querySelector('[data-bs-target="#formRequestModal"]');
+
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', function() {
+            const iframe = document.getElementById('pdfFrame');
+            if (iframe && (!iframe.getAttribute('src') || iframe.getAttribute('src') === 'about:blank')) {
+                iframe.setAttribute('src', iframe.getAttribute('data-src'));
+            }
+        });
+    }
+
+    if (trigger && modalEl) {
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+        });
+    }
+});
+</script>
 
 @if (session('register_success'))
 <script>

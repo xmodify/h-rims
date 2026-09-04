@@ -1,5 +1,5 @@
 <!-- Modal ThaiD QR Login for e-Claim (Playwright Powered) -->
-<div class="modal fade" id="modalEclaimThaidQr" tabindex="-1" aria-labelledby="modalEclaimThaidQrLabel" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="modalEclaimThaidQr" tabindex="-1" aria-labelledby="modalEclaimThaidQrLabel" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1070;">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <!-- Modal Header -->
@@ -112,31 +112,31 @@ var onThaidLoginSuccessCallback = null;
 
 // Modal Show/Hide Helpers (Safe across jQuery & Bootstrap versions)
 function showEclaimThaidModal() {
-    if (window.jQuery && typeof $('#modalEclaimThaidQr').modal === 'function') {
-        $('#modalEclaimThaidQr').modal('show');
-    } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEclaimThaidQr')).show();
+    const el = document.getElementById('modalEclaimThaidQr');
+    if (!el) return;
+
+    if (window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(el).show();
+    } else if (window.jQuery && typeof $(el).modal === 'function') {
+        $(el).modal('show');
     } else {
-        const el = document.getElementById('modalEclaimThaidQr');
-        if (el) {
-            el.classList.add('show');
-            el.style.display = 'block';
-        }
+        el.classList.add('show');
+        el.style.display = 'block';
     }
 }
 
 function hideEclaimThaidModal() {
-    if (window.jQuery && typeof $('#modalEclaimThaidQr').modal === 'function') {
-        $('#modalEclaimThaidQr').modal('hide');
-    } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const inst = bootstrap.Modal.getInstance(document.getElementById('modalEclaimThaidQr'));
+    const el = document.getElementById('modalEclaimThaidQr');
+    if (!el) return;
+
+    if (window.bootstrap && window.bootstrap.Modal) {
+        const inst = window.bootstrap.Modal.getInstance(el);
         if (inst) inst.hide();
+    } else if (window.jQuery && typeof $(el).modal === 'function') {
+        $(el).modal('hide');
     } else {
-        const el = document.getElementById('modalEclaimThaidQr');
-        if (el) {
-            el.classList.remove('show');
-            el.style.display = 'none';
-        }
+        el.classList.remove('show');
+        el.style.display = 'none';
     }
 }
 
@@ -346,10 +346,20 @@ function cleanupThaidSession() {
 document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('modalEclaimThaidQr');
     if (modalEl) {
-        modalEl.addEventListener('hidden.bs.modal', cleanupThaidSession);
-    }
-    if (window.jQuery) {
-        $('#modalEclaimThaidQr').on('hidden.bs.modal', cleanupThaidSession);
+        modalEl.addEventListener('show.bs.modal', function () {
+            setTimeout(function() {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                if (backdrops.length > 1) {
+                    backdrops[backdrops.length - 1].style.zIndex = '1065';
+                }
+            }, 10);
+        });
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            cleanupThaidSession();
+            if (document.querySelectorAll('.modal.show').length > 0) {
+                document.body.classList.add('modal-open');
+            }
+        });
     }
 
     const isThaidLicensed = @json(\App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid'));

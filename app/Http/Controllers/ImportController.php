@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -414,6 +415,7 @@ class ImportController extends Controller
         4) Clear staging
         ====================================================== */
         Stm_ucsexcel::truncate();
+        Cache::flush();
 
         return redirect()
             ->route('stm_ucs')
@@ -1097,6 +1099,7 @@ class ImportController extends Controller
 
             // ✅ TRUNCATE นอกทรานแซกชัน (หลัง commit แล้ว)
             Stm_ucs_kidneyexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_ucs_kidney')
@@ -1489,6 +1492,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_bkk_kidneyexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_bkk_kidney')
@@ -1879,6 +1883,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_bmt_kidneyexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_bmt_kidney')
@@ -2330,6 +2335,7 @@ class ImportController extends Controller
 
             // ✅ TRUNCATE นอกทรานแซกชัน (หลัง commit)
             Stm_ofcexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_ofc')
@@ -3068,6 +3074,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_bkkexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_bkk')
@@ -3808,6 +3815,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_srtexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_srt')
@@ -4548,6 +4556,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_pvtexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_pvt')
@@ -5289,6 +5298,7 @@ class ImportController extends Controller
             DB::commit();
 
             Stm_bmtexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_bmt')
@@ -6081,6 +6091,7 @@ class ImportController extends Controller
             }
 
             DB::commit();
+            Cache::flush();
 
             // ===== สรุปผล =====
             $lines = [];
@@ -6170,6 +6181,7 @@ class ImportController extends Controller
                 ]);
 
             DB::commit();
+            Cache::flush();
 
             return response()->json([
                 'success' => true,
@@ -6667,6 +6679,7 @@ class ImportController extends Controller
             }
 
             DB::commit();
+            Cache::flush();
 
             // ===== สรุปผล =====
             $lines = [];
@@ -7188,6 +7201,9 @@ class ImportController extends Controller
             }
 
             DB::commit();
+
+            // ล้าง Cache สถิติกราฟ
+            \Illuminate\Support\Facades\Cache::flush();
 
             // ✅ ล้าง staging นอกทรานแซกชัน (หลัง commit)
             Stm_lgoexcel::truncate();
@@ -7875,6 +7891,7 @@ class ImportController extends Controller
 
             // ✅ ล้าง staging นอกทรานแซกชัน (หลัง commit)
             Stm_lgo_kidneyexcel::truncate();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_lgo_kidney')
@@ -8294,6 +8311,7 @@ class ImportController extends Controller
             }
 
             DB::commit();
+            Cache::flush();
 
             return redirect()
                 ->route('stm_sss_kidney')
@@ -8518,6 +8536,7 @@ class ImportController extends Controller
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
                 $deletedCount = DB::table($table)->where('stm_filename', $filename)->delete();
+                Cache::flush();
 
                 return response()->json([
                     'status' => 'success',

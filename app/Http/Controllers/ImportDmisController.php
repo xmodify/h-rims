@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\Stm_seamless_dmis;
 
@@ -671,6 +672,8 @@ class ImportDmisController extends Controller
             return redirect()->back()->with('error', $msg);
         }
 
+        Cache::flush();
+
         return redirect()->back()->with('stm_success', $msg);
     }
 
@@ -717,6 +720,7 @@ class ImportDmisController extends Controller
         try {
             if (Schema::hasTable('stm_seamless_dmis')) {
                 $deletedCount = Stm_seamless_dmis::where('round_no', $request->round_no)->delete();
+                Cache::flush();
                 
                 return response()->json([
                     'status' => 'success',

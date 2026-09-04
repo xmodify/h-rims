@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 use ZipArchive;
 
 class ImportCsController extends Controller
@@ -243,6 +244,8 @@ class ImportCsController extends Controller
                     'message' => 'ไม่พบไฟล์ COCDBIL ด้านใน ZIP'
                 ], 400);
             }
+
+            Cache::flush();
 
             return response()->json([
                 'success' => true,

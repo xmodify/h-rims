@@ -125,6 +125,7 @@ class HosFinController extends Controller
                 'apTotalVendorsCount' => 0,
                 'apTopCreditors' => collect([]),
                 'arOutstandingSum' => 0.0,
+                'arTotalOb' => 0.0,
                 'arTotalBilled' => 0.0,
                 'arTotalCollected' => 0.0,
                 'arAccountCount' => 0,
@@ -674,6 +675,7 @@ class HosFinController extends Controller
         $apTopCreditors = collect();
 
         $arOutstandingSum = 0;
+        $arTotalOb = 0;
         $arTotalBilled = 0;
         $arTotalCollected = 0;
         $arAccountCount = 0;

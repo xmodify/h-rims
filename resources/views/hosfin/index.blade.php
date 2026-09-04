@@ -705,14 +705,14 @@
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-info">
                             <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับสุทธิรวมทั้งหมด</small>
                             <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($arOutstandingSum, 2) }}</span>
-                            <small class="text-muted d-block">บาท (ยกมา {{ number_format($arTotalOb / 1000000, 2) }}M + ปีนี้ {{ number_format(($arOutstandingSum - $arTotalOb) / 1000000, 2) }}M)</small>
+                            <small class="text-muted d-block">บาท (ยกมา {{ number_format(($arTotalOb ?? 0) / 1000000, 2) }}M + ปีนี้ {{ number_format((($arOutstandingSum ?? 0) - ($arTotalOb ?? 0)) / 1000000, 2) }}M)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-success">
                             <small class="text-muted fw-bold d-block">ยอดตั้งเบิกระหว่างปีนี้</small>
                             <span class="fs-5 fw-black text-success font-monospace">{{ number_format($arTotalBilled, 2) }}</span>
-                            <small class="text-muted d-block">บาท (รวมยอดยกมา: {{ number_format(($arTotalBilled + $arTotalOb) / 1000000, 2) }}M)</small>
+                            <small class="text-muted d-block">บาท (รวมยอดยกมา: {{ number_format((($arTotalBilled ?? 0) + ($arTotalOb ?? 0)) / 1000000, 2) }}M)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -766,7 +766,7 @@
                                 <tr>
                                     <td class="ps-3">รวมทั้งหมด</td>
                                     <td class="text-center font-monospace">{{ $arAccountCount }}</td>
-                                    <td class="text-end font-monospace text-muted">{{ number_format($arTotalOb, 2) }}</td>
+                                    <td class="text-end font-monospace text-muted">{{ number_format($arTotalOb ?? 0, 2) }}</td>
                                     <td class="text-end font-monospace">{{ number_format($arTotalBilled, 2) }}</td>
                                     <td class="text-end font-monospace text-success">{{ number_format($arTotalCollected, 2) }}</td>
                                     <td class="text-end pe-3 font-monospace text-primary fs-6">{{ number_format($arOutstandingSum, 2) }}</td>

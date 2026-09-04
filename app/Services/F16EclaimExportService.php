@@ -1391,7 +1391,14 @@ class F16EclaimExportService
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
         $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
-            $price = (float)$it->sum_price;
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
+            $isAllowedZero = in_array(trim($type), ['3', '03', '4', '04', '5', '05']);
+
+            // แค่ Type 3, 4, 5 เท่านั้นที่เป็น 0 แล้วส่งออกได้ นอกนั้นเป็น 0 ไม่ต้องส่งออก
+            if (!$isAllowedZero && (float)$it->sum_price <= 0 && (float)$it->unitprice <= 0) {
+                return false;
+            }
+
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
                 // Non-drug items
@@ -1408,7 +1415,7 @@ class F16EclaimExportService
             $rawCode = trim((string)$it->nhso_adp_code);
             $code = ($rawCode === 'XXXXXX' || empty($rawCode)) ? '' : $rawCode;
             $qty = intval($it->qty) ?: 1;
-            $rate = (float)$it->unitprice;
+            $rate = (float)$it->unitprice > 0 ? (float)$it->unitprice : ((float)$it->sum_price / $qty);
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $seq = !empty($it->an) ? $it->an : $it->vn;
             $an = $it->an ?: '';
@@ -1420,6 +1427,11 @@ class F16EclaimExportService
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = ($type === '11') ? '2' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
             $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
+
+            // แค่ Type 3, 4, 5 เท่านั้นที่เป็น 0 แล้วส่งออกได้ นอกนั้นถ้าทั้ง TOTAL และ TOTCOPAY เป็น 0 ไม่ต้องส่งออก
+            if (!in_array(trim($type), ['3', '03', '4', '04', '5', '05']) && (float)$total <= 0 && (float)$totcopay <= 0) {
+                continue;
+            }
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';
@@ -2188,9 +2200,17 @@ class F16EclaimExportService
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
         $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
         $adpItems = $items->filter(function($it) {
+            $type = !empty($it->nhso_adp_type) ? (string)$it->nhso_adp_type : self::mapIncomeToAdpType($it->income);
+            $isAllowedZero = in_array(trim($type), ['3', '03', '4', '04', '5', '05']);
+
+            // แค่ Type 3, 4, 5 เท่านั้นที่เป็น 0 แล้วส่งออกได้ นอกนั้นเป็น 0 ไม่ต้องส่งออก
+            if (!$isAllowedZero && (float)$it->sum_price <= 0 && (float)$it->unitprice <= 0) {
+                return false;
+            }
+
             $isDrug = str_starts_with((string)$it->icode, '1');
             if (!$isDrug) {
-                return (float)$it->sum_price >= 0;
+                return true;
             } else {
                 return !empty(trim((string)$it->nhso_adp_code));
             }
@@ -2226,6 +2246,10 @@ class F16EclaimExportService
             $code = $it->adp_code;
             $qty = number_format((float)$it->qty, 0, '.', '');
             $rate = floatval($it->unitprice ?: 0.0);
+            if ($rate <= 0 && (float)$it->sum_price > 0) {
+                $qtyVal = (float)$it->qty ?: 1.0;
+                $rate = (float)$it->sum_price / $qtyVal;
+            }
             $rateStr = $rate == floor($rate) ? (string)intval($rate) : number_format($rate, 2, '.', '');
             $seq = $it->an;
             $an = $it->an;
@@ -2237,6 +2261,11 @@ class F16EclaimExportService
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
             $usestatus = ($type === '11') ? '1' : ''; // 1=ใช้ในโรงพยาบาล, 2=ใช้ที่บ้าน (OFC/LGO Type=11 ต้องระบุ)
             $total = $isNonReimbursable ? '0' : number_format((float)$it->sum_price, 2, '.', '');
+
+            // แค่ Type 3, 4, 5 เท่านั้นที่เป็น 0 แล้วส่งออกได้ นอกนั้นถ้าทั้ง TOTAL และ TOTCOPAY เป็น 0 ไม่ต้องส่งออก
+            if (!in_array(trim($type), ['3', '03', '4', '04', '5', '05']) && (float)$total <= 0 && (float)$totcopay <= 0) {
+                continue;
+            }
             $qtyday = '';
             $tmltcode = '';
             $status1 = '';

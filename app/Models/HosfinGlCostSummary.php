@@ -43,7 +43,10 @@ class HosfinGlCostSummary extends Model
 
     public function getPeriodLabelAttribute()
     {
-        $shortYear = substr((string)$this->fiscal_year, -2);
+        $fy = intval($this->fiscal_year);
+        $fm = intval($this->fiscal_month);
+        $cYear = ($fm >= 1 && $fm <= 3) ? ($fy - 1) : $fy;
+        $shortYear = substr((string)$cYear, -2);
         return $this->month_name . ' ' . $shortYear;
     }
 }

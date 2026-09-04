@@ -2589,27 +2589,95 @@ class HosFinController extends Controller
     {
         $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
         $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
+        $selectedPeriod = $request->input('period', 'all');
+
+        // Build 12 fiscal periods list for the fiscal year
+        $periods = [];
+        for ($m = 10; $m <= 12; $m++) {
+            $fm = $m - 9; // 10 -> 1, 11 -> 2, 12 -> 3
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear - 1,
+                'period'       => sprintf('%04d-%02d', $budgetYear - 1, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2)
+            ];
+        }
+        for ($m = 1; $m <= 9; $m++) {
+            $fm = $m + 3; // 1 -> 4, 2 -> 5, ... 9 -> 12
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear,
+                'period'       => sprintf('%04d-%02d', $budgetYear, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2)
+            ];
+        }
+
+        // Check which fiscal months exist in cost summaries
+        $existingMonths = \App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)
+            ->distinct()
+            ->pluck('fiscal_month')
+            ->toArray();
+
+        // Determine if specific period is selected
+        $selectedFm = null;
+        $selectedPeriodLabel = 'สะสมทั้งปีงบประมาณ ' . $budgetYear;
+
+        if ($selectedPeriod !== 'all') {
+            foreach ($periods as $p) {
+                if ($p['period'] === $selectedPeriod || (string)$p['fiscal_month'] === (string)$selectedPeriod) {
+                    $selectedFm = $p['fiscal_month'];
+                    $selectedPeriod = $p['period'];
+                    $selectedPeriodLabel = 'ประจำงวด ' . $p['label'];
+                    break;
+                }
+            }
+            if ($selectedFm === null) {
+                $selectedPeriod = 'all';
+            }
+        }
 
         $costSummaries = \App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)
             ->orderBy('fiscal_month', 'asc')
             ->get();
 
-        $totalLc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('lc_amount');
-        $totalMc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('mc_amount');
-        $totalCc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('cc_amount');
-        $totalOther = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('other_cost');
-        $totalCost = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('total_cost');
+        if ($selectedPeriod === 'all') {
+            $totalLc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('lc_amount');
+            $totalMc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('mc_amount');
+            $totalCc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('cc_amount');
+            $totalOther = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('other_cost');
+            $totalCost = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('total_cost');
+
+            $topAccountsQuery = DB::table('hosfin_gl_accounts as a')
+                ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
+                ->leftJoin('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+                ->where('a.account_code', 'like', '5%')
+                ->where('j.fiscal_year', $budgetYear);
+        } else {
+            $monthCost = \App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', $selectedFm)
+                ->first();
+
+            $totalLc = (float)($monthCost->lc_amount ?? 0);
+            $totalMc = (float)($monthCost->mc_amount ?? 0);
+            $totalCc = (float)($monthCost->cc_amount ?? 0);
+            $totalOther = (float)($monthCost->other_cost ?? 0);
+            $totalCost = (float)($monthCost->total_cost ?? 0);
+
+            $topAccountsQuery = DB::table('hosfin_gl_accounts as a')
+                ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
+                ->leftJoin('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
+                ->where('a.account_code', 'like', '5%')
+                ->where('j.fiscal_year', $budgetYear)
+                ->where('j.fiscal_month', $selectedFm);
+        }
 
         $lcPercent = $totalCost > 0 ? round(($totalLc / $totalCost) * 100, 1) : 0;
         $mcPercent = $totalCost > 0 ? round(($totalMc / $totalCost) * 100, 1) : 0;
         $ccPercent = $totalCost > 0 ? round(($totalCc / $totalCost) * 100, 1) : 0;
 
-        $topAccounts = DB::table('hosfin_gl_accounts as a')
-            ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
-            ->leftJoin('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
-            ->where('a.account_code', 'like', '5%')
-            ->where('j.fiscal_year', $budgetYear)
-            ->select(
+        $topAccounts = $topAccountsQuery->select(
                 'a.account_code',
                 'a.account_name',
                 'a.cost_type',
@@ -2618,22 +2686,41 @@ class HosFinController extends Controller
                 DB::raw('COUNT(i.id) as tx_count')
             )
             ->groupBy('a.account_code', 'a.account_name', 'a.cost_type', 'a.service_type')
+            ->havingRaw('SUM(COALESCE(i.debit, 0) - COALESCE(i.credit, 0)) != 0 OR COUNT(i.id) > 0')
             ->orderBy('net_expense', 'desc')
             ->get();
 
+        $chartLabels = $costSummaries->map(fn($c) => $c->period_label)->toArray();
+        $chartLc = $costSummaries->map(fn($c) => (float)$c->lc_amount)->toArray();
+        $chartMc = $costSummaries->map(fn($c) => (float)$c->mc_amount)->toArray();
+        $chartCc = $costSummaries->map(fn($c) => (float)$c->cc_amount)->toArray();
+        $chartOther = $costSummaries->map(fn($c) => (float)$c->other_cost)->toArray();
+        $chartTotal = $costSummaries->map(fn($c) => (float)$c->total_cost)->toArray();
+
         return view('hosfin.cost_report', [
-            'budgetYear' => $budgetYear,
-            'yearChoices' => $yearChoices,
-            'costSummaries' => $costSummaries,
-            'totalLc' => $totalLc,
-            'totalMc' => $totalMc,
-            'totalCc' => $totalCc,
-            'totalOther' => $totalOther,
-            'totalCost' => $totalCost,
-            'lcPercent' => $lcPercent,
-            'mcPercent' => $mcPercent,
-            'ccPercent' => $ccPercent,
-            'topAccounts' => $topAccounts,
+            'budgetYear'          => $budgetYear,
+            'yearChoices'         => $yearChoices,
+            'periods'             => $periods,
+            'existingMonths'      => $existingMonths,
+            'selectedPeriod'      => $selectedPeriod,
+            'selectedPeriodLabel' => $selectedPeriodLabel,
+            'selectedFm'          => $selectedFm,
+            'costSummaries'       => $costSummaries,
+            'totalLc'             => $totalLc,
+            'totalMc'             => $totalMc,
+            'totalCc'             => $totalCc,
+            'totalOther'          => $totalOther,
+            'totalCost'           => $totalCost,
+            'lcPercent'           => $lcPercent,
+            'mcPercent'           => $mcPercent,
+            'ccPercent'           => $ccPercent,
+            'topAccounts'         => $topAccounts,
+            'chartLabels'         => $chartLabels,
+            'chartLc'             => $chartLc,
+            'chartMc'             => $chartMc,
+            'chartCc'             => $chartCc,
+            'chartOther'          => $chartOther,
+            'chartTotal'          => $chartTotal,
         ]);
     }
 

@@ -48,6 +48,38 @@
         margin: 0 2px;
         font-size: 0.85rem;
     }
+    /* Period Navigation Tabs */
+    .nav-tabs-custom {
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .nav-tabs-custom .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.86rem;
+        padding: 10px 15px;
+        transition: all 0.2s ease-in-out;
+        background: transparent;
+    }
+    .nav-tabs-custom .nav-link:hover {
+        color: #0284c7;
+        border-bottom-color: #bae6fd;
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: #0284c7;
+        border-bottom-color: #0284c7;
+        font-weight: 700;
+        background: transparent;
+    }
+    .status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
     table.dataTable thead th {
         border-bottom: 2px solid #e2e8f0 !important;
         font-size: 0.84rem;
@@ -105,26 +137,86 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2 flex-wrap ms-lg-auto mt-2 mt-lg-0">
-                    <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <!-- Budget Year Dropdown -->
+                    <div class="input-group shadow-sm me-1" style="width: auto;">
+                        <span class="input-group-text bg-white text-muted fw-semibold" style="font-size: 0.85rem; height: 40px; border-color: #cbd5e1;">ปีงบประมาณ</span>
+                        <select id="select_budget_year" class="form-select fw-bold text-dark" style="min-width: 105px; font-size: 0.85rem; height: 40px; border-color: #cbd5e1; cursor: pointer;">
+                            @foreach($yearChoices as $yr)
+                                <option value="{{ $yr }}" {{ $budgetYear == $yr ? 'selected' : '' }}>{{ $yr }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626;">
                         <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
                     </a>
-                    <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #0284c7; border: 1.5px solid #0284c7; color: #ffffff;">
                         <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
                     </a>
-                    <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/cost_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309;">
                         <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
                     </a>
-                    <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb;">
                         <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
                     </a>
-                    <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669;">
                         <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Tabs Navigation -->
+    <div class="row px-3 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4 bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+                    <ul class="nav nav-tabs nav-tabs-custom flex-nowrap overflow-auto" id="arPeriodTabs" role="tablist" style="white-space: nowrap;">
+                        <!-- All year tab -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ $selectedPeriod === 'all' ? 'active' : '' }}" 
+                               href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}&period=all">
+                                <i class="bi bi-calendar-range me-1"></i> ภาพรวมทั้งปี (สะสม)
+                            </a>
+                        </li>
+                        <!-- Monthly tabs -->
+                        @foreach($periods as $p)
+                            @php
+                                $hasData = in_array($p['fiscal_month'], $existingMonths);
+                            @endphp
+                            <li class="nav-item">
+                                <a class="nav-link {{ $selectedPeriod === $p['period'] ? 'active' : '' }}" 
+                                   href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}&period={{ $p['period'] }}">
+                                    {{ $p['label'] }}
+                                    @if($hasData)
+                                        <span class="status-dot bg-success" title="มีข้อมูลรายการ"></span>
+                                    @else
+                                        <span class="status-dot bg-secondary bg-opacity-25" title="ยังไม่มีข้อมูล"></span>
+                                    @endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <div class="card-body py-2 px-4 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-top: 1px solid #f1f5f9 !important;">
+                    <div class="small text-muted d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        <span>กำลังแสดงผล: <strong class="text-dark">{{ $selectedPeriodLabel }}</strong></span>
+                        @if($selectedPeriod === 'all')
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">รวม 1 ผังบัญชี ต่อ 1 รายการสะสมทั้งปี</span>
+                        @else
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">เฉพาะรายการงวดประจำเดือน</span>
+                        @endif
+                    </div>
+                    <div class="small text-muted">
+                        ปีงบประมาณ <strong>{{ $budgetYear }}</strong> (ต.ค. {{ substr((string)($budgetYear - 1), -2) }} - ก.ย. {{ substr((string)$budgetYear, -2) }})
+                    </div>
                 </div>
             </div>
         </div>
@@ -137,7 +229,9 @@
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดตั้งเบิกสะสมรวม (Billed)</span>
+                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">
+                                {{ $selectedPeriod === 'all' ? 'ยอดตั้งเบิกระหว่างปีนี้ (Billed)' : 'ยอดตั้งเบิกงวดนี้ (Billed)' }}
+                            </span>
                             <div class="fw-black mt-1 text-success" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
                                 {{ number_format($totalBilled, 2) }}
                                 <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
@@ -148,8 +242,14 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยอดตั้งหนี้ทั้งปี</span>
-                        <small class="text-muted" style="font-size: 0.73rem;">รวมทุกสิทธิการรักษา</small>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                            {{ $selectedPeriod === 'all' ? 'ยอดตั้งหนี้ปีนี้' : 'ยอดตั้งหนี้ประจำงวด' }}
+                        </span>
+                        @if($selectedPeriod === 'all')
+                            <small class="text-muted" style="font-size: 0.73rem;">(รวมยอดยกมา: {{ number_format(($totalBilled + $totalOb) / 1000000, 2) }}M)</small>
+                        @else
+                            <small class="text-muted" style="font-size: 0.73rem;">รวมทุกสิทธิการรักษา</small>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -160,7 +260,9 @@
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ชดเชยที่รับเงินแล้ว (Collected)</span>
+                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">
+                                {{ $selectedPeriod === 'all' ? 'ชดเชยที่รับเงินแล้วปีนี้ (Collected)' : 'ชดเชยที่รับเงินงวดนี้ (Collected)' }}
+                            </span>
                             <div class="fw-black mt-1 text-primary" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
                                 {{ number_format($totalCollected, 2) }}
                                 <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
@@ -171,9 +273,11 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">เงินโอนเข้าบัญชีแล้ว</span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                            {{ $selectedPeriod === 'all' ? 'เงินโอนสะสมปีนี้' : 'เงินโอนประจำงวด' }}
+                        </span>
                         <small class="text-muted" style="font-size: 0.73rem;">
-                            {{ $totalBilled > 0 ? round(($totalCollected / $totalBilled) * 100, 1) : 0 }}% ของยอดตั้งเบิก
+                            {{ $totalBilled > 0 ? round(($totalCollected / $totalBilled) * 100, 1) : 0 }}% ของยอดตั้งเบิกปีนี้
                         </small>
                     </div>
                 </div>
@@ -185,7 +289,9 @@
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ลูกหนี้ค้างรับคงเหลือ (Outstanding)</span>
+                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">
+                                {{ $selectedPeriod === 'all' ? 'ลูกหนี้ค้างรับสุทธิคงเหลือ (Net Outstanding)' : 'ลูกหนี้ค้างรับงวดนี้ (Outstanding)' }}
+                            </span>
                             <div class="fw-black mt-1 text-sky" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2; color: #0284c7;">
                                 {{ number_format($totalOutstanding, 2) }}
                                 <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
@@ -196,10 +302,18 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-info text-dark rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">รอการชดเชย</span>
-                        <small class="text-muted" style="font-size: 0.73rem;">
-                            {{ $totalBilled > 0 ? round(($totalOutstanding / $totalBilled) * 100, 1) : 0 }}% ค้างท่อ
-                        </small>
+                        <span class="badge bg-info text-dark rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                            {{ $selectedPeriod === 'all' ? 'รอการชดเชยสุทธิ' : 'รอการชดเชยงวดนี้' }}
+                        </span>
+                        @if($selectedPeriod === 'all')
+                            <small class="text-muted" style="font-size: 0.73rem;">
+                                ยกมา {{ number_format($totalOb / 1000000, 2) }}M + ปีนี้ {{ number_format($totalOutstandingYear / 1000000, 2) }}M
+                            </small>
+                        @else
+                            <small class="text-muted" style="font-size: 0.73rem;">
+                                {{ $totalBilled > 0 ? round(($totalOutstanding / $totalBilled) * 100, 1) : 0 }}% ค้างท่อ
+                            </small>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -212,7 +326,7 @@
                         <div>
                             <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">อัตราจัดเก็บรายได้ (Collection Rate)</span>
                             <div class="fw-black mt-1 text-dark" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
-                                {{ $totalBilled > 0 ? number_format(($totalCollected / $totalBilled) * 100, 1) : 0 }}
+                                {{ $collectionRate }}
                                 <span style="font-size: 0.8rem; font-weight: 600;">%</span>
                             </div>
                         </div>
@@ -244,11 +358,32 @@
                         <span class="badge bg-light text-muted border rounded-pill">{{ $ts->account_count }} ผังบัญชี</span>
                     </div>
                     <div class="small text-muted mb-2">
-                        ตั้งเบิก: <strong>{{ number_format($ts->total_billed, 2) }}</strong> บ.<br>
-                        ชดเชยแล้ว: <strong class="text-success">{{ number_format($ts->total_collected, 2) }}</strong> บ.
+                        @if($selectedPeriod === 'all')
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.78rem;">
+                                <span>ยอดยกมา (OB):</span>
+                                <span class="font-monospace text-dark">{{ number_format($ts->ob_balance, 2) }} บ.</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.78rem;">
+                                <span>ตั้งเบิกปีนี้:</span>
+                                <span class="font-monospace text-dark">{{ number_format($ts->total_billed, 2) }} บ.</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.78rem;">
+                                <span>ชดเชยปีนี้:</span>
+                                <span class="font-monospace text-success fw-semibold">{{ number_format($ts->total_collected, 2) }} บ.</span>
+                            </div>
+                        @else
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.8rem;">
+                                <span>ตั้งเบิกงวดนี้:</span>
+                                <span class="font-monospace text-dark">{{ number_format($ts->total_billed, 2) }} บ.</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 0.8rem;">
+                                <span>ชดเชยงวดนี้:</span>
+                                <span class="font-monospace text-success fw-semibold">{{ number_format($ts->total_collected, 2) }} บ.</span>
+                            </div>
+                        @endif
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                        <span class="small text-danger fw-bold">ค้างรับ:</span>
+                        <span class="small fw-bold text-dark">{{ $selectedPeriod === 'all' ? 'คงค้างสุทธิ:' : 'ค้างรับงวดนี้:' }}</span>
                         <span class="font-monospace fw-bold fs-6 text-primary">{{ number_format($ts->outstanding_balance, 2) }} บาท</span>
                     </div>
                 </div>
@@ -262,12 +397,18 @@
             <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
                 <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-wallet2 me-2 text-primary"></i> ทะเบียนผังบัญชีลูกหนี้ค่ารักษาพยาบาล (Accounts Receivable)</h6>
-                        <small class="text-muted">เรียงลำดับตามยอดลูกหนี้คงค้างรอชดเชยสูงสุด สามารถคลิกหัวตารางเพื่อเรียงลำดับ หรือค้นหาได้ทันที</small>
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-wallet2 me-2 text-primary"></i> ทะเบียนผังบัญชีลูกหนี้ค่ารักษาพยาบาล ({{ $selectedPeriodLabel }})</h6>
+                        <small class="text-muted">
+                            @if($selectedPeriod === 'all')
+                                รวมยอดสะสมตลอดทั้งปี 1 ผังบัญชี ต่อ 1 รายการ (รวม {{ count($debtors) }} ผังบัญชี ไม่ซ้ำซ้อน)
+                            @else
+                                ข้อมูลรายการเคลื่อนไหวเฉพาะงวด {{ $selectedPeriodLabel }} (รวม {{ count($debtors) }} ผังบัญชี)
+                            @endif
+                        </small>
                     </div>
                     <div>
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold">
-                            ลูกหนี้คงค้างรวม {{ number_format($totalOutstanding, 2) }} บาท
+                            ลูกหนี้คงค้างสุทธิรวม {{ number_format($totalOutstanding, 2) }} บาท
                         </span>
                     </div>
                 </div>
@@ -280,15 +421,23 @@
                                 <th>รหัสบัญชี</th>
                                 <th>ชื่อผังบัญชีลูกหนี้</th>
                                 <th class="text-center">สิทธิกองทุน</th>
-                                <th class="text-end">ยอดตั้งเบิกสะสม</th>
-                                <th class="text-end">ชดเชยที่รับแล้ว</th>
-                                <th class="text-end text-primary pe-3">ลูกหนี้คงค้างรอชดเชย</th>
+                                @if($selectedPeriod === 'all')
+                                    <th class="text-end">ยอดยกมา OB (บาท)</th>
+                                    <th class="text-end">ยอดตั้งเบิกปีนี้ (บาท)</th>
+                                    <th class="text-end">ชดเชยที่รับแล้วปีนี้ (บาท)</th>
+                                    <th class="text-end text-primary pe-3">ลูกหนี้คงค้างสุทธิ (บาท)</th>
+                                @else
+                                    <th class="text-end">ยอดตั้งเบิกงวดนี้ (บาท)</th>
+                                    <th class="text-end">ชดเชยที่รับแล้วงวดนี้ (บาท)</th>
+                                    <th class="text-end text-primary pe-3">ลูกหนี้คงค้างงวดนี้ (บาท)</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
                             @php $dIdx = 1; @endphp
                             @foreach($debtors as $d)
                                 @php
+                                    $ob = (float)($d->ob_balance ?? 0);
                                     $billed = (float)$d->total_billed;
                                     $collected = (float)$d->total_collected;
                                     $out = (float)$d->outstanding_balance;
@@ -303,10 +452,18 @@
                                         <span class="badge bg-light text-primary border rounded-pill px-2.5 py-1">
                                             {{ $d->debtor_type ?: 'ทั่วไป' }}
                                         </span>
+                                        @if($selectedPeriod === 'all' && isset($d->month_count) && $d->month_count > 0)
+                                            <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-0.5 ms-1" style="font-size: 0.7rem;" title="มีข้อมูลเคลื่อนไหว {{ $d->month_count }} งวดเดือน">
+                                                {{ $d->month_count }} งวด
+                                            </span>
+                                        @endif
                                     </td>
+                                    @if($selectedPeriod === 'all')
+                                        <td class="text-end font-monospace text-muted" data-order="{{ $ob }}">{{ number_format($ob, 2) }}</td>
+                                    @endif
                                     <td class="text-end font-monospace" data-order="{{ $billed }}">{{ number_format($billed, 2) }}</td>
                                     <td class="text-end font-monospace text-success" data-order="{{ $collected }}">{{ number_format($collected, 2) }}</td>
-                                    <td class="text-end font-monospace pe-3 fw-bold {{ $out > 0.01 ? 'text-primary fs-6' : 'text-muted' }}" data-order="{{ $out }}">
+                                    <td class="text-end font-monospace pe-3 fw-bold {{ $out > 0.01 ? 'text-primary fs-6' : ($out < -0.01 ? 'text-danger' : 'text-muted') }}" data-order="{{ $out }}">
                                         {{ number_format($out, 2) }}
                                     </td>
                                 </tr>
@@ -315,9 +472,12 @@
                         <tfoot>
                             <tr>
                                 <th colspan="4" class="text-end fw-bold py-2.5 ps-3">รวมทั้งหมด (ตามที่กรอง):</th>
-                                <th class="text-end font-monospace py-2.5" id="footTotalBilled">0.00</th>
-                                <th class="text-end font-monospace py-2.5 text-success" id="footTotalCollected">0.00</th>
-                                <th class="text-end font-monospace py-2.5 text-primary pe-3 fs-6" id="footTotalOutstanding">0.00</th>
+                                @if($selectedPeriod === 'all')
+                                    <th class="text-end font-monospace py-2.5 text-muted" id="footTotalOb">{{ number_format($totalOb, 2) }}</th>
+                                @endif
+                                <th class="text-end font-monospace py-2.5" id="footTotalBilled">{{ number_format($totalBilled, 2) }}</th>
+                                <th class="text-end font-monospace py-2.5 text-success" id="footTotalCollected">{{ number_format($totalCollected, 2) }}</th>
+                                <th class="text-end font-monospace py-2.5 text-primary pe-3 fs-6" id="footTotalOutstanding">{{ number_format($totalOutstanding, 2) }}</th>
                             </tr>
                         </tfoot>
                     </table>
@@ -351,6 +511,9 @@
                 $('#debtorsTable').DataTable().destroy();
             }
 
+            var isAllPeriod = {{ $selectedPeriod === 'all' ? 'true' : 'false' }};
+            var defaultOrderCol = isAllPeriod ? 7 : 6;
+
             var debtorDt = $('#debtorsTable').DataTable({
                 dom: commonDom,
                 buttons: [
@@ -380,7 +543,7 @@
                 },
                 pageLength: 25,
                 lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
-                order: [[6, 'desc']], // Column 6 is ลูกหนี้คงค้างรอชดเชย
+                order: [[defaultOrderCol, 'desc']],
                 columnDefs: [
                     { targets: [0], orderable: false }
                 ],
@@ -388,13 +551,25 @@
                 footerCallback: function (row, data, start, end, display) {
                     try {
                         var api = this.api();
-                        var totalBilled = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                        var totalCollected = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                        var totalOutstanding = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        if (isAllPeriod) {
+                            var totalOb = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                            var totalBilled = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                            var totalCollected = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                            var totalOutstanding = api.column(7, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
 
-                        $('#footTotalBilled').html(fmt(totalBilled || 0));
-                        $('#footTotalCollected').html(fmt(totalCollected || 0));
-                        $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
+                            $('#footTotalOb').html(fmt(totalOb || 0));
+                            $('#footTotalBilled').html(fmt(totalBilled || 0));
+                            $('#footTotalCollected').html(fmt(totalCollected || 0));
+                            $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
+                        } else {
+                            var totalBilled = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                            var totalCollected = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                            var totalOutstanding = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+
+                            $('#footTotalBilled').html(fmt(totalBilled || 0));
+                            $('#footTotalCollected').html(fmt(totalCollected || 0));
+                            $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
+                        }
                     } catch (e) {}
                 }
             });
@@ -407,6 +582,11 @@
                     debtorDt.column(3).search(type).draw();
                 }
             };
+            // Budget year change handler
+            $('#select_budget_year').on('change', function() {
+                var yr = $(this).val();
+                window.location.href = "{{ url('hosfin/ar_report') }}?budget_year=" + yr + "&period=all";
+            });
         }
     });
 </script>

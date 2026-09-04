@@ -33345,6 +33345,12 @@
                 "default": "1",
                 "extra": ""
             },
+            "acc_period": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "account_code": {
                 "type": "varchar(50)",
                 "nullable": false,
@@ -33436,6 +33442,12 @@
             "hosfin_gl_monthly_account_index": [
                 {
                     "column": "account_code",
+                    "unique": false
+                }
+            ],
+            "hosfin_gl_monthly_acc_period_index": [
+                {
+                    "column": "acc_period",
                     "unique": false
                 }
             ]

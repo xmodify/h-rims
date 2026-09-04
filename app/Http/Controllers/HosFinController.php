@@ -138,25 +138,28 @@ class HosFinController extends Controller
             ]);
         }
 
-        // Ensure GL_SYNC rows exist in trial balance for this GL data
-        $hasGlSyncRows = DB::table('hosfin_trial_balance')->where('import_filename', 'GL_SYNC')->exists();
-        if (!$hasGlSyncRows) {
-            self::syncTrialBalanceFromGl();
+        // Ensure GL Monthly Balances exist for this GL data
+        $hasGlBalances = DB::table('hosfin_gl_monthly_balances')->exists();
+        if (!$hasGlBalances) {
+            self::syncGlMonthlyBalances();
         }
 
         $requestedPeriod = $request->input('period');
 
         $latestPeriod = null;
-        if ($requestedPeriod && DB::table('hosfin_trial_balance')->where('import_filename', 'GL_SYNC')->where('acc_period', $requestedPeriod)->exists()) {
+        if ($requestedPeriod && DB::table('hosfin_gl_monthly_balances')->where('acc_period', $requestedPeriod)->exists()) {
             $latestPeriod = $requestedPeriod;
         } else {
-            $latestPeriod = DB::table('hosfin_trial_balance')
-                ->where('import_filename', 'GL_SYNC')
+            $latestPeriod = DB::table('hosfin_gl_monthly_balances')
                 ->orderBy('acc_period', 'desc')
                 ->value('acc_period');
         }
 
-        $latestImportFilename = 'GL_SYNC';
+        if (!$latestPeriod) {
+            $latestPeriod = sprintf('%04d-10', (self::getCurrentBudgetYear() - 1));
+        }
+
+        $latestImportFilename = 'GL_LIVE';
 
         // Parse budget year from latest period
         list($calYear, $calMonth) = explode('-', $latestPeriod);
@@ -187,9 +190,8 @@ class HosFinController extends Controller
         $prevFyEndPeriod = sprintf('%04d-09', $budgetYear - 1);
         $queryPeriods = array_merge($validPeriods, [$prevFyEndPeriod]);
 
-        // Check which periods actually have data imported in DB (from GL_SYNC)
-        $importedPeriods = DB::table('hosfin_trial_balance')
-            ->where('import_filename', 'GL_SYNC')
+        // Check which periods actually have data in GL monthly balances
+        $importedPeriods = DB::table('hosfin_gl_monthly_balances')
             ->whereIn('acc_period', $validPeriods)
             ->distinct()
             ->pluck('acc_period')
@@ -206,11 +208,19 @@ class HosFinController extends Controller
         $lengths = array_keys($prefixLengths);
         rsort($lengths);
 
-        // 2. Fetch all trial balance rows purely from GL_SYNC
-        $trial_balance = DB::table('hosfin_trial_balance')
-            ->where('import_filename', 'GL_SYNC')
+        // 2. Fetch all GL monthly balance rows purely from GL (hosfin_gl_monthly_balances)
+        $trial_balance = DB::table('hosfin_gl_monthly_balances')
             ->whereIn('acc_period', $queryPeriods)
-            ->get(['acc_period', 'account_code', 'debit_net', 'credit_net', 'debit_bf', 'credit_bf', 'debit_month', 'credit_month', 'import_filename']);
+            ->get([
+                'acc_period',
+                'account_code',
+                'ending_debit as debit_net',
+                'ending_credit as credit_net',
+                'beginning_debit as debit_bf',
+                'beginning_credit as credit_bf',
+                'period_debit as debit_month',
+                'period_credit as credit_month'
+            ]);
 
         // 3. Prefix matching in PHP memory
         $grouped = [];
@@ -716,14 +726,18 @@ class HosFinController extends Controller
                 ->first();
 
             $arOutstandingSum = (float)($arTotals->net_outstanding ?? 0);
-            $arTotalBilled = (float)($arTotals->total_dr ?? 0);
-            $arTotalCollected = (float)($arTotals->total_cr ?? 0);
             $arAccountCount = (int)($arTotals->total_accounts ?? 0);
+
+            $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', 0)->sum('outstanding_balance');
+            $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', '>', 0)->sum('total_billed');
+            $arTotalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', '>', 0)->sum('total_collected');
+
             $arTypeSummaries = \App\Models\HosfinGlArDebtor::select(
                     'debtor_type',
                     DB::raw('COUNT(DISTINCT account_code) as account_count'),
-                    DB::raw('SUM(total_billed) as total_billed'),
-                    DB::raw('SUM(total_collected) as total_collected'),
+                    DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
                     DB::raw('SUM(outstanding_balance) as outstanding_balance')
                 )
                 ->groupBy('debtor_type')
@@ -782,6 +796,7 @@ class HosFinController extends Controller
             'apTotalVendorsCount' => $apTotalVendorsCount,
             'apTopCreditors' => $apTopCreditors,
             'arOutstandingSum' => $arOutstandingSum,
+            'arTotalOb' => $arTotalOb,
             'arTotalBilled' => $arTotalBilled,
             'arTotalCollected' => $arTotalCollected,
             'arAccountCount' => $arAccountCount,
@@ -2325,13 +2340,20 @@ class HosFinController extends Controller
      */
     public function ap_report(Request $request)
     {
-        $totalUnpaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 0)->sum('remaining_debt');
-        $totalUnpaidBillsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->count();
-        $totalPaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 1)->sum('total_debit');
-        $totalPaidBillsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 1)->count();
-        $totalVendorsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->distinct('vendor_name')->count('vendor_name');
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
 
-        $vendorsSummary = \App\Models\HosfinGlApBill::select(
+        $unpaidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 0);
+        $paidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 1);
+
+        $totalUnpaidSum = (float)$unpaidQuery->sum('remaining_debt');
+        $totalUnpaidBillsCount = (int)$unpaidQuery->count();
+        $totalPaidSum = (float)$paidQuery->sum('total_debit');
+        $totalPaidBillsCount = (int)$paidQuery->count();
+        $totalVendorsCount = (int)$unpaidQuery->distinct('vendor_name')->count('vendor_name');
+
+        $vendorsSummary = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+            ->select(
                 'vendor_name',
                 DB::raw('MAX(category) as category'),
                 DB::raw('COUNT(*) as total_bills'),
@@ -2344,13 +2366,16 @@ class HosFinController extends Controller
             ->orderBy('remaining_debt', 'desc')
             ->get();
 
-        $bills = \App\Models\HosfinGlApBill::orderBy('remaining_debt', 'desc')
+        $bills = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+                       ->orderBy('remaining_debt', 'desc')
                        ->orderBy('bill_date', 'desc')
                        ->get();
 
         $activeTab = $request->input('tab', 'vendor');
 
         return view('hosfin.ap_report', [
+            'budgetYear' => $budgetYear,
+            'yearChoices' => $yearChoices,
             'activeTab' => $activeTab,
             'totalUnpaidSum' => $totalUnpaidSum,
             'totalUnpaidBillsCount' => $totalUnpaidBillsCount,
@@ -2372,8 +2397,12 @@ class HosFinController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Vendor name is required'], 400);
         }
 
-        $bills = \App\Models\HosfinGlApBill::where('vendor_name', $vendor)
-            ->orderBy('remaining_debt', 'desc')
+        $query = \App\Models\HosfinGlApBill::where('vendor_name', $vendor);
+        if ($request->filled('budget_year')) {
+            $query->where('fiscal_year', intval($request->input('budget_year')));
+        }
+
+        $bills = $query->orderBy('remaining_debt', 'desc')
             ->orderBy('bill_date', 'desc')
             ->get();
 
@@ -2394,29 +2423,162 @@ class HosFinController extends Controller
      */
     public function ar_report(Request $request)
     {
-        $typeSummaries = \App\Models\HosfinGlArDebtor::select(
-                'debtor_type',
-                DB::raw('COUNT(DISTINCT account_code) as account_count'),
-                DB::raw('SUM(total_billed) as total_billed'),
-                DB::raw('SUM(total_collected) as total_collected'),
-                DB::raw('SUM(outstanding_balance) as outstanding_balance')
-            )
-            ->groupBy('debtor_type')
-            ->orderBy('outstanding_balance', 'desc')
-            ->get();
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
+        $selectedPeriod = $request->input('period', 'all');
 
-        $totalBilled = (float)\App\Models\HosfinGlArDebtor::sum('total_billed');
-        $totalCollected = (float)\App\Models\HosfinGlArDebtor::sum('total_collected');
-        $totalOutstanding = (float)\App\Models\HosfinGlArDebtor::sum('outstanding_balance');
+        // Build 12 fiscal periods list for the fiscal year
+        $periods = [];
+        for ($m = 10; $m <= 12; $m++) {
+            $fm = $m - 9; // 10 -> 1, 11 -> 2, 12 -> 3
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear - 1,
+                'period'       => sprintf('%04d-%02d', $budgetYear - 1, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2)
+            ];
+        }
+        for ($m = 1; $m <= 9; $m++) {
+            $fm = $m + 3; // 1 -> 4, 2 -> 5, ... 9 -> 12
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear,
+                'period'       => sprintf('%04d-%02d', $budgetYear, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2)
+            ];
+        }
 
-        $debtors = \App\Models\HosfinGlArDebtor::orderBy('outstanding_balance', 'desc')->get();
+        // Check which fiscal months exist in hosfin_gl_ar_debtors (ignore month 0 which is OB)
+        $existingMonths = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+            ->where('fiscal_month', '>', 0)
+            ->distinct()
+            ->pluck('fiscal_month')
+            ->toArray();
+
+        // Determine if specific period is selected
+        $selectedFm = null;
+        $selectedPeriodLabel = 'สะสมทั้งปีงบประมาณ ' . $budgetYear;
+
+        if ($selectedPeriod !== 'all') {
+            foreach ($periods as $p) {
+                if ($p['period'] === $selectedPeriod || (string)$p['fiscal_month'] === (string)$selectedPeriod) {
+                    $selectedFm = $p['fiscal_month'];
+                    $selectedPeriod = $p['period'];
+                    $selectedPeriodLabel = 'ประจำงวด ' . $p['label'];
+                    break;
+                }
+            }
+            if ($selectedFm === null) {
+                $selectedPeriod = 'all';
+            }
+        }
+
+        $totalOb = 0.0;
+        $totalOutstandingYear = 0.0;
+
+        if ($selectedPeriod === 'all') {
+            $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
+            $totalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_billed');
+            $totalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_collected');
+            $totalOutstandingYear = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('outstanding_balance');
+            $totalOutstanding = $totalOb + $totalOutstandingYear;
+
+            $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->select(
+                    'debtor_type',
+                    DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                    DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
+                    DB::raw('SUM(outstanding_balance) as outstanding_balance')
+                )
+                ->groupBy('debtor_type')
+                ->orderBy('outstanding_balance', 'desc')
+                ->get();
+
+            // Group by account_code so each account code appears exactly once with cumulative total!
+            $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->select(
+                    'account_code',
+                    DB::raw('MAX(account_name) as account_name'),
+                    DB::raw('MAX(debtor_type) as debtor_type'),
+                    DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
+                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
+                    DB::raw('SUM(outstanding_balance) as outstanding_balance'),
+                    DB::raw('COUNT(DISTINCT CASE WHEN fiscal_month > 0 THEN fiscal_month END) as month_count')
+                )
+                ->groupBy('account_code')
+                ->orderBy('outstanding_balance', 'desc')
+                ->get();
+        } else {
+            // Specific month
+            $monthData = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', $selectedFm)
+                ->select(
+                    DB::raw('SUM(total_billed) as total_billed'),
+                    DB::raw('SUM(total_collected) as total_collected'),
+                    DB::raw('SUM(outstanding_balance) as total_outstanding')
+                )->first();
+
+            $totalBilled = (float)($monthData->total_billed ?? 0);
+            $totalCollected = (float)($monthData->total_collected ?? 0);
+            $totalOutstanding = (float)($monthData->total_outstanding ?? 0);
+            $totalOutstandingYear = $totalOutstanding;
+
+            $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', $selectedFm)
+                ->select(
+                    'debtor_type',
+                    DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                    DB::raw('0 as ob_balance'),
+                    DB::raw('SUM(total_billed) as total_billed'),
+                    DB::raw('SUM(total_collected) as total_collected'),
+                    DB::raw('SUM(outstanding_balance) as year_outstanding'),
+                    DB::raw('SUM(outstanding_balance) as outstanding_balance')
+                )
+                ->groupBy('debtor_type')
+                ->orderBy('outstanding_balance', 'desc')
+                ->get();
+
+            $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', $selectedFm)
+                ->select(
+                    'account_code',
+                    'account_name',
+                    'debtor_type',
+                    DB::raw('0 as ob_balance'),
+                    'total_billed',
+                    'total_collected',
+                    DB::raw('outstanding_balance as year_outstanding'),
+                    'outstanding_balance',
+                    DB::raw('1 as month_count')
+                )
+                ->orderBy('outstanding_balance', 'desc')
+                ->get();
+        }
+
+        $collectionRate = $totalBilled > 0 ? round(($totalCollected / $totalBilled) * 100, 1) : 0;
 
         return view('hosfin.ar_report', [
-            'typeSummaries' => $typeSummaries,
-            'totalBilled' => $totalBilled,
-            'totalCollected' => $totalCollected,
-            'totalOutstanding' => $totalOutstanding,
-            'debtors' => $debtors,
+            'budgetYear'           => $budgetYear,
+            'yearChoices'          => $yearChoices,
+            'periods'              => $periods,
+            'existingMonths'       => $existingMonths,
+            'selectedPeriod'       => $selectedPeriod,
+            'selectedPeriodLabel'  => $selectedPeriodLabel,
+            'typeSummaries'        => $typeSummaries,
+            'totalBilled'          => $totalBilled,
+            'totalCollected'       => $totalCollected,
+            'totalOutstanding'     => $totalOutstanding,
+            'totalOb'              => $totalOb,
+            'totalOutstandingYear' => $totalOutstandingYear,
+            'collectionRate'       => $collectionRate,
+            'debtors'              => $debtors,
         ]);
     }
 
@@ -2425,15 +2587,18 @@ class HosFinController extends Controller
      */
     public function cost_report(Request $request)
     {
-        $costSummaries = \App\Models\HosfinGlCostSummary::orderBy('fiscal_year', 'asc')
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
+
+        $costSummaries = \App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)
             ->orderBy('fiscal_month', 'asc')
             ->get();
 
-        $totalLc = (float)\App\Models\HosfinGlCostSummary::sum('lc_amount');
-        $totalMc = (float)\App\Models\HosfinGlCostSummary::sum('mc_amount');
-        $totalCc = (float)\App\Models\HosfinGlCostSummary::sum('cc_amount');
-        $totalOther = (float)\App\Models\HosfinGlCostSummary::sum('other_cost');
-        $totalCost = (float)\App\Models\HosfinGlCostSummary::sum('total_cost');
+        $totalLc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('lc_amount');
+        $totalMc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('mc_amount');
+        $totalCc = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('cc_amount');
+        $totalOther = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('other_cost');
+        $totalCost = (float)\App\Models\HosfinGlCostSummary::where('fiscal_year', $budgetYear)->sum('total_cost');
 
         $lcPercent = $totalCost > 0 ? round(($totalLc / $totalCost) * 100, 1) : 0;
         $mcPercent = $totalCost > 0 ? round(($totalMc / $totalCost) * 100, 1) : 0;
@@ -2441,7 +2606,9 @@ class HosFinController extends Controller
 
         $topAccounts = DB::table('hosfin_gl_accounts as a')
             ->leftJoin('hosfin_gl_journal_items as i', 'a.account_code', '=', 'i.account_code')
+            ->leftJoin('hosfin_gl_journals as j', 'i.journal_id', '=', 'j.id')
             ->where('a.account_code', 'like', '5%')
+            ->where('j.fiscal_year', $budgetYear)
             ->select(
                 'a.account_code',
                 'a.account_name',
@@ -2455,6 +2622,8 @@ class HosFinController extends Controller
             ->get();
 
         return view('hosfin.cost_report', [
+            'budgetYear' => $budgetYear,
+            'yearChoices' => $yearChoices,
             'costSummaries' => $costSummaries,
             'totalLc' => $totalLc,
             'totalMc' => $totalMc,
@@ -2498,9 +2667,9 @@ class HosFinController extends Controller
     }
 
     /**
-     * Aggregate GL Journal Items into Trial Balance rows (Live Daily GL Calculation)
+     * Aggregate GL Journal Items into Monthly Balances (Live Daily GL Calculation)
      */
-    public static function syncTrialBalanceFromGl()
+    public static function syncGlMonthlyBalances()
     {
         // 1. Fetch raw journal activity grouped by year, month, account
         $rows = DB::table('hosfin_gl_journals as j')
@@ -2547,12 +2716,6 @@ class HosFinController extends Controller
             }
 
             // Calculate calendar year and month for period
-            // Month 1 = Oct (cal_month 10, cal_year fy-1)
-            // Month 2 = Nov (cal_month 11, cal_year fy-1)
-            // Month 3 = Dec (cal_month 12, cal_year fy-1)
-            // Month 4 = Jan (cal_month 1, cal_year fy)
-            // ...
-            // Month 12 = Sep (cal_month 9, cal_year fy)
             if ($fm >= 1 && $fm <= 3) {
                 $cMonth = $fm + 9;
                 $cYear = $fy - 1;
@@ -2573,7 +2736,7 @@ class HosFinController extends Controller
         }
 
         // 3. For each budget year, build chronological cumulative periods (fm 1 to 12)
-        $trialBalanceInserts = [];
+        $monthlyInserts = [];
         $affectedPeriods = [];
 
         foreach ($byBudgetYear as $fy => $monthsData) {
@@ -2624,20 +2787,19 @@ class HosFinController extends Controller
 
                     $cleanName = $nameMap[$accCode] ?? ($accData ? $accData['name'] : $accCode);
 
-                    $trialBalanceInserts[] = [
-                        'acc_year' => $mInfo['cYear'],
-                        'acc_month' => $mInfo['cMonth'],
+                    $monthlyInserts[] = [
+                        'fiscal_year' => $fy,
+                        'fiscal_month' => $fm,
                         'acc_period' => $period,
-                        'main_account_code' => substr($accCode, 0, 4),
                         'account_code' => $accCode,
                         'account_name' => $cleanName,
-                        'debit_bf' => round($prevDr, 2),
-                        'credit_bf' => round($prevCr, 2),
-                        'debit_month' => round($drMonth, 2),
-                        'credit_month' => round($crMonth, 2),
-                        'debit_net' => round($netDr, 2),
-                        'credit_net' => round($netCr, 2),
-                        'import_filename' => 'GL_SYNC',
+                        'account_type' => substr($accCode, 0, 1) ?: '1',
+                        'beginning_debit' => round($prevDr, 2),
+                        'beginning_credit' => round($prevCr, 2),
+                        'period_debit' => round($drMonth, 2),
+                        'period_credit' => round($crMonth, 2),
+                        'ending_debit' => round($netDr, 2),
+                        'ending_credit' => round($netCr, 2),
                         'created_at' => now(),
                         'updated_at' => now()
                     ];
@@ -2645,24 +2807,31 @@ class HosFinController extends Controller
             }
         }
 
-        // 4. Save to hosfin_trial_balance as GL_SYNC (Live GL Real-time Data)
-        if (!empty($trialBalanceInserts)) {
+        // 4. Save to hosfin_gl_monthly_balances (Dedicated GL Monthly Aggregate table)
+        if (!empty($monthlyInserts)) {
             $affectedPeriods = array_unique($affectedPeriods);
-            DB::transaction(function() use ($affectedPeriods, $trialBalanceInserts) {
-                // Delete previous GL_SYNC rows for affected periods
-                DB::table('hosfin_trial_balance')
-                    ->where('import_filename', 'GL_SYNC')
+            DB::transaction(function() use ($affectedPeriods, $monthlyInserts) {
+                // Delete previous rows for affected periods
+                DB::table('hosfin_gl_monthly_balances')
                     ->whereIn('acc_period', $affectedPeriods)
                     ->delete();
 
-                foreach (array_chunk($trialBalanceInserts, 250) as $chunk) {
-                    DB::table('hosfin_trial_balance')->insert($chunk);
+                foreach (array_chunk($monthlyInserts, 250) as $chunk) {
+                    DB::table('hosfin_gl_monthly_balances')->insert($chunk);
                 }
             });
-            return count($trialBalanceInserts);
+            return count($monthlyInserts);
         }
 
         return 0;
+    }
+
+    /**
+     * Backward compatibility alias
+     */
+    public static function syncTrialBalanceFromGl()
+    {
+        return self::syncGlMonthlyBalances();
     }
 
     /**

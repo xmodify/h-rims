@@ -14,6 +14,7 @@ class HosfinGlMonthlyBalance extends Model
     protected $fillable = [
         'fiscal_year',
         'fiscal_month',
+        'acc_period',
         'account_code',
         'account_name',
         'account_type',

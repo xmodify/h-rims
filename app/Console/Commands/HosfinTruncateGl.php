@@ -25,6 +25,7 @@ class HosfinTruncateGl extends Command
             'hosfin_gl_cost_centers',
             'hosfin_gl_cost_summaries',
             'hosfin_gl_monthly_summaries',
+            'hosfin_gl_monthly_balances',
             'hosfin_gl_sync_logs',
             'hosfin_gl_subledgers',
             'hosfin_gl_accounts',

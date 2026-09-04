@@ -105,23 +105,33 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2 flex-wrap ms-lg-auto mt-2 mt-lg-0">
-                    <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <!-- Budget Year Dropdown -->
+                    <div class="input-group shadow-sm me-1" style="width: auto;">
+                        <span class="input-group-text bg-white text-muted fw-semibold" style="font-size: 0.85rem; height: 40px; border-color: #cbd5e1;">ปีงบประมาณ</span>
+                        <select id="select_budget_year" class="form-select fw-bold text-dark" style="min-width: 105px; font-size: 0.85rem; height: 40px; border-color: #cbd5e1; cursor: pointer;">
+                            @foreach($yearChoices as $yr)
+                                <option value="{{ $yr }}" {{ $budgetYear == $yr ? 'selected' : '' }}>{{ $yr }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626;">
                         <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
                     </a>
-                    <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1;">
                         <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
                     </a>
-                    <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/cost_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #d97706; border: 1.5px solid #d97706; color: #ffffff;">
                         <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
                     </a>
-                    <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb;">
                         <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
                     </a>
-                    <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
+                    <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669;">
                         <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
                     </a>
@@ -241,7 +251,7 @@
             <div class="card border-0 shadow-sm rounded-4 bg-white">
                 <div class="card-header bg-white border-bottom py-3 px-4">
                     <h6 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-calendar3 me-2 text-primary"></i> การกระจายต้นทุน LC / MC / CC รายเดือน (Monthly Cost Distribution)
+                        <i class="bi bi-calendar3 me-2 text-primary"></i> การกระจายต้นทุน LC / MC / CC รายเดือน ประจำปีงบประมาณ {{ $budgetYear }} (Monthly Cost Distribution)
                     </h6>
                 </div>
                 <div class="table-responsive">
@@ -434,6 +444,11 @@
                         $('#footTotalExpense').html(fmt(totalExp || 0));
                     } catch (e) {}
                 }
+            });
+            // Budget year change handler
+            $('#select_budget_year').on('change', function() {
+                var yr = $(this).val();
+                window.location.href = "{{ url('hosfin/cost_report') }}?budget_year=" + yr;
             });
         }
     });

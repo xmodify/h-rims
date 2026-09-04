@@ -697,23 +697,23 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-info">
-                            <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับคงเหลือ</small>
+                            <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับสุทธิรวมทั้งหมด</small>
                             <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($arOutstandingSum, 2) }}</span>
-                            <small class="text-muted d-block">บาท</small>
+                            <small class="text-muted d-block">บาท (ยกมา {{ number_format($arTotalOb / 1000000, 2) }}M + ปีนี้ {{ number_format(($arOutstandingSum - $arTotalOb) / 1000000, 2) }}M)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-success">
-                            <small class="text-muted fw-bold d-block">ยอดตั้งเบิกสะสมรวม</small>
+                            <small class="text-muted fw-bold d-block">ยอดตั้งเบิกระหว่างปีนี้</small>
                             <span class="fs-5 fw-black text-success font-monospace">{{ number_format($arTotalBilled, 2) }}</span>
-                            <small class="text-muted d-block">บาท</small>
+                            <small class="text-muted d-block">บาท (รวมยอดยกมา: {{ number_format(($arTotalBilled + $arTotalOb) / 1000000, 2) }}M)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-warning">
-                            <small class="text-muted fw-bold d-block">ชดเชยที่รับเงินแล้ว</small>
+                            <small class="text-muted fw-bold d-block">ชดเชยที่รับเงินแล้วปีนี้</small>
                             <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($arTotalCollected, 2) }}</span>
-                            <small class="text-muted d-block">({{ $arTotalBilled > 0 ? round(($arTotalCollected / $arTotalBilled) * 100, 1) : 0 }}%)</small>
+                            <small class="text-muted d-block">บาท ({{ $arTotalBilled > 0 ? round(($arTotalCollected / $arTotalBilled) * 100, 1) : 0 }}% ของยอดตั้งเบิกปีนี้)</small>
                         </div>
                     </div>
                 </div>
@@ -730,9 +730,10 @@
                                 <tr>
                                     <th class="ps-3">สิทธิกองทุนการรักษา</th>
                                     <th class="text-center">ผังบัญชี</th>
-                                    <th class="text-end">ยอดตั้งเบิก (บาท)</th>
-                                    <th class="text-end">ชดเชยแล้ว (บาท)</th>
-                                    <th class="text-end pe-3 text-primary">ลูกหนี้คงค้าง (บาท)</th>
+                                    <th class="text-end">ยอดยกมา OB (บาท)</th>
+                                    <th class="text-end">ตั้งเบิกปีนี้ (บาท)</th>
+                                    <th class="text-end">ชดเชยปีนี้ (บาท)</th>
+                                    <th class="text-end pe-3 text-primary">ลูกหนี้คงค้างสุทธิ (บาท)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -742,6 +743,7 @@
                                             <i class="bi bi-tag-fill text-primary me-1"></i> {{ $ts->debtor_type ?: 'ทั่วไป' }}
                                         </td>
                                         <td class="text-center font-monospace">{{ $ts->account_count }}</td>
+                                        <td class="text-end font-monospace text-muted">{{ number_format($ts->ob_balance, 2) }}</td>
                                         <td class="text-end font-monospace">{{ number_format($ts->total_billed, 2) }}</td>
                                         <td class="text-end font-monospace text-success">{{ number_format($ts->total_collected, 2) }}</td>
                                         <td class="text-end pe-3 font-monospace fw-bold {{ $ts->outstanding_balance > 0.01 ? 'text-primary' : 'text-muted' }}">
@@ -750,10 +752,20 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center py-3 text-muted">ไม่มีข้อมูลลูกหนี้</td>
+                                        <td colspan="6" class="text-center py-3 text-muted">ไม่มีข้อมูลลูกหนี้</td>
                                     </tr>
                                 @endforelse
                             </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td class="ps-3">รวมทั้งหมด</td>
+                                    <td class="text-center font-monospace">{{ $arAccountCount }}</td>
+                                    <td class="text-end font-monospace text-muted">{{ number_format($arTotalOb, 2) }}</td>
+                                    <td class="text-end font-monospace">{{ number_format($arTotalBilled, 2) }}</td>
+                                    <td class="text-end font-monospace text-success">{{ number_format($arTotalCollected, 2) }}</td>
+                                    <td class="text-end pe-3 font-monospace text-primary fs-6">{{ number_format($arOutstandingSum, 2) }}</td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>

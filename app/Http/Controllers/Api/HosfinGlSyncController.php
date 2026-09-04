@@ -356,10 +356,12 @@ class HosfinGlSyncController extends Controller
                     $debtorType = 'ผู้ป่วยชำระเงิน';
                 }
 
+                $fm = ($row->fiscal_month !== null && $row->fiscal_month !== '') ? intval($row->fiscal_month) : 0;
+
                 $arUpsert[] = [
                     'account_code'        => $code,
                     'fiscal_year'         => $row->fiscal_year ?: 2569,
-                    'fiscal_month'        => $row->fiscal_month ?: 1,
+                    'fiscal_month'        => $fm,
                     'account_name'        => $name,
                     'debtor_type'         => $debtorType,
                     'total_billed'        => $row->total_billed ?: 0.00,
@@ -457,11 +459,11 @@ class HosfinGlSyncController extends Controller
             }
         }
 
-        // 5. Automatic Live Trial Balance Calculation from GL
+        // 5. Automatic Live Monthly Balances Calculation from GL
         try {
-            \App\Http\Controllers\HosFinController::syncTrialBalanceFromGl();
+            \App\Http\Controllers\HosFinController::syncGlMonthlyBalances();
         } catch (\Throwable $e) {
-            Log::warning("Failed to auto-sync trial balance from GL: " . $e->getMessage());
+            Log::warning("Failed to auto-sync monthly balances from GL: " . $e->getMessage());
         }
     }
 

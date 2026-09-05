@@ -31,17 +31,20 @@ class RagSearchService
      * @param string $question User's query
      * @param int $topK Number of top chunks to retrieve
      * @param array $history Previous conversation history
+     * @param string|null $pageContext Current page route / context (e.g. '/hosfin')
      * @return array ['answer' => string, 'sources' => array]
      */
-    public function ask(string $question, int $topK = 4, array $history = []): array
+    public function ask(string $question, int $topK = 4, array $history = [], ?string $pageContext = null): array
     {
         $cleanQuestion = trim($question);
         if (empty($cleanQuestion)) {
             return [
-                'answer' => 'สวัสดีครับ มีข้อมูลการตั้งค่า HOSxP 16 แฟ้ม, งบทดลองการเงิน, หรือระเบียบการเบิกจ่ายข้อใดที่ต้องการให้ผมช่วยเหลือ สามารถพิมพ์สอบถามได้เลยครับ ✨',
+                'answer' => 'สวัสดีครับ มีข้อมูลสถานะการเงินการคลัง, บิลเจ้าหนี้ AP, ลูกหนี้ค่ารักษา, หรือระเบียบข้อใดที่ต้องการให้ผมช่วยเหลือ สามารถพิมพ์สอบถามได้เลยครับ ✨',
                 'sources' => []
             ];
         }
+
+        $isHosfinPage = $pageContext && (str_contains($pageContext, 'hosfin') || str_contains($pageContext, 'financial'));
 
         // Extract context keywords from recent history if available
         $augmentedQuery = $cleanQuestion;
@@ -50,7 +53,7 @@ class RagSearchService
             $prevMsg = end($lastUserMsgs);
             if ($prevMsg && !empty($prevMsg['content'])) {
                 // If current question is a follow-up
-                if (preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|เดือนก่อน|เดือนนี้|ทำไม|เปรียบเทียบ|เท่าไหร่|มีไหม|ได้ไหม|ตัวนี้|รหัสนี้|ผูกยังไง)/iu', $cleanQuestion)) {
+                if (preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|เดือนก่อน|เดือนนี้|ทำไม|เปรียบเทียบ|เท่าไหร่|มีไหม|ได้ไหม|ตัวนี้|รหัสนี้|ผูกยังไง|บริษัทไหน|จ่ายใคร|จ่ายก่อน)/iu', $cleanQuestion)) {
                     $augmentedQuery = $prevMsg['content'] . ' ' . $cleanQuestion;
                 }
             }
@@ -67,8 +70,8 @@ class RagSearchService
         // Domain A: HOSxP Master Data & 16-Files Lookups (nondrugitems, income, adp, 16 แฟ้ม, e-claim, fdh)
         $isHosxpQuery = (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม)/iu', $augmentedQuery);
 
-        // Domain B: HosFin Financials (งบทดลอง, การเงิน, หนี้สิน, สภาพคล่อง, risk score, ผังบัญชี)
-        $isFinancialQuery = (bool) preg_match('/(hosfin|การเงิน|เงินบำรุง|สภาพคล่อง|วิกฤต|risk\s*score|ลูกหนี้|เจ้าหนี้|ค่ายา|งบ|งบทดลอง|รายได้|รายจ่าย|แนวโน้ม|วิเคราะห์|เงินเดือน|ค่าจ้าง|ค่าตอบแทน|จ่าย|ยอด)/iu', $augmentedQuery);
+        // Domain B: HosFin Financials (งบทดลอง, การเงิน, หนี้สิน, สภาพคล่อง, risk score, ผังบัญชี, AP, AR, GL)
+        $isFinancialQuery = $isHosfinPage || (bool) preg_match('/(hosfin|การเงิน|เงินบำรุง|สภาพคล่อง|วิกฤต|risk\s*score|ลูกหนี้|เจ้าหนี้|ค่ายา|งบ|งบทดลอง|รายได้|รายจ่าย|แนวโน้ม|วิเคราะห์|เงินเดือน|ค่าจ้าง|ค่าตอบแทน|จ่าย|ยอด|บริษัท|บิล|ค้างชำระ|aging|สมุดรายวัน|ใบสำคัญ|voucher)/iu', $augmentedQuery);
         $isPeriodQuery = (bool) preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|ช่วงเวลา|ย้อนหลัง|มีข้อมูลถึงไหน|ดูได้ไหม|งวดบัญชี|งวด)/iu', $cleanQuestion);
 
         // Domain C: Intro or Scope Query
@@ -83,7 +86,7 @@ class RagSearchService
             $docTitle = $doc ? $doc->title : 'เอกสารทั่วไป';
             $pageInfo = $chunk->page_number ? " (หน้า {$chunk->page_number})" : "";
 
-            $contextParts[] = "[เอกสารคู่มือ/สเปกที่ " . ($idx + 1) . ": {$docTitle}{$pageInfo}]\n{$chunk->content}";
+            $contextParts[] = "[เอกสารคู่มือ/ระเบียบมาตรฐานที่ " . ($idx + 1) . ": {$docTitle}{$pageInfo}]\n{$chunk->content}";
 
             $sources[] = [
                 'title' => $docTitle,
@@ -114,7 +117,7 @@ class RagSearchService
 
         if ($periodsInfo && ($isPeriodQuery || $isFinancialQuery)) {
             $baselineSystem = "สถานะฐานข้อมูลระบบ HosFin ในระบบ RiMS ขณะนี้:\n" .
-                "- มีข้อมูลงบทดลอง (Trial Balance) ให้ดูได้ทั้งหมด {$periodsInfo['count']} งวดบัญชี คือตั้งแต่งวด {$periodsInfo['min']} ถึง {$periodsInfo['max']} (ครอบคลุม: {$periodsInfo['listStr']})\n" .
+                "- มีข้อมูลงบทดลอง (Trial Balance) และบัญชี GL ให้ดูได้ทั้งหมด {$periodsInfo['count']} งวดบัญชี คือตั้งแต่งวด {$periodsInfo['min']} ถึง {$periodsInfo['max']} (ครอบคลุม: {$periodsInfo['listStr']})\n" .
                 "- งวดล่าสุดคือ {$periodsInfo['max']}\n" .
                 "- ผู้ใช้สามารถสอบถามยอดรายเดือน ยอดสะสม หรือเปรียบเทียบย้อนหลังได้ทุกงวดในช่วงเวลาดังกล่าว";
             $contextParts[] = "[ข้อมูลระบบพื้นฐานและงวดบัญชีที่บันทึกไว้]:\n" . $baselineSystem;
@@ -131,6 +134,7 @@ class RagSearchService
         }
 
         if ($isFinancialQuery) {
+            // A. Live GL Executive Summary
             $hosFinSummary = $this->hosfinContext->getHosFinSummary();
             if ($hosFinSummary) {
                 $contextParts[] = "[ข้อมูลดัชนีชี้วัดสถานะการเงินโรงพยาบาลจากระบบ HosFin ล่าสุด]:\n" . $hosFinSummary['text'];
@@ -143,6 +147,46 @@ class RagSearchService
                 ];
             }
 
+            // B. AP Creditors & Bills Lookup (from hosfin_gl_ap_bills)
+            $apVendorContext = $this->hosfinContext->getApVendorContext($augmentedQuery);
+            if ($apVendorContext) {
+                $contextParts[] = "[ข้อมูลบิลเจ้าหนี้การค้ารายบริษัทจากระบบ GL (AP Bills)]:\n" . $apVendorContext['text'];
+                $sources[] = [
+                    'title' => "บิลเจ้าหนี้การค้ารายบริษัท GL (hosfin_gl_ap_bills)",
+                    'filename' => 'hosfin_gl_ap_bills',
+                    'page' => 1,
+                    'score' => 99.0,
+                    'snippet' => $apVendorContext['preview']
+                ];
+            }
+
+            // C. AR Debtors Lookup (from hosfin_gl_ar_debtors)
+            $arDebtorContext = $this->hosfinContext->getArDebtorContext($augmentedQuery);
+            if ($arDebtorContext) {
+                $contextParts[] = "[ข้อมูลลูกหนี้ค่ารักษาพยาบาลแยกตามสิทธิจากระบบ GL (AR Debtors)]:\n" . $arDebtorContext['text'];
+                $sources[] = [
+                    'title' => "ลูกหนี้ค่ารักษาพยาบาลแยกตามสิทธิ GL (hosfin_gl_ar_debtors)",
+                    'filename' => 'hosfin_gl_ar_debtors',
+                    'page' => 1,
+                    'score' => 99.0,
+                    'snippet' => $arDebtorContext['preview']
+                ];
+            }
+
+            // D. Journal Lookup (from hosfin_gl_journals & journal_items)
+            $journalContext = $this->hosfinContext->getJournalContext($augmentedQuery);
+            if ($journalContext) {
+                $contextParts[] = "[ข้อมูลสมุดรายวันทั่วไปและใบสำคัญ GL (Journals)]:\n" . $journalContext['text'];
+                $sources[] = [
+                    'title' => "สมุดรายวันทั่วไป GL (hosfin_gl_journals)",
+                    'filename' => 'hosfin_gl_journals',
+                    'page' => 1,
+                    'score' => 95.0,
+                    'snippet' => $journalContext['preview']
+                ];
+            }
+
+            // E. Trial Balance Account Lookup (from hosfin_trial_balance)
             $tbAccountContext = $this->hosfinContext->getTrialBalanceAccountContext($augmentedQuery);
             if ($tbAccountContext) {
                 $contextParts[] = "[ข้อมูลงบทดลอง (Trial Balance) รายผังบัญชีจริงจาก HosFin]:\n" . $tbAccountContext['text'];
@@ -206,12 +250,42 @@ class RagSearchService
         }
 
         // 3. System Prompt for Conversational Hospital Financial & Audit Copilot
-        $systemPrompt = <<<PROMPT
+        if ($isHosfinPage || $isFinancialQuery) {
+            $systemPrompt = <<<PROMPT
+คุณคือ "RiMS Copilot" ผู้ช่วย AI อัจฉริยะประจำระบบมอนิเตอร์สถานะการเงินการคลังโรงพยาบาล (Hospital Financial Advisor & CFO Copilot) ประจำระบบ RiMS
+คุณมีความเชี่ยวชาญสูงสุดในการวิเคราะห์งบทดลอง, บัญชีแยกประเภท GL (General Ledger), บิลเจ้าหนี้การค้า (AP Bills), ลูกหนี้ค่ารักษาพยาบาล (AR Debtors), โครงสร้างต้นทุน (LC/MC/CC), และดัชนีชี้วัดสถานะการเงิน 13 ตัวชี้วัดตามเกณฑ์กระทรวงสาธารณสุข
+
+หลักการและมาตรฐานสำคัญในการตอบคำถาม:
+1. ตอบด้วยตัวเลขจริงและข้อมูลบริษัทจริงจากฐานข้อมูล GL:
+   - ตาราง hosfin_gl_ap_bills: มียอดหนี้ค้างชำระจริง 1,417 บิล รวมกว่า 41.67 ล้านบาท แยกรายบริษัท (เช่น องค์การเภสัชกรรม, ไทยเฮลท์ อิมเมจจิ้ง, ซิลลิค ฟาร์มา, เป็นหนึ่งไตเทียม, เบอร์ลินฟาร์มาซูติคอล ฯลฯ)
+   - ตาราง hosfin_gl_ar_debtors: ลูกหนี้ค่ารักษาพยาบาลรอชดเชยแยกตามสิทธิ (สปสช. UC, ข้าราชการ/อปท., ประกันสังคม)
+   - ตาราง hosfin_gl_journals & hosfin_gl_journal_items: รายการสมุดรายวันทั่วไปและใบสำคัญ
+   - ตาราง hosfin_trial_balance & hosfin_dtl_mappings: ผังบัญชีงบทดลองและสูตรอัตราส่วนทางการเงิน
+2. เมื่อผู้ใช้ถามถึงเจ้าหนี้ / บริษัทไหนต้องจ่ายก่อน / จัดลำดับการจ่ายหนี้:
+   - ให้อ้างอิงชื่อบริษัท ยอดหนี้ค้าง วันที่บิล และอายุหนี้ (aging) เสมอ
+   - จัดลำดับความสำคัญตาม "หลักเกณฑ์การบริหารสภาพคล่องทางการแพทย์ (Medical Debt Prioritization Framework)":
+     * [Tier 1 - เร่งด่วนสูงสุด (สีแดง)]: ยาสามัญและยาช่วยชีวิตหลัก (องค์การเภสัชกรรม GPO, บริษัทยารายใหญ่) -> ต้องจ่ายก่อนเพื่อไม่ให้ถูกตัดวงเงินและป้องกันยาขาดคลัง
+     * [Tier 2 - บริการผู้ป่วยต่อเนื่อง (สีส้ม)]: บริการทางการแพทย์ต่อเนื่องที่กระทบคนไข้ทันที (เช่น เป็นหนึ่งไตเทียม/ฟอกไต, ไทยเฮลท์/CT Scan) -> ต้องจ่ายเพื่อไม่ให้หยุดการรักษา
+     * [Tier 3 - วัสดุวิทยาศาสตร์และการแพทย์]: น้ำยาชันสูตร Lab และเวชภัณฑ์สิ้นเปลือง
+     * [Tier 4 - วัสดุสำนักงาน/ทั่วไป]: สามารถเจรจาขอขยายระยะเวลาเครดิตเทอม หรือผ่อนชำระได้
+3. เปรียบเทียบตัวเลขจริง (Cross-reference) กับเกณฑ์กระทรวงสาธารณสุขและเอกสารใน RAG เสมอ:
+   - เทียบระยะเวลาชำระค่ายาจริงกับเกณฑ์มาตรฐาน สธ. (ปกติไม่เกิน 60 วัน)
+   - เทียบระยะเวลาเก็บหนี้ UC/ข้าราชการกับเกณฑ์ (ปกติ 30-45 วัน)
+   - อ้างอิงระดับความเสี่ยงทางการเงิน (Risk Score 0-7) และสถานะเงินบำรุงคงเหลือสุทธิ (สูตร 105)
+4. เสนอแนะการวางแผนล่วงหน้า (Forward-Looking & Cash Inflow Strategy):
+   - ชี้เป้าการเร่งรัดลูกหนี้ สปสช. และข้าราชการ เพื่อดึงกระแสเงินสดเข้ามาหมุนเวียนจ่ายเจ้าหนี้ค่ายา
+5. จัดรูปแบบคำตอบด้วย Markdown อย่างสวยงาม ชัดเจน ใช้หัวข้อ, bullet points, ตัวหนา, และตารางเมื่อมีตัวเลขหลายรายการ
+6. กฎสำคัญเรื่องการจัดรูปแบบ:
+   - ห้ามใช้แท็ก HTML เช่น <font color=...> หรือ <span> (หากต้องการเน้น ให้ใช้ตัวหนา **ข้อความ** หรือใส่วงเล็บ [วิกฤต/สีแดง] แทน)
+   - ห้ามใช้ไวยากรณ์สมการคณิตศาสตร์แบบ LaTeX เช่น $$ \text{...} $$ (ให้เขียนเป็นสมการข้อความธรรมดา เช่น 'เงินบำรุงคงเหลือสุทธิ (105) = เงินบำรุงคงเหลือ (1005X) - ภาระหนี้สินผูกพัน (1005Y)')
+PROMPT;
+        } else {
+            $systemPrompt = <<<PROMPT
 คุณคือ "RiMS Copilot" ผู้ช่วย AI ประจำระบบมอนิเตอร์สถานะการเงินการคลังโรงพยาบาล บริหารจัดการรายได้ ลูกหนี้ค่ารักษาพยาบาล และตรวจสอบการตั้งค่า HOSxP สำหรับการเบิกจ่ายกองทุนต่าง ๆ ของโรงพยาบาล
 คุณสามารถพูดคุย สนทนา ตอบคำถาม และวิเคราะห์สถานะการเงิน งบทดลอง การตั้งค่า HOSxP และหลักเกณฑ์การเบิกจ่ายกองทุนต่าง ๆ ได้อย่างเป็นธรรมชาติ เป็นกันเอง แต่สุภาพและเป็นมืออาชีพ
 
 คุณมีความสามารถหลัก 3 ด้าน:
-1. ด้านมอนิเตอร์สถานะการเงินการคลัง (HosFin): สรุปภาพรวม 5 หมวดบัญชี, เจาะลึกผังงบทดลอง, ดัชนีสภาพคล่องและสุขภาพการเงิน 13 ตัวชี้วัด, และคะแนนวิกฤต (Risk Score 0-7)
+1. ด้านมอนิเตอร์สถานะการเงินการคลัง (HosFin): สรุปภาพรวม 5 หมวดบัญชี, เจาะลึกผังงบทดลอง, บิลเจ้าหนี้ AP, ลูกหนี้ AR, ดัชนีสภาพคล่องและสุขภาพการเงิน 13 ตัวชี้วัด, และคะแนนวิกฤต (Risk Score 0-7)
 2. ด้านการตรวจสอบการตั้งค่า HOSxP: ตรวจสอบข้อมูลจริงในตาราง nondrugitems, income, nhso_adp_type, nhso_adp_code เปรียบเทียบกับหลักเกณฑ์เบิกจ่าย เพื่อชี้เป้าว่า รพ. ตั้งค่าถูกต้อง หรือมีจุดใดที่ต้องแก้ไข
 3. ด้านหลักเกณฑ์การเบิกจ่ายกองทุนต่าง ๆ (RAG): สืบค้นและอ้างอิงเอกสารคู่มือ ระเบียบ สปสช. กรมบัญชีกลาง ประกันสังคม และแนวทางแก้ไขข้อผิดพลาดติด C, V, Deny
 
@@ -220,8 +294,10 @@ class RagSearchService
 2. จดจำบริบทการสนทนาต่อเนื่อง (Contextual Multi-turn): หากผู้ใช้ถามคำถามสั้นๆ หรือถามต่อเนื่อง ให้เข้าใจว่าหมายถึงหัวข้อที่กำลังคุยกันก่อนหน้า
 3. หากผู้ใช้ถามว่า "ตั้งค่าถูกไหม" หรือถามเรื่องรหัสเบิกจ่าย: ให้เปรียบเทียบข้อมูลที่ตั้งไว้จริงใน HOSxP กับหลักเกณฑ์การเบิกจ่าย ชี้แจงจุดที่ถูกต้อง และจุดที่ต้องแก้ไขอย่างชัดเจน
 4. จัดรูปแบบคำตอบด้วย Markdown (หัวข้อ, bullet points, ตาราง หรือตัวหนา) ให้อ่านง่าย สบายตา
-5. หากเป็นเรื่องตัวเลขหรือรหัส ให้ระบุแหล่งที่มา เช่น ชื่องวดบัญชี, ชื่อผัง, หรือรหัส icode ให้ชัดเจน
+5. ห้ามใช้แท็ก HTML เช่น <font color=...> และห้ามใช้สูตร LaTeX เช่น $$ \text{...} $$ ให้เขียนเป็นสมการข้อความธรรมดา
+6. หากเป็นเรื่องตัวเลขหรือรหัส ให้ระบุแหล่งที่มา เช่น ชื่องวดบัญชี, ชื่อผัง, หรือรหัส icode ให้ชัดเจน
 PROMPT;
+        }
 
         $userPrompt = <<<PROMPT
 {$historyText}[ข้อมูลบริบทจากระบบ (RAG เอกสาร, ข้อมูลจริง HOSxP, และงบทดลอง HosFin)]:
@@ -235,10 +311,23 @@ PROMPT;
 
         // 4. Generate response from LLM
         try {
-            $answer = $this->aiService->generateChat($userPrompt, $systemPrompt);
+            $answer = $this->aiService->generateChat($userPrompt, $systemPrompt, $pageContext);
         } catch (\Throwable $e) {
             Log::error("RAG Generation Error: " . $e->getMessage());
-            $answer = "เกิดข้อผิดพลาดในการประมวลผลคำตอบจาก AI: " . $e->getMessage();
+            $provider = \App\Services\Ai\AiService::getProvider();
+            $providerLabel = match($provider) {
+                'gemini' => 'Google Gemini (Cloud)',
+                'ollama' => 'Ollama (On-Premise / Local)',
+                default => 'OpenAI / DeepSeek (Compatible)'
+            };
+            $answer = "⚠️ **ระบบ AI ยังไม่พร้อมใช้งาน หรือยังไม่ได้ตั้งค่าการเชื่อมต่อ**\n\n"
+                    . "• **ผู้ให้บริการที่เลือกไว้:** `{$providerLabel}`\n"
+                    . "• **สาเหตุ:** " . $e->getMessage() . "\n\n"
+                    . "💡 **คำแนะนำ:** ระบบ RiMS Copilot รองรับการเชื่อมต่อ AI หลากหลายค่าย:\n"
+                    . "1. **Google Gemini:** ใช้งานผ่าน Cloud API ได้รวดเร็ว\n"
+                    . "2. **Ollama:** สำหรับรัน Local LLM ภายในโรงพยาบาล (เช่น Typhoon, Llama 3) ไม่ต้องต่อเน็ต\n"
+                    . "3. **OpenAI-Compatible:** สำหรับผู้ให้บริการโมเดลภายนอกอื่นๆ\n\n"
+                    . "กรุณาเปิดหน้า **ตั้งค่า AI & LLM Connection** เพื่อเลือกผู้ให้บริการ บันทึกค่า หรือทดสอบการเชื่อมต่อครับ";
         }
 
         return [

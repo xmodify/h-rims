@@ -66,7 +66,7 @@ class HosfinContextService
             }
 
             $controller = app(\App\Http\Controllers\HosFinController::class);
-            $view = $controller->index();
+            $view = $controller->index(new \Illuminate\Http\Request());
             $data = $view->getData();
             if (empty($data['hasData'])) {
                 return null;
@@ -409,6 +409,250 @@ class HosfinContextService
             ];
         } catch (\Throwable $e) {
             Log::warning("HosfinContextService Trial Balance Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get detailed AP Creditor Bills context from hosfin_gl_ap_bills
+     * Includes vendor name, category, aging, due ranking, and specific vendor bills
+     */
+    public function getApVendorContext(string $query): ?array
+    {
+        try {
+            if (!Schema::hasTable('hosfin_gl_ap_bills')) {
+                return null;
+            }
+
+            $isApQuery = (bool) preg_match('/(เจ้าหนี้|บริษัท|คู่ค้า|ผู้ขาย|ค้างจ่าย|จ่ายก่อน|จ่ายใคร|ลำดับการจ่าย|บิล|ครบกำหนด|อายุหนี้|aging|องค์การเภสัช|gpo|ซิลลิค|ไทยเฮลท์|ฟอกไต|เบอร์ลิน|ค่ายา|เวชภัณฑ์|เจ้าหนี้การค้า|ap)/iu', $query);
+            if (!$isApQuery) {
+                return null;
+            }
+
+            $totalUnpaidDebt = (float) DB::table('hosfin_gl_ap_bills')->where('is_paid', 0)->sum('remaining_debt');
+            $totalUnpaidCount = (int) DB::table('hosfin_gl_ap_bills')->where('is_paid', 0)->count();
+            $totalVendorsCount = (int) DB::table('hosfin_gl_ap_bills')->where('is_paid', 0)->distinct('vendor_name')->count('vendor_name');
+
+            // 1. Category breakdown
+            $categorySummary = DB::table('hosfin_gl_ap_bills')
+                ->select('category', DB::raw('COUNT(*) as total_bills'), DB::raw('SUM(remaining_debt) as remaining'))
+                ->where('is_paid', 0)
+                ->groupBy('category')
+                ->orderBy('remaining', 'desc')
+                ->limit(7)
+                ->get();
+
+            // 2. Top Creditors by remaining debt
+            $topVendors = DB::table('hosfin_gl_ap_bills')
+                ->select('vendor_name', DB::raw('MAX(category) as category'), DB::raw('COUNT(*) as total_bills'), DB::raw('SUM(remaining_debt) as remaining'))
+                ->where('is_paid', 0)
+                ->groupBy('vendor_name')
+                ->orderBy('remaining', 'desc')
+                ->limit(8)
+                ->get();
+
+            // 3. Oldest aging creditors
+            $oldestVendors = DB::table('hosfin_gl_ap_bills')
+                ->select('vendor_name', 'category', 'bill_no', 'bill_date', 'remaining_debt', DB::raw('DATEDIFF(NOW(), bill_date) as days_old'))
+                ->where('is_paid', 0)
+                ->whereNotNull('bill_date')
+                ->orderBy('bill_date', 'asc')
+                ->limit(5)
+                ->get();
+
+            // 4. Check for specific vendor name in query
+            $cleanQuery = preg_replace('/(เจ้าหนี้|บริษัท|จำกัด|มหาชน|ค้างจ่าย|ยอด|เท่าไหร่|มีไหม|กี่บาท|บิล|ช่วย|ดู|หน่อย)/iu', ' ', $query);
+            $tokens = array_filter(array_map('trim', explode(' ', $cleanQuery)), fn($w) => mb_strlen($w) >= 3);
+            
+            $specificVendorBills = collect();
+            $matchedVendorName = null;
+            foreach ($tokens as $token) {
+                $matches = DB::table('hosfin_gl_ap_bills')
+                    ->where('is_paid', 0)
+                    ->where('vendor_name', 'like', "%{$token}%")
+                    ->orderBy('bill_date', 'asc')
+                    ->limit(10)
+                    ->get();
+                if ($matches->isNotEmpty()) {
+                    $specificVendorBills = $matches;
+                    $matchedVendorName = $matches->first()->vendor_name;
+                    break;
+                }
+            }
+
+            $lines = [];
+            $lines[] = "ข้อมูลเจ้าหนี้การค้าและบิลค้างชำระจริงจากระบบ GL (ตาราง hosfin_gl_ap_bills):";
+            $lines[] = "• ภาพรวมหนี้สินค้างชำระ: " . number_format($totalUnpaidDebt, 2) . " บาท (รวม " . number_format($totalUnpaidCount) . " บิล จาก " . number_format($totalVendorsCount) . " บริษัท)";
+            
+            $lines[] = "\n• สรุปยอดหนี้แยกตามหมวดหมู่การใช้งาน:";
+            foreach ($categorySummary as $c) {
+                $lines[] = "  - หมวด " . ($c->category ?: 'ทั่วไป') . ": " . number_format($c->remaining, 2) . " บาท (" . number_format($c->total_bills) . " บิล)";
+            }
+
+            $lines[] = "\n• รายชื่อบริษัทเจ้าหนี้ค้างชำระสูงสุด 8 อันดับแรก:";
+            foreach ($topVendors as $idx => $v) {
+                $lines[] = "  " . ($idx + 1) . ". {$v->vendor_name} (หมวด: " . ($v->category ?: 'ทั่วไป') . ") => ค้างชำระ " . number_format($v->remaining, 2) . " บาท (" . number_format($v->total_bills) . " บิล)";
+            }
+
+            if ($oldestVendors->isNotEmpty()) {
+                $lines[] = "\n• บิลเจ้าหนี้ที่ค้างชำระยาวนานที่สุด (เสี่ยงเกินเกณฑ์เครดิตเทอม):";
+                foreach ($oldestVendors as $o) {
+                    $lines[] = "  - {$o->vendor_name} บิลเลขที่: {$o->bill_no} (ลงวันที่: {$o->bill_date}, ค้างประมาณ {$o->days_old} วัน) ยอด " . number_format($o->remaining_debt, 2) . " บาท";
+                }
+            }
+
+            if ($specificVendorBills->isNotEmpty()) {
+                $lines[] = "\n• รายการบิลค้างชำระของบริษัท [{$matchedVendorName}]:";
+                $vendorTotal = 0;
+                foreach ($specificVendorBills as $b) {
+                    $vendorTotal += (float)$b->remaining_debt;
+                    $lines[] = "  - บิล {$b->bill_no} (วันที่ {$b->bill_date}, ผัง: {$b->account_name}) ยอดคงเหลือ: " . number_format($b->remaining_debt, 2) . " บาท";
+                }
+                $lines[] = "  รวมยอดค้างของบริษัทนี้: " . number_format($vendorTotal, 2) . " บาท";
+            }
+
+            $lines[] = "\n• หลักเกณฑ์และข้อแนะนำเชิงกลยุทธ์ในการจัดลำดับการจ่ายหนี้ (Payment Prioritization Matrix):";
+            $lines[] = "  1. [Tier 1 - เร่งด่วนสูงสุด (สีแดง)]: เจ้าหนี้ยาสามัญ/ยาช่วยชีวิตหลัก เช่น 'องค์การเภสัชกรรม (GPO)' และบริษัทยาสำคัญ (เช่น ซิลลิค ฟาร์มา, เบอร์ลิน) -> ต้องจัดสรรจ่ายก่อนเพื่อรักษาวงเงินเครดิตและไม่ให้ถูกระงับการส่งยา";
+            $lines[] = "  2. [Tier 2 - บริการผู้ป่วยต่อเนื่อง (สีส้ม)]: ค่าจ้างเหมาบริการทางการแพทย์ต่อเนื่อง เช่น 'เป็นหนึ่งไตเทียม (ฟอกไต)' และ 'ไทยเฮลท์ อิมเมจจิ้ง (CT Scan)' -> ต้องจ่ายเพื่อป้องกันการหยุดให้บริการผู้ป่วยวิกฤต";
+            $lines[] = "  3. [Tier 3 - วัสดุวิทยาศาสตร์และการแพทย์ (สีเหลือง)]: น้ำยาชันสูตร Lab และเวชภัณฑ์สิ้นเปลือง";
+            $lines[] = "  4. [Tier 4 - วัสดุสำนักงาน/คอมพิวเตอร์/ซ่อมบำรุง (สีเขียว)]: สามารถเจรจาขอขยายระยะเวลาเครดิตเทอม หรือผ่อนชำระเป็นงวดได้";
+
+            return [
+                'text' => implode("\n", $lines),
+                'totalUnpaid' => $totalUnpaidDebt,
+                'count' => $totalUnpaidCount,
+                'preview' => "เจ้าหนี้ค้าง " . number_format($totalUnpaidDebt, 2) . " บ. (สูงสุด: " . ($topVendors->first()->vendor_name ?? '') . ")"
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService AP Vendor Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get AR Debtors context from hosfin_gl_ar_debtors
+     */
+    public function getArDebtorContext(string $query): ?array
+    {
+        try {
+            if (!Schema::hasTable('hosfin_gl_ar_debtors')) {
+                return null;
+            }
+
+            $isArQuery = (bool) preg_match('/(ลูกหนี้|ค่ารักษา|สิทธิ|สปสช|uc|บัตรทอง|ข้าราชการ|csmbs|อปท|ประกันสังคม|sss|ชดเชย|ค้างท่อ|ตั้งเบิก|พ\.ร\.บ|ar)/iu', $query);
+            if (!$isArQuery) {
+                return null;
+            }
+
+            $totalOutstanding = (float) DB::table('hosfin_gl_ar_debtors')->sum('outstanding_balance');
+            $totalBilled = (float) DB::table('hosfin_gl_ar_debtors')->sum('total_billed');
+            $totalCollected = (float) DB::table('hosfin_gl_ar_debtors')->sum('total_collected');
+            $collectRate = $totalBilled > 0 ? round(($totalCollected / $totalBilled) * 100, 1) : 0;
+
+            $summaries = DB::table('hosfin_gl_ar_debtors')
+                ->select(
+                    'debtor_type',
+                    DB::raw('COUNT(*) as count'),
+                    DB::raw('SUM(total_billed) as billed'),
+                    DB::raw('SUM(total_collected) as collected'),
+                    DB::raw('SUM(outstanding_balance) as outstanding')
+                )
+                ->groupBy('debtor_type')
+                ->orderBy('outstanding', 'desc')
+                ->get();
+
+            $lines = [];
+            $lines[] = "ข้อมูลลูกหนี้ค่ารักษาพยาบาลจริงจากระบบ GL (ตาราง hosfin_gl_ar_debtors):";
+            $lines[] = "• ลูกหนี้คงค้างรอชดเชยรวมทั้งสิ้น: " . number_format($totalOutstanding, 2) . " บาท (จากยอดตั้งเบิก " . number_format($totalBilled, 2) . " บาท, ได้รับชดเชยแล้ว " . number_format($totalCollected, 2) . " บาท, อัตราเก็บหนี้สำเร็จ {$collectRate}%)";
+            $lines[] = "\n• ยอดลูกหนี้คงค้างรอการชดเชยแยกตามกองทุน/สิทธิการรักษา:";
+            foreach ($summaries as $s) {
+                $rate = $s->billed > 0 ? round(($s->collected / $s->billed) * 100, 1) : 0;
+                $lines[] = "  - " . ($s->debtor_type ?: 'ทั่วไป') . ": ยอดค้างชำระ " . number_format($s->outstanding, 2) . " บาท (ตั้งเบิก: " . number_format($s->billed, 2) . " บ., รับแล้ว: " . number_format($s->collected, 2) . " บ. หรือ {$rate}%)";
+            }
+
+            $lines[] = "\n• ข้อสังเกตและข้อเสนอแนะในการเร่งรัดกระแสเงินสดเข้า (Cash Inflow):";
+            $lines[] = "  1. กองทุน สปสช. (UC) และ ข้าราชการ/อปท. มียอดค้างชำระรวมกันกว่า 80% ของลูกหนี้ทั้งหมด ให้เร่งติดตาม Statement รอบตัดจ่ายกลางเดือนและปลายเดือน";
+            $lines[] = "  2. ตรวจสอบเคสที่ส่งเบิกแล้วติด C, V, Deny เพื่อเร่งแก้ไขและส่งเบิกซ้ำก่อนปิดงวดบัญชี จะช่วยเปลี่ยนลูกหนี้เป็นเงินสดหมุนเวียนได้เร็วที่สุด";
+
+            return [
+                'text' => implode("\n", $lines),
+                'totalOutstanding' => $totalOutstanding,
+                'preview' => "ลูกหนี้ค้างรอชดเชย " . number_format($totalOutstanding, 2) . " บ. (สปสช. + ข้าราชการ สูงสุด)"
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService AR Debtor Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get Journal entries context from hosfin_gl_journals and hosfin_gl_journal_items
+     */
+    public function getJournalContext(string $query): ?array
+    {
+        try {
+            if (!Schema::hasTable('hosfin_gl_journals') || !Schema::hasTable('hosfin_gl_journal_items')) {
+                return null;
+            }
+
+            $isJournalQuery = (bool) preg_match('/(สมุดรายวัน|ใบสำคัญ|voucher|jv|pv|rv|รายวันทั่วไป|รายการลงบัญชี|เดบิต|เครดิต)/iu', $query);
+            if (!$isJournalQuery) {
+                return null;
+            }
+
+            // Check if specific voucher pattern exists
+            preg_match('/([A-Za-z]{2,5}[-_]?\d{4,12})/i', $query, $vm);
+            $targetVoucher = $vm[1] ?? null;
+
+            if ($targetVoucher) {
+                $voucher = DB::table('hosfin_gl_journals')
+                    ->where('voucher_no', 'like', "%{$targetVoucher}%")
+                    ->first();
+                if ($voucher) {
+                    $items = DB::table('hosfin_gl_journal_items')
+                        ->where('journal_id', $voucher->id)
+                        ->orderBy('item_no', 'asc')
+                        ->get();
+
+                    $lines = [];
+                    $lines[] = "ข้อมูลใบสำคัญรายวันเลขที่ {$voucher->voucher_no} (วันที่ {$voucher->voucher_date}, ประเภท {$voucher->journal_type}):";
+                    $lines[] = "• คำอธิบาย: {$voucher->description}";
+                    $lines[] = "• รายการเดบิต/เครดิต:";
+                    foreach ($items as $it) {
+                        $dr = $it->debit > 0 ? ("เดบิต: " . number_format($it->debit, 2)) : "";
+                        $cr = $it->credit > 0 ? ("เครดิต: " . number_format($it->credit, 2)) : "";
+                        $amt = trim("{$dr} {$cr}");
+                        $lines[] = "  - [{$it->account_code}] {$it->account_name}: {$amt} บาท (" . ($it->description ?: '-') . ")";
+                    }
+                    $lines[] = "• ยอดรวม เดบิต: " . number_format($voucher->total_debit, 2) . " บาท, เครดิต: " . number_format($voucher->total_credit, 2) . " บาท";
+
+                    return [
+                        'text' => implode("\n", $lines),
+                        'preview' => "ใบสำคัญ {$voucher->voucher_no}"
+                    ];
+                }
+            }
+
+            // Recent journals summary
+            $recentJournals = DB::table('hosfin_gl_journals')
+                ->orderBy('voucher_date', 'desc')
+                ->limit(5)
+                ->get();
+
+            $lines = [];
+            $lines[] = "ข้อมูลภาพรวมสมุดรายวันทั่วไป (ตาราง hosfin_gl_journals):";
+            $lines[] = "• มีรายการใบสำคัญในระบบทั้งหมด " . number_format(DB::table('hosfin_gl_journals')->count()) . " ใบ";
+            $lines[] = "• ตัวอย่างใบสำคัญล่าสุด:";
+            foreach ($recentJournals as $rj) {
+                $lines[] = "  - [{$rj->voucher_no}] วันที่: {$rj->voucher_date} ประเภท: {$rj->journal_type} ยอด: " . number_format($rj->total_debit, 2) . " บาท คำอธิบาย: " . mb_substr($rj->description, 0, 40);
+            }
+
+            return [
+                'text' => implode("\n", $lines),
+                'preview' => "สมุดรายวันล่าสุด 5 รายการ"
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService Journal Warning: " . $e->getMessage());
             return null;
         }
     }

@@ -64,6 +64,13 @@ class RagKnowledgeController extends Controller
      */
     public function saveSettings(Request $request)
     {
+        if (!auth()->check() || auth()->user()->status !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์บันทึกการตั้งค่า AI'
+            ], 403);
+        }
+
         $provider = $request->input('ai_provider', 'gemini');
         $apiUrl = trim($request->input('ai_api_url', ''));
         if ($provider === 'gemini' && (empty($apiUrl) || strpos($apiUrl, 'localhost:11434') !== false)) {
@@ -73,13 +80,34 @@ class RagKnowledgeController extends Controller
         }
 
         $settings = [
-            'ai_active' => ($request->has('ai_active') && in_array($request->input('ai_active'), ['Y', '1', 'on', true], true)) ? 'Y' : 'N',
+            'ai_active' => 'Y',
             'ai_provider' => $provider,
             'ai_api_key' => $request->input('ai_api_key', ''),
             'ai_api_url' => $apiUrl,
-            'ai_model_name' => $request->input('ai_model_name', 'gemini-1.5-flash'),
-            'ai_embed_model' => $request->input('ai_embed_model', 'text-embedding-004'),
         ];
+
+        if ($request->filled('ai_model_name')) {
+            $settings['ai_model_name'] = trim($request->input('ai_model_name'));
+        }
+        if ($request->filled('ai_model_hosfin')) {
+            $settings['ai_model_hosfin'] = trim($request->input('ai_model_hosfin'));
+        }
+        if ($request->filled('ai_embed_model')) {
+            $settings['ai_embed_model'] = trim($request->input('ai_embed_model'));
+        }
+
+        // Safeguard: Prevent mismatched cloud Gemini model names when using Ollama
+        if ($provider === 'ollama') {
+            if (isset($settings['ai_model_hosfin']) && str_contains(strtolower($settings['ai_model_hosfin']), 'gemini')) {
+                $settings['ai_model_hosfin'] = 'gemma4:e4b';
+            }
+            if (isset($settings['ai_model_name']) && str_contains(strtolower($settings['ai_model_name']), 'gemini')) {
+                $settings['ai_model_name'] = 'gemma4:e4b';
+            }
+            if (isset($settings['ai_embed_model']) && str_contains(strtolower($settings['ai_embed_model']), 'gemini')) {
+                $settings['ai_embed_model'] = 'nomic-embed-text';
+            }
+        }
 
         foreach ($settings as $name => $val) {
             DB::table('main_setting')->updateOrInsert(
@@ -328,7 +356,8 @@ class RagKnowledgeController extends Controller
 
         $question = $request->input('question');
         $history = $request->input('history', []);
-        $result = $this->searchService->ask($question, 4, is_array($history) ? $history : []);
+        $pageContext = $request->input('page_context', '');
+        $result = $this->searchService->ask($question, 4, is_array($history) ? $history : [], $pageContext);
 
         return response()->json([
             'success' => true,

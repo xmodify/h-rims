@@ -28,6 +28,9 @@
                     <i class="bi bi-trash3"></i>
                 </button>
                 @if(auth()->check() && auth()->user()->status === 'admin')
+                <button type="button" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ตั้งค่า AI & LLM Connection" onclick="openAiSettingsModal()">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
                 <a href="{{ route('admin.rag.index') }}" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ไปยังคลังความรู้">
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>
@@ -45,11 +48,18 @@
                 <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
                 <div class="ai-msg-bubble">
                     <p class="mb-1">สวัสดีครับ! ผมคือ <strong>RiMS Copilot</strong> 🩺✨</p>
-                    <p class="mb-0 small text-muted">ผู้ช่วย AI ประจำระบบมอนิเตอร์สถานะการเงินการคลังโรงพยาบาล พร้อมช่วยวิเคราะห์งบทดลอง ตรวจสอบการตั้งค่า HOSxP และหลักเกณฑ์การเบิกจ่ายกองทุนต่าง ๆ สอบถามได้เลยครับ</p>
+                    <p class="mb-2 small text-muted">ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน สามารถพิมพ์สอบถามได้เลยครับ</p>
+                    <div id="aiQuickSuggestions" class="mt-2 pt-2 border-top">
+                        <small class="d-block text-muted mb-1" style="font-size: 0.75rem;"><i class="bi bi-lightbulb text-warning me-1"></i> คำถามแนะนำด่วน:</small>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เจ้าหนี้บริษัทไหนต้องจ่ายก่อนตามอายุหนี้')">📌 เจ้าหนี้บริษัทไหนต้องจ่ายก่อน?</button>
+                            <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปยอดหนี้องค์การเภสัชกรรม')">💊 ยอดหนี้องค์การเภสัชกรรม (GPO)</button>
+                            <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ลูกหนี้ค่ารักษาพยาบาลค้างชำระแยกตามสิทธิ')">👛 ลูกหนี้ค้างชำระแยกตามสิทธิ</button>
+                            <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปสถานะเงินบำรุงสุทธิ 105 และระดับความเสี่ยง Risk Score')">📊 สภาพคล่องและเงินบำรุงสุทธิ</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- (คำถามที่พบบ่อยถูกนำออกตามที่ผู้ใช้ต้องการ) -->
         </div>
 
         <!-- Typing Indicator (Hidden by default) -->
@@ -465,7 +475,8 @@
             },
             body: JSON.stringify({ 
                 question: text,
-                history: aiConversationHistory.slice(-6)
+                history: aiConversationHistory.slice(-6),
+                page_context: window.location.pathname
             })
         })
         .then(res => res.json())
@@ -498,20 +509,79 @@
                     '</div>';
             }
 
-            // Simple markdown parsing for bold, bullets, headers
-            let formattedText = escapeHtml(text)
-                .replace(/^### (.*$)/gim, '<strong class="d-block text-dark mt-2 mb-1">$1</strong>')
-                .replace(/^## (.*$)/gim, '<strong class="d-block text-primary mt-2 mb-1">$1</strong>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/^\* (.*$)/gim, '<div class="ms-2">• $1</div>')
-                .replace(/^- (.*$)/gim, '<div class="ms-2">• $1</div>')
-                .replace(/\n/g, '<br>');
+            // Advanced formatting: LaTeX Math formulas, Color tags, and Markdown
+            let formattedText = (function(raw) {
+                if (!raw) return '';
+
+                // 1. Convert LaTeX math block $$ \text{...} $$ to a clean formula display card
+                let res = raw.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+                    let clean = formula
+                        .replace(/\\text\{([^}]+)\}/g, '$1')
+                        .replace(/\\quad/g, ' ')
+                        .replace(/\\times/g, ' × ')
+                        .replace(/\\div/g, ' ÷ ')
+                        .replace(/\\approx/g, ' ≈ ')
+                        .replace(/\\le/g, ' ≤ ')
+                        .replace(/\\ge/g, ' ≥ ')
+                        .trim();
+                    return `@@FORMULA_CARD_START@@${clean}@@FORMULA_CARD_END@@`;
+                });
+
+                // 2. Convert inline LaTeX math $ \text{...} $
+                res = res.replace(/\$([^\$\n]+)\$/g, function(match, formula) {
+                    return formula.replace(/\\text\{([^}]+)\}/g, '$1').trim();
+                });
+
+                // 3. Mark font color tags before escaping
+                res = res
+                    .replace(/<font\s+color=['"]?red['"]?>(.*?)<\/font>/gi, '@@COLOR_RED_START@@$1@@COLOR_RED_END@@')
+                    .replace(/<font\s+color=['"]?green['"]?>(.*?)<\/font>/gi, '@@COLOR_GREEN_START@@$1@@COLOR_GREEN_END@@')
+                    .replace(/<font\s+color=['"]?blue['"]?>(.*?)<\/font>/gi, '@@COLOR_BLUE_START@@$1@@COLOR_BLUE_END@@')
+                    .replace(/<font[^>]*>/gi, '')
+                    .replace(/<\/font>/gi, '');
+
+                // 4. Escape general HTML
+                res = escapeHtml(res);
+
+                // 5. Restore LaTeX formula card with Bootstrap style
+                res = res.replace(/@@FORMULA_CARD_START@@([\s\S]*?)@@FORMULA_CARD_END@@/g, 
+                    '<div class="p-2 my-2 bg-light border border-primary-subtle rounded-3 text-center fw-bold text-primary font-monospace small" style="word-break: break-word;"><i class="bi bi-calculator me-1"></i> $1</div>'
+                );
+
+                // 6. Restore color tags or fix any escaped &lt;font ...&gt;
+                res = res
+                    .replace(/@@COLOR_RED_START@@(.*?)@@COLOR_RED_END@@/g, '<span class="text-danger fw-bold">$1</span>')
+                    .replace(/@@COLOR_GREEN_START@@(.*?)@@COLOR_GREEN_END@@/g, '<span class="text-success fw-bold">$1</span>')
+                    .replace(/@@COLOR_BLUE_START@@(.*?)@@COLOR_BLUE_END@@/g, '<span class="text-primary fw-bold">$1</span>')
+                    .replace(/&lt;font\s+color=(?:&quot;|&#039;|")?red(?:&quot;|&#039;|")?&gt;(.*?)&lt;\/font&gt;/gi, '<span class="text-danger fw-bold">$1</span>')
+                    .replace(/&lt;font\s+color=(?:&quot;|&#039;|")?green(?:&quot;|&#039;|")?&gt;(.*?)&lt;\/font&gt;/gi, '<span class="text-success fw-bold">$1</span>')
+                    .replace(/&lt;font\s+color=(?:&quot;|&#039;|")?blue(?:&quot;|&#039;|")?&gt;(.*?)&lt;\/font&gt;/gi, '<span class="text-primary fw-bold">$1</span>')
+                    .replace(/&lt;font[^&]*&gt;/gi, '')
+                    .replace(/&lt;\/font&gt;/gi, '');
+
+                // 7. Markdown parsing
+                return res
+                    .replace(/^### (.*$)/gim, '<strong class="d-block text-dark mt-2 mb-1">$1</strong>')
+                    .replace(/^## (.*$)/gim, '<strong class="d-block text-primary mt-2 mb-1">$1</strong>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`([^`]+)`/g, '<code class="bg-light px-1 py-0.5 rounded text-dark border small">$1</code>')
+                    .replace(/^\* (.*$)/gim, '<div class="ms-2">• $1</div>')
+                    .replace(/^- (.*$)/gim, '<div class="ms-2">• $1</div>')
+                    .replace(/\n/g, '<br>');
+            })(text);
+
+            let actionBtnHtml = '';
+            const isUserAdmin = {{ (auth()->check() && auth()->user()->status === 'admin') ? 'true' : 'false' }};
+            if (isUserAdmin && text.includes('ตั้งค่า AI & LLM Connection') && typeof openAiSettingsModal === 'function') {
+                actionBtnHtml = '<div class="mt-2 pt-2 border-top"><button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm" onclick="openAiSettingsModal()"><i class="bi bi-gear-fill me-1"></i> ตั้งค่า AI & LLM Connection ทันที</button></div>';
+            }
 
             row.innerHTML = `
                 <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
                 <div class="ai-msg-bubble">
                     <div>${formattedText}</div>
+                    ${actionBtnHtml}
                     ${sourcesHtml}
                 </div>
             `;

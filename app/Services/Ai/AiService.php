@@ -50,11 +50,50 @@ class AiService
     }
 
     /**
-     * Get Chat Model Name
+     * Get Chat Model Name (per-page or default)
      */
-    public static function getModelName()
+    public static function getModelName(?string $pageContext = null)
     {
-        return self::getSetting('ai_model_name', env('AI_MODEL_NAME', 'gemini-1.5-flash'));
+        $provider = self::getProvider();
+
+        if ($pageContext && str_contains(strtolower($pageContext), 'hosfin')) {
+            $hosfinModel = self::getSetting('ai_model_hosfin');
+            if (!empty($hosfinModel)) {
+                // If provider is Ollama, protect against using cloud Gemini model name
+                if ($provider === 'ollama' && str_contains(strtolower($hosfinModel), 'gemini')) {
+                    $generalModel = self::getSetting('ai_model_name', 'gemma4:e4b');
+                    return (!str_contains(strtolower($generalModel), 'gemini')) ? $generalModel : 'gemma4:e4b';
+                }
+                return $hosfinModel;
+            }
+            return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.6-flash');
+        }
+
+        $generalModel = self::getSetting('ai_model_name');
+        if (!empty($generalModel)) {
+            if ($provider === 'ollama' && str_contains(strtolower($generalModel), 'gemini')) {
+                return 'gemma4:e4b';
+            }
+            return $generalModel;
+        }
+
+        return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-flash-latest');
+    }
+
+    /**
+     * Get HosFin Specific Model Name
+     */
+    public static function getHosfinModelName()
+    {
+        $provider = self::getProvider();
+        $hosfinModel = self::getSetting('ai_model_hosfin');
+        if (!empty($hosfinModel)) {
+            if ($provider === 'ollama' && str_contains(strtolower($hosfinModel), 'gemini')) {
+                return 'gemma4:e4b';
+            }
+            return $hosfinModel;
+        }
+        return ($provider === 'ollama') ? 'gemma4:e4b' : 'gemini-3.6-flash';
     }
 
     /**
@@ -84,14 +123,14 @@ class AiService
     /**
      * Test connection to the configured AI service
      */
-    public function testConnection()
+    public function testConnection(?string $pageContext = null)
     {
         $provider = self::getProvider();
-        $model = self::getModelName();
+        $model = self::getModelName($pageContext);
 
         try {
             $testPrompt = "กรุณาตอบว่า 'การเชื่อมต่อระบบ AI สำเร็จ' สั้นๆ 1 ประโยค";
-            $response = $this->generateChat($testPrompt);
+            $response = $this->generateChat($testPrompt, null, $pageContext);
 
             return [
                 'success' => true,
@@ -141,18 +180,19 @@ class AiService
      *
      * @param string $prompt
      * @param string|null $systemPrompt
+     * @param string|null $pageContext
      * @return string
      */
-    public function generateChat(string $prompt, ?string $systemPrompt = null): string
+    public function generateChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
         $provider = self::getProvider();
 
         if ($provider === 'gemini') {
-            return $this->generateGeminiChat($prompt, $systemPrompt);
+            return $this->generateGeminiChat($prompt, $systemPrompt, $pageContext);
         } elseif ($provider === 'ollama') {
-            return $this->generateOllamaChat($prompt, $systemPrompt);
+            return $this->generateOllamaChat($prompt, $systemPrompt, $pageContext);
         } else {
-            return $this->generateOpenAiChat($prompt, $systemPrompt);
+            return $this->generateOpenAiChat($prompt, $systemPrompt, $pageContext);
         }
     }
 
@@ -164,7 +204,7 @@ class AiService
     {
         $apiKey = self::getApiKey();
         if (empty($apiKey)) {
-            throw new \Exception("กรุณากรอก GEMINI_API_KEY ในหน้าตั้งค่าหรือไฟล์ .env ก่อนใช้งาน");
+            throw new \Exception("ยังไม่ได้ระบุ Gemini API Key สำหรับโมเดล Google Gemini (กรุณากรอกในหน้าตั้งค่า AI & LLM Connection หรือสลับไปใช้ Ollama)");
         }
 
         $embedModel = self::getEmbedModel();
@@ -197,16 +237,16 @@ class AiService
         return $data['embedding']['values'] ?? [];
     }
 
-    protected function generateGeminiChat(string $prompt, ?string $systemPrompt = null): string
+    protected function generateGeminiChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
         $apiKey = self::getApiKey();
         if (empty($apiKey)) {
-            throw new \Exception("กรุณากรอก GEMINI_API_KEY ในหน้าตั้งค่าหรือไฟล์ .env ก่อนใช้งาน");
+            throw new \Exception("ยังไม่ได้ระบุ Gemini API Key สำหรับ Google Gemini (กรุณาไปที่หน้า 'ตั้งค่า AI & LLM Connection' เพื่อบันทึก Key หรือสลับไปใช้ผู้ให้บริการอื่น เช่น Ollama / OpenAI-Compatible)");
         }
 
-        $model = self::getModelName();
+        $model = self::getModelName($pageContext);
         if (empty($model) || in_array($model, ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'], true)) {
-            $model = 'gemini-flash-latest';
+            $model = ($pageContext && str_contains(strtolower($pageContext), 'hosfin')) ? 'gemini-3.6-flash' : 'gemini-flash-latest';
         }
 
         $payload = [
@@ -229,7 +269,7 @@ class AiService
         }
 
         // Resilient fallback order if primary model experiences high demand spike (503/429)
-        $modelsToTry = array_values(array_unique([$model, 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-3.5-flash']));
+        $modelsToTry = array_values(array_unique([$model, 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.5-flash']));
         $lastError = null;
 
         foreach ($modelsToTry as $currentModel) {
@@ -311,10 +351,10 @@ class AiService
         return $res->json()['embedding'] ?? [];
     }
 
-    protected function generateOllamaChat(string $prompt, ?string $systemPrompt = null): string
+    protected function generateOllamaChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
         $baseUrl = self::getApiUrl();
-        $model = self::getModelName();
+        $model = self::getModelName($pageContext);
 
         $payload = [
             'model' => $model,
@@ -326,12 +366,16 @@ class AiService
             $payload['system'] = $systemPrompt;
         }
 
-        $res = Http::withoutVerifying()
-            ->timeout(90)
-            ->post("{$baseUrl}/api/generate", $payload);
+        try {
+            $res = Http::withoutVerifying()
+                ->timeout(180)
+                ->post("{$baseUrl}/api/generate", $payload);
+        } catch (\Throwable $e) {
+            throw new \Exception("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Ollama ที่ [{$baseUrl}] ได้ ({$e->getMessage()}) กรุณาตรวจสอบว่าเซิร์ฟเวอร์ Ollama กำลังทำงานอยู่");
+        }
 
         if (!$res->successful()) {
-            throw new \Exception("Ollama Generate Error: " . $res->body());
+            throw new \Exception("Ollama (โมเดล {$model}) ตอบกลับข้อผิดพลาด: " . ($res->json()['error'] ?? $res->body()));
         }
 
         return $res->json()['response'] ?? '';
@@ -362,11 +406,15 @@ class AiService
         return $res->json()['data'][0]['embedding'] ?? [];
     }
 
-    protected function generateOpenAiChat(string $prompt, ?string $systemPrompt = null): string
+    protected function generateOpenAiChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
         $baseUrl = self::getApiUrl();
         $apiKey = self::getApiKey();
-        $model = self::getModelName();
+        $model = self::getModelName($pageContext);
+
+        if (empty($apiKey)) {
+            throw new \Exception("ยังไม่ได้ระบุ API Key สำหรับ OpenAI-Compatible ในหน้าตั้งค่า AI & LLM Connection");
+        }
 
         $messages = [];
         if ($systemPrompt) {

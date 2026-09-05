@@ -3049,53 +3049,81 @@ class HosFinController extends Controller
             ],
         ];
 
-        // Try AI synthesis if API Key configured with valid Gemini format
+        // Execute 100% Real Generative AI Synthesis (Supports Gemini, Ollama, OpenAI-compatible)
         $answer = null;
-        $apiKey = \App\Services\Ai\AiService::getApiKey();
-        if (!empty($apiKey) && str_starts_with($apiKey, 'AIzaSy')) {
-            try {
-                $glFactSheet = "ข้อมูลจริงจากฐานข้อมูลบัญชีแยกประเภท GL (General Ledger) ล่าสุด:\n"
-                    . "- งวดบัญชี: {$latestPeriodLabel} (ปีงบ {$budgetYear})\n"
-                    . "- ระดับความเสี่ยงทางการเงิน (Risk Score): ระดับ {$riskScore} / 7 ({$riskScoreLabel})\n"
-                    . "- เงินบำรุงคงเหลือสุทธิ (105): " . number_format($netOperatingFund, 2) . " บาท\n"
-                    . "- สภาพคล่อง: Current Ratio = {$currentRatio} เท่า, Cash Ratio = {$cashRatio} เท่า, Quick Ratio = {$quickRatio} เท่า, ทุนหมุนเวียน NWC = " . number_format($nwc, 2) . " บาท\n"
-                    . "- เงินสดและเงินฝากธนาคารจริง: " . number_format($totalCash, 2) . " บาท จาก {$cashAccountsCount} บัญชี\n"
-                    . "- เจ้าหนี้การค้า (AP Bills): หนี้ค้างชำระรวม " . number_format($totalUnpaidAp, 2) . " บาท จากทั้งหมด " . number_format($totalUnpaidApCount) . " บิล\n"
-                    . "  เจ้าหนี้ค้างจ่ายสูงสุด: " . $topCreditors->map(fn($v) => "{$v->vendor_name} (" . number_format($v->remaining_debt, 2) . " บ.)")->implode(', ') . "\n"
-                    . "  ระยะเวลาชำระหนี้ค่ายา (260): {$drugPayDays} วัน (เกณฑ์ปกติ <= 60 วัน)\n"
-                    . "- ลูกหนี้ค่ารักษาพยาบาล (AR Debtors): ยอดค้างชำระรวม " . number_format($totalArOutstanding, 2) . " บาท (จากตั้งเบิก " . number_format($totalArBilled, 2) . " บ., รับชดเชยแล้ว " . number_format($totalArCollected, 2) . " บ.)\n"
-                    . "  แยกตามสิทธิ: " . $arTypeSummaries->map(fn($s) => "{$s->debtor_type} ค้าง " . number_format($s->outstanding, 2) . " บ.")->implode(', ') . "\n"
-                    . "  ระยะเวลาเก็บหนี้ข้าราชการ (262): {$ofcCollectDays} วัน, ลูกหนี้ UC (261): {$ucCollectDays} วัน\n"
-                    . "- โครงสร้างต้นทุนบริการ (Cost LC/MC/CC): รวม " . number_format($totalCost, 2) . " บาท\n"
-                    . "  MC ค่าวัสดุยา: " . number_format($totalMc, 2) . " บาท ({$mcPercent}%)\n"
-                    . "  LC ค่าแรงบุคลากร: " . number_format($totalLc, 2) . " บาท ({$lcPercent}%)\n"
-                    . "  CC ค่าลงทุนและเสื่อมราคา: " . number_format($totalCc, 2) . " บาท ({$ccPercent}%)\n"
-                    . "  อัตราสำรองคลังยา (264): {$inventoryDays} วัน, Net Margin (307): {$netMargin}%\n";
+        $aiError = null;
+        $provider = \App\Services\Ai\AiService::getProvider();
+        $providerLabel = match($provider) {
+            'gemini' => 'Google Gemini (Cloud)',
+            'ollama' => 'Ollama (Local / On-Premise)',
+            default => 'OpenAI / DeepSeek (Compatible)'
+        };
+        $model = \App\Services\Ai\AiService::getModelName('hosfin');
 
-                $aiPrompt = "คุณคือผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาลภาครัฐและระบบบัญชี GL (Hospital Financial & Accounting Intelligence Expert)\n"
-                    . "กรุณาวิเคราะห์สุขภาพการเงินของโรงพยาบาลอย่างเจาะลึกจากฐานข้อมูลบัญชี GL จริง (General Ledger) ต่อไปนี้:\n\n"
-                    . $glFactSheet . "\n\n"
-                    . "กรุณาสรุปและวิเคราะห์รายงานผู้บริหาร (Executive Summary) โดยจัดโครงสร้างคำตอบเป็น 4 ส่วนหลักให้ชัดเจน:\n"
-                    . "### 1. บทสรุปสุขภาพการเงินและสภาพคล่องปัจจุบัน (Executive Overview & Liquidity)\n"
-                    . "### 2. ชี้เป้าสาเหตุของวิกฤตและคอขวดจากฐานข้อมูล GL (Root Cause Diagnosis: เจ้าหนี้ AP, ลูกหนี้ AR, โครงสร้างต้นทุน LC/MC/CC)\n"
-                    . "### 3. การประเมินความเสี่ยงและแนวโน้ม 3-6 เดือนข้างหน้า (Risk Projections)\n"
-                    . "### 4. แผนปฏิบัติการเร่งด่วนและข้อเสนอแนะเชิงกลยุทธ์สำหรับผู้บริหารและฝ่ายการเงิน (Strategic Action Plan)\n\n"
-                    . "หมายเหตุ: ให้อ้างอิงตัวเลข ยอดเงิน ชื่อบริษัทคู่ค้า และสิทธิการรักษาจากฐานข้อมูล GL ข้างต้นอย่างเจาะจง ใช้ภาษาไทยทางการที่กระชับ ชัดเจน และน่าเชื่อถือ";
+        try {
+            $glFactSheet = "ข้อมูลจริงจากฐานข้อมูลบัญชีแยกประเภท GL (General Ledger) ล่าสุด:\n"
+                . "- งวดบัญชี: {$latestPeriodLabel} (ปีงบ {$budgetYear})\n"
+                . "- ระดับความเสี่ยงทางการเงิน (Risk Score): ระดับ {$riskScore} / 7 ({$riskScoreLabel})\n"
+                . "- เงินบำรุงคงเหลือสุทธิ (105): " . number_format($netOperatingFund, 2) . " บาท\n"
+                . "- สภาพคล่อง: Current Ratio = {$currentRatio} เท่า, Cash Ratio = {$cashRatio} เท่า, Quick Ratio = {$quickRatio} เท่า, ทุนหมุนเวียน NWC = " . number_format($nwc, 2) . " บาท\n"
+                . "- เงินสดและเงินฝากธนาคารจริง: " . number_format($totalCash, 2) . " บาท จาก {$cashAccountsCount} บัญชี\n"
+                . "- เจ้าหนี้การค้า (AP Bills): หนี้ค้างชำระรวม " . number_format($totalUnpaidAp, 2) . " บาท จากทั้งหมด " . number_format($totalUnpaidApCount) . " บิล\n"
+                . "  เจ้าหนี้ค้างจ่ายสูงสุด: " . $topCreditors->map(fn($v) => "{$v->vendor_name} (" . number_format($v->remaining_debt, 2) . " บ.)")->implode(', ') . "\n"
+                . "  ระยะเวลาชำระหนี้ค่ายา (260): {$drugPayDays} วัน (เกณฑ์ปกติ <= 60 วัน)\n"
+                . "- ลูกหนี้ค่ารักษาพยาบาล (AR Debtors): ยอดค้างชำระรวม " . number_format($totalArOutstanding, 2) . " บาท (จากตั้งเบิก " . number_format($totalArBilled, 2) . " บ., รับชดเชยแล้ว " . number_format($totalArCollected, 2) . " บ.)\n"
+                . "  แยกตามสิทธิ: " . $arTypeSummaries->map(fn($s) => "{$s->debtor_type} ค้าง " . number_format($s->outstanding, 2) . " บ.")->implode(', ') . "\n"
+                . "  ระยะเวลาเก็บหนี้ข้าราชการ (262): {$ofcCollectDays} วัน, ลูกหนี้ UC (261): {$ucCollectDays} วัน\n"
+                . "- โครงสร้างต้นทุนบริการ (Cost LC/MC/CC): รวม " . number_format($totalCost, 2) . " บาท\n"
+                . "  MC ค่าวัสดุยา: " . number_format($totalMc, 2) . " บาท ({$mcPercent}%)\n"
+                . "  LC ค่าแรงบุคลากร: " . number_format($totalLc, 2) . " บาท ({$lcPercent}%)\n"
+                . "  CC ค่าลงทุนและเสื่อมราคา: " . number_format($totalCc, 2) . " บาท ({$ccPercent}%)\n"
+                . "  อัตราสำรองคลังยา (264): {$inventoryDays} วัน, Net Margin (307): {$netMargin}%\n";
 
-                $aiService = app(\App\Services\Ai\AiService::class);
-                $answer = $aiService->generateChat($aiPrompt);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning("HosFin AI analysis fallback to local GL diagnostic engine: " . $e->getMessage());
-            }
+            $aiPrompt = "คุณคือผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาลภาครัฐและระบบบัญชี GL (Hospital Financial Advisor & Executive Strategist)\n"
+                . "กรุณาวิเคราะห์สุขภาพการเงินของโรงพยาบาลอย่างเจาะลึกจากฐานข้อมูลบัญชี GL จริง (General Ledger) ต่อไปนี้:\n\n"
+                . $glFactSheet . "\n\n"
+                . "กรุณาสรุปและจัดทำรายงานผู้บริหาร (Executive Summary) โดยจัดโครงสร้างคำตอบเป็น 4 ส่วนหลักให้ชัดเจน:\n"
+                . "### 1. บทสรุปสุขภาพการเงินและสภาพคล่องปัจจุบัน (Executive Overview & Liquidity Status)\n"
+                . "### 2. ชี้เป้าสาเหตุของวิกฤตและคอขวดจากฐานข้อมูล GL (Root Cause Diagnosis: บิลเจ้าหนี้ AP, ลูกหนี้ AR, โครงสร้างต้นทุน LC/MC/CC)\n"
+                . "### 3. การคาดการณ์ล่วงหน้า 3-6 เดือน และความเสี่ยงกระแสเงินสดหมดมือ (Forward-Looking Cash Runway & Risk Projections)\n"
+                . "### 4. แผนปฏิบัติการเร่งด่วน 30-60-90 วัน และข้อเสนอแนะเชิงกลยุทธ์ (Strategic Action Roadmap: ลำดับการจ่ายหนี้ค่ายา และแผนเร่งรัดลูกหนี้)\n\n"
+                . "หมายเหตุ: ให้อ้างอิงตัวเลข ยอดเงิน ชื่อบริษัทคู่ค้า และสิทธิการรักษาจากฐานข้อมูล GL ข้างต้นอย่างเจาะจง ใช้ภาษาไทยทางการที่กระชับ ชัดเจน น่าเชื่อถือ ให้ข้อเสนอแนะที่ผู้อำนวยการโรงพยาบาลนำไปตัดสินใจสั่งการได้ทันที (ห้ามใช้แท็ก HTML เช่น <font> และห้ามใช้สูตร LaTeX เช่น $$ \text{...} $$ ให้ใช้ Markdown ธรรมดาและเขียนสมการอ่านง่าย)";
+
+            $aiService = app(\App\Services\Ai\AiService::class);
+            $answer = $aiService->generateChat($aiPrompt, null, 'hosfin');
+        } catch (\Throwable $e) {
+            $aiError = $e->getMessage();
+            \Illuminate\Support\Facades\Log::warning("HosFin pure AI analysis failed: " . $aiError);
         }
 
-        if (empty($answer)) {
-            $answer = $this->buildLocalGlDiagnosisReport($glData);
+        if (!empty($answer)) {
+            return response()->json([
+                'success' => true,
+                'answer' => $answer,
+                'provider' => $provider,
+                'provider_label' => $providerLabel,
+                'model' => $model,
+                'sources' => $sources,
+                'glSummary' => [
+                    'totalUnpaidAp' => $totalUnpaidAp,
+                    'totalArOutstanding' => $totalArOutstanding,
+                    'totalCost' => $totalCost,
+                    'totalCash' => $totalCash,
+                    'riskScore' => $riskScore,
+                    'riskScoreLabel' => $riskScoreLabel,
+                ]
+            ]);
         }
 
+        // Return clear, multi-provider error message
         return response()->json([
-            'success' => true,
-            'answer' => $answer,
+            'success' => false,
+            'is_ai_error' => true,
+            'provider' => $provider,
+            'provider_label' => $providerLabel,
+            'model' => $model,
+            'message' => $aiError ?: 'ไม่สามารถเชื่อมต่อระบบ AI ได้ กรุณาตรวจสอบการตั้งค่าผู้ให้บริการ AI',
+            'settings_url' => route('admin.rag.index'),
             'sources' => $sources,
             'glSummary' => [
                 'totalUnpaidAp' => $totalUnpaidAp,
@@ -3106,74 +3134,6 @@ class HosFinController extends Controller
                 'riskScoreLabel' => $riskScoreLabel,
             ]
         ]);
-    }
-
-    /**
-     * Comprehensive Local GL Financial Diagnostic Engine
-     */
-    protected function buildLocalGlDiagnosisReport(array $d): string
-    {
-        $netFundFormatted = number_format($d['netOperatingFund'], 2);
-        $cashFormatted = number_format($d['totalCash'], 2);
-        $apFormatted = number_format($d['totalUnpaidAp'], 2);
-        $arFormatted = number_format($d['totalArOutstanding'], 2);
-        $costFormatted = number_format($d['totalCost'], 2);
-
-        $out = "### 1. บทสรุปสุขภาพการเงินและสภาพคล่องปัจจุบัน (Executive Overview & Liquidity)\n";
-        $out .= "* **ระดับความเสี่ยงทางการเงิน (Risk Score):** ระดับ **{$d['riskScore']} / 7 ({$d['riskScoreLabel']})** ณ {$d['latestPeriodLabel']} (ปีงบ {$d['budgetYear']})\n";
-        $out .= "* **เงินบำรุงคงเหลือสุทธิ (105):** **{$netFundFormatted} บาท** " . ($d['netOperatingFund'] < 0 ? "<span class='badge bg-danger'>วิกฤตติดลบ</span> บ่งชี้ว่าภาระหนี้สินระยะสั้นสูงกว่าสินทรัพย์สภาพคล่องที่มีอยู่" : "<span class='badge bg-success'>ปกติ</span>") . "\n";
-        $out .= "* **เงินสดและเงินฝากธนาคารจริงในระบบ GL:** รวม **{$cashFormatted} บาท** (กระจายอยู่ใน {$d['cashAccountsCount']} บัญชีเงินฝาก)\n";
-        $out .= "* **สภาพคล่องหมุนเวียน (Current Ratio):** **{$d['currentRatio']} เท่า** (เกณฑ์มาตรฐาน >= 1.50 เท่า, " . ($d['currentRatio'] < 1.0 ? "อยู่ในภาวะตึงตัวสูง" : "พอรับภาระได้") . ")\n";
-        $out .= "* **สภาพคล่องเงินสดพร้อมจ่าย (Cash Ratio):** **{$d['cashRatio']} เท่า** (เกณฑ์มาตรฐาน >= 0.80 เท่า) แสดงถึงเงินสดในมือไม่เพียงพอต่อการชำระหนี้ระยะสั้นหากถูกทวงถามพร้อมกัน\n\n";
-
-        $out .= "### 2. ชี้เป้าสาเหตุของวิกฤตและคอขวดจากฐานข้อมูล GL (Root Cause & Bottleneck Analysis)\n";
-        $out .= "จากการตรวจสอบข้อมูลบัญชีแยกประเภท GL แบบเรียลไทม์ พบสาเหตุหลักและคอขวด 3 มิติสำคัญ:\n\n";
-
-        $out .= "#### ก. ภาระหนี้เจ้าหนี้การค้าและค่ายา (AP Bills Bottleneck)\n";
-        $out .= "* ตรวจพบ **บิลเจ้าหนี้ค้างชำระจริงในระบบ GL รวม " . number_format($d['totalUnpaidApCount']) . " บิล** เป็นยอดหนี้ค้างจ่ายทั้งสิ้น **{$apFormatted} บาท**\n";
-        $out .= "* **ระยะเวลาชำระหนี้ค่ายาและเวชภัณฑ์ (260):** เฉลี่ย **{$d['drugPayDays']} วัน** (เกินเกณฑ์มาตรฐาน 60 วัน ถึง " . round($d['drugPayDays'] / 60, 1) . " เท่า) ซึ่งมีความเสี่ยงต่อความเชื่อมั่นของคู่ค้าและการส่งมอบยาจำเป็น\n";
-        if ($d['topCreditors']->isNotEmpty()) {
-            $out .= "* **บริษัทคู่ค้าที่มียอดหนี้ค้างชำระสูงสุด 5 อันดับแรก:**\n";
-            $cIdx = 1;
-            foreach ($d['topCreditors'] as $c) {
-                $out .= "  {$cIdx}. **{$c->vendor_name}** — ยอดค้าง " . number_format($c->remaining_debt, 2) . " บาท ({$c->total_bills} บิล)\n";
-                $cIdx++;
-            }
-        }
-        $out .= "\n";
-
-        $out .= "#### ข. ลูกหนี้ค่ารักษาพยาบาลค้างท่อ (AR Debtors Bottleneck)\n";
-        $out .= "* ตรวจพบ **ผังบัญชีลูกหนี้ค่ารักษาพยาบาลในระบบ GL รวม " . number_format($d['totalArCount']) . " ผัง** มียอดลูกหนี้ค้างชำระรอชดเชยรวม **{$arFormatted} บาท**\n";
-        $out .= "* **ระยะเวลาเรียกเก็บหนี้สิทธิข้าราชการ (262):** เฉลี่ย **{$d['ofcCollectDays']} วัน** (เกณฑ์มาตรฐาน <= 45 วัน)\n";
-        $out .= "* **ระยะเวลาเรียกเก็บหนี้สิทธิ UC (261):** เฉลี่ย **{$d['ucCollectDays']} วัน**\n";
-        if ($d['arTypeSummaries']->isNotEmpty()) {
-            $out .= "* **จำแนกยอดลูกหนี้ค้างรับตามสิทธิกองทุนหลัก:**\n";
-            foreach ($d['arTypeSummaries'] as $ar) {
-                $rate = $ar->billed > 0 ? round(($ar->collected / $ar->billed) * 100, 1) : 0;
-                $out .= "  - **สิทธิ " . ($ar->debtor_type ?: 'ทั่วไป') . ":** ยอดค้างรับ **" . number_format($ar->outstanding, 2) . " บาท** (ตั้งเบิก " . number_format($ar->billed, 2) . " บ., รับชดเชยแล้ว " . number_format($ar->collected, 2) . " บ., ประสิทธิภาพการจัดเก็บ {$rate}%)\n";
-            }
-        }
-        $out .= "\n";
-
-        $out .= "#### ค. โครงสร้างต้นทุนบริการโรงพยาบาล (Hospital Cost Structure LC / MC / CC)\n";
-        $out .= "* ต้นทุนค่าใช้จ่ายรวมสะสมในระบบ GL: **{$costFormatted} บาท**\n";
-        $out .= "  1. **MC (ค่าวัสดุ ยา และเวชภัณฑ์):** **" . number_format($d['totalMc'], 2) . " บาท ({$d['mcPercent']}%)** — เป็นสัดส่วนต้นทุนที่ใหญ่ที่สุด ส่งผลกระทบโดยตรงต่อหนี้เจ้าหนี้การค้า\n";
-        $out .= "  2. **LC (ค่าแรงและบุคลากร):** **" . number_format($d['totalLc'], 2) . " บาท ({$d['lcPercent']}%)** — ค่าใช้จ่ายคงที่หลักของหน่วยบริการ\n";
-        $out .= "  3. **CC (ค่าลงทุนและค่าเสื่อมราคา):** **" . number_format($d['totalCc'], 2) . " บาท ({$d['ccPercent']}%)**\n";
-        $out .= "* **อัตราการบริหารสินค้าคงคลังยา (264):** เฉลี่ย **{$d['inventoryDays']} วัน** (เกณฑ์มาตรฐาน <= 60 วัน)\n\n";
-
-        $out .= "### 3. การประเมินความเสี่ยงและแนวโน้ม (Risk Projections)\n";
-        $out .= "* **ความเสี่ยงด้านกระแสเงินสด:** หากไม่มีการเร่งรัดติดตามลูกหนี้สิทธิข้าราชการและ UC ที่ค้างท่อ {$arFormatted} บาท กระแสเงินสดจะตึงตัวต่อเนื่อง และอาจกระทบต่อการจ่ายชำระเจ้าหนี้การค้า\n";
-        $out .= "* **ความเสี่ยงการถูกระงับส่งยา:** หนี้ค่ายาค้างจ่าย {$apFormatted} บาท ที่มีระยะเวลาค้างชำระเฉลี่ย {$d['drugPayDays']} วัน อาจทำให้บริษัทผู้จำหน่ายชะลอการส่งมอบยาหรือขอปรับเป็นเงินสดล่วงหน้า\n";
-        $out .= "* **โอกาสฟื้นฟู:** หากสามารถดึงยอดลูกหนี้ค้างท่อกลับมาเป็นเงินสดได้ และควบคุมรอบการสั่งซื้อยา MC ให้สอดคล้องกับการใช้งานจริง จะสามารถลดระยะเวลาค้างจ่ายลงได้ทันที\n\n";
-
-        $out .= "### 4. แผนปฏิบัติการเร่งด่วนและข้อเสนอแนะเชิงกลยุทธ์ (Strategic Action Plan)\n";
-        $out .= "1. **เจรจาปรับแผนชำระหนี้คู่ค้ารายใหญ่ (AP Restructuring):** จัดทำตารางทยอยจ่ายชำระ (Payment Plan) ให้กับคู่ค้า 5 อันดับแรก เพื่อรักษาเครดิตการค้าและความต่อเนื่องในการจัดส่งยา\n";
-        $out .= "2. **เร่งรัดปิดรอบเคลมลูกหนี้ค่ารักษาพยาบาล (Accelerate AR Claim Clearing):** มอบหมายทีมตรวจสอบลูกหนี้ที่ตกค้าง ตรวจแก้ Error (C-Deny / ติดขัดเอกสาร) เพื่อดึงเงินชดเชย {$arFormatted} บาท กลับเข้าสู่โรงพยาบาลโดยเร็ว\n";
-        $out .= "3. **บริหารจัดการคลังยาและเวชภัณฑ์ (Lean Inventory Management):** ควบคุมระยะเวลาสำรองคลังยา (264) จากปัจจุบัน {$d['inventoryDays']} วัน ให้ลดลงสู่ระดับ 30-45 วัน เพื่อลดเงินจมในคลังสินค้า\n";
-        $out .= "4. **เป้าหมายเงินบำรุงสุทธิ (Target 105 Recovery):** กำหนดเป้าหมายดึงเงินบำรุงคงเหลือสุทธิ (105) ให้ขยับเข้าใกล้ศูนย์และกลับมาเป็นบวกภายใน 2-3 ไตรมาส\n";
-
-        return $out;
     }
 
     /**

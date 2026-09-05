@@ -141,21 +141,41 @@ class MainSettingController extends Controller
      */
     public function testAiConnection(Request $request)
     {
-        if ($request->filled('api_key')) {
-            MainSetting::updateOrInsert(['name' => 'ai_api_key'], ['value' => trim($request->api_key), 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)']);
-        }
-        if ($request->filled('model_name')) {
-            MainSetting::updateOrInsert(['name' => 'ai_model_name'], ['value' => trim($request->model_name), 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)']);
-        }
-        if ($request->filled('provider')) {
-            MainSetting::updateOrInsert(['name' => 'ai_provider'], ['value' => trim($request->provider), 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)']);
-        }
-        if ($request->filled('api_url')) {
-            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($request->api_url), 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)']);
+        if (!auth()->check() || auth()->user()->status !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น'
+            ], 403);
         }
 
+        $apiKey = $request->input('ai_api_key', $request->input('api_key'));
+        if ($apiKey !== null && trim($apiKey) !== '') {
+            MainSetting::updateOrInsert(['name' => 'ai_api_key'], ['value' => trim($apiKey), 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)']);
+        }
+
+        $modelName = $request->input('ai_model_name', $request->input('model_name'));
+        if ($modelName !== null && trim($modelName) !== '') {
+            MainSetting::updateOrInsert(['name' => 'ai_model_name'], ['value' => trim($modelName), 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)']);
+        }
+
+        $modelHosfin = $request->input('ai_model_hosfin');
+        if ($modelHosfin !== null && trim($modelHosfin) !== '') {
+            MainSetting::updateOrInsert(['name' => 'ai_model_hosfin'], ['value' => trim($modelHosfin), 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)']);
+        }
+
+        $provider = $request->input('ai_provider', $request->input('provider'));
+        if ($provider !== null && trim($provider) !== '') {
+            MainSetting::updateOrInsert(['name' => 'ai_provider'], ['value' => trim($provider), 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)']);
+        }
+
+        $apiUrl = $request->input('ai_api_url', $request->input('api_url'));
+        if ($apiUrl !== null && trim($apiUrl) !== '') {
+            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($apiUrl), 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)']);
+        }
+
+        $scope = $request->input('scope');
         $aiService = app(\App\Services\Ai\AiService::class);
-        $result = $aiService->testConnection();
+        $result = $aiService->testConnection($scope);
         return response()->json($result);
     }
     #######################################################################################################################################    
@@ -305,6 +325,7 @@ class MainSettingController extends Controller
                         ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
                         ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
+                        ['name' => 'ai_model_hosfin', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.6-flash'],
                         ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
                     ];
                     foreach ($defaultAiSettings as $as) {
@@ -894,6 +915,7 @@ class MainSettingController extends Controller
                         ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
                         ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
+                        ['name' => 'ai_model_hosfin', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.6-flash'],
                         ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
                     ];
 

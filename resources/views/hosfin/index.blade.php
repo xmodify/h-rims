@@ -1261,6 +1261,7 @@
     }
 
     function fetchHosFinAiAnalysis() {
+        const isAdmin = {{ (Auth::check() && Auth::user()->status === 'admin') ? 'true' : 'false' }};
         const loading = document.getElementById('aiAnalysisLoading');
         const content = document.getElementById('aiAnalysisContent');
         const errBox = document.getElementById('aiAnalysisError');
@@ -1284,18 +1285,53 @@
                 window.hosFinAnalysisLoaded = true;
                 content.classList.remove('d-none');
                 
-                // Simple Markdown renderer
-                let formatted = data.answer
-                    .replace(/^### (.*$)/gim, '<h6 class="fw-bold text-dark mt-3 mb-2 border-bottom pb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> $1</h6>')
-                    .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
-                    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-                    .replace(/^\* (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
-                    .replace(/^- (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
-                    .replace(/\n\n/gim, '<br>')
-                    .replace(/\n/gim, '<br>');
+                // Enhanced Markdown renderer with LaTeX and Color support
+                let formatted = (function(raw) {
+                    if (!raw) return '';
 
-                document.getElementById('aiAnalysisText').innerHTML = formatted;
+                    // 1. Convert LaTeX math block $$ \text{...} $$
+                    let res = raw.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+                        let clean = formula
+                            .replace(/\\text\{([^}]+)\}/g, '$1')
+                            .replace(/\\quad/g, ' ')
+                            .replace(/\\times/g, ' × ')
+                            .replace(/\\div/g, ' ÷ ')
+                            .replace(/\\approx/g, ' ≈ ')
+                            .replace(/\\le/g, ' ≤ ')
+                            .replace(/\\ge/g, ' ≥ ')
+                            .trim();
+                        return `<div class="p-2 my-2 bg-light border border-primary-subtle rounded-3 text-center fw-bold text-primary font-monospace small"><i class="bi bi-calculator me-1"></i> ${clean}</div>`;
+                    });
+
+                    // 2. Convert inline LaTeX math $ \text{...} $
+                    res = res.replace(/\$([^\$\n]+)\$/g, function(match, formula) {
+                        return formula.replace(/\\text\{([^}]+)\}/g, '$1').trim();
+                    });
+
+                    // 3. Support font colors
+                    res = res
+                        .replace(/<font\s+color=['"]?red['"]?>(.*?)<\/font>/gi, '<span class="text-danger fw-bold">$1</span>')
+                        .replace(/<font\s+color=['"]?green['"]?>(.*?)<\/font>/gi, '<span class="text-success fw-bold">$1</span>')
+                        .replace(/<font\s+color=['"]?blue['"]?>(.*?)<\/font>/gi, '<span class="text-primary fw-bold">$1</span>')
+                        .replace(/<font[^>]*>/gi, '')
+                        .replace(/<\/font>/gi, '');
+
+                    // 4. Standard Markdown
+                    return res
+                        .replace(/^### (.*$)/gim, '<h6 class="fw-bold text-dark mt-3 mb-2 border-bottom pb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> $1</h6>')
+                        .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
+                        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                        .replace(/`([^`]+)`/gim, '<code class="bg-light px-1 py-0.5 rounded text-dark border small">$1</code>')
+                        .replace(/^\* (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
+                        .replace(/^- (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
+                        .replace(/\n\n/gim, '<br>')
+                        .replace(/\n/gim, '<br>');
+                })(data.answer);
+
+                // Header badge showing provider & model
+                const providerBadge = data.provider_label ? `<div class="mb-3"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-1 px-2"><i class="bi bi-stars me-1"></i> ขับเคลื่อนด้วย ${data.provider_label} (${data.model || ''})</span></div>` : '';
+                document.getElementById('aiAnalysisText').innerHTML = providerBadge + formatted;
 
                 // Render sources
                 const srcContainer = document.getElementById('aiAnalysisSources');
@@ -1311,13 +1347,66 @@
                 }
             } else {
                 errBox.classList.remove('d-none');
-                errBox.textContent = data.message || 'ไม่สามารถวิเคราะห์ข้อมูลได้';
+                const providerLabel = data.provider_label || 'ยังไม่ได้ระบุ';
+                const errMsg = data.message || 'ไม่สามารถเชื่อมต่อผู้ให้บริการ AI ได้';
+                const settingsUrl = data.settings_url || '{{ route('admin.rag.index') }}';
+
+                errBox.innerHTML = `
+                    <div class="card border-warning shadow-sm rounded-3 overflow-hidden bg-white">
+                        <div class="card-header bg-warning bg-opacity-10 text-dark border-warning border-bottom py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">ระบบ AI ยังไม่พร้อมใช้งาน หรือยังไม่ได้ตั้งค่าการเชื่อมต่อ</h6>
+                                    <small class="text-muted">ผู้ให้บริการปัจจุบัน: <span class="badge bg-secondary text-white">${providerLabel}</span></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-danger py-2 px-3 small mb-3 border-0 bg-danger bg-opacity-10 text-danger">
+                                <strong><i class="bi bi-x-circle me-1"></i> สาเหตุ:</strong> ${errMsg}
+                            </div>
+                            <p class="text-muted small mb-3" style="line-height: 1.6;">
+                                ฟังก์ชันนี้ขับเคลื่อนด้วยระบบปัญญาประดิษฐ์ (Generative AI) 100% เพื่อประมวลผลเชิงกลยุทธ์ โดยระบบ RiMS รองรับ AI ผู้ให้บริการหลากหลายค่าย:
+                            </p>
+                            <div class="row g-2 mb-4">
+                                <div class="col-md-4">
+                                    <div class="border rounded p-2 bg-light small h-100">
+                                        <strong class="d-block text-primary"><i class="bi bi-google me-1"></i> Google Gemini</strong>
+                                        <span class="text-muted" style="font-size: 0.8rem;">เร็ว ใช้งานง่าย ฟรีโควตา (เชื่อมต่อด้วย API Key)</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="border rounded p-2 bg-light small h-100">
+                                        <strong class="d-block text-success"><i class="bi bi-hdd-network me-1"></i> Ollama (Local)</strong>
+                                        <span class="text-muted" style="font-size: 0.8rem;">รันบนเซิร์ฟเวอร์ใน รพ. ปลอดภัยสูงสุด ออฟไลน์ได้ (เช่น Typhoon, Llama 3)</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="border rounded p-2 bg-light small h-100">
+                                        <strong class="d-block text-info"><i class="bi bi-lightning-charge me-1"></i> OpenAI / DeepSeek</strong>
+                                        <span class="text-muted" style="font-size: 0.8rem;">รองรับโมเดลมาตรฐานภายนอกอื่นๆ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> ลองใหม่อีกครั้ง
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
         })
         .catch(err => {
             loading.classList.add('d-none');
             errBox.classList.remove('d-none');
-            errBox.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err;
+            errBox.innerHTML = `
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ${err}
+                </div>
+            `;
         });
     }
 
@@ -1425,7 +1514,7 @@
                 </div>
 
                 <!-- Error Box -->
-                <div id="aiAnalysisError" class="alert alert-danger d-none my-3"></div>
+                <div id="aiAnalysisError" class="d-none my-3"></div>
 
                 <!-- Analysis Result Content -->
                 <div id="aiAnalysisContent" class="card border rounded-3 p-4 bg-white shadow-sm d-none">
@@ -1435,9 +1524,16 @@
             </div>
 
             <div class="modal-footer bg-light py-2 d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="window.print()">
-                    <i class="bi bi-printer me-1"></i> พิมพ์รายงานสรุป
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> พิมพ์รายงานสรุป
+                    </button>
+                    @if(Auth::check() && Auth::user()->status === 'admin')
+                    <button type="button" class="btn btn-outline-dark btn-sm px-3 rounded-pill shadow-sm" onclick="openAiSettingsModal('hosfin')" title="ตั้งค่า AI & LLM สำหรับ HosFin">
+                        <i class="bi bi-gear-fill me-1 text-warning"></i> ตั้งค่า AI (HosFin)
+                    </button>
+                    @endif
+                </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">
                         <i class="bi bi-arrow-clockwise me-1"></i> วิเคราะห์ใหม่อีกครั้ง

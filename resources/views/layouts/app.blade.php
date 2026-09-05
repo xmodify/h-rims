@@ -37,6 +37,11 @@
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
     <style>
+        /* Ensure SweetAlert2 always displays above all modals and backdrops */
+        .swal2-container {
+            z-index: 99999 !important;
+        }
+
         :root {
             --nav-green: #0a4d2c;
             --nav-green-light: #126e41;
@@ -1190,7 +1195,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-04 21.00
+                                V.69-09-06 01.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -2259,11 +2264,18 @@
     <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
     @include('components.download_tools_modal')
 
-    <!-- Global AI Chatbot Floating Widget (🤖) -->
+    <!-- Global AI & LLM Settings Modal -->
+    @auth
+        @include('components.ai_settings_modal')
+    @endauth
+
+    <!-- AI Chatbot Floating Widget (RiMS Copilot - Prototype on HosFin) -->
     @auth
         @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
             @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
-                @include('components.ai_chatbot_widget')
+                @if(request()->is('hosfin*'))
+                    @include('components.ai_chatbot_widget')
+                @endif
             @endif
         @endif
     @endauth

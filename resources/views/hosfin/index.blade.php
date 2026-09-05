@@ -1479,22 +1479,22 @@
                             </div>
                         </div>
                     </div>
-                    @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
+                    @if(isset($apUnpaidSum) || isset($arOutstandingSum) || isset($cashBalance))
                     <div class="row g-3 text-center text-md-start align-items-center mt-2 pt-2 border-top">
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> หนี้เจ้าหนี้การค้า (AP)</span>
-                            <h6 class="fw-bold text-danger mb-0 mt-1">{{ number_format($apUnpaidSum, 2) }} บาท</h6>
-                            <small class="text-muted">ค้างจ่าย {{ number_format($apUnpaidCount) }} บิล ({{ $apTotalVendorsCount }} บริษัท)</small>
+                            <h6 class="fw-bold {{ ($apUnpaidSum ?? 0) > 0 ? 'text-danger' : 'text-muted' }} mb-0 mt-1">{{ number_format($apUnpaidSum ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted">{{ ($apUnpaidSum ?? 0) > 0 ? 'ค้างจ่าย ' . number_format($apUnpaidCount ?? 0) . ' บิล (' . ($apTotalVendorsCount ?? 0) . ' บริษัท)' : '0 บิล (ยังไม่นำเข้าบิล AP)' }}</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษา (AR)</span>
-                            <h6 class="fw-bold text-dark mb-0 mt-1">{{ number_format($arOutstandingSum, 2) }} บาท</h6>
-                            <small class="text-muted">จาก {{ number_format($arAccountCount) }} ผังบัญชี</small>
+                            <h6 class="fw-bold text-dark mb-0 mt-1">{{ number_format($arOutstandingSum ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted">จาก {{ number_format($arAccountCount ?? 0) }} ผังบัญชี</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-safe text-success me-1"></i> เงินสด & เงินฝากธนาคาร GL</span>
-                            <h6 class="fw-bold text-success mb-0 mt-1">{{ number_format($cashBalance, 2) }} บาท</h6>
-                            <small class="text-muted">{{ $cashAccountsCount }} บัญชีเงินฝาก</small>
+                            <h6 class="fw-bold text-success mb-0 mt-1">{{ number_format($cashBalance ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted">{{ $cashAccountsCount ?? 0 }} บัญชีเงินฝาก</small>
                         </div>
                         <div class="col-md-3">
                             <span class="text-muted small fw-bold"><i class="bi bi-pie-chart text-info me-1"></i> แหล่งข้อมูลบัญชี</span>

@@ -47,9 +47,9 @@ class RagSearchService
         $isHosfinPage = $pageContext && (str_contains($pageContext, 'hosfin') || str_contains($pageContext, 'financial'));
         $isRagPage = $pageContext && (str_contains($pageContext, 'rag-knowledge') || str_contains($pageContext, 'rag'));
 
-        // On RAG page, retrieve more chunks (5) for thorough manual inspection
-        if ($isRagPage && $topK < 5) {
-            $topK = 5;
+        // On RAG page, retrieve more chunks (8) for thorough multi-document coverage
+        if ($isRagPage && $topK < 8) {
+            $topK = 8;
         }
 
         // Extract context keywords from recent history if available
@@ -65,12 +65,25 @@ class RagSearchService
             }
         }
 
-        // 1. Context 1: Search relevant chunks from uploaded RAG documents (e.g. 16-Files manuals, rules, errors)
+        // 1. Context 1: Search relevant chunks from uploaded RAG documents with True Hybrid Search
         $matchedChunks = $this->searchSimilarChunks($cleanQuestion, $topK);
 
         // 2. Build Context Parts & Sources
         $contextParts = [];
         $sources = [];
+
+        // Global Knowledge Base Document Inventory: Always inform AI what documents exist in the system
+        $allDocs = \App\Models\RagDocument::where('status', 'completed')->get(['id', 'title', 'filename', 'chunk_count']);
+        if ($allDocs->isNotEmpty()) {
+            $docLines = [];
+            foreach ($allDocs as $d) {
+                $docLines[] = "- [เอกสาร #{$d->id}] \"{$d->title}\" (ไฟล์ {$d->filename}, บันทึกไว้ {$d->chunk_count} ย่อหน้า)";
+            }
+            $inventoryNotice = "[สารบัญเอกสารทั้งหมดในคลังความรู้ RAG ที่พร้อมใช้งานขณะนี้ (รวม " . $allDocs->count() . " เล่ม)]:\n"
+                . implode("\n", $docLines) . "\n"
+                . "*ข้อกำหนดเด็ดขาดสำหรับ AI: ระบบมีเอกสารทั้งหมดข้างต้นอยู่ในระบบแล้ว ห้ามตอบว่าระบบไม่มีเอกสารเหล่านี้ หรือบอกให้ผู้ใช้อัปโหลดเอกสารที่มีอยู่แล้วซ้ำอีก หากผู้ใช้ถามถึงเล่มใด ให้อ้างอิงจากเนื้อหาและสารบัญเอกสารด้านล่างนี้ได้ทันที*";
+            $contextParts[] = $inventoryNotice;
+        }
 
         // Query intent detection across 3 domains:
         // Domain A: HOSxP Master Data & 16-Files Lookups (nondrugitems, income, adp, 16 แฟ้ม, e-claim, fdh)
@@ -398,80 +411,134 @@ PROMPT;
     }
 
     /**
-     * Search chunks by Cosine Similarity or Keyword Fallback
+     * Search chunks by True Hybrid Search (Vector Cosine + Document Title Boost + Keyword / BM25 Matching + Document Diversity)
      */
-    public function searchSimilarChunks(string $query, int $topK = 5): array
+    public function searchSimilarChunks(string $query, int $topK = 8): array
     {
+        $cleanQuery = trim($query);
         $queryEmbedding = [];
         try {
-            $queryEmbedding = $this->aiService->getEmbedding($query);
+            $queryEmbedding = $this->aiService->getEmbedding($cleanQuery);
         } catch (\Throwable $e) {
             Log::warning("Could not generate query embedding, fallback to keyword search: " . $e->getMessage());
         }
 
-        // Get chunks from database
+        // Get chunks from database with parent document
         $chunks = RagChunk::with('document')->get();
         if ($chunks->isEmpty()) {
             return [];
         }
 
+        // Extract meaningful tokens
+        $rawTokens = preg_split('/[\s,\.\-\_\/]+/u', $cleanQuery);
+        $tokens = [];
+        foreach ($rawTokens as $t) {
+            $t = trim($t);
+            if (mb_strlen($t) >= 2 && !in_array($t, ['ใน', 'ที่', 'จะ', 'ขอ', 'ดู', 'มี', 'และ', 'หรือ', 'คือ', 'ว่า', 'ไหม', 'บ้าง', 'ครับ', 'ค่ะ', 'อะไร', 'ช่วย', 'หน่อย', 'เรื่อง'])) {
+                $tokens[] = $t;
+            }
+        }
+
+        $hasQueryEmbedding = !empty($queryEmbedding);
         $scoredChunks = [];
 
-        // If we have query embedding, calculate vector cosine similarity
-        if (!empty($queryEmbedding)) {
-            foreach ($chunks as $chunk) {
-                $emb = $chunk->embedding;
-                if (!empty($emb) && is_array($emb)) {
-                    $sim = $this->cosineSimilarity($queryEmbedding, $emb);
-                    if ($sim > 0.25) { // Minimum threshold
-                        $scoredChunks[] = [
-                            'chunk' => $chunk,
-                            'score' => $sim
-                        ];
+        foreach ($chunks as $chunk) {
+            $doc = $chunk->document;
+            $docTitle = $doc ? $doc->title : '';
+            $docFilename = $doc ? $doc->filename : '';
+
+            // 1. Vector Cosine Similarity
+            $vectorScore = 0.0;
+            $emb = $chunk->embedding;
+            if ($hasQueryEmbedding && !empty($emb) && is_array($emb)) {
+                $sim = $this->cosineSimilarity($queryEmbedding, $emb);
+                if ($sim > 0.15) {
+                    $vectorScore = $sim;
+                }
+            }
+
+            // 2. Document Title Match Bonus (Massive relevance boost when question directly mentions document name/topic)
+            $titleBonus = 0.0;
+            if (!empty($docTitle)) {
+                // Exact phrase or sub-string match (e.g. 'FM Costing', '7 efficiency', 'คู่มือบัญชี')
+                if (mb_stripos($docTitle, $cleanQuery) !== false || mb_stripos($cleanQuery, $docTitle) !== false) {
+                    $titleBonus += 0.50;
+                } else {
+                    foreach ($tokens as $token) {
+                        if (mb_stripos($docTitle, $token) !== false || mb_stripos($docFilename, $token) !== false) {
+                            $titleBonus += 0.25;
+                        }
                     }
                 }
+                $titleBonus = min(0.60, $titleBonus);
+            }
+
+            // 3. Content Keyword Matching
+            $contentMatchCount = 0;
+            foreach ($tokens as $token) {
+                if (mb_stripos($chunk->content, $token) !== false) {
+                    $contentMatchCount++;
+                }
+            }
+            $contentScore = $contentMatchCount > 0 ? min(0.60, 0.25 + ($contentMatchCount * 0.08)) : 0.0;
+
+            // 4. Hybrid Combined Score
+            if ($vectorScore > 0) {
+                $finalScore = ($vectorScore * 0.60) + ($contentScore * 0.20) + $titleBonus;
+            } else {
+                $finalScore = $contentScore + $titleBonus;
+            }
+
+            if ($finalScore >= 0.20) {
+                $scoredChunks[] = [
+                    'chunk' => $chunk,
+                    'score' => $finalScore,
+                    'doc_id' => $chunk->document_id
+                ];
             }
         }
 
-        // Fallback or augment with keyword matching if vector results are scarce
-        if (count($scoredChunks) < 2) {
-            $keywords = preg_split('/\s+/', $query);
-            foreach ($chunks as $chunk) {
-                // Check if not already in list
-                $exists = false;
-                foreach ($scoredChunks as $sc) {
-                    if ($sc['chunk']->id === $chunk->id) {
-                        $exists = true;
-                        break;
-                    }
-                }
-                if ($exists) {
-                    continue;
-                }
-
-                $matchCount = 0;
-                foreach ($keywords as $kw) {
-                    if (mb_strlen($kw) >= 2 && mb_stripos($chunk->content, $kw) !== false) {
-                        $matchCount++;
-                    }
-                }
-
-                if ($matchCount > 0) {
-                    $score = min(0.65, 0.3 + ($matchCount * 0.1));
-                    $scoredChunks[] = [
-                        'chunk' => $chunk,
-                        'score' => $score
-                    ];
-                }
-            }
+        if (empty($scoredChunks)) {
+            return [];
         }
 
-        // Sort descending by score
+        // Sort descending by combined score
         usort($scoredChunks, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
 
-        return array_slice($scoredChunks, 0, $topK);
+        // 5. Diversity Enforcement:
+        // Do not allow a single document to monopolize all topK slots if other relevant documents exist
+        $result = [];
+        $docCounts = [];
+        $maxPerDoc = max(3, (int) ceil($topK / 2));
+
+        foreach ($scoredChunks as $item) {
+            $docId = $item['doc_id'];
+            $currentCount = $docCounts[$docId] ?? 0;
+
+            if ($currentCount < $maxPerDoc) {
+                $result[] = $item;
+                $docCounts[$docId] = $currentCount + 1;
+                if (count($result) >= $topK) {
+                    break;
+                }
+            }
+        }
+
+        // Fill up remaining slots from scored chunks if any remain
+        if (count($result) < $topK) {
+            foreach ($scoredChunks as $item) {
+                if (!in_array($item, $result, true)) {
+                    $result[] = $item;
+                    if (count($result) >= $topK) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**

@@ -87,6 +87,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::post('rag-knowledge/upload', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'upload'])->name('rag.upload');
     Route::get('rag-knowledge/{id}/chunks', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'chunks'])->name('rag.chunks');
     Route::post('rag-knowledge/{id}/reindex', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reindex'])->name('rag.reindex');
+    Route::post('rag-knowledge/reembed-missing', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reembedMissing'])->name('rag.reembed_missing');
     Route::delete('rag-knowledge/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'destroy'])->name('rag.destroy');
 });
 

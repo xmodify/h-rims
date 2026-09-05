@@ -120,6 +120,9 @@
                 <small class="text-muted">เอกสารทั้งหมดที่ถูกแปลงเป็น Vector สำหรับระบบ RAG</small>
             </div>
             <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-warning btn-sm px-3 rounded-pill shadow-sm hover-scale" onclick="handleReembedMissing()" title="ตรวจสอบและสร้าง Vector ให้ย่อหน้าที่ยังไม่มี">
+                    <i class="bi bi-magic me-1"></i> ซ่อมแซม Vector
+                </button>
                 <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#categoriesModal" onclick="loadCategoriesTable()">
                     <i class="bi bi-tags me-1"></i> จัดการหมวดหมู่
                 </button>
@@ -659,6 +662,54 @@
                         });
                     } else {
                         Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: data.message });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err });
+                });
+            }
+        });
+    }
+
+    // Repair / Re-embed Missing Chunks
+    function handleReembedMissing() {
+        Swal.fire({
+            title: 'ตรวจสอบ & ซ่อมแซม Vector',
+            text: 'ระบบจะสแกนหาชิ้นส่วนความรู้ที่ยังไม่มี Vector Embedding และส่งไปคำนวณพิกัดเวกเตอร์ให้อัตโนมัติ (ครั้งละไม่เกิน 100 ชิ้น)',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'เริ่มสแกนและสร้าง Vector',
+            cancelButtonText: 'ยกเลิก'
+        }).then((res) => {
+            if (res.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังสร้าง Vector...',
+                    text: 'กรุณารอสักครู่ ระบบกำลังคำนวณพิกัดเวกเตอร์ของเอกสาร',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                fetch('{{ route("admin.rag.reembed_missing") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            text: data.message
+                        }).then(() => {
+                            if (data.reembedded_count > 0) {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ไม่สำเร็จ', text: data.message });
                     }
                 })
                 .catch(err => {

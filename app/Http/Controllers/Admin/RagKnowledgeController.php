@@ -204,6 +204,7 @@ class RagKnowledgeController extends Controller
                     'page_number' => $chunkData['page_number']
                 ]);
                 $savedCount++;
+                usleep(80000); // 80ms pause to respect Gemini rate limits
             }
 
             $document->update([
@@ -293,6 +294,7 @@ class RagKnowledgeController extends Controller
                     'page_number' => $chunkData['page_number']
                 ]);
                 $savedCount++;
+                usleep(80000); // 80ms pause to respect Gemini rate limits
             }
 
             $document->update([
@@ -319,6 +321,54 @@ class RagKnowledgeController extends Controller
                 'message' => "Re-index ล้มเหลว: " . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Batch regenerate missing embeddings for chunks that failed previously
+     */
+    public function reembedMissing(Request $request)
+    {
+        $emptyChunks = RagChunk::where(function ($q) {
+            $q->whereNull('embedding')
+              ->orWhere('embedding', '[]')
+              ->orWhere('embedding', '');
+        })->limit(100)->get();
+
+        if ($emptyChunks->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ย่อหน้าความรู้ทุกชิ้นมี Vector Embedding ครบถ้วนแล้ว ไม่พบชิ้นส่วนที่ตกหล่น',
+                'reembedded_count' => 0,
+                'remaining' => 0
+            ]);
+        }
+
+        $successCount = 0;
+        foreach ($emptyChunks as $chunk) {
+            try {
+                $embedding = $this->aiService->getEmbedding($chunk->content);
+                if (!empty($embedding) && is_array($embedding)) {
+                    $chunk->update(['embedding' => $embedding]);
+                    $successCount++;
+                }
+                usleep(100000); // 100ms pause to prevent rate limits
+            } catch (\Throwable $e) {
+                Log::warning("Re-embedding chunk {$chunk->id} failed: " . $e->getMessage());
+            }
+        }
+
+        $remaining = RagChunk::where(function ($q) {
+            $q->whereNull('embedding')
+              ->orWhere('embedding', '[]')
+              ->orWhere('embedding', '');
+        })->count();
+
+        return response()->json([
+            'success' => true,
+            'message' => "สร้าง Vector สำเร็จ {$successCount} ชิ้นส่วน" . ($remaining > 0 ? " (คงเหลืออีก {$remaining} ชิ้นส่วน สามารถกดทำต่อได้ทันที)" : " (ครบถ้วนสมบูรณ์ 100%)"),
+            'reembedded_count' => $successCount,
+            'remaining' => $remaining
+        ]);
     }
 
     /**

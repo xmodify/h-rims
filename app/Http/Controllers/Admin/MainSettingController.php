@@ -178,6 +178,27 @@ class MainSettingController extends Controller
         $result = $aiService->testConnection($scope);
         return response()->json($result);
     }
+
+    /**
+     * Fetch available AI models from the provider (Gemini API, Ollama, etc.)
+     */
+    public function fetchModels(Request $request)
+    {
+        if (!auth()->check() || auth()->user()->status !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น'
+            ], 403);
+        }
+
+        $provider = $request->input('ai_provider', $request->input('provider'));
+        $apiKey = $request->input('ai_api_key', $request->input('api_key'));
+        $apiUrl = $request->input('ai_api_url', $request->input('api_url'));
+
+        $aiService = app(\App\Services\Ai\AiService::class);
+        $result = $aiService->fetchAvailableModels($provider, $apiKey, $apiUrl);
+        return response()->json($result);
+    }
     #######################################################################################################################################    
     // UP Structure ------------------------------------------------------------
     public function up_structure(Request $request)

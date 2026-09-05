@@ -66,7 +66,7 @@ class AiService
                 }
                 return $hosfinModel;
             }
-            return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.6-flash');
+            return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
         }
 
         $generalModel = self::getSetting('ai_model_name');
@@ -77,7 +77,7 @@ class AiService
             return $generalModel;
         }
 
-        return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-flash-latest');
+        return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
     }
 
     /**
@@ -93,7 +93,7 @@ class AiService
             }
             return $hosfinModel;
         }
-        return ($provider === 'ollama') ? 'gemma4:e4b' : 'gemini-3.6-flash';
+        return ($provider === 'ollama') ? 'gemma4:e4b' : 'gemini-3.7-flash';
     }
 
     /**
@@ -147,6 +147,212 @@ class AiService
                 'model' => $model,
                 'error' => $e->getMessage(),
                 'message' => "เชื่อมต่อไม่สำเร็จ: " . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Fetch available models from the provider (Google Gemini, Ollama, etc.)
+     */
+    public function fetchAvailableModels(?string $provider = null, ?string $apiKey = null, ?string $apiUrl = null): array
+    {
+        $provider = $provider ?: self::getProvider();
+        $apiKey = $apiKey !== null ? trim($apiKey) : self::getApiKey();
+        $apiUrl = $apiUrl !== null ? trim($apiUrl) : self::getApiUrl();
+
+        if ($provider === 'gemini') {
+            if (empty($apiKey)) {
+                return [
+                    'success' => false,
+                    'message' => 'กรุณาระบุ API Key ของ Google Gemini ก่อนเพื่อค้นหาโมเดล'
+                ];
+            }
+
+            try {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}";
+                $res = Http::withoutVerifying()->timeout(15)->get($url);
+
+                if (!$res->successful()) {
+                    $err = $res->json()['error']['message'] ?? $res->body();
+                    return [
+                        'success' => false,
+                        'message' => 'Gemini API แจ้งข้อผิดพลาด: ' . $err
+                    ];
+                }
+
+                $data = $res->json();
+                $models = $data['models'] ?? [];
+
+                $chatModels = [];
+                $embedModels = [];
+
+                foreach ($models as $m) {
+                    $name = str_replace('models/', '', $m['name']);
+                    $methods = $m['supportedGenerationMethods'] ?? [];
+
+                    // Embedding models
+                    if (in_array('embedContent', $methods) || str_contains($name, 'embedding')) {
+                        $embedModels[] = [
+                            'name' => $name,
+                            'display_name' => $m['displayName'] ?? $name,
+                            'recommended' => ($name === 'gemini-embedding-001')
+                        ];
+                    }
+
+                    // Chat generation models
+                    if (in_array('generateContent', $methods)) {
+                        // Exclude specialized non-chat / robotics / vision-only / transcribe models
+                        if (preg_match('/(tts|robotics|computer-use|transcribe|preview-customtools|image)/i', $name)) {
+                            continue;
+                        }
+
+                        $chatModels[] = [
+                            'name' => $name,
+                            'display_name' => $m['displayName'] ?? $name,
+                            'recommended' => in_array($name, ['gemini-3.7-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'])
+                        ];
+                    }
+                }
+
+                // Sort: recommended priority
+                usort($chatModels, function($a, $b) {
+                    $order = [
+                        'gemini-3.7-flash' => 1,
+                        'gemini-3.5-flash-lite' => 2,
+                        'gemini-flash-latest' => 3,
+                        'gemini-flash-lite-latest' => 4,
+                        'gemini-3.8-flash' => 5,
+                        'gemini-3.6-flash' => 6,
+                        'gemini-pro-latest' => 7,
+                    ];
+                    $rankA = $order[$a['name']] ?? 99;
+                    $rankB = $order[$b['name']] ?? 99;
+                    return $rankA <=> $rankB;
+                });
+
+                return [
+                    'success' => true,
+                    'provider' => 'gemini',
+                    'chat_models' => array_values($chatModels),
+                    'embed_models' => array_values($embedModels),
+                    'recommended_chat' => 'gemini-3.7-flash',
+                    'recommended_embed' => 'gemini-embedding-001',
+                    'message' => 'ค้นพบ ' . count($chatModels) . ' โมเดลตอบคำถาม และ ' . count($embedModels) . ' โมเดลเวกเตอร์ จาก Gemini API'
+                ];
+            } catch (\Throwable $e) {
+                return [
+                    'success' => false,
+                    'message' => 'ไม่สามารถติดต่อ Gemini API ได้: ' . $e->getMessage()
+                ];
+            }
+        } elseif ($provider === 'ollama') {
+            $baseUrl = !empty($apiUrl) ? rtrim($apiUrl, '/') : 'http://localhost:11434';
+            try {
+                $res = Http::withoutVerifying()->timeout(10)->get("{$baseUrl}/api/tags");
+                if (!$res->successful()) {
+                    return [
+                        'success' => false,
+                        'message' => 'ไม่สามารถดึงโมเดลจาก Ollama ได้: ' . $res->body()
+                    ];
+                }
+
+                $data = $res->json();
+                $models = $data['models'] ?? [];
+                $chatModels = [];
+                $embedModels = [];
+
+                foreach ($models as $m) {
+                    $name = $m['name'] ?? '';
+                    if (str_contains($name, 'embed') || str_contains($name, 'bge')) {
+                        $embedModels[] = ['name' => $name, 'display_name' => $name];
+                    } else {
+                        $chatModels[] = ['name' => $name, 'display_name' => $name];
+                    }
+                }
+
+                return [
+                    'success' => true,
+                    'provider' => 'ollama',
+                    'chat_models' => $chatModels,
+                    'embed_models' => $embedModels,
+                    'recommended_chat' => $chatModels[0]['name'] ?? 'gemma4:e4b',
+                    'recommended_embed' => $embedModels[0]['name'] ?? 'nomic-embed-text',
+                    'message' => 'ดึงโมเดลที่ติดตั้งใน Ollama สำเร็จ (' . count($models) . ' โมเดล)'
+                ];
+            } catch (\Throwable $e) {
+                return [
+                    'success' => false,
+                    'message' => 'ไม่สามารถติดต่อเซิร์ฟเวอร์ Ollama ได้: ' . $e->getMessage()
+                ];
+            }
+        } else {
+            // OpenAI-Compatible (DeepSeek, OpenAI, LocalAI, LM Studio, vLLM)
+            $baseUrl = !empty($apiUrl) ? rtrim($apiUrl, '/') : 'https://api.deepseek.com/v1';
+
+            // Try dynamic fetch from the specified URL endpoint if provided
+            if (!empty($baseUrl)) {
+                try {
+                    $endpoint = str_ends_with($baseUrl, '/models') ? $baseUrl : "{$baseUrl}/models";
+                    $req = Http::withoutVerifying()->timeout(6);
+                    if (!empty($apiKey)) {
+                        $req = $req->withToken($apiKey);
+                    }
+                    $res = $req->get($endpoint);
+
+                    if ($res->successful()) {
+                        $data = $res->json();
+                        $modelsList = $data['data'] ?? [];
+                        if (!empty($modelsList) && is_array($modelsList)) {
+                            $chatModels = [];
+                            $embedModels = [];
+
+                            foreach ($modelsList as $m) {
+                                $id = $m['id'] ?? '';
+                                if (empty($id)) continue;
+                                if (str_contains(strtolower($id), 'embed') || str_contains(strtolower($id), 'bge')) {
+                                    $embedModels[] = ['name' => $id, 'display_name' => $id];
+                                } else {
+                                    $chatModels[] = ['name' => $id, 'display_name' => $id];
+                                }
+                            }
+
+                            if (!empty($chatModels)) {
+                                return [
+                                    'success' => true,
+                                    'provider' => 'openai_compatible',
+                                    'chat_models' => $chatModels,
+                                    'embed_models' => !empty($embedModels) ? $embedModels : [
+                                        ['name' => 'bge-m3', 'display_name' => 'BGE-M3 (Multilingual)', 'recommended' => true]
+                                    ],
+                                    'recommended_chat' => $chatModels[0]['name'],
+                                    'recommended_embed' => !empty($embedModels) ? $embedModels[0]['name'] : 'bge-m3',
+                                    'message' => 'ดึงโมเดลจากเซิร์ฟเวอร์ ' . parse_url($baseUrl, PHP_URL_HOST) . ' สำเร็จ (' . count($chatModels) . ' โมเดล)'
+                                ];
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Endpoint unreachable or timeout: fall back smoothly to presets below
+                }
+            }
+
+            // Fallback standard presets for OpenAI-compatible
+            return [
+                'success' => true,
+                'provider' => 'openai_compatible',
+                'chat_models' => [
+                    ['name' => 'deepseek-chat', 'display_name' => 'DeepSeek Chat (V3)', 'recommended' => true],
+                    ['name' => 'deepseek-reasoner', 'display_name' => 'DeepSeek Reasoner (R1)'],
+                    ['name' => 'gpt-4o-mini', 'display_name' => 'GPT-4o Mini'],
+                    ['name' => 'gpt-4o', 'display_name' => 'GPT-4o']
+                ],
+                'embed_models' => [
+                    ['name' => 'bge-m3', 'display_name' => 'BGE-M3 (Multilingual)', 'recommended' => true],
+                    ['name' => 'text-embedding-3-small', 'display_name' => 'OpenAI text-embedding-3-small']
+                ],
+                'recommended_chat' => 'deepseek-chat',
+                'recommended_embed' => 'bge-m3',
+                'message' => 'รายการโมเดลมาตรฐานสำหรับ OpenAI-Compatible (DeepSeek / GPT)'
             ];
         }
     }
@@ -268,8 +474,8 @@ class AiService
             ];
         }
 
-        // Resilient fallback order if primary model experiences high demand spike (503/429)
-        $modelsToTry = array_values(array_unique([$model, 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.5-flash']));
+        // Resilient fallback order if primary model experiences high demand spike (503/429) or is deprecated (404)
+        $modelsToTry = array_values(array_unique([$model, 'gemini-3.7-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-flash-latest']));
         $lastError = null;
 
         foreach ($modelsToTry as $currentModel) {
@@ -277,7 +483,7 @@ class AiService
 
             try {
                 $res = Http::withoutVerifying()
-                    ->timeout(30)
+                    ->timeout(50)
                     ->withHeaders([
                         'x-goog-api-key' => $apiKey,
                         'Content-Type' => 'application/json'
@@ -292,10 +498,10 @@ class AiService
                 $err = $res->json()['error']['message'] ?? $res->body();
                 $lastError = $err;
 
-                // If high demand spike or 503/429, try next fallback model
-                if ($res->status() === 503 || $res->status() === 429 || str_contains($err, 'demand') || str_contains($err, 'RESOURCE_EXHAUSTED')) {
-                    Log::warning("Gemini model {$currentModel} busy: {$err}. Trying next fallback...");
-                    usleep(500000);
+                // If high demand spike, quota limit (429), or deprecated model (404), try next fallback model
+                if ($res->status() === 503 || $res->status() === 429 || $res->status() === 404 || str_contains($err, 'demand') || str_contains($err, 'RESOURCE_EXHAUSTED') || str_contains($err, 'no longer available')) {
+                    Log::warning("Gemini model {$currentModel} status {$res->status()}: {$err}. Trying next fallback...");
+                    usleep(300000);
                     continue;
                 }
 

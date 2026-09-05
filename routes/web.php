@@ -76,6 +76,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::get('logs/schedule/notify/test', [MainSettingController::class, 'testTelegramConnection'])->name('logs.schedule.notify.test');
     Route::post('logs/schedule/notify/send', [MainSettingController::class, 'manualNotifySend'])->name('logs.schedule.notify.send');
     Route::post('main_setting/test-ai', [MainSettingController::class, 'testAiConnection'])->name('main_setting.test_ai');
+    Route::post('main_setting/fetch-models', [MainSettingController::class, 'fetchModels'])->name('main_setting.fetch_models');
 
     // AI Knowledge Base (RAG)
     Route::get('rag-knowledge', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'index'])->name('rag.index');

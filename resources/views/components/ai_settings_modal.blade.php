@@ -78,10 +78,16 @@
 
                         <!-- API Key -->
                         <div class="col-12">
-                            <label class="form-label fw-bold small text-muted">
-                                AI API Key 
-                                <span class="text-danger fw-normal" id="keyRequiredNote">(จำเป็นสำหรับ Gemini / DeepSeek)</span>
-                            </label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small text-muted mb-0">
+                                    AI API Key 
+                                    <span class="text-danger fw-normal" id="keyRequiredNote">(จำเป็นสำหรับ Gemini / DeepSeek)</span>
+                                </label>
+                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-2 py-0 fw-bold shadow-sm" id="btnFetchModels" onclick="fetchAvailableModels(false)" title="ค้นหาและดึงโมเดลจริงจาก API">
+                                    <span id="fetchModelsSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                                    <i class="bi bi-search me-1" id="fetchModelsIcon"></i> ค้นหาโมเดลที่ใช้งานได้
+                                </button>
+                            </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-key-fill text-muted"></i></span>
                                 <input type="password" class="form-control font-monospace" id="settingApiKey" name="ai_api_key" value="{{ $aiConfig['api_key'] ?? '' }}" placeholder="AIzaSy...">
@@ -89,7 +95,10 @@
                                     <i class="bi bi-eye" id="keyPeekIcon"></i>
                                 </button>
                             </div>
-                            <small class="text-muted" id="keyHelpText">สำหรับ Gemini ขอรับ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none">Google AI Studio</a></small>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted" id="keyHelpText">สำหรับ Gemini ขอรับ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none">Google AI Studio</a></small>
+                                <small id="fetchModelsStatus" class="text-success fw-bold small"></small>
+                            </div>
                         </div>
 
                         <!-- 1. HosFin Scope: Chat Model (Shown only when on HosFin page) -->
@@ -195,6 +204,12 @@
                 const el = document.getElementById('aiSettingsModal');
                 if (el) bootstrap.Modal.getOrCreateInstance(el).show();
             }
+
+            // If Gemini is active and API key exists, automatically fetch models first!
+            const prov = document.getElementById('settingProvider');
+            if (prov && prov.value === 'gemini') {
+                fetchAvailableModels(true);
+            }
         }, isHosFinModalOpen ? 300 : 0);
     }
 
@@ -207,14 +222,16 @@
         if (provider === 'gemini') {
             if (pHosfin) {
                 pHosfin.innerHTML = `
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setHosfinModelPreset('gemini-3.6-flash')">⭐ gemini-3.6-flash (แนะนำ)</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setHosfinModelPreset('gemini-3.7-flash')">⭐ gemini-3.7-flash (แนะนำ เสถียรสุด)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosfinModelPreset('gemini-3.5-flash-lite')">⚡ gemini-3.5-flash-lite (ตอบไว)</span>
                     <span class="badge bg-light text-dark border small" role="button" onclick="setHosfinModelPreset('gemini-flash-latest')">gemini-flash-latest</span>
                 `;
             }
             if (pRag) {
                 pRag.innerHTML = `
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setModelPreset('gemini-flash-latest')">⭐ gemini-flash-latest (แนะนำ)</span>
-                    <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gemini-3.6-flash')">gemini-3.6-flash</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setModelPreset('gemini-3.7-flash')">⭐ gemini-3.7-flash (แนะนำ)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gemini-3.5-flash-lite')">⚡ gemini-3.5-flash-lite (ตอบไว)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gemini-flash-latest')">gemini-flash-latest</span>
                 `;
             }
             if (pEmbed) {
@@ -327,16 +344,21 @@
                 }
             }
             if (isUserChange || (modelHosfinInput && !modelHosfinInput.value.toLowerCase().includes('gemini'))) {
-                if (modelHosfinInput) modelHosfinInput.value = 'gemini-3.6-flash';
+                if (modelHosfinInput) modelHosfinInput.value = 'gemini-3.7-flash';
             }
             if (isUserChange || (modelInput && !modelInput.value.toLowerCase().includes('gemini'))) {
-                if (modelInput) modelInput.value = 'gemini-flash-latest';
+                if (modelInput) modelInput.value = 'gemini-3.7-flash';
             }
             if (isUserChange || (embedInput && !embedInput.value.toLowerCase().includes('gemini'))) {
                 if (embedInput) embedInput.value = 'gemini-embedding-001';
             }
             if (note) note.textContent = '(จำเป็นสำหรับ Gemini)';
             if (keyHelp) keyHelp.innerHTML = 'สำหรับ Gemini ขอรับ API Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-decoration-none fw-bold">Google AI Studio</a>';
+
+            // Auto-fetch Gemini models when selected!
+            if (isUserChange) {
+                fetchAvailableModels(true);
+            }
         } else if (val === 'ollama') {
             if (urlLabel) urlLabel.innerHTML = 'AI Base URL <span class="text-primary fw-normal">(สำหรับ Ollama Local Server)</span>';
             if (urlHelp) urlHelp.innerHTML = 'ระบุ URL ของ Ollama เช่น <code>http://localhost:11434</code> หรือ IP เครื่องในเครือข่าย';
@@ -360,6 +382,10 @@
             }
             if (note) note.textContent = '(ไม่ต้องใช้สำหรับ Ollama)';
             if (keyHelp) keyHelp.textContent = 'Ollama ทำงานแบบ Local/Offline ภายในเครื่องหรือเครือข่าย ไม่จำเป็นต้องระบุ API Key';
+
+            if (isUserChange) {
+                fetchAvailableModels(true);
+            }
         } else { // openai_compatible
             if (urlLabel) urlLabel.innerHTML = 'AI Base URL <span class="text-primary fw-normal">(สำหรับ OpenAI / DeepSeek / Custom)</span>';
             if (urlHelp) urlHelp.innerHTML = 'ระบุ Endpoint API เช่น <code>https://api.deepseek.com/v1</code>';
@@ -398,6 +424,144 @@
     function setEmbedPreset(name) {
         const el = document.getElementById('settingEmbedModel');
         if (el) el.value = name;
+    }
+
+    // Fetch available models from Google Gemini API or Ollama
+    function fetchAvailableModels(isSilent = false) {
+        const provider = document.getElementById('settingProvider').value;
+        const apiKey = document.getElementById('settingApiKey').value;
+        const apiUrl = document.getElementById('settingApiUrl').value;
+        const btn = document.getElementById('btnFetchModels');
+        const spinner = document.getElementById('fetchModelsSpinner');
+        const icon = document.getElementById('fetchModelsIcon');
+        const status = document.getElementById('fetchModelsStatus');
+
+        if (provider === 'gemini' && !apiKey) {
+            if (!isSilent && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาระบุ API Key',
+                    text: 'กรุณากรอก Google Gemini API Key ก่อนเพื่อค้นหาโมเดลที่ใช้งานได้ครับ'
+                });
+            }
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (spinner) spinner.classList.remove('d-none');
+        if (icon) icon.classList.add('d-none');
+        if (status) status.innerHTML = '<span class="text-muted"><i class="spinner-border spinner-border-sm me-1"></i>กำลังค้นหาโมเดล...</span>';
+
+        fetch('{{ route("admin.main_setting.fetch_models") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                ai_provider: provider,
+                ai_api_key: apiKey,
+                ai_api_url: apiUrl
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btn) btn.disabled = false;
+            if (spinner) spinner.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+
+            if (data.success && data.chat_models && data.chat_models.length > 0) {
+                if (status) status.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>พบ ${data.chat_models.length} โมเดลพร้อมใช้</span>`;
+
+                renderFetchedPresets(data);
+
+                // Auto-fill with recommended model if current input is empty or has old/deprecated model
+                const hosfinInput = document.getElementById('settingModelHosfin');
+                const ragInput = document.getElementById('settingModelName');
+                const embedInput = document.getElementById('settingEmbedModel');
+
+                if (data.recommended_chat) {
+                    if (hosfinInput && (!hosfinInput.value || hosfinInput.value.includes('1.5-flash') || hosfinInput.value.includes('2.5-flash') || hosfinInput.value.includes('3.5-flash'))) {
+                        hosfinInput.value = data.recommended_chat;
+                    }
+                    if (ragInput && (!ragInput.value || ragInput.value.includes('1.5-flash') || ragInput.value.includes('2.5-flash') || ragInput.value.includes('3.5-flash'))) {
+                        ragInput.value = data.recommended_chat;
+                    }
+                }
+                if (data.recommended_embed && embedInput && (!embedInput.value || embedInput.value.includes('text-embedding-004'))) {
+                    embedInput.value = data.recommended_embed;
+                }
+
+                if (!isSilent && typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ค้นหาโมเดลสำเร็จ!',
+                        html: `
+                            <div class="text-start p-2 small">
+                                <p class="text-success fw-bold mb-1"><i class="bi bi-stars me-1"></i> ${data.message}</p>
+                                <p class="text-muted mb-2">ระบบได้เพิ่มปุ่มลัดรายชื่อโมเดลทั้งหมดที่ Key นี้เข้าถึงได้ลงในแบบฟอร์มแล้ว</p>
+                                <div class="bg-light p-2 border rounded-3 mb-2">
+                                    <strong>โมเดลตอบคำถามแนะนำ:</strong> <code>${data.recommended_chat}</code><br>
+                                    <strong>โมเดลเวกเตอร์แนะนำ:</strong> <code>${data.recommended_embed || '-'}</code>
+                                </div>
+                                <small class="text-muted">*สามารถคลิกเลือกชื่อโมเดลที่ต้องการได้จากปุ่มด้านล่างช่องกรอก</small>
+                            </div>
+                        `
+                    });
+                }
+            } else {
+                if (status) status.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>ค้นหาไม่สำเร็จ</span>`;
+                if (!isSilent && typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ค้นหาโมเดลไม่สำเร็จ',
+                        text: data.message || 'ไม่สามารถดึงรายชื่อโมเดลได้'
+                    });
+                }
+            }
+        })
+        .catch(err => {
+            if (btn) btn.disabled = false;
+            if (spinner) spinner.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+            if (status) status.innerHTML = '';
+            if (!isSilent && typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err });
+            }
+        });
+    }
+
+    function renderFetchedPresets(data) {
+        const pHosfin = document.getElementById('presetsHosfin');
+        const pRag = document.getElementById('presetsRag');
+        const pEmbed = document.getElementById('presetsEmbed');
+
+        if (data.chat_models && data.chat_models.length > 0) {
+            const topModels = data.chat_models.slice(0, 8);
+
+            const buildChips = function(isHosfin) {
+                return topModels.map(m => {
+                    const isRec = (m.name === data.recommended_chat);
+                    const cls = isRec ? 'badge bg-success bg-opacity-10 text-success border border-success' : 'badge bg-light text-dark border';
+                    const fn = isHosfin ? `setHosfinModelPreset('${m.name}')` : `setModelPreset('${m.name}')`;
+                    const label = isRec ? `⭐ ${m.name} (แนะนำ)` : (m.name.includes('lite') ? `⚡ ${m.name}` : m.name);
+                    return `<span class="${cls} small" role="button" onclick="${fn}" title="${m.display_name}">${label}</span>`;
+                }).join(' ');
+            };
+
+            if (pHosfin) pHosfin.innerHTML = buildChips(true);
+            if (pRag) pRag.innerHTML = buildChips(false);
+        }
+
+        if (data.embed_models && data.embed_models.length > 0 && pEmbed) {
+            pEmbed.innerHTML = data.embed_models.map(m => {
+                const isRec = (m.name === data.recommended_embed);
+                const cls = isRec ? 'badge bg-success bg-opacity-10 text-success border border-success' : 'badge bg-light text-dark border';
+                const label = isRec ? `⭐ ${m.name} (แนะนำ)` : m.name;
+                return `<span class="${cls} small" role="button" onclick="setEmbedPreset('${m.name}')">${label}</span>`;
+            }).join(' ');
+        }
     }
 
     function handleSaveAiSettings(event) {

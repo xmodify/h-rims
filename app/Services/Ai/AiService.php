@@ -359,7 +359,11 @@ class AiService
         $payload = [
             'model' => $model,
             'prompt' => $prompt,
-            'stream' => false
+            'stream' => false,
+            'options' => [
+                'num_predict' => 800,
+                'temperature' => 0.4
+            ]
         ];
 
         if ($systemPrompt) {
@@ -371,7 +375,11 @@ class AiService
                 ->timeout(180)
                 ->post("{$baseUrl}/api/generate", $payload);
         } catch (\Throwable $e) {
-            throw new \Exception("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Ollama ที่ [{$baseUrl}] ได้ ({$e->getMessage()}) กรุณาตรวจสอบว่าเซิร์ฟเวอร์ Ollama กำลังทำงานอยู่");
+            $errMsg = $e->getMessage();
+            if (str_contains($errMsg, 'timed out') || str_contains($errMsg, 'cURL error 28')) {
+                throw new \Exception("โมเดล Ollama ({$model}) ประมวลผลนานเกิน 3 นาที (Timeout) เนื่องจากโมเดลมีขนาดใหญ่ (9.4GB) และรันบน CPU คอมพิวเตอร์ (ไม่มี GPU แยก) ทำให้คำนวณบทวิเคราะห์ยาวไม่ทัน แนะนำให้กดปุ่ม '⚙️ ตั้งค่า AI' สลับไปใช้ Google Gemini ซึ่งประมวลผลเสร็จใน 2-3 วินาทีครับ");
+            }
+            throw new \Exception("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Ollama ที่ [{$baseUrl}] ได้ ({$errMsg}) กรุณาตรวจสอบว่าเซิร์ฟเวอร์ Ollama กำลังทำงานอยู่");
         }
 
         if (!$res->successful()) {

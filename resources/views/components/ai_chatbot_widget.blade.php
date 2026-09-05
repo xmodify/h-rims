@@ -20,7 +20,7 @@
                 </div>
                 <div>
                     <h6 class="mb-0 fw-bold text-white fs-6">RiMS Copilot</h6>
-                    <small class="text-white-50" style="font-size: 0.72rem;">ผู้ช่วย AI: มอนิเตอร์การเงินการคลัง • ตรวจสอบ HOSxP • เบิกจ่ายกองทุนต่าง ๆ</small>
+                    <small class="text-white-50" style="font-size: 0.72rem;" id="aiChatHeaderSubtitle">ผู้ช่วย AI: มอนิเตอร์การเงินการคลัง • ตรวจสอบ HOSxP • เบิกจ่ายกองทุนต่าง ๆ</small>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-1">
@@ -48,10 +48,10 @@
                 <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
                 <div class="ai-msg-bubble">
                     <p class="mb-1">สวัสดีครับ! ผมคือ <strong>RiMS Copilot</strong> 🩺✨</p>
-                    <p class="mb-2 small text-muted">ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน สามารถพิมพ์สอบถามได้เลยครับ</p>
+                    <p class="mb-2 small text-muted" id="aiWelcomeDesc">ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน สามารถพิมพ์สอบถามได้เลยครับ</p>
                     <div id="aiQuickSuggestions" class="mt-2 pt-2 border-top">
                         <small class="d-block text-muted mb-1" style="font-size: 0.75rem;"><i class="bi bi-lightbulb text-warning me-1"></i> คำถามแนะนำด่วน:</small>
-                        <div class="d-flex flex-wrap gap-1">
+                        <div class="d-flex flex-wrap gap-1" id="aiSuggestionChips">
                             <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เจ้าหนี้บริษัทไหนต้องจ่ายก่อนตามอายุหนี้')">📌 เจ้าหนี้บริษัทไหนต้องจ่ายก่อน?</button>
                             <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปยอดหนี้องค์การเภสัชกรรม')">💊 ยอดหนี้องค์การเภสัชกรรม (GPO)</button>
                             <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ลูกหนี้ค่ารักษาพยาบาลค้างชำระแยกตามสิทธิ')">👛 ลูกหนี้ค้างชำระแยกตามสิทธิ</button>
@@ -618,5 +618,46 @@
         const text = document.createTextNode(string);
         pre.appendChild(text);
         return pre.innerHTML;
+    }
+
+    // Dynamic UI Adaptation based on Current Page Scope
+    function initAiChatbotContext() {
+        const path = window.location.pathname.toLowerCase();
+        const isRag = path.includes('rag-knowledge') || path.includes('rag');
+        const isHosfin = path.includes('hosfin');
+
+        const subTitle = document.getElementById('aiChatHeaderSubtitle');
+        const welcomeDesc = document.getElementById('aiWelcomeDesc');
+        const chipsContainer = document.getElementById('aiSuggestionChips');
+
+        if (isRag) {
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: คลังเอกสาร • ระเบียบการเบิกจ่าย • คู่มือแก้ C/Deny';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะสืบค้นคลังเอกสารและระเบียบปฏิบัติ พร้อมตอบคำถามและค้นหาแนวทางแก้ไขจากคู่มือ ระเบียบการเบิกจ่าย สปสช. กรมบัญชีกลาง และข้อผิดพลาด 16 แฟ้ม สามารถพิมพ์คำถามได้เลยครับ';
+            if (chipsContainer) {
+                chipsContainer.innerHTML = `
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('แนวทางแก้ไขข้อผิดพลาดติด C300')">📑 แก้ไขข้อผิดพลาดติด C300</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เกณฑ์การเบิกจ่ายค่าบริการฟอกเลือดไตเทียม สปสช.')">💉 เกณฑ์เบิกจ่ายฟอกไต สปสช.</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('หลักเกณฑ์การส่งข้อมูล 16 แฟ้มมาตรฐาน')">🏥 หลักเกณฑ์ 16 แฟ้มมาตรฐาน</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ในคลังความรู้มีคู่มือเอกสารอะไรบ้าง')">📚 ในคลังเอกสารมีคู่มืออะไรบ้าง?</button>
+                `;
+            }
+        } else if (isHosfin) {
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: วิเคราะห์การเงินการคลัง HosFin • บัญชี GL • คู่มือระเบียบ สธ.';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน (Cross-reference คู่มือระเบียบ สธ.) สามารถพิมพ์สอบถามได้เลยครับ';
+            if (chipsContainer) {
+                chipsContainer.innerHTML = `
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เจ้าหนี้บริษัทไหนต้องจ่ายก่อนตามอายุหนี้')">📌 เจ้าหนี้บริษัทไหนต้องจ่ายก่อน?</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปยอดหนี้องค์การเภสัชกรรม')">💊 ยอดหนี้องค์การเภสัชกรรม (GPO)</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ลูกหนี้ค่ารักษาพยาบาลค้างชำระแยกตามสิทธิ')">👛 ลูกหนี้ค้างชำระแยกตามสิทธิ</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปสถานะเงินบำรุงสุทธิ 105 และระดับความเสี่ยง Risk Score')">📊 สภาพคล่องและเงินบำรุงสุทธิ</button>
+                `;
+            }
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAiChatbotContext);
+    } else {
+        initAiChatbotContext();
     }
 </script>

@@ -95,121 +95,123 @@
     <div class="row">
         <!-- Header banner -->
         <div class="col-12 px-3 mb-3">
-            <div class="page-header-box mt-2" style="border-left-color: #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); padding: 16px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 w-100">
-                    <div>
-                        <h4 class="text-primary mb-1 fw-bold d-flex align-items-center gap-2">
-                            <i class="bi bi-bank2 text-success"></i> ระบบบริหารการเงินการคลัง (HosFin Dashboard)
-                        </h4>
-                        <div class="text-muted d-inline-flex align-items-center gap-2 small flex-wrap mt-1">
-                            @if($hasData)
-                                @if(isset($periods) && count($periods) > 0)
-                                    <div class="d-inline-flex align-items-center gap-1.5 bg-white border border-success-subtle rounded-pill px-2.5 py-1 shadow-xs">
-                                        <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
-                                        <span class="small fw-bold text-success" style="font-size: 0.76rem;">งวดบัญชี:</span>
-                                        <select class="form-select form-select-sm border-0 py-0 ps-1 pe-4 fw-bold text-dark bg-transparent" 
-                                                style="font-size: 0.78rem; cursor: pointer; width: auto; box-shadow: none;" 
-                                                onchange="location.href='{{ url('hosfin') }}?period=' + this.value">
-                                            @foreach(array_reverse($periods) as $p)
-                                                @if(in_array($p['period'], $importedPeriods ?? []))
-                                                    <option value="{{ $p['period'] }}" {{ $p['period'] === $latestPeriod ? 'selected' : '' }}>
-                                                        {{ $p['label'] }} (ปีงบ {{ $budgetYear }})
-                                                    </option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @else
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-2.5 py-1">
-                                        <span class="spinner-grow spinner-grow-sm text-success me-1" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
-                                        ข้อมูลงวดบัญชีล่าสุด: <strong>{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
-                                    </span>
-                                @endif
+            <div class="page-header-box mt-2 d-flex flex-column align-items-stretch" style="border-left: 4px solid #10b981 !important; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); padding: 16px 22px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; border-left: 4px solid #10b981 !important;">
+                <!-- Row 1: Header Title (Far Left) & Action Buttons (Far Right) -->
+                <div class="w-100 d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-1">
+                    <h5 class="text-primary mb-0 fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-bank2 text-success fs-4"></i> ระบบบริหารการเงินการคลัง <span class="d-none d-sm-inline" style="font-size: 0.95rem; font-weight: 600; opacity: 0.85;">(HosFin Dashboard)</span>
+                    </h5>
 
-                                <!-- Risk Score Badge prominently placed in Header -->
-                                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border shadow-xs {{ $riskScoreBgClass }} metric-card" 
-                                     style="cursor: pointer; transition: all 0.2s ease;" data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)" title="คลิกเพื่อดูเกณฑ์คะแนนความเสี่ยง">
-                                    <div class="d-flex align-items-center gap-1.5">
-                                        <i class="bi bi-shield-exclamation {{ $riskScoreTextClass }} fs-5"></i>
-                                        <span class="fw-bold text-dark" style="font-size: 0.82rem; letter-spacing: 0.3px;">Risk Score</span>
-                                    </div>
-                                    <span class="badge {{ $riskScoreNumBgClass ?? ($riskScore >= 6 ? 'bg-danger text-white' : ($riskScore > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-0.5 fw-black font-monospace shadow-xs" style="font-size: 0.92rem; line-height: 1.2;">
-                                        {{ $riskScore }}
-                                    </span>
-                                    <span class="badge {{ $riskScore >= 6 ? 'bg-danger text-white' : ($riskScore >= 3 ? 'bg-warning text-dark' : ($riskScore > 0 ? 'bg-success text-white' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.72rem;">
-                                        {{ $riskScoreLevelLabel }}
-                                    </span>
-                                    <i class="bi bi-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
-                                </div>
-
-                                <!-- Last Sync Timestamp Badge -->
-                                <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill border shadow-xs bg-white text-muted" 
-                                     style="font-size: 0.78rem; border-color: #e2e8f0 !important; cursor: default;" 
-                                     title="วันเวลาที่เชื่อมโยงและประมวลผลข้อมูลล่าสุดจากโปรแกรม GL">
-                                    <span class="d-inline-block rounded-circle {{ $glSyncSuccess ? 'bg-success' : 'bg-secondary' }}" style="width: 7px; height: 7px;"></span>
-                                    <i class="bi bi-arrow-repeat {{ $glSyncSuccess ? 'text-success' : 'text-muted' }}" style="font-size: 0.85rem;"></i>
-                                    <span>Sync ล่าสุด:</span>
-                                    <strong class="text-dark font-monospace" style="font-size: 0.82rem;">{{ $glSyncTimeText }}</strong>
-                                </div>
-
-                            @else
-                                ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2 ms-lg-auto flex-wrap">
-
-                        <!-- Action Buttons (แบบที่ 1: Quick Buttons) -->
+                    <!-- Action Buttons (ขวาสุด) -->
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap ms-auto">
                         @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
                             @php
                                 $hasAiAccess = Auth::check() && (Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y');
                             @endphp
-                            <button type="button" class="btn rounded-pill px-3 d-flex align-items-center gap-2 shadow-sm btn-nav-custom text-white" 
+                            <button type="button" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom text-white" 
                                     onclick="{{ $hasAiAccess ? 'openHosFinAiModal()' : 'showAiAccessDeniedAlert()' }}"
-                                    style="font-size: 0.85rem; height: 42px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
+                                    style="font-size: 0.82rem; height: 36px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
                                     title="{{ $hasAiAccess ? 'คลิกเพื่อดูบทวิเคราะห์วิกฤตทางการเงินด้วย AI' : 'คุณไม่ได้รับสิทธิ์ใช้งาน AI' }}">
-                                <i class="bi bi-robot fs-5"></i> AI วิเคราะห์
+                                <i class="bi bi-robot"></i> AI วิเคราะห์
                             </button>
                         @endif
 
-                        <a href="{{ url('hosfin/cash_register') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/cash_register') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669; transition: all 0.25s ease;"
                            title="ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร (Cash Register)">
-                            <i class="bi bi-cash-stack" style="font-size: 1rem;"></i> รับ-จ่าย (Cash)
+                            <i class="bi bi-cash-stack"></i> รับ-จ่าย (Cash)
                         </a>
 
-                        <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626; transition: all 0.25s ease;"
                            title="รายงานเจ้าหนี้การค้าและบิลค้างชำระ (AP)">
-                            <i class="bi bi-receipt-cutoff" style="font-size: 1rem;"></i> เจ้าหนี้ (AP)
+                            <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
                         </a>
 
-                        <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1; transition: all 0.25s ease;"
                            title="รายงานลูกหนี้ค่ารักษาพยาบาลแยกตามสิทธิ (AR)">
-                            <i class="bi bi-wallet2" style="font-size: 1rem;"></i> ลูกหนี้ (AR)
+                            <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
                         </a>
 
-                        <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309; transition: all 0.25s ease;"
                            title="รายงานวิเคราะห์ต้นทุนบริการ (LC / MC / CC)">
-                            <i class="bi bi-pie-chart" style="font-size: 1rem;"></i> ต้นทุน (LC/MC/CC)
+                            <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
                         </a>
 
-                        <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-rr-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-rr-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;"
                            title="รายงานอัตราส่วนทางการเงิน">
-                            <i class="bi bi-graph-up-arrow" style="font-size: 1rem;"></i> อัตราส่วน
+                            <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
                         </a>
 
-                        <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-tb-custom" 
-                           style="font-size: 0.85rem; height: 42px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;"
+                        <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-tb-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;"
                            title="รายงานและนำเข้างบทดลอง (Trial Balance)">
-                            <i class="bi bi-file-earmark-spreadsheet" style="font-size: 1rem;"></i> งบทดลอง
+                            <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
                         </a>
                     </div>
                 </div>
+
+                <!-- Row 2: Status Badges (Period, Risk Score, Last Sync) -->
+                @if($hasData)
+                <div class="w-100 d-flex align-items-center gap-2 flex-wrap pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                    <!-- Period Dropdown -->
+                    @if(isset($periods) && count($periods) > 0)
+                        <div class="d-inline-flex align-items-center gap-1.5 bg-white border border-success-subtle rounded-pill px-2.5 py-1 shadow-xs">
+                            <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                            <span class="small fw-bold text-success" style="font-size: 0.76rem;">งวดบัญชี:</span>
+                            <select class="form-select form-select-sm border-0 py-0 ps-1 pe-4 fw-bold text-dark bg-transparent" 
+                                    style="font-size: 0.78rem; cursor: pointer; width: auto; box-shadow: none;" 
+                                    onchange="location.href='{{ url('hosfin') }}?period=' + this.value">
+                                @foreach(array_reverse($periods) as $p)
+                                    @if(in_array($p['period'], $importedPeriods ?? []))
+                                        <option value="{{ $p['period'] }}" {{ $p['period'] === $latestPeriod ? 'selected' : '' }}>
+                                            {{ $p['label'] }} (ปีงบ {{ $budgetYear }})
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                            <span class="spinner-grow spinner-grow-sm text-success me-1" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                            ข้อมูลงวดบัญชีล่าสุด: <strong>{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
+                        </span>
+                    @endif
+
+                    <!-- Risk Score Badge -->
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border shadow-xs {{ $riskScoreBgClass }} metric-card" 
+                         style="cursor: pointer; transition: all 0.2s ease;" data-code="RISK_SCORE" data-name="RISK SCORE (คะแนนความเสี่ยงทางการเงิน)" title="คลิกเพื่อดูเกณฑ์คะแนนความเสี่ยง">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <i class="bi bi-shield-exclamation {{ $riskScoreTextClass }} fs-5"></i>
+                            <span class="fw-bold text-dark" style="font-size: 0.82rem; letter-spacing: 0.3px;">Risk Score</span>
+                        </div>
+                        <span class="badge {{ $riskScoreNumBgClass ?? ($riskScore >= 6 ? 'bg-danger text-white' : ($riskScore > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-0.5 fw-black font-monospace shadow-xs" style="font-size: 0.92rem; line-height: 1.2;">
+                            {{ $riskScore }}
+                        </span>
+                        <span class="badge {{ $riskScore >= 6 ? 'bg-danger text-white' : ($riskScore >= 3 ? 'bg-warning text-dark' : ($riskScore > 0 ? 'bg-success text-white' : 'bg-secondary text-white')) }} rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.72rem;">
+                            {{ $riskScoreLevelLabel }}
+                        </span>
+                        <i class="bi bi-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                    </div>
+
+                    <!-- Last Sync Timestamp Badge -->
+                    <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill border shadow-xs bg-white text-muted" 
+                         style="font-size: 0.78rem; border-color: #e2e8f0 !important; cursor: default;" 
+                         title="วันเวลาที่เชื่อมโยงและประมวลผลข้อมูลล่าสุดจากโปรแกรม GL">
+                        <span class="d-inline-block rounded-circle {{ $glSyncSuccess ? 'bg-success' : 'bg-secondary' }}" style="width: 7px; height: 7px;"></span>
+                        <i class="bi bi-arrow-repeat {{ $glSyncSuccess ? 'text-success' : 'text-muted' }}" style="font-size: 0.85rem;"></i>
+                        <span>Sync ล่าสุด:</span>
+                        <strong class="text-dark font-monospace" style="font-size: 0.82rem;">{{ $glSyncTimeText }}</strong>
+                    </div>
+                </div>
+                @else
+                <div class="small text-muted mt-1">
+                    ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
+                </div>
+                @endif
             </div>
         </div>
 

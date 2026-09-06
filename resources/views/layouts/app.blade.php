@@ -1195,7 +1195,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-06 14.00
+                                V.69-09-06 15.30
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1247,32 +1247,20 @@
                                                 href="{{ route('admin.main_setting') }}">
                                                 <i class="bi bi-gear-fill me-2 text-secondary"></i> Main Setting
                                             </a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.lookup_setting') }}">
+                                                <i class="bi bi-folder-fill me-2 text-warning"></i> Lookup Setting
+                                            </a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.users.index') }}">
+                                                <i class="bi bi-people-fill me-2 text-primary"></i> User Manage
+                                            </a>
                                             @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ route('admin.rag.index') }}">
                                                     <i class="bi bi-robot me-2 text-primary"></i> คลังความรู้ AI
                                                 </a>
                                             @endif
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.users.index') }}">
-                                                <i class="bi bi-people-fill me-2 text-primary"></i> Manage User
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_icode.index') }}">
-                                                <i class="bi bi-search me-2 text-success"></i> Lookup icode
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_ward.index') }}">
-                                                <i class="bi bi-hospital-fill me-2 text-warning"></i> Lookup ward
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_hospcode.index') }}">
-                                                <i class="bi bi-building me-2 text-info"></i> Lookup hospcode
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.budget_year.index') }}">
-                                                <i class="bi bi-calendar3 me-2 text-danger"></i> Budget year
-                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ route('admin.logs.schedule') }}">
                                                 <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule

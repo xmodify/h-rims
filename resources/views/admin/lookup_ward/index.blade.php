@@ -15,6 +15,9 @@
             <p class="text-muted small mb-0">จัดการข้อมูลหอผู้ป่วยและประเภทการรับบริการ</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.lookup_setting') }}" class="btn btn-outline-secondary px-3 shadow-sm hover-scale rounded-pill">
+                <i class="bi bi-arrow-left me-1"></i> Lookup Setting
+            </a>
             <form method="POST" action="{{ route('admin.insert_lookup_ward') }}" class="d-inline">
                 @csrf
                 <button type="submit" class="btn btn-outline-primary px-4 shadow-sm hover-scale rounded-pill">

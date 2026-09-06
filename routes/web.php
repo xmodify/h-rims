@@ -48,8 +48,9 @@ Route::middleware(['auth'])->group(function () {
 
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
     Route::post('/git-pull', [MainSettingController::class, 'gitPull'])->name('git.pull');
-    Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     Route::resource('users', UserController::class);
+    Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+    Route::get('lookup_setting', [MainSettingController::class, 'lookupSetting'])->name('lookup_setting');
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{name}', [MainSettingController::class, 'update']);
     Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');

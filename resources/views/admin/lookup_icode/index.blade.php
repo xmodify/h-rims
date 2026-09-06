@@ -15,6 +15,9 @@
             <p class="text-muted small mb-0">จัดการรหัสรายการบริการแยกตามประเภทสิทธิและการรักษา</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.lookup_setting') }}" class="btn btn-outline-secondary px-3 shadow-sm hover-scale rounded-pill">
+                <i class="bi bi-arrow-left me-1"></i> Lookup Setting
+            </a>
             <div class="btn-group shadow-sm">
                 <form method="POST" action="{{ route('admin.insert_lookup_uc_cr') }}" class="d-inline import-form">
                     @csrf

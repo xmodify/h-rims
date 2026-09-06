@@ -11,6 +11,9 @@
             <p class="text-muted small mb-0">จัดการช่วงเวลาปฏิบัติงานและรายงานแยกตามปีพุทธศักราช</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.lookup_setting') }}" class="btn btn-outline-secondary px-3 shadow-sm hover-scale rounded-pill">
+                <i class="bi bi-arrow-left me-1"></i> Lookup Setting
+            </a>
             <button class="btn btn-success px-4 shadow-sm hover-scale rounded-pill" data-bs-toggle="modal" data-bs-target="#createModal">
                 <i class="bi bi-plus-circle-fill me-1"></i> เพิ่มปีงบประมาณ
             </button>

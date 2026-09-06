@@ -34,9 +34,7 @@ class MainSettingController extends Controller
             ->whereNotIn('name', $excludeFromDisplay)
             ->get();
 
-        $integrationTokens = [
-            'token_authen_kiosk_nhso',
-            'git_token',
+        $notifyTokens = [
             'telegram_token',
             'telegram_chat_id_register',
             'telegram_chat_id_notify_summary',
@@ -58,7 +56,7 @@ class MainSettingController extends Controller
                 'base_rate_lgo',
                 'base_rate_sss'
             ],
-            'HOSxP Mapping (PTTYPE/LAB/DRUG)' => [
+            'HOSxP Mapping' => [
                 'pttype_act',
                 'pttype_sss_fund',
                 'pttype_checkup',
@@ -68,15 +66,13 @@ class MainSettingController extends Controller
                 'lab_prt',
                 'drug_clopidogrel'
             ],
-            'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
-            'Integration Tokens' => $integrationTokens,
-            'RiMS Copilot (AI & LLM) - ระบบการเงิน (HosFin)' => [
+            'FDH Setting' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
+            'Notify Setting' => $notifyTokens,
+            'RiMS Copilot (AI & LLM)' => [
                 'ai_hosfin_provider',
                 'ai_hosfin_api_key',
                 'ai_hosfin_model_name',
                 'ai_hosfin_api_url',
-            ],
-            'RiMS Copilot (AI & LLM) - คลังความรู้ (RAG)' => [
                 'ai_rag_provider',
                 'ai_rag_api_key',
                 'ai_rag_model_name',
@@ -100,7 +96,7 @@ class MainSettingController extends Controller
                 'ktb_user_id',
                 'ktb_password'
             ],
-            'License Setting' => ['rims_license_key'],
+            'License Setting' => ['rims_license_key', 'git_token'],
         ];
 
         $groupedData = [];
@@ -122,6 +118,17 @@ class MainSettingController extends Controller
         }
 
         return view('admin.main_setting', compact('groupedData', 'hospcode'));
+    }
+
+    public function lookupSetting()
+    {
+        $counts = [
+            'icode' => \Illuminate\Support\Facades\Schema::hasTable('lookup_icode') ? \Illuminate\Support\Facades\DB::table('lookup_icode')->count() : 0,
+            'ward' => \Illuminate\Support\Facades\Schema::hasTable('lookup_ward') ? \Illuminate\Support\Facades\DB::table('lookup_ward')->count() : 0,
+            'hospcode' => \Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') ? \Illuminate\Support\Facades\DB::table('lookup_hospcode')->count() : 0,
+            'budget_year' => \Illuminate\Support\Facades\Schema::hasTable('budget_year') ? \Illuminate\Support\Facades\DB::table('budget_year')->count() : 0,
+        ];
+        return view('admin.lookup_setting.index', compact('counts'));
     }
     // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $name)
@@ -890,7 +897,6 @@ class MainSettingController extends Controller
                     // ==========================================
                     $main_setting = [
                         ['name' => 'bed_qty', 'name_th' => 'IPD จำนวนเตียง', 'value' => ''],
-                        ['name' => 'token_authen_kiosk_nhso', 'name_th' => 'NHSO Authen Kiosk Token', 'value' => ''],
                         ['name' => 'telegram_token', 'name_th' => 'Telegram Token', 'value' => ''],
                         ['name' => 'telegram_chat_id_register', 'name_th' => 'Telegram ChatID Register', 'value' => ''],
                         ['name' => 'telegram_chat_id_notify_summary', 'name_th' => 'Telegram ChatID NotifySummary', 'value' => ''],
@@ -955,6 +961,7 @@ class MainSettingController extends Controller
 
                     // Clean up only known obsolete/deprecated keys (never wipe user-configured settings)
                     MainSetting::whereIn('name', [
+                        'token_authen_kiosk_nhso',
                         'opoh_token', 'opoh_url_api_death',
                         'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_model_hosfin', 'ai_embed_model'
                     ])->delete();

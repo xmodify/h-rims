@@ -10,8 +10,8 @@
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico') }}" type="image/x-icon">
-    <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -1195,7 +1195,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-06 10.00
+                                V.69-09-06 14.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

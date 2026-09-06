@@ -9,38 +9,55 @@ use Illuminate\Support\Facades\Log;
 class AiService
 {
     /**
-     * Check if RiMS Copilot is enabled globally
+     * Check if RiMS Copilot is enabled (licensed via ai_knowledge)
      */
     public static function isActive(): bool
     {
-        $val = self::getSetting('ai_active', 'Y');
-        return strtoupper($val) !== 'N' && $val !== '0';
+        return \App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge');
     }
 
     /**
      * Get configured AI Provider ('gemini', 'ollama', 'openai_compatible')
      */
-    public static function getProvider()
+    public static function getProvider(?string $context = null)
     {
+        $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
+        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $val = self::getSetting($prefix . 'provider');
+        if (!empty($val)) {
+            return $val;
+        }
         return self::getSetting('ai_provider', env('AI_PROVIDER', 'gemini'));
     }
 
     /**
      * Get API Key
      */
-    public static function getApiKey()
+    public static function getApiKey(?string $context = null)
     {
+        $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
+        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $val = self::getSetting($prefix . 'api_key');
+        if (!empty($val)) {
+            return $val;
+        }
         return self::getSetting('ai_api_key', env('GEMINI_API_KEY', ''));
     }
 
     /**
      * Get Base URL (for Ollama or custom local server)
      */
-    public static function getApiUrl()
+    public static function getApiUrl(?string $context = null)
     {
-        $provider = self::getProvider();
+        $provider = self::getProvider($context);
+        $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
+        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+
         $defaultUrl = ($provider === 'gemini') ? 'https://generativelanguage.googleapis.com' : 'http://localhost:11434';
-        $url = self::getSetting('ai_api_url', env('AI_API_URL', $defaultUrl));
+        $url = self::getSetting($prefix . 'api_url');
+        if (empty($url)) {
+            $url = self::getSetting('ai_api_url', env('AI_API_URL', $defaultUrl));
+        }
 
         if ($provider === 'gemini' && (empty($url) || strpos($url, 'localhost:11434') !== false)) {
             return 'https://generativelanguage.googleapis.com';
@@ -54,14 +71,17 @@ class AiService
      */
     public static function getModelName(?string $pageContext = null)
     {
-        $provider = self::getProvider();
+        $provider = self::getProvider($pageContext);
+        $isHosfin = $pageContext && str_contains(strtolower($pageContext), 'hosfin');
 
-        if ($pageContext && str_contains(strtolower($pageContext), 'hosfin')) {
-            $hosfinModel = self::getSetting('ai_model_hosfin');
+        if ($isHosfin) {
+            $hosfinModel = self::getSetting('ai_hosfin_model_name');
+            if (empty($hosfinModel)) {
+                $hosfinModel = self::getSetting('ai_model_hosfin');
+            }
             if (!empty($hosfinModel)) {
-                // If provider is Ollama, protect against using cloud Gemini model name
                 if ($provider === 'ollama' && str_contains(strtolower($hosfinModel), 'gemini')) {
-                    $generalModel = self::getSetting('ai_model_name', 'gemma4:e4b');
+                    $generalModel = self::getSetting('ai_rag_model_name', 'gemma4:e4b');
                     return (!str_contains(strtolower($generalModel), 'gemini')) ? $generalModel : 'gemma4:e4b';
                 }
                 return $hosfinModel;
@@ -69,12 +89,15 @@ class AiService
             return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
         }
 
-        $generalModel = self::getSetting('ai_model_name');
-        if (!empty($generalModel)) {
-            if ($provider === 'ollama' && str_contains(strtolower($generalModel), 'gemini')) {
+        $ragModel = self::getSetting('ai_rag_model_name');
+        if (empty($ragModel)) {
+            $ragModel = self::getSetting('ai_model_name');
+        }
+        if (!empty($ragModel)) {
+            if ($provider === 'ollama' && str_contains(strtolower($ragModel), 'gemini')) {
                 return 'gemma4:e4b';
             }
-            return $generalModel;
+            return $ragModel;
         }
 
         return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
@@ -85,15 +108,7 @@ class AiService
      */
     public static function getHosfinModelName()
     {
-        $provider = self::getProvider();
-        $hosfinModel = self::getSetting('ai_model_hosfin');
-        if (!empty($hosfinModel)) {
-            if ($provider === 'ollama' && str_contains(strtolower($hosfinModel), 'gemini')) {
-                return 'gemma4:e4b';
-            }
-            return $hosfinModel;
-        }
-        return ($provider === 'ollama') ? 'gemma4:e4b' : 'gemini-3.7-flash';
+        return self::getModelName('hosfin');
     }
 
     /**
@@ -101,7 +116,11 @@ class AiService
      */
     public static function getEmbedModel()
     {
-        return self::getSetting('ai_embed_model', env('AI_EMBED_MODEL', 'text-embedding-004'));
+        $val = self::getSetting('ai_rag_embed_model');
+        if (!empty($val)) {
+            return $val;
+        }
+        return self::getSetting('ai_embed_model', env('AI_EMBED_MODEL', 'gemini-embedding-001'));
     }
 
     /**
@@ -125,7 +144,7 @@ class AiService
      */
     public function testConnection(?string $pageContext = null)
     {
-        $provider = self::getProvider();
+        $provider = self::getProvider($pageContext);
         $model = self::getModelName($pageContext);
 
         try {
@@ -363,9 +382,9 @@ class AiService
      * @param string $text
      * @return array Vector array of floats
      */
-    public function getEmbedding(string $text): array
+    public function getEmbedding(string $text, ?string $context = null): array
     {
-        $provider = self::getProvider();
+        $provider = self::getProvider($context ?: 'rag');
         $cleanText = mb_substr(trim(preg_replace('/\s+/', ' ', $text)), 0, 3000);
 
         if (empty($cleanText)) {
@@ -373,11 +392,11 @@ class AiService
         }
 
         if ($provider === 'gemini') {
-            return $this->getGeminiEmbedding($cleanText);
+            return $this->getGeminiEmbedding($cleanText, $context);
         } elseif ($provider === 'ollama') {
-            return $this->getOllamaEmbedding($cleanText);
+            return $this->getOllamaEmbedding($cleanText, $context);
         } else {
-            return $this->getOpenAiEmbedding($cleanText);
+            return $this->getOpenAiEmbedding($cleanText, $context);
         }
     }
 
@@ -406,9 +425,9 @@ class AiService
     // Google Gemini API Handlers
     // ==========================================
 
-    protected function getGeminiEmbedding(string $text): array
+    protected function getGeminiEmbedding(string $text, ?string $context = null): array
     {
-        $apiKey = self::getApiKey();
+        $apiKey = self::getApiKey($context ?: 'rag');
         if (empty($apiKey)) {
             throw new \Exception("ยังไม่ได้ระบุ Gemini API Key สำหรับโมเดล Google Gemini (กรุณากรอกในหน้าตั้งค่า AI & LLM Connection หรือสลับไปใช้ Ollama)");
         }
@@ -445,7 +464,7 @@ class AiService
 
     protected function generateGeminiChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
-        $apiKey = self::getApiKey();
+        $apiKey = self::getApiKey($pageContext);
         if (empty($apiKey)) {
             throw new \Exception("ยังไม่ได้ระบุ Gemini API Key สำหรับ Google Gemini (กรุณาไปที่หน้า 'ตั้งค่า AI & LLM Connection' เพื่อบันทึก Key หรือสลับไปใช้ผู้ให้บริการอื่น เช่น Ollama / OpenAI-Compatible)");
         }
@@ -523,9 +542,9 @@ class AiService
     // Ollama (Local) Handlers
     // ==========================================
 
-    protected function getOllamaEmbedding(string $text): array
+    protected function getOllamaEmbedding(string $text, ?string $context = null): array
     {
-        $baseUrl = self::getApiUrl();
+        $baseUrl = self::getApiUrl($context ?: 'rag');
         $model = self::getEmbedModel();
         if (empty($model) || strpos($model, 'text-embedding') !== false) {
             $model = 'nomic-embed-text';
@@ -559,7 +578,7 @@ class AiService
 
     protected function generateOllamaChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
-        $baseUrl = self::getApiUrl();
+        $baseUrl = self::getApiUrl($pageContext);
         $model = self::getModelName($pageContext);
 
         $payload = [
@@ -599,10 +618,10 @@ class AiService
     // OpenAI-Compatible Handlers (DeepSeek, etc.)
     // ==========================================
 
-    protected function getOpenAiEmbedding(string $text): array
+    protected function getOpenAiEmbedding(string $text, ?string $context = null): array
     {
-        $baseUrl = self::getApiUrl();
-        $apiKey = self::getApiKey();
+        $baseUrl = self::getApiUrl($context ?: 'rag');
+        $apiKey = self::getApiKey($context ?: 'rag');
         $model = self::getEmbedModel();
 
         $res = Http::withoutVerifying()
@@ -622,8 +641,8 @@ class AiService
 
     protected function generateOpenAiChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
-        $baseUrl = self::getApiUrl();
-        $apiKey = self::getApiKey();
+        $baseUrl = self::getApiUrl($pageContext);
+        $apiKey = self::getApiKey($pageContext);
         $model = self::getModelName($pageContext);
 
         if (empty($apiKey)) {

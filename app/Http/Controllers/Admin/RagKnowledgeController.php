@@ -71,8 +71,12 @@ class RagKnowledgeController extends Controller
             ], 403);
         }
 
-        $provider = $request->input('ai_provider', 'gemini');
-        $apiUrl = trim($request->input('ai_api_url', ''));
+        $scope = $request->input('scope', 'rag');
+        $isHosfin = str_contains(strtolower($scope), 'hosfin');
+        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+
+        $provider = $request->input('ai_provider', $request->input($prefix . 'provider', 'gemini'));
+        $apiUrl = trim($request->input('ai_api_url', $request->input($prefix . 'api_url', '')));
         if ($provider === 'gemini' && (empty($apiUrl) || strpos($apiUrl, 'localhost:11434') !== false)) {
             $apiUrl = 'https://generativelanguage.googleapis.com';
         } elseif ($provider === 'ollama' && empty($apiUrl)) {
@@ -80,32 +84,35 @@ class RagKnowledgeController extends Controller
         }
 
         $settings = [
-            'ai_active' => 'Y',
-            'ai_provider' => $provider,
-            'ai_api_key' => $request->input('ai_api_key', ''),
-            'ai_api_url' => $apiUrl,
+            $prefix . 'provider' => $provider,
+            $prefix . 'api_key' => $request->input('ai_api_key', $request->input($prefix . 'api_key', '')),
+            $prefix . 'api_url' => $apiUrl,
         ];
 
-        if ($request->filled('ai_model_name')) {
-            $settings['ai_model_name'] = trim($request->input('ai_model_name'));
-        }
-        if ($request->filled('ai_model_hosfin')) {
-            $settings['ai_model_hosfin'] = trim($request->input('ai_model_hosfin'));
-        }
-        if ($request->filled('ai_embed_model')) {
-            $settings['ai_embed_model'] = trim($request->input('ai_embed_model'));
-        }
-
-        // Safeguard: Prevent mismatched cloud Gemini model names when using Ollama
-        if ($provider === 'ollama') {
-            if (isset($settings['ai_model_hosfin']) && str_contains(strtolower($settings['ai_model_hosfin']), 'gemini')) {
-                $settings['ai_model_hosfin'] = 'gemma4:e4b';
+        if ($isHosfin) {
+            $modelVal = $request->input('ai_hosfin_model_name', $request->input('ai_model_hosfin', $request->input('ai_model_name')));
+            if ($modelVal) {
+                $settings['ai_hosfin_model_name'] = trim($modelVal);
             }
-            if (isset($settings['ai_model_name']) && str_contains(strtolower($settings['ai_model_name']), 'gemini')) {
-                $settings['ai_model_name'] = 'gemma4:e4b';
+            if ($provider === 'ollama' && isset($settings['ai_hosfin_model_name']) && str_contains(strtolower($settings['ai_hosfin_model_name']), 'gemini')) {
+                $settings['ai_hosfin_model_name'] = 'gemma4:e4b';
             }
-            if (isset($settings['ai_embed_model']) && str_contains(strtolower($settings['ai_embed_model']), 'gemini')) {
-                $settings['ai_embed_model'] = 'nomic-embed-text';
+        } else {
+            $modelVal = $request->input('ai_rag_model_name', $request->input('ai_model_name'));
+            if ($modelVal) {
+                $settings['ai_rag_model_name'] = trim($modelVal);
+            }
+            $embedVal = $request->input('ai_rag_embed_model', $request->input('ai_embed_model'));
+            if ($embedVal) {
+                $settings['ai_rag_embed_model'] = trim($embedVal);
+            }
+            if ($provider === 'ollama') {
+                if (isset($settings['ai_rag_model_name']) && str_contains(strtolower($settings['ai_rag_model_name']), 'gemini')) {
+                    $settings['ai_rag_model_name'] = 'gemma4:e4b';
+                }
+                if (isset($settings['ai_rag_embed_model']) && str_contains(strtolower($settings['ai_rag_embed_model']), 'gemini')) {
+                    $settings['ai_rag_embed_model'] = 'nomic-embed-text';
+                }
             }
         }
 
@@ -118,7 +125,8 @@ class RagKnowledgeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'บันทึกการตั้งค่าระบบ AI เรียบร้อยแล้ว'
+            'scope' => $scope,
+            'message' => 'บันทึกการตั้งค่าระบบ AI (' . ($isHosfin ? 'HosFin' : 'RAG') . ') เรียบร้อยแล้ว'
         ]);
     }
 

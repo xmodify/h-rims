@@ -44,6 +44,14 @@
                             <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#licenseInfoModal">
                                 <i class="bi bi-info-circle-fill me-1"></i> ขอบเขตสิทธิ์การใช้งาน
                             </button>
+                        @elseif(str_contains($category, 'HosFin'))
+                            <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm hover-scale" onclick="openAiSettingsModal('hosfin')">
+                                <i class="bi bi-gear-fill me-1"></i> ตั้งค่า AI HosFin
+                            </button>
+                        @elseif(str_contains($category, 'RAG'))
+                            <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" onclick="openAiSettingsModal('rag')">
+                                <i class="bi bi-gear-fill me-1"></i> ตั้งค่า AI RAG
+                            </button>
                         @endif
                     </div>
                     <div class="card-body p-0">

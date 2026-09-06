@@ -89,6 +89,71 @@
     border-color: #2563eb !important;
     color: #1d4ed8 !important;
   }
+
+  /* Print Styles for HosFin */
+  @media print {
+    body.modal-open > *:not(#hosFinAiModal):not(.modal-backdrop) {
+      display: none !important;
+    }
+    body.modal-open .modal-backdrop {
+      display: none !important;
+    }
+    body.modal-open #hosFinAiModal {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
+      display: block !important;
+      background: #ffffff !important;
+      padding: 0 !important;
+    }
+    body.modal-open #hosFinAiModal .modal-dialog {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    body.modal-open #hosFinAiModal .modal-content {
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      background: #ffffff !important;
+    }
+    body.modal-open #hosFinAiModal .modal-header {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-bottom: 2px solid #0f172a !important;
+      padding: 10px 0 !important;
+    }
+    body.modal-open #hosFinAiModal .modal-header * {
+      color: #0f172a !important;
+    }
+    body.modal-open #hosFinAiModal .modal-header .btn-close {
+      display: none !important;
+    }
+    body.modal-open #hosFinAiModal .modal-body {
+      overflow: visible !important;
+      max-height: none !important;
+      padding: 15px 0 !important;
+    }
+    body.modal-open #hosFinAiModal .modal-footer,
+    body.modal-open #aiChatbotFloatingBtn,
+    body.modal-open #aiChatbotDrawer {
+      display: none !important;
+    }
+    body.modal-open #aiAnalysisContent {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    body.modal-open #hosFinAiSnapshotCard .row > div {
+      width: 25% !important;
+      float: left !important;
+    }
+  }
 </style>
 
 <div class="container-fluid py-4 px-lg-5" style="background-color: #f8fafc;">
@@ -1475,6 +1540,357 @@
         }
     }
 
+    function printHosFinAiReport() {
+        const aiText = document.getElementById('aiAnalysisText');
+        if (!aiText || !aiText.innerHTML.trim()) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่มีข้อมูลรายงาน',
+                    text: 'กรุณารอระบบ AI ประมวลผลรายงานสรุปให้เสร็จสิ้นก่อนพิมพ์ครับ'
+                });
+            } else {
+                alert('กรุณารอระบบ AI ประมวลผลรายงานสรุปให้เสร็จสิ้นก่อนพิมพ์');
+            }
+            return;
+        }
+
+        const reportHtml = aiText.innerHTML;
+        const sourcesHtml = document.getElementById('aiAnalysisSources') ? document.getElementById('aiAnalysisSources').innerHTML : '';
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        const hospitalName = `{{ DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?? 'โรงพยาบาล' }}`.replace(/^"|"$/g, '');
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            window.print();
+            return;
+        }
+
+        const doc = printWindow.document;
+        doc.open();
+        doc.write(`
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>รายงานสรุปผลการวินิจฉัยสุขภาพการเงิน - ${hospitalName}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        
+        @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 10mm 12mm;
+        }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            color: #1e293b;
+            background-color: #fff;
+            font-size: 9.5pt;
+            line-height: 1.55;
+            padding: 0;
+            margin: 0;
+        }
+
+        .report-header {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        /* 4-Column Executive KPI Table (Locks 4 columns on print, never stacks) */
+        .kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .kpi-table td {
+            width: 25%;
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            vertical-align: top;
+        }
+
+        .kpi-title {
+            font-size: 7.5pt;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+
+        .kpi-value {
+            font-size: 10.5pt;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .kpi-sub {
+            font-size: 7.5pt;
+            color: #64748b;
+            line-height: 1.3;
+        }
+
+        .badge-risk-danger {
+            display: inline-block;
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 0px 5px;
+            border-radius: 3px;
+            font-size: 7pt;
+            font-weight: 700;
+        }
+
+        .badge-data-source {
+            display: inline-block;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 7pt;
+            font-weight: 600;
+        }
+
+        /* Report Body Typography */
+        .report-body {
+            font-size: 9.5pt;
+            line-height: 1.55;
+            color: #1e293b;
+        }
+
+        .report-body h5, .report-body h6 {
+            font-family: 'Sarabun', sans-serif;
+            font-size: 10.5pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 10px;
+            margin-bottom: 3px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #e2e8f0;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        .report-body p {
+            margin-top: 0;
+            margin-bottom: 5px;
+            text-align: justify;
+        }
+
+        .report-body ul, .report-body ol {
+            margin-top: 0;
+            margin-bottom: 5px;
+            padding-left: 18px;
+        }
+
+        .report-body li {
+            margin-bottom: 2px;
+            text-align: justify;
+        }
+
+        .report-body strong {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .report-body .badge {
+            font-size: 7.5pt !important;
+            padding: 2px 7px !important;
+            border-radius: 10px !important;
+        }
+
+        .signature-section {
+            margin-top: 25px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .no-print {
+            display: block;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .container-fluid {
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print bg-light border-bottom p-2 px-3 mb-3 d-flex justify-content-between align-items-center" style="position: sticky; top: 0; z-index: 1000;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary px-2 py-1"><i class="bi bi-file-earmark-pdf-fill me-1"></i> A4 Executive Report</span>
+            <span class="fw-bold text-dark small">พิมพ์รายงานสรุปผลการวินิจฉัยสุขภาพการเงิน (Executive Summary)</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm px-3 fw-bold shadow-sm" onclick="window.print()">
+                <i class="bi bi-printer-fill me-1"></i> สั่งพิมพ์รายงาน (Print / Save as PDF)
+            </button>
+            <button class="btn btn-outline-secondary btn-sm px-3" onclick="window.close()">
+                <i class="bi bi-x-lg me-1"></i> ปิดหน้านี้
+            </button>
+        </div>
+    </div>
+
+    <div class="container-fluid px-3 py-1">
+        <!-- Header -->
+        <div class="report-header">
+            <table style="width: 100%; border: none; border-collapse: collapse;">
+                <tr>
+                    <td style="border: none; padding: 0; vertical-align: middle;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-bank2 text-primary" style="font-size: 20pt;"></i>
+                            <div>
+                                <h5 class="fw-bold mb-0 text-dark" style="font-family: 'Sarabun'; font-size: 13pt; letter-spacing: -0.2px;">
+                                    รายงานสรุปผลการวินิจฉัยสุขภาพการเงิน & แนวโน้ม (Executive Summary)
+                                </h5>
+                                <div class="text-secondary" style="font-size: 8.5pt;">
+                                    <strong class="text-dark">${hospitalName}</strong> | ระบบบริหารการเงินการคลัง (RiMS HosFin)
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="border: none; padding: 0; text-align: right; vertical-align: middle; font-size: 7.5pt; color: #64748b; line-height: 1.35;">
+                        <div><strong>งวดบัญชีวิเคราะห์:</strong> {{ $latestPeriodLabel }} (ปีงบ {{ $budgetYear }})</div>
+                        <div><strong>วันที่พิมพ์รายงาน:</strong> ${dateStr} เวลา ${timeStr} น.</div>
+                        <div><strong>ผู้จัดพิมพ์:</strong> {{ Auth::user()->name ?? 'ผู้ดูแลระบบ' }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 4-Column Executive KPI Table (Always stays in a neat 4x2 grid) -->
+        <table class="kpi-table">
+            <tr>
+                <td style="width: 25%;">
+                    <div class="kpi-title"><i class="bi bi-calendar3 text-primary me-1"></i> งวดบัญชีวิเคราะห์</div>
+                    <div class="kpi-value">{{ $latestPeriodLabel }}</div>
+                    <div class="kpi-sub">ปีงบประมาณ {{ $budgetYear }}</div>
+                </td>
+                <td style="width: 25%;">
+                    <div class="kpi-title"><i class="bi bi-shield-fill-exclamation text-danger me-1"></i> ระดับความเสี่ยง (Risk Score)</div>
+                    <div class="kpi-value text-danger">ระดับ {{ $riskScore }} / 7</div>
+                    <div class="kpi-sub"><span class="badge-risk-danger">{{ $riskScoreLevelLabel }}</span></div>
+                </td>
+                <td style="width: 25%;">
+                    <div class="kpi-title"><i class="bi bi-cash-stack text-success me-1"></i> เงินบำรุงคงเหลือสุทธิ (105)</div>
+                    <div class="kpi-value {{ $latestMetrics['105']['val'] < 0 ? 'text-danger' : 'text-success' }}">
+                        {{ number_format($latestMetrics['105']['val'], 2) }} <small class="text-muted fw-normal" style="font-size: 7.5pt;">บาท</small>
+                    </div>
+                    <div class="kpi-sub">CR: {{ $latestMetrics['100']['val'] }} | Cash: {{ $latestMetrics['102']['val'] }}</div>
+                </td>
+                <td style="width: 25%;">
+                    <div class="kpi-title"><i class="bi bi-clock-history text-secondary me-1"></i> ระยะเวลาค้างจ่าย / เรียกเก็บ</div>
+                    <div class="kpi-sub" style="margin-top: 3px;">
+                        <span class="text-danger fw-bold">จ่ายค่ายา: {{ $latestMetrics['260']['val'] }} วัน</span><br>
+                        <span class="text-secondary">เก็บหนี้ข้าราชการ: {{ $latestMetrics['262']['val'] }} วัน</span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="kpi-title"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> หนี้เจ้าหนี้การค้า (AP)</div>
+                    <div class="kpi-value {{ ($apUnpaidSum ?? 0) > 0 ? 'text-danger' : 'text-muted' }}">
+                        {{ number_format($apUnpaidSum ?? 0, 2) }} <small class="text-muted fw-normal" style="font-size: 7.5pt;">บาท</small>
+                    </div>
+                    <div class="kpi-sub">ค้างจ่าย {{ number_format($apUnpaidCount ?? 0) }} บิล ({{ $apTotalVendorsCount ?? 0 }} บริษัท)</div>
+                </td>
+                <td>
+                    <div class="kpi-title"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษาพยาบาล (AR)</div>
+                    <div class="kpi-value text-dark">
+                        {{ number_format($arOutstandingSum ?? 0, 2) }} <small class="text-muted fw-normal" style="font-size: 7.5pt;">บาท</small>
+                    </div>
+                    <div class="kpi-sub">จาก {{ number_format($arAccountCount ?? 0) }} ผังบัญชี</div>
+                </td>
+                <td>
+                    <div class="kpi-title"><i class="bi bi-safe text-success me-1"></i> เงินสด & เงินฝากธนาคาร GL</div>
+                    <div class="kpi-value text-success">
+                        {{ number_format($cashBalance ?? 0, 2) }} <small class="text-muted fw-normal" style="font-size: 7.5pt;">บาท</small>
+                    </div>
+                    <div class="kpi-sub">{{ $cashAccountsCount ?? 0 }} บัญชีเงินฝาก</div>
+                </td>
+                <td>
+                    <div class="kpi-title"><i class="bi bi-database-check text-primary me-1"></i> แหล่งข้อมูลประมวลผล</div>
+                    <div class="kpi-sub" style="margin-top: 4px;">
+                        <span class="badge-data-source">✓ ฐานข้อมูลบัญชีแยกประเภท GL จริง</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Executive AI Analysis Content -->
+        <div class="report-body">
+            ${reportHtml}
+            ${sourcesHtml}
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <table style="width: 100%; border: none; border-collapse: collapse; text-align: center;">
+                <tr>
+                    <td style="width: 50%; border: none; padding: 10px;">
+                        <div style="height: 45px;"></div>
+                        <div style="font-size: 9.5pt;">ลงชื่อ..................................................................</div>
+                        <div style="font-size: 9.5pt; margin-top: 3px;">(..................................................................)</div>
+                        <div style="font-size: 8pt; color: #64748b; margin-top: 2px;">ผู้จัดทำรายงาน / หัวหน้ากลุ่มงานการเงินและบัญชี</div>
+                    </td>
+                    <td style="width: 50%; border: none; padding: 10px;">
+                        <div style="height: 45px;"></div>
+                        <div style="font-size: 9.5pt;">ลงชื่อ..................................................................</div>
+                        <div style="font-size: 9.5pt; margin-top: 3px;">(..................................................................)</div>
+                        <div style="font-size: 8pt; color: #64748b; margin-top: 2px;">ผู้อำนวยการ ${hospitalName}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-top mt-3 pt-2 text-muted text-center" style="font-size: 7.5pt;">
+            เอกสารรายงานสรุปผู้บริหารนี้ประมวลผลอัตโนมัติโดยระบบ RiMS HosFin ร่วมกับ AI Copilot เพื่อใช้ประกอบการวิเคราะห์และวางแผนบริหารการเงินการคลัง
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 400);
+        };
+    <\/script>
+</body>
+</html>
+        `);
+        doc.close();
+    }
+
     function showAiAccessDeniedAlert() {
         Swal.fire({
             icon: 'warning',
@@ -1508,7 +1924,7 @@
             
             <div class="modal-body p-4 bg-light bg-opacity-25">
                 <!-- Summary Snapshot Card -->
-                <div class="card border rounded-3 p-3 mb-4 bg-white shadow-sm">
+                <div class="card border rounded-3 p-3 mb-4 bg-white shadow-sm" id="hosFinAiSnapshotCard">
                     <div class="row g-3 text-center text-md-start align-items-center">
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold">งวดบัญชีวิเคราะห์</span>
@@ -1581,7 +1997,7 @@
 
             <div class="modal-footer bg-light py-2 d-flex justify-content-between">
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="window.print()">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="printHosFinAiReport()">
                         <i class="bi bi-printer me-1"></i> พิมพ์รายงานสรุป
                     </button>
                     @if(Auth::check() && Auth::user()->status === 'admin')

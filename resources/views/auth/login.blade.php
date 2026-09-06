@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico') }}" type="image/x-icon">
-    <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -162,7 +162,7 @@
                 <div class="row g-0">
                     <!-- Left Side (Logo and Intro) -->
                     <div class="col-md-5 logo-section text-center">
-                        <img src="{{ asset('images/logo_hrims.png') }}" alt="RiMS Logo" class="img-fluid" style="max-height: 220px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+                        <img src="{{ asset('images/logo_hrims.png?v=2') }}" alt="RiMS Logo" class="img-fluid" style="max-height: 220px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
                     </div>
                     
                     <!-- Right Side (Form) -->

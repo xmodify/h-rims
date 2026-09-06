@@ -70,13 +70,18 @@ class MainSettingController extends Controller
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Integration Tokens' => $integrationTokens,
-            'RiMS Copilot (AI & LLM)' => [
-                'ai_active',
-                'ai_provider',
-                'ai_api_key',
-                'ai_model_name',
-                'ai_embed_model',
-                'ai_api_url'
+            'RiMS Copilot (AI & LLM) - ระบบการเงิน (HosFin)' => [
+                'ai_hosfin_provider',
+                'ai_hosfin_api_key',
+                'ai_hosfin_model_name',
+                'ai_hosfin_api_url',
+            ],
+            'RiMS Copilot (AI & LLM) - คลังความรู้ (RAG)' => [
+                'ai_rag_provider',
+                'ai_rag_api_key',
+                'ai_rag_model_name',
+                'ai_rag_embed_model',
+                'ai_rag_api_url',
             ],
             'Provider ID (Health ID)' => [
                 'provider_id_active',
@@ -148,32 +153,36 @@ class MainSettingController extends Controller
             ], 403);
         }
 
-        $apiKey = $request->input('ai_api_key', $request->input('api_key'));
+        $scope = $request->input('scope', 'hosfin');
+        $prefix = (str_contains(strtolower($scope), 'rag')) ? 'ai_rag_' : 'ai_hosfin_';
+
+        $apiKey = $request->input('ai_api_key', $request->input('api_key', $request->input($prefix . 'api_key')));
         if ($apiKey !== null && trim($apiKey) !== '') {
-            MainSetting::updateOrInsert(['name' => 'ai_api_key'], ['value' => trim($apiKey), 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)']);
+            MainSetting::updateOrInsert(['name' => $prefix . 'api_key'], ['value' => trim($apiKey)]);
         }
 
-        $modelName = $request->input('ai_model_name', $request->input('model_name'));
-        if ($modelName !== null && trim($modelName) !== '') {
-            MainSetting::updateOrInsert(['name' => 'ai_model_name'], ['value' => trim($modelName), 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)']);
-        }
-
-        $modelHosfin = $request->input('ai_model_hosfin');
-        if ($modelHosfin !== null && trim($modelHosfin) !== '') {
-            MainSetting::updateOrInsert(['name' => 'ai_model_hosfin'], ['value' => trim($modelHosfin), 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)']);
-        }
-
-        $provider = $request->input('ai_provider', $request->input('provider'));
+        $provider = $request->input('ai_provider', $request->input('provider', $request->input($prefix . 'provider')));
         if ($provider !== null && trim($provider) !== '') {
-            MainSetting::updateOrInsert(['name' => 'ai_provider'], ['value' => trim($provider), 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)']);
+            MainSetting::updateOrInsert(['name' => $prefix . 'provider'], ['value' => trim($provider)]);
         }
 
-        $apiUrl = $request->input('ai_api_url', $request->input('api_url'));
+        $apiUrl = $request->input('ai_api_url', $request->input('api_url', $request->input($prefix . 'api_url')));
         if ($apiUrl !== null && trim($apiUrl) !== '') {
-            MainSetting::updateOrInsert(['name' => 'ai_api_url'], ['value' => trim($apiUrl), 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)']);
+            MainSetting::updateOrInsert(['name' => $prefix . 'api_url'], ['value' => trim($apiUrl)]);
         }
 
-        $scope = $request->input('scope');
+        $modelName = $request->input('ai_model_hosfin', $request->input('ai_model_name', $request->input('model_name', $request->input($prefix . 'model_name'))));
+        if ($modelName !== null && trim($modelName) !== '') {
+            MainSetting::updateOrInsert(['name' => $prefix . 'model_name'], ['value' => trim($modelName)]);
+        }
+
+        if (str_contains(strtolower($scope), 'rag')) {
+            $embedModel = $request->input('ai_embed_model', $request->input('embed_model', $request->input('ai_rag_embed_model')));
+            if ($embedModel !== null && trim($embedModel) !== '') {
+                MainSetting::updateOrInsert(['name' => 'ai_rag_embed_model'], ['value' => trim($embedModel)]);
+            }
+        }
+
         $aiService = app(\App\Services\Ai\AiService::class);
         $result = $aiService->testConnection($scope);
         return response()->json($result);
@@ -341,13 +350,15 @@ class MainSettingController extends Controller
 
                     // Ensure default AI & LLM settings exist in main_setting
                     $defaultAiSettings = [
-                        ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
-                        ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
-                        ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
-                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
-                        ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
-                        ['name' => 'ai_model_hosfin', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.6-flash'],
-                        ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
+                        ['name' => 'ai_hosfin_provider', 'name_th' => 'ผู้ให้บริการ AI HosFin (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_hosfin_api_key', 'name_th' => 'AI API Key (HosFin)', 'value' => ''],
+                        ['name' => 'ai_hosfin_api_url', 'name_th' => 'AI Base URL (HosFin)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_hosfin_model_name', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.7-flash'],
+                        ['name' => 'ai_rag_provider', 'name_th' => 'ผู้ให้บริการ AI คลังความรู้ RAG (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_rag_api_key', 'name_th' => 'AI API Key (RAG)', 'value' => ''],
+                        ['name' => 'ai_rag_api_url', 'name_th' => 'AI Base URL (RAG)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_rag_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถามคลังความรู้ (RAG)', 'value' => 'gemini-3.7-flash'],
+                        ['name' => 'ai_rag_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'gemini-embedding-001'],
                     ];
                     foreach ($defaultAiSettings as $as) {
                         $existing = DB::table('main_setting')->where('name', $as['name'])->first();
@@ -931,17 +942,22 @@ class MainSettingController extends Controller
                         ['name' => 'ktb_company_id', 'name_th' => 'KTB Corporate Company ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_user_id', 'name_th' => 'KTB Corporate User ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_password', 'name_th' => 'KTB Corporate Password (EDC)', 'value' => ''],
-                        ['name' => 'ai_active', 'name_th' => 'เปิดใช้งาน RiMS Copilot ทั่วทั้งระบบ', 'value' => 'Y'],
-                        ['name' => 'ai_provider', 'name_th' => 'ผู้ให้บริการ AI (gemini / ollama / custom)', 'value' => 'gemini'],
-                        ['name' => 'ai_api_key', 'name_th' => 'AI API Key (Gemini หรืออื่นๆ)', 'value' => ''],
-                        ['name' => 'ai_api_url', 'name_th' => 'AI Base URL (สำหรับ Ollama / Custom API)', 'value' => 'https://generativelanguage.googleapis.com'],
-                        ['name' => 'ai_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถาม (Chat Model)', 'value' => 'gemini-1.5-flash'],
-                        ['name' => 'ai_model_hosfin', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.6-flash'],
-                        ['name' => 'ai_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'text-embedding-004'],
+                        ['name' => 'ai_hosfin_provider', 'name_th' => 'ผู้ให้บริการ AI HosFin (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_hosfin_api_key', 'name_th' => 'AI API Key (HosFin)', 'value' => ''],
+                        ['name' => 'ai_hosfin_api_url', 'name_th' => 'AI Base URL (HosFin)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_hosfin_model_name', 'name_th' => 'ชื่อโมเดล AI วิเคราะห์การเงิน (HosFin)', 'value' => 'gemini-3.7-flash'],
+                        ['name' => 'ai_rag_provider', 'name_th' => 'ผู้ให้บริการ AI คลังความรู้ RAG (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_rag_api_key', 'name_th' => 'AI API Key (RAG)', 'value' => ''],
+                        ['name' => 'ai_rag_api_url', 'name_th' => 'AI Base URL (RAG)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_rag_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถามคลังความรู้ (RAG)', 'value' => 'gemini-3.7-flash'],
+                        ['name' => 'ai_rag_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'gemini-embedding-001'],
                     ];
 
                     // Clean up only known obsolete/deprecated keys (never wipe user-configured settings)
-                    MainSetting::whereIn('name', ['opoh_token', 'opoh_url_api_death'])->delete();
+                    MainSetting::whereIn('name', [
+                        'opoh_token', 'opoh_url_api_death',
+                        'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_model_hosfin', 'ai_embed_model'
+                    ])->delete();
 
                     foreach ($main_setting as $row) {
                         MainSetting::firstOrCreate(

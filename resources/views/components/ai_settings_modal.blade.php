@@ -1,13 +1,20 @@
 @if(Auth::check() && Auth::user()->status === 'admin')
 @php
-    $aiConfig = [
-        'provider' => \App\Services\Ai\AiService::getProvider(),
-        'api_url' => \App\Services\Ai\AiService::getApiUrl(),
-        'api_key' => \App\Services\Ai\AiService::getApiKey(),
-        'model' => \App\Services\Ai\AiService::getModelName(),
-        'model_hosfin' => \App\Services\Ai\AiService::getHosfinModelName(),
+    $hosfinConfig = [
+        'provider' => \App\Services\Ai\AiService::getProvider('hosfin'),
+        'api_url' => \App\Services\Ai\AiService::getApiUrl('hosfin'),
+        'api_key' => \App\Services\Ai\AiService::getApiKey('hosfin'),
+        'model' => \App\Services\Ai\AiService::getModelName('hosfin'),
+    ];
+    $ragConfig = [
+        'provider' => \App\Services\Ai\AiService::getProvider('rag'),
+        'api_url' => \App\Services\Ai\AiService::getApiUrl('rag'),
+        'api_key' => \App\Services\Ai\AiService::getApiKey('rag'),
+        'model' => \App\Services\Ai\AiService::getModelName('rag'),
         'embed_model' => \App\Services\Ai\AiService::getEmbedModel(),
     ];
+    $initialScope = request()->is('*hosfin*') ? 'hosfin' : 'rag';
+    $aiConfig = ($initialScope === 'hosfin') ? $hosfinConfig : $ragConfig;
 @endphp
 
 <style>
@@ -30,10 +37,22 @@
             <form id="aiSettingsForm" onsubmit="handleSaveAiSettings(event)">
                 @csrf
                 <div class="modal-body p-4 bg-light bg-opacity-25">
+                    <!-- Scope Switcher Tabs (HosFin vs RAG) -->
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="p-1 bg-white rounded-pill border shadow-sm d-inline-flex gap-1" role="tablist">
+                            <button type="button" class="btn btn-sm rounded-pill px-4 fw-bold {{ $initialScope === 'hosfin' ? 'btn-success text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeHosfin" onclick="switchModalScope('hosfin')">
+                                <i class="bi bi-graph-up-arrow me-1"></i> ระบบการเงิน (HosFin)
+                            </button>
+                            <button type="button" class="btn btn-sm rounded-pill px-4 fw-bold {{ $initialScope === 'rag' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeRag" onclick="switchModalScope('rag')">
+                                <i class="bi bi-book-half me-1"></i> คลังความรู้ (RAG)
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="alert alert-info border-0 rounded-3 py-2 px-3 small mb-3 d-flex align-items-center gap-2">
                         <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
                         <div id="modalBannerText">
-                            ปรับเปลี่ยนผู้ให้บริการ AI, Key หรือสลับไปใช้ Ollama ได้ทันที ค่าจะถูกบันทึกลงตาราง <code>main_setting</code> (เฉพาะ Admin)
+                            ปรับเปลี่ยนผู้ให้บริการ AI, Key หรือระบุโมเดล ค่าจะบันทึกลง <code>main_setting</code> (เฉพาะ Admin)
                         </div>
                     </div>
 
@@ -101,41 +120,41 @@
                             </div>
                         </div>
 
-                        <!-- 1. HosFin Scope: Chat Model (Shown only when on HosFin page) -->
-                        <div class="col-12 d-none" id="wrapperHosfinModel">
+                        <!-- 1. HosFin Scope: Chat Model (Shown when HosFin scope active) -->
+                        <div class="col-12 {{ $initialScope === 'hosfin' ? '' : 'd-none' }}" id="wrapperHosfinModel">
                             <label class="form-label fw-bold small text-dark d-flex align-items-center gap-1">
                                 <i class="bi bi-graph-up-arrow text-success"></i> ชื่อโมเดลวิเคราะห์การเงิน (Chat Model สำหรับ HosFin)
                             </label>
                             <input type="text" class="form-control font-monospace small" id="settingModelHosfin" name="ai_model_hosfin" 
-                                value="{{ in_array($aiConfig['model_hosfin'], ['gemini-1.5-flash', 'gemini-2.5-flash'], true) ? 'gemini-3.6-flash' : $aiConfig['model_hosfin'] }}" 
-                                placeholder="gemini-3.6-flash">
+                                value="{{ in_array($hosfinConfig['model'] ?? '', ['gemini-1.5-flash', 'gemini-2.5-flash'], true) ? 'gemini-3.7-flash' : ($hosfinConfig['model'] ?? 'gemini-3.7-flash') }}" 
+                                placeholder="gemini-3.7-flash">
                             <div class="mt-1 d-flex gap-1 flex-wrap" id="presetsHosfin">
                                 <!-- Dynamic badges inserted by JS -->
                             </div>
                             <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">โมเดลสำหรับวิเคราะห์งบการเงิน, บิลเจ้าหนี้ AP และลูกหนี้ AR ในหน้า HosFin</small>
                         </div>
 
-                        <!-- 2. RAG Scope: Chat Model (Shown when on RAG page or general pages) -->
-                        <div class="col-md-6" id="wrapperRagModel">
+                        <!-- 2. RAG Scope: Chat Model (Shown when RAG scope active) -->
+                        <div class="col-md-6 {{ $initialScope === 'rag' ? '' : 'd-none' }}" id="wrapperRagModel">
                             <label class="form-label fw-bold small text-dark d-flex align-items-center gap-1">
                                 <i class="bi bi-chat-dots-fill text-info"></i> ชื่อโมเดลตอบคำถาม (Chat Model)
                             </label>
                             <input type="text" class="form-control font-monospace small" id="settingModelName" name="ai_model_name" 
-                                value="{{ in_array($aiConfig['model'], ['gemini-1.5-flash', 'gemini-2.5-flash'], true) ? 'gemini-flash-latest' : $aiConfig['model'] }}" 
-                                placeholder="gemini-flash-latest">
+                                value="{{ in_array($ragConfig['model'] ?? '', ['gemini-1.5-flash', 'gemini-2.5-flash'], true) ? 'gemini-3.7-flash' : ($ragConfig['model'] ?? 'gemini-3.7-flash') }}" 
+                                placeholder="gemini-3.7-flash">
                             <div class="mt-1 d-flex gap-1 flex-wrap" id="presetsRag">
                                 <!-- Dynamic badges inserted by JS -->
                             </div>
                             <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">สำหรับค้นหาคู่มือ/ระเบียบในหน้า RAG Knowledge และถามทั่วไป</small>
                         </div>
 
-                        <!-- 3. RAG Scope: Vector Embedding Model (Shown when on RAG page or general pages) -->
-                        <div class="col-md-6" id="wrapperEmbedModel">
+                        <!-- 3. RAG Scope: Vector Embedding Model (Shown when RAG scope active) -->
+                        <div class="col-md-6 {{ $initialScope === 'rag' ? '' : 'd-none' }}" id="wrapperEmbedModel">
                             <label class="form-label fw-bold small text-muted d-flex align-items-center gap-1">
                                 <i class="bi bi-vector-pen text-warning"></i> ชื่อโมเดลทำ Vector (Embedding Model)
                             </label>
                             <input type="text" class="form-control font-monospace small" id="settingEmbedModel" name="ai_embed_model" 
-                                value="{{ in_array($aiConfig['embed_model'], ['text-embedding-004', ''], true) ? 'gemini-embedding-001' : $aiConfig['embed_model'] }}" 
+                                value="{{ in_array($ragConfig['embed_model'] ?? '', ['text-embedding-004', ''], true) ? 'gemini-embedding-001' : ($ragConfig['embed_model'] ?? 'gemini-embedding-001') }}" 
                                 placeholder="gemini-embedding-001">
                             <div class="mt-1 d-flex gap-1 flex-wrap" id="presetsEmbed">
                                 <!-- Dynamic badges inserted by JS -->
@@ -162,35 +181,110 @@
 </div>
 
 <script>
-    // Dynamically adapt modal title & visible inputs based on current page
-    function updateModalScope(scope) {
-        const isHosFin = (scope === 'hosfin' || (!scope && window.location.pathname.includes('hosfin')));
-        window.currentModalScope = isHosFin ? 'hosfin' : 'rag';
+    window.aiScopesConfig = {
+        hosfin: @json($hosfinConfig),
+        rag: @json($ragConfig)
+    };
 
+    // Dynamically switch modal scope (HosFin vs RAG)
+    function switchModalScope(scope, syncCurrent = true) {
+        if (syncCurrent && window.currentModalScope && window.aiScopesConfig && window.aiScopesConfig[window.currentModalScope]) {
+            const cur = window.aiScopesConfig[window.currentModalScope];
+            const provEl = document.getElementById('settingProvider');
+            const urlEl = document.getElementById('settingApiUrl');
+            const keyEl = document.getElementById('settingApiKey');
+            if (provEl) cur.provider = provEl.value;
+            if (urlEl) cur.api_url = urlEl.value;
+            if (keyEl) cur.api_key = keyEl.value;
+            if (window.currentModalScope === 'hosfin') {
+                const hModel = document.getElementById('settingModelHosfin');
+                if (hModel) cur.model = hModel.value;
+            } else {
+                const rModel = document.getElementById('settingModelName');
+                const eModel = document.getElementById('settingEmbedModel');
+                if (rModel) cur.model = rModel.value;
+                if (eModel) cur.embed_model = eModel.value;
+            }
+        }
+
+        window.currentModalScope = scope;
+
+        // Update tab buttons
+        const btnHosfin = document.getElementById('btnScopeHosfin');
+        const btnRag = document.getElementById('btnScopeRag');
+        if (btnHosfin && btnRag) {
+            if (scope === 'hosfin') {
+                btnHosfin.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-success text-white shadow-sm';
+                btnRag.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-light text-muted border-0';
+            } else {
+                btnHosfin.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-light text-muted border-0';
+                btnRag.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-primary text-white shadow-sm';
+            }
+        }
+
+        // Keep modal title clean and unified (No suffix)
         const titleEl = document.getElementById('aiSettingsModalLabel');
+        if (titleEl) {
+            titleEl.innerHTML = '<i class="bi bi-gear-fill me-2 text-warning"></i> ตั้งค่า AI & LLM Connection';
+        }
+
+        // Clean banner text
         const bannerEl = document.getElementById('modalBannerText');
+        if (bannerEl) {
+            bannerEl.innerHTML = 'ปรับเปลี่ยนผู้ให้บริการ AI, Key หรือระบุโมเดล ค่าจะบันทึกลง <code>main_setting</code> (เฉพาะ Admin)';
+        }
+
+        // Toggle field visibility
         const hosfinEl = document.getElementById('wrapperHosfinModel');
         const ragEl = document.getElementById('wrapperRagModel');
         const embedEl = document.getElementById('wrapperEmbedModel');
-
-        if (isHosFin) {
-            if (titleEl) titleEl.innerHTML = '<i class="bi bi-gear-fill me-2 text-warning"></i> ตั้งค่า AI & LLM Connection (สำหรับ HosFin)';
-            if (bannerEl) bannerEl.innerHTML = 'ปรับเปลี่ยนผู้ให้บริการ AI, Key หรือระบุโมเดลสำหรับวิเคราะห์การเงิน <strong>HosFin</strong> ได้ทันที ค่าจะบันทึกลง <code>main_setting</code> (เฉพาะ Admin)';
-            if (hosfinEl) hosfinEl.classList.remove('d-none');
-            if (ragEl) ragEl.classList.add('d-none');
-            if (embedEl) embedEl.classList.add('d-none');
-        } else {
-            if (titleEl) titleEl.innerHTML = '<i class="bi bi-gear-fill me-2 text-warning"></i> ตั้งค่า AI & LLM Connection (คลังความรู้ RAG)';
-            if (bannerEl) bannerEl.innerHTML = 'ปรับเปลี่ยนผู้ให้บริการ AI, Key หรือระบุโมเดลสำหรับ <strong>คลังความรู้ RAG</strong> ได้ทันที ค่าจะบันทึกลง <code>main_setting</code> (เฉพาะ Admin)';
-            if (hosfinEl) hosfinEl.classList.add('d-none');
-            if (ragEl) ragEl.classList.remove('d-none');
-            if (embedEl) embedEl.classList.remove('d-none');
+        if (hosfinEl && ragEl && embedEl) {
+            if (scope === 'hosfin') {
+                hosfinEl.classList.remove('d-none');
+                ragEl.classList.add('d-none');
+                embedEl.classList.add('d-none');
+            } else {
+                hosfinEl.classList.add('d-none');
+                ragEl.classList.remove('d-none');
+                embedEl.classList.remove('d-none');
+            }
         }
+
+        // Populate fields with scope config
+        const cfg = window.aiScopesConfig ? window.aiScopesConfig[scope] : null;
+        if (cfg) {
+            const provEl = document.getElementById('settingProvider');
+            if (provEl) {
+                provEl.value = cfg.provider || 'gemini';
+                handleProviderChange(provEl.value, false);
+            }
+            const urlEl = document.getElementById('settingApiUrl');
+            if (urlEl) urlEl.value = cfg.api_url || '';
+            const keyEl = document.getElementById('settingApiKey');
+            if (keyEl) keyEl.value = cfg.api_key || '';
+
+            if (scope === 'hosfin') {
+                const hModelEl = document.getElementById('settingModelHosfin');
+                if (hModelEl && cfg.model) hModelEl.value = cfg.model;
+            } else {
+                const rModelEl = document.getElementById('settingModelName');
+                if (rModelEl && cfg.model) rModelEl.value = cfg.model;
+                const eModelEl = document.getElementById('settingEmbedModel');
+                if (eModelEl && cfg.embed_model) eModelEl.value = cfg.embed_model;
+            }
+        }
+    }
+
+    // Adapt modal scope helper
+    function updateModalScope(scope) {
+        const targetScope = scope || (window.location.pathname.includes('hosfin') ? 'hosfin' : 'rag');
+        switchModalScope(targetScope, false);
     }
 
     // Global function to smoothly open AI Settings Modal (Admin Only)
     function openAiSettingsModal(scope) {
-        updateModalScope(scope);
+        const targetScope = scope || (window.location.pathname.includes('hosfin') ? 'hosfin' : 'rag');
+        switchModalScope(targetScope, false);
 
         const isHosFinModalOpen = (typeof $ !== 'undefined' && $('#hosFinAiModal').length && $('#hosFinAiModal').hasClass('show'));
         if (isHosFinModalOpen) {
@@ -290,7 +384,9 @@
         }
         if (typeof $ !== 'undefined') {
             $('#aiSettingsModal').on('show.bs.modal', function () {
-                updateModalScope();
+                if (!window.currentModalScope) {
+                    updateModalScope();
+                }
                 const pEl = document.getElementById('settingProvider');
                 if (pEl) {
                     handleProviderChange(pEl.value, false);
@@ -568,6 +664,8 @@
         event.preventDefault();
         const form = document.getElementById('aiSettingsForm');
         const formData = new FormData(form);
+        const scope = window.currentModalScope || (window.location.pathname.includes('hosfin') ? 'hosfin' : 'rag');
+        formData.append('scope', scope);
         const submitBtn = document.getElementById('btnSaveAiSettings');
 
         submitBtn.disabled = true;
@@ -584,6 +682,19 @@
         .then(data => {
             submitBtn.disabled = false;
             if (data.success) {
+                // Update local scope cache
+                if (window.aiScopesConfig && window.aiScopesConfig[scope]) {
+                    window.aiScopesConfig[scope].provider = formData.get('ai_provider');
+                    window.aiScopesConfig[scope].api_url = formData.get('ai_api_url');
+                    window.aiScopesConfig[scope].api_key = formData.get('ai_api_key');
+                    if (scope === 'hosfin') {
+                        window.aiScopesConfig[scope].model = formData.get('ai_model_hosfin');
+                    } else {
+                        window.aiScopesConfig[scope].model = formData.get('ai_model_name');
+                        window.aiScopesConfig[scope].embed_model = formData.get('ai_embed_model');
+                    }
+                }
+
                 $('#aiSettingsModal').modal('hide');
                 Swal.fire({
                     icon: 'success',
@@ -592,7 +703,7 @@
                     timer: 1500,
                     showConfirmButton: false
                 }).then(() => {
-                    if (typeof fetchHosFinAiAnalysis === 'function') {
+                    if (scope === 'hosfin' && typeof fetchHosFinAiAnalysis === 'function') {
                         // Automatically re-run HosFin AI analysis with new settings!
                         window.hosFinAnalysisLoaded = false;
                         if (window._returnToHosFinModal) {
@@ -600,7 +711,7 @@
                             $('#hosFinAiModal').modal('show');
                         }
                         fetchHosFinAiAnalysis();
-                    } else if (window.location.pathname.includes('rag-knowledge')) {
+                    } else if (window.location.pathname.includes('main_setting') || window.location.pathname.includes('rag-knowledge')) {
                         window.location.reload();
                     }
                 });

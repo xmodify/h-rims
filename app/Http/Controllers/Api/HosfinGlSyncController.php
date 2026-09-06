@@ -283,16 +283,28 @@ class HosfinGlSyncController extends Controller
                 DB::raw('SUM(i.credit) as total_credit'),
                 DB::raw('SUM(i.debit) as total_debit'),
                 DB::raw('SUM(i.credit - i.debit) as remaining_debt')
-            )
-            ->groupBy('j.apar', 'i.account_code')
-            ->get();
+        )
+        ->groupBy('j.apar', 'i.account_code')
+        ->get();
+
+        // Calculate net remaining debt per bill_no across all 2101% accounts
+        $billNetTotals = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->whereNotNull('j.apar')
+            ->where('j.apar', '<>', '')
+            ->where('i.account_code', 'like', '2101%')
+            ->select('j.apar as bill_no', DB::raw('SUM(i.credit - i.debit) as bill_net_debt'))
+            ->groupBy('j.apar')
+            ->pluck('bill_net_debt', 'bill_no');
 
         if ($apRows->isNotEmpty()) {
             $apUpsert = [];
             foreach ($apRows as $row) {
                 $rem = (float)$row->remaining_debt;
-                $isPaid = ($rem <= 0.001) ? 1 : 0;
-                $rem = $isPaid ? 0.00 : max(0.0, $rem);
+                $billNet = (float)($billNetTotals[$row->bill_no] ?? $rem);
+                // If the entire bill is paid (or overpaid) across all 2101 accounts, then mark as paid!
+                $isPaid = ($billNet <= 0.001) ? 1 : 0;
+                $rem = $isPaid ? 0.00 : max(0.0, min($rem, $billNet));
                 $vendor = $row->vendor_name ?: $row->bill_no;
                 $apUpsert[] = [
                     'bill_no'        => $row->bill_no,

@@ -142,6 +142,16 @@
                                     <i class="bi bi-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
                                 </div>
 
+                                <!-- Last Sync Timestamp Badge -->
+                                <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill border shadow-xs bg-white text-muted" 
+                                     style="font-size: 0.78rem; border-color: #e2e8f0 !important; cursor: default;" 
+                                     title="วันเวลาที่เชื่อมโยงและประมวลผลข้อมูลล่าสุดจากโปรแกรม GL">
+                                    <span class="d-inline-block rounded-circle {{ $glSyncSuccess ? 'bg-success' : 'bg-secondary' }}" style="width: 7px; height: 7px;"></span>
+                                    <i class="bi bi-arrow-repeat {{ $glSyncSuccess ? 'text-success' : 'text-muted' }}" style="font-size: 0.85rem;"></i>
+                                    <span>Sync ล่าสุด:</span>
+                                    <strong class="text-dark font-monospace" style="font-size: 0.82rem;">{{ $glSyncTimeText }}</strong>
+                                </div>
+
                             @else
                                 ศูนย์รวมรายงานสถานะทางการเงินและวิเคราะห์ต้นทุนการรักษาพยาบาล
                             @endif
@@ -277,7 +287,7 @@
                                         </div>
                                         <div class="mt-1">
                                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
-                                                {{ number_format($cashAccountsCount ?? 0) }} บัญชีเงินฝาก (GL)
+                                                {{ number_format($cashAccountsCount ?? 0) }} บัญชี (สิ้นงวด {{ $latestPeriodLabel }})
                                             </span>
                                         </div>
                                     </div>
@@ -286,9 +296,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
-                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
-                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
+                                        <i class="bi bi-clock-history text-success me-1"></i>
+                                        งวด: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
                                     <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสมุดบัญชี <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -308,13 +318,18 @@
                                             หนี้สินเจ้าหนี้การค้า (AP)
                                         </span>
                                         <div class="fw-black mt-1 text-danger" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
-                                            {{ number_format($apUnpaidSum ?? 0, 2) }}
+                                            {{ number_format($apEndingBalance ?? $apUnpaidSum ?? 0, 2) }}
                                             <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
                                         </div>
-                                        <div class="mt-1">
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
-                                                {{ number_format($apUnpaidCount ?? 0) }} บิลค้างชำระ (GL)
+                                        <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5" style="font-size: 0.70rem;">
+                                                ณ สิ้นงวด {{ $latestPeriodLabel }}
                                             </span>
+                                            @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
+                                                <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="บิลคงค้างจริงในระบบ GL ณ ปัจจุบัน">
+                                                    Live: {{ number_format($apUnpaidSum, 0) }} บ.
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 42px; height: 42px;">
@@ -322,9 +337,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
-                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
-                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดตรงกับงบทดลองของงวดนี้">
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
                                     <small class="text-danger fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปเจ้าหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -344,12 +359,12 @@
                                             ลูกหนี้ค่ารักษาพยาบาล (AR)
                                         </span>
                                         <div class="fw-black mt-1 text-primary" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
-                                            {{ number_format($arOutstandingSum ?? 0, 2) }}
+                                            {{ number_format($arEndingBalance ?? $arOutstandingSum ?? 0, 2) }}
                                             <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
                                         </div>
                                         <div class="mt-1">
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
-                                                {{ number_format($arAccountCount ?? 0) }} ผังลูกหนี้ (GL)
+                                                {{ number_format($arAccountCount ?? 0) }} ผังบัญชี (สิ้นงวด {{ $latestPeriodLabel }})
                                             </span>
                                         </div>
                                     </div>
@@ -358,9 +373,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="เวลาที่ดึงข้อมูลจาก GL">
-                                        <i class="bi {{ $glSyncSuccess ? 'bi-cloud-check-fill text-success' : 'bi-cloud-slash text-muted' }} me-1"></i>
-                                        จาก GL: <strong class="{{ $glSyncSuccess ? 'text-dark' : 'text-muted' }}">{{ $glSyncTimeText }}</strong>
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
+                                        <i class="bi bi-clock-history text-primary me-1"></i>
+                                        งวด: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
                                     <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -605,23 +620,30 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 bg-light">
-                <!-- 3 Highlights Top Strip -->
+                <!-- 4 Highlights Top Strip -->
                 <div class="row g-3 mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-danger">
-                            <small class="text-muted fw-bold d-block">ยอดหนี้ค้างจ่ายรวม</small>
-                            <span class="fs-5 fw-black text-danger font-monospace">{{ number_format($apUnpaidSum, 2) }}</span>
+                            <small class="text-muted fw-bold d-block">ยอดหนี้ ณ สิ้นงวด ({{ $latestPeriodLabel }})</small>
+                            <span class="fs-5 fw-black text-danger font-monospace">{{ number_format($apEndingBalance ?? $apUnpaidSum, 2) }}</span>
+                            <small class="text-muted d-block">บาท (ตรงงบทดลอง)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-warning">
+                            <small class="text-muted fw-bold d-block">บิลค้างชำระจริง (Live)</small>
+                            <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($apUnpaidSum, 2) }}</span>
                             <small class="text-muted d-block">บาท</small>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-dark">
                             <small class="text-muted fw-bold d-block">จำนวนบิลค้างชำระ</small>
                             <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($apUnpaidCount) }}</span>
                             <small class="text-muted d-block">ใบ</small>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-primary">
                             <small class="text-muted fw-bold d-block">บริษัทคู่ค้าที่ค้างจ่าย</small>
                             <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($apTotalVendorsCount) }}</span>
@@ -811,19 +833,39 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 bg-light">
-                <!-- KPI Highlight Banner inside Modal -->
-                <div class="card border-0 rounded-4 shadow-xs p-3 mb-3 bg-white" style="border-left: 5px solid #10b981 !important;">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <span class="text-muted small fw-bold text-uppercase">ยอดเงินสดและเงินฝากธนาคารรวมสุทธิ</span>
-                            <div class="fs-4 fw-black text-success font-monospace mt-0.5">
+                <!-- KPI Highlight Banner inside Modal with Classification -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-success h-100">
+                            <span class="text-muted small fw-bold text-uppercase">1. เงินบำรุงหมุนเวียนทั่วไป</span>
+                            <div class="fs-5 fw-black text-success font-monospace mt-0.5">
+                                {{ number_format($operatingCash ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
+                            </div>
+                            <small class="text-success fw-bold d-block mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-check-circle-fill me-1"></i> ใช้จ่ายหนี้ค่ายา/เวชภัณฑ์ได้จริง
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-warning h-100">
+                            <span class="text-muted small fw-bold text-uppercase">2. เงินเฉพาะกิจ / บริจาค</span>
+                            <div class="fs-5 fw-black text-dark font-monospace mt-0.5">
+                                {{ number_format($restrictedCash ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
+                            </div>
+                            <small class="text-danger fw-bold d-block mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-lock-fill me-1"></i> ห้ามนำมาจ่ายหนี้ค่ารักษาทั่วไป
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-primary h-100">
+                            <span class="text-muted small fw-bold text-uppercase">รวมเงินสดและเงินฝากทุกเล่ม</span>
+                            <div class="fs-5 fw-black text-primary font-monospace mt-0.5">
                                 {{ number_format($cashBalance ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
                             </div>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
-                                รวม {{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี
-                            </span>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
+                                รวม {{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี (สิ้นงวด {{ $latestPeriodLabel }})
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -837,6 +879,7 @@
                                     <th class="ps-3" style="width: 40px;">#</th>
                                     <th>รหัสบัญชี</th>
                                     <th>ชื่อบัญชี / เลขที่บัญชีธนาคาร</th>
+                                    <th class="text-center">ประเภทเงิน</th>
                                     <th class="text-end pe-3 text-success">ยอดคงเหลือ (บาท)</th>
                                 </tr>
                             </thead>
@@ -849,19 +892,30 @@
                                         <td>
                                             <div class="fw-bold text-dark">{{ $ca->account_name }}</div>
                                         </td>
+                                        <td class="text-center">
+                                            @if(!empty($ca->is_restricted))
+                                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                                                    <i class="bi bi-lock-fill me-1"></i> เฉพาะกิจ/บริจาค
+                                                </span>
+                                            @else
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> เงินบำรุงทั่วไป
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="text-end pe-3 font-monospace fw-bold {{ $ca->net_balance > 0 ? 'text-success' : ($ca->net_balance < 0 ? 'text-danger' : 'text-muted') }}">
                                             {{ number_format($ca->net_balance, 2) }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">ไม่พบข้อมูลบัญชีเงินสด</td>
+                                        <td colspan="5" class="text-center py-4 text-muted">ไม่พบข้อมูลบัญชีเงินสด</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                             <tfoot class="table-light border-top border-2">
                                 <tr class="fw-bold align-middle">
-                                    <th colspan="3" class="ps-3 py-2.5 text-secondary">
+                                    <th colspan="4" class="ps-3 py-2.5 text-secondary">
                                         <i class="bi bi-calculator me-1"></i> รวมเงินสดและเงินฝากธนาคารทั้งหมด:
                                     </th>
                                     <th class="text-end pe-3 py-2.5 font-monospace text-success fs-6">
@@ -875,7 +929,7 @@
 
                 <div class="p-3 rounded-3 bg-white border small text-muted" style="border-left: 4px solid #10b981 !important; line-height: 1.6;">
                     <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle-fill text-success me-1"></i> หมายเหตุการเงิน:</strong>
-                    ยอดเงินสดและเงินฝากธนาคารรวม <strong>{{ number_format($cashBalance ?? 0, 2) }} บาท</strong> คือสภาพคล่องที่เป็นเงินสดจริงทั้งหมดที่โรงพยาบาลมีอยู่ (กลุ่มบัญชี 1003X) อ้างอิงตามงบทดลอง HosFin GL งวด {{ $latestPeriodLabel }}
+                    ยอดเงินสดและเงินฝากธนาคารรวม <strong>{{ number_format($cashBalance ?? 0, 2) }} บาท</strong> คือสภาพคล่องที่เป็นเงินสดจริงทั้งหมดที่โรงพยาบาลมีอยู่ (กลุ่มบัญชี 1003X) อ้างอิงตามงบทดลองโปรแกรม GL งวด {{ $latestPeriodLabel }}
                 </div>
             </div>
             <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">

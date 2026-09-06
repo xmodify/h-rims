@@ -116,7 +116,7 @@
                     <h5 class="mb-0 fw-bold" style="color: #059669;">
                         <i class="bi bi-cash-stack me-2"></i> ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร (Cash & Bank Register)
                     </h5>
-                    <small class="text-muted">สมุดเงินสดและทะเบียนคุมยอดเงินฝากธนาคารทุกบัญชี เกณฑ์เงินสดจริง (Cash Basis) จากระบบ HosFin GL</small>
+                    <small class="text-muted">สมุดเงินสดและทะเบียนคุมยอดเงินฝากธนาคารทุกบัญชี เกณฑ์เงินสดจริง (Cash Basis) จากโปรแกรม GL</small>
                 </div>
 
                 <div class="d-flex align-items-center gap-2 flex-wrap ms-lg-auto mt-2 mt-lg-0">

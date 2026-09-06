@@ -692,8 +692,20 @@ class HosFinController extends Controller
         try {
             // Check latest successful GL sync log
             $latestSyncLog = \App\Models\HosfinGlSyncLog::where('status', 'success')->latest('id')->first();
-            if ($latestSyncLog && $latestSyncLog->created_at) {
-                $dt = \Carbon\Carbon::parse($latestSyncLog->created_at);
+            $latestTimestamp = $latestSyncLog ? $latestSyncLog->created_at : null;
+
+            if (!$latestTimestamp) {
+                $latestJournal = DB::table('hosfin_gl_journals')->latest('updated_at')->first();
+                $latestTimestamp = $latestJournal ? $latestJournal->updated_at : null;
+            }
+
+            if (!$latestTimestamp) {
+                $latestApBill = DB::table('hosfin_gl_ap_bills')->latest('updated_at')->first();
+                $latestTimestamp = $latestApBill ? $latestApBill->updated_at : null;
+            }
+
+            if ($latestTimestamp) {
+                $dt = \Carbon\Carbon::parse($latestTimestamp);
                 $thaiYear = ($dt->year + 543) % 100;
                 $thaiMonths = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
                 $monthName = $thaiMonths[$dt->month] ?? '';
@@ -702,6 +714,11 @@ class HosFinController extends Controller
             }
 
             // AP from GL
+            $apEndingBalance = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where('account_code', 'like', '2101%')
+                ->sum(DB::raw('ending_credit - ending_debit'));
+
             $apUnpaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 0)->sum('remaining_debt');
             $apUnpaidCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->count();
             $apTotalVendorsCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->distinct('vendor_name')->count('vendor_name');
@@ -719,6 +736,17 @@ class HosFinController extends Controller
                 ->get();
 
             // AR from GL (Accounts Receivable หมวด 1102)
+            $arEndingBalance = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where('account_code', 'like', '1102%')
+                ->sum(DB::raw('ending_debit - ending_credit'));
+
+            $periodArAccountCount = DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where('account_code', 'like', '1102%')
+                ->where(DB::raw('ending_debit - ending_credit'), '<>', 0)
+                ->count();
+
             $arTotals = DB::table('hosfin_gl_journal_items')
                 ->where('account_code', 'like', '1102%')
                 ->select(
@@ -730,7 +758,7 @@ class HosFinController extends Controller
                 ->first();
 
             $arOutstandingSum = (float)($arTotals->net_outstanding ?? 0);
-            $arAccountCount = (int)($arTotals->total_accounts ?? 0);
+            $arAccountCount = $periodArAccountCount > 0 ? $periodArAccountCount : (int)($arTotals->total_accounts ?? 0);
 
             $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', 0)->sum('outstanding_balance');
             $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', '>', 0)->sum('total_billed');
@@ -748,35 +776,70 @@ class HosFinController extends Controller
                 ->orderBy('outstanding_balance', 'desc')
                 ->get();
 
-            // CASH from GL (hosfin_gl_journal_items)
-            $hasGlJournals = DB::table('hosfin_gl_journal_items')->exists();
+            // CASH from GL (hosfin_gl_monthly_balances for latestPeriod)
+            $cashMappings = DB::table('hosfin_dtl_mappings')
+                ->where('group_code', '1003X')
+                ->pluck('account_code')
+                ->toArray();
 
-            if ($hasGlJournals) {
-                $cashMappings = DB::table('hosfin_dtl_mappings')
-                    ->where('group_code', '1003X')
-                    ->pluck('account_code')
-                    ->toArray();
+            $cashBankAccounts = DB::table('hosfin_gl_monthly_balances as b')
+                ->leftJoin('hosfin_gl_accounts as a', 'b.account_code', '=', 'a.account_code')
+                ->select(
+                    'b.account_code',
+                    DB::raw('COALESCE(a.account_name, b.account_code) as account_name'),
+                    DB::raw('(b.ending_debit - b.ending_credit) as net_balance')
+                )
+                ->where('b.acc_period', $latestPeriod)
+                ->where(function($q) use ($cashMappings) {
+                    $q->where('b.account_code', 'like', '1003%')
+                      ->orWhere('b.account_code', 'like', '1101%');
+                    foreach ($cashMappings as $c) {
+                        $q->orWhere('b.account_code', 'like', $c . '%');
+                    }
+                })
+                ->having('net_balance', '<>', 0)
+                ->orderBy('net_balance', 'desc')
+                ->get();
 
-                $cashBankAccounts = DB::table('hosfin_gl_journal_items as i')
-                    ->select('i.account_code', 'i.account_name', DB::raw('SUM(i.debit - i.credit) as net_balance'))
-                    ->where(function($q) use ($cashMappings) {
-                        $q->where('i.account_code', 'like', '1003%')
-                          ->orWhere('i.account_code', 'like', '1101%');
-                        foreach ($cashMappings as $c) {
-                            $q->orWhere('i.account_code', 'like', $c . '%');
-                        }
-                    })
-                    ->groupBy('i.account_code', 'i.account_name')
-                    ->having('net_balance', '<>', 0)
-                    ->orderBy('net_balance', 'desc')
-                    ->get();
-
+            if ($cashBankAccounts->isNotEmpty()) {
                 $cashBalance = (float)$cashBankAccounts->sum('net_balance');
                 $cashAccountsCount = $cashBankAccounts->count();
             } else {
-                $cashBalance = 0;
-                $cashAccountsCount = 0;
-                $cashBankAccounts = collect();
+                $hasGlJournals = DB::table('hosfin_gl_journal_items')->exists();
+                if ($hasGlJournals) {
+                    $cashBankAccounts = DB::table('hosfin_gl_journal_items as i')
+                        ->select('i.account_code', 'i.account_name', DB::raw('SUM(i.debit - i.credit) as net_balance'))
+                        ->where(function($q) use ($cashMappings) {
+                            $q->where('i.account_code', 'like', '1003%')
+                              ->orWhere('i.account_code', 'like', '1101%');
+                            foreach ($cashMappings as $c) {
+                                $q->orWhere('i.account_code', 'like', $c . '%');
+                            }
+                        })
+                        ->groupBy('i.account_code', 'i.account_name')
+                        ->having('net_balance', '<>', 0)
+                        ->orderBy('net_balance', 'desc')
+                        ->get();
+                    $cashBalance = (float)$cashBankAccounts->sum('net_balance');
+                    $cashAccountsCount = $cashBankAccounts->count();
+                } else {
+                    $cashBalance = 0;
+                    $cashAccountsCount = 0;
+                    $cashBankAccounts = collect();
+                }
+            }
+
+            // Classify cash into Operating Cash (usable for AP) vs Restricted Cash (donations/specific grants)
+            $operatingCash = 0.0;
+            $restrictedCash = 0.0;
+            foreach ($cashBankAccounts as $ca) {
+                if (str_contains($ca->account_name, 'วัตถุประสงค์เฉพาะ') || str_contains($ca->account_name, 'บริจาค')) {
+                    $restrictedCash += (float)$ca->net_balance;
+                    $ca->is_restricted = true;
+                } else {
+                    $operatingCash += (float)$ca->net_balance;
+                    $ca->is_restricted = false;
+                }
             }
         } catch (\Throwable $e) {}
 
@@ -795,10 +858,12 @@ class HosFinController extends Controller
             'riskScoreNumBgClass' => $riskScoreNumBgClass,
             'riskScoreLevelLabel' => $riskScoreLevelLabel,
             'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend,
+            'apEndingBalance' => $apEndingBalance ?? null,
             'apUnpaidSum' => $apUnpaidSum,
             'apUnpaidCount' => $apUnpaidCount,
             'apTotalVendorsCount' => $apTotalVendorsCount,
             'apTopCreditors' => $apTopCreditors,
+            'arEndingBalance' => $arEndingBalance ?? null,
             'arOutstandingSum' => $arOutstandingSum,
             'arTotalOb' => $arTotalOb,
             'arTotalBilled' => $arTotalBilled,
@@ -806,6 +871,8 @@ class HosFinController extends Controller
             'arAccountCount' => $arAccountCount,
             'arTypeSummaries' => $arTypeSummaries,
             'cashBalance' => $cashBalance,
+            'operatingCash' => $operatingCash ?? 0,
+            'restrictedCash' => $restrictedCash ?? 0,
             'cashAccountsCount' => $cashAccountsCount,
             'cashBankAccounts' => $cashBankAccounts,
             'glSyncTimeText' => $glSyncTimeText,
@@ -2377,6 +2444,78 @@ class HosFinController extends Controller
 
         $activeTab = $request->input('tab', 'vendor');
 
+        // Accounting Audit & Anomaly Detection
+        // 1. Cross-account bills (bills booked across multiple 2101 accounts)
+        $crossAccountBills = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+            ->whereNotNull('j.apar')
+            ->where('j.apar', '<>', '')
+            ->where('i.account_code', 'like', '2101%')
+            ->where('j.fiscal_year', $budgetYear)
+            ->select(
+                'j.apar as bill_no',
+                DB::raw('MAX(s.vendor_name) as vendor_name'),
+                DB::raw('MAX(s.category) as category'),
+                DB::raw('COUNT(DISTINCT i.account_code) as acc_count'),
+                DB::raw('SUM(i.credit) as total_cr'),
+                DB::raw('SUM(i.debit) as total_dr'),
+                DB::raw('SUM(i.credit - i.debit) as net_rem')
+            )
+            ->groupBy('j.apar')
+            ->having('acc_count', '>', 1)
+            ->get();
+
+        $crossAccountDetails = [];
+        if ($crossAccountBills->isNotEmpty()) {
+            $crossBillNos = $crossAccountBills->pluck('bill_no')->toArray();
+            $vouchers = DB::table('hosfin_gl_journals as j')
+                ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                ->whereIn('j.apar', $crossBillNos)
+                ->where('i.account_code', 'like', '2101%')
+                ->select('j.apar', 'j.voucher_no', 'j.voucher_date', 'i.account_code', 'i.account_name', 'i.debit', 'i.credit')
+                ->orderBy('j.voucher_date', 'asc')
+                ->get()
+                ->groupBy('apar');
+
+            foreach ($crossAccountBills as $b) {
+                $bVouchers = $vouchers->get($b->bill_no, collect());
+                $crVouchers = $bVouchers->filter(function($v) { return $v->credit > 0; });
+                $drVouchers = $bVouchers->filter(function($v) { return $v->debit > 0; });
+                $crossAccountDetails[] = [
+                    'bill_no' => $b->bill_no,
+                    'vendor_name' => $b->vendor_name ?: $b->bill_no,
+                    'category' => $b->category ?: 'ทั่วไป',
+                    'total_cr' => (float)$b->total_cr,
+                    'total_dr' => (float)$b->total_dr,
+                    'net_rem' => (float)$b->net_rem,
+                    'cr_vouchers' => $crVouchers,
+                    'dr_vouchers' => $drVouchers,
+                ];
+            }
+        }
+
+        // 2. Overpaid bills (Debit > Credit)
+        $overpaidBills = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+            ->whereNotNull('j.apar')
+            ->where('j.apar', '<>', '')
+            ->where('i.account_code', 'like', '2101%')
+            ->where('j.fiscal_year', $budgetYear)
+            ->select(
+                'j.apar as bill_no',
+                DB::raw('MAX(s.vendor_name) as vendor_name'),
+                DB::raw('MAX(s.category) as category'),
+                DB::raw('SUM(i.credit) as total_cr'),
+                DB::raw('SUM(i.debit) as total_dr'),
+                DB::raw('SUM(i.debit - i.credit) as overpaid_amount')
+            )
+            ->groupBy('j.apar')
+            ->having('overpaid_amount', '>', 0.01)
+            ->orderBy('overpaid_amount', 'desc')
+            ->get();
+
         return view('hosfin.ap_report', [
             'budgetYear' => $budgetYear,
             'yearChoices' => $yearChoices,
@@ -2388,6 +2527,8 @@ class HosFinController extends Controller
             'totalVendorsCount' => $totalVendorsCount,
             'vendorsSummary' => $vendorsSummary,
             'bills' => $bills,
+            'crossAccountDetails' => $crossAccountDetails,
+            'overpaidBills' => $overpaidBills,
         ]);
     }
 

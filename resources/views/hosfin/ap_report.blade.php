@@ -144,6 +144,65 @@
         </div>
     </div>
 
+    @php
+        $crossMismatchesCount = count($crossAccountDetails ?? []);
+        $overpaidCount = count($overpaidBills ?? []);
+        $totalOverpaidSum = isset($overpaidBills) && is_iterable($overpaidBills) ? collect($overpaidBills)->sum('overpaid_amount') : 0;
+    @endphp
+
+    @if($crossMismatchesCount > 0 || $overpaidCount > 0)
+    <!-- Accounting Audit & Anomaly Alert Banner -->
+    <div class="row px-3 mb-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" 
+                 style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="rounded-circle p-2 bg-warning bg-opacity-25 text-warning-emphasis d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                <i class="bi bi-shield-exclamation fs-3 text-warning"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;">
+                                        <i class="bi bi-bell-fill text-warning me-1"></i> แจ้งเตือนการตรวจสอบทางบัญชี (Accounting Audit & Anomaly Detection)
+                                    </h6>
+                                    <span class="badge bg-warning text-dark border border-warning-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.75rem;">
+                                        พบข้อสังเกต {{ $crossMismatchesCount + $overpaidCount }} รายการ
+                                    </span>
+                                </div>
+                                <p class="text-secondary small mb-2 mb-lg-0" style="line-height: 1.5;">
+                                    @if($crossMismatchesCount > 0)
+                                        <span class="d-inline-block me-3">
+                                            <i class="bi bi-arrow-left-right text-primary me-1"></i> <strong>ตัดจ่ายข้ามหมวดผังบัญชี (Cross-Account):</strong> 
+                                            <span class="badge bg-white text-dark border px-2 py-0.5">{{ $crossMismatchesCount }} บิล</span>
+                                            <span class="text-muted">(เช่น ตั้งหนี้ 134-ยา แต่ตัดจ่าย 135-เวชภัณฑ์ — <em>ระบบปรับกระทบยอดให้อัตโนมัติแล้ว</em>)</span>
+                                        </span>
+                                    @endif
+                                    @if($overpaidCount > 0)
+                                        <span class="d-inline-block mt-1 mt-md-0">
+                                            <i class="bi bi-cash-coin text-danger me-1"></i> <strong>จ่ายเงินเกินยอดหนี้ (Overpaid):</strong> 
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5">{{ $overpaidCount }} บิล</span>
+                                            <span class="text-muted">(ยอดจ่ายเกินรวม {{ number_format($totalOverpaidSum, 2) }} บาท)</span>
+                                        </span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-lg-auto">
+                            <button type="button" class="btn btn-warning text-dark fw-bold rounded-pill shadow-sm px-3.5 py-2 d-inline-flex align-items-center gap-2" 
+                                    data-bs-toggle="modal" data-bs-target="#apAuditModal" style="font-size: 0.86rem; border: 1px solid #d97706;">
+                                <i class="bi bi-file-earmark-diff-fill text-dark"></i> ดูรายการ & แนวทางออกใบปรับปรุง (JV Guide)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- 4 KPI Highlight Cards -->
     <div class="row g-3 px-3 mb-4">
         <div class="col-xl-3 col-md-6">
@@ -548,7 +607,308 @@
             </div>
             <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
                 <span class="text-muted small">
-                    <i class="bi bi-info-circle me-1"></i> รายการบิลอ้างอิงจากระบบ HosFin GL
+                    <i class="bi bi-info-circle me-1"></i> รายการบิลอ้างอิงจากโปรแกรม GL
+                </span>
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AP Audit & Anomaly Modal -->
+<div class="modal fade" id="apAuditModal" tabindex="-1" aria-labelledby="apAuditModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="rounded-circle p-2 bg-warning bg-opacity-20 text-warning d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-shield-exclamation fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold text-white mb-0" id="apAuditModalTitle">
+                            ระบบตรวจสอบและแจ้งเตือนความผิดปกติของบัญชีเจ้าหนี้ (AP Audit & Reconciliation)
+                        </h6>
+                        <small style="color: #94a3b8; font-size: 0.78rem;">
+                            ปีงบประมาณ {{ $budgetYear }} | ข้อสังเกตจากการกระทบยอด Subledger & GL พร้อมแนวทางออกใบสำคัญปรับปรุง (JV)
+                        </small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Nav Tabs -->
+            <div class="bg-light border-bottom px-4 pt-2">
+                <ul class="nav nav-tabs border-0" id="auditTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold border-0 border-bottom border-3 border-warning text-dark py-2 px-3" 
+                                id="audit-cross-tab" data-bs-toggle="tab" data-bs-target="#audit-cross-pane" type="button" role="tab" style="font-size: 0.88rem;">
+                            <i class="bi bi-arrow-left-right text-primary me-1"></i> ตัดจ่ายข้ามผังบัญชี (Cross-Account)
+                            <span class="badge bg-warning text-dark ms-1 rounded-pill">{{ count($crossAccountDetails ?? []) }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold border-0 text-secondary py-2 px-3" 
+                                id="audit-overpaid-tab" data-bs-toggle="tab" data-bs-target="#audit-overpaid-pane" type="button" role="tab" style="font-size: 0.88rem;">
+                            <i class="bi bi-cash-coin text-danger me-1"></i> ตัดจ่ายเงินเกินยอดหนี้ (Overpaid)
+                            <span class="badge bg-danger-subtle text-danger ms-1 rounded-pill">{{ count($overpaidBills ?? []) }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold border-0 text-secondary py-2 px-3" 
+                                id="audit-guide-tab" data-bs-toggle="tab" data-bs-target="#audit-guide-pane" type="button" role="tab" style="font-size: 0.88rem;">
+                            <i class="bi bi-journal-check text-success me-1"></i> ขั้นตอนการออก JV สำหรับเจ้าหน้าที่
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4" style="background-color: #f8fafc;">
+                <div class="tab-content" id="auditTabContent">
+                    <!-- Tab 1: Cross-Account -->
+                    <div class="tab-pane fade show active" id="audit-cross-pane" role="tabpanel">
+                        <div class="alert alert-info border-0 rounded-3 p-3 mb-3 d-flex align-items-start gap-2.5 shadow-sm" style="background-color: #e0f2fe; color: #0369a1;">
+                            <i class="bi bi-info-circle-fill fs-5 mt-0.5 flex-shrink-0"></i>
+                            <div class="small" style="line-height: 1.5;">
+                                <strong>คำชี้แจง:</strong> รายการด้านล่างคือบิลที่มีการตั้งหนี้ (Credit) ในผังบัญชีหนึ่ง และตัดจ่ายชำระ (Debit) ในอีกผังบัญชีหนึ่ง 
+                                ทำให้งบทดลอง (Trial Balance) แสดงยอดค้างและยอดติดลบค้างข้ามผัง แม้ว่าในหน้ารายงานนี้ระบบจะคำนวณหักกลบ (Net) ให้อัตโนมัติแล้ว 
+                                แต่เจ้าหน้าที่การเงินควรออกใบสำคัญปรับปรุง (JV) เพื่อล้างยอดแยกประเภทให้เป็น 0.00 บาท อย่างสมบูรณ์
+                            </div>
+                        </div>
+
+                        <div class="table-responsive bg-white rounded-3 shadow-sm border">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center py-2.5" style="width: 40px;">#</th>
+                                        <th class="py-2.5">เลขที่บิล (APAR) / บริษัท</th>
+                                        <th class="py-2.5">รายการตั้งหนี้ (Cr)</th>
+                                        <th class="py-2.5">รายการตัดจ่าย (Dr)</th>
+                                        <th class="text-end py-2.5" style="width: 120px;">หนี้สุทธิ (Net)</th>
+                                        <th class="py-2.5" style="min-width: 250px;">แนวทางออกใบสำคัญปรับปรุง (JV Guide)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($crossAccountDetails as $cIdx => $item)
+                                        @php
+                                            $isFullyPaid = abs($item['net_rem']) < 0.01;
+                                            $firstCr = $item['cr_vouchers']->first();
+                                            $firstDr = $item['dr_vouchers']->first();
+                                            $hasDifferentAccounts = $firstCr && $firstDr && ($firstCr->account_code !== $firstDr->account_code);
+                                        @endphp
+                                        <tr>
+                                            <td class="text-center text-muted fw-bold">{{ $cIdx + 1 }}</td>
+                                            <td>
+                                                <div class="fw-bold font-monospace text-primary">{{ $item['bill_no'] }}</div>
+                                                <div class="text-dark small fw-semibold">{{ $item['vendor_name'] }}</div>
+                                                <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">{{ $item['category'] }}</span>
+                                            </td>
+                                            <td>
+                                                @forelse($item['cr_vouchers'] as $crV)
+                                                    <div class="mb-1 pb-1 border-bottom border-light">
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">{{ $crV->voucher_no }}</span>
+                                                        <small class="text-muted ms-1">{{ $crV->voucher_date }}</small><br>
+                                                        <span class="font-monospace fw-semibold text-dark" style="font-size: 0.78rem;">{{ $crV->account_code }}</span>
+                                                        <small class="text-muted d-block" style="font-size: 0.74rem;">{{ $crV->account_name }}</small>
+                                                        <span class="fw-bold text-dark font-monospace">{{ number_format($crV->credit, 2) }}</span> บ.
+                                                    </div>
+                                                @empty
+                                                    <span class="text-muted">-</span>
+                                                @endforelse
+                                            </td>
+                                            <td>
+                                                @forelse($item['dr_vouchers'] as $drV)
+                                                    <div class="mb-1 pb-1 border-bottom border-light">
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">{{ $drV->voucher_no }}</span>
+                                                        <small class="text-muted ms-1">{{ $drV->voucher_date }}</small><br>
+                                                        <span class="font-monospace fw-semibold text-dark" style="font-size: 0.78rem;">{{ $drV->account_code }}</span>
+                                                        <small class="text-muted d-block" style="font-size: 0.74rem;">{{ $drV->account_name }}</small>
+                                                        <span class="fw-bold text-success font-monospace">{{ number_format($drV->debit, 2) }}</span> บ.
+                                                    </div>
+                                                @empty
+                                                    <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5">ยังไม่มีการตัดจ่าย</span>
+                                                @endforelse
+                                            </td>
+                                            <td class="text-end">
+                                                @if($isFullyPaid)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 mb-1">
+                                                        <i class="bi bi-check2 me-1"></i>ชำระครบแล้ว
+                                                    </span>
+                                                    <div class="font-monospace text-muted small">0.00 บ.</div>
+                                                @else
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 mb-1">ค้างชำระสุทธิ</span>
+                                                    <div class="font-monospace fw-bold text-danger">{{ number_format($item['net_rem'], 2) }} บ.</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($hasDifferentAccounts)
+                                                    <div class="p-2 rounded bg-light border font-monospace small" style="background-color: #f1f5f9 !important;">
+                                                        <div class="fw-bold text-secondary mb-1" style="font-family: inherit; font-size: 0.78rem;">
+                                                            <i class="bi bi-pencil-fill text-warning me-1"></i> ออกใบสำคัญปรับปรุง (JV):
+                                                        </div>
+                                                        <div class="text-primary fw-bold" style="font-size: 0.78rem;">
+                                                            Dr. {{ $firstCr->account_code }} 
+                                                            <span class="text-muted fw-normal">({{ \Illuminate\Support\Str::limit($firstCr->account_name, 18) }})</span> 
+                                                            <span class="float-end">{{ number_format(min($firstCr->credit, $firstDr->debit), 2) }}</span>
+                                                        </div>
+                                                        <div class="text-danger fw-bold ps-3" style="font-size: 0.78rem;">
+                                                            Cr. {{ $firstDr->account_code }} 
+                                                            <span class="text-muted fw-normal">({{ \Illuminate\Support\Str::limit($firstDr->account_name, 18) }})</span> 
+                                                            <span class="float-end">{{ number_format(min($firstCr->credit, $firstDr->debit), 2) }}</span>
+                                                        </div>
+                                                        <div class="text-muted mt-1 pt-1 border-top" style="font-size: 0.72rem;">
+                                                            ระบุ APAR: <strong>{{ $item['bill_no'] }}</strong>
+                                                        </div>
+                                                    </div>
+                                                @elseif($item['dr_vouchers']->isEmpty())
+                                                    <div class="p-2 rounded bg-light border small text-muted">
+                                                        <i class="bi bi-layers text-info me-1"></i> บิลแยกรายการตั้งหนี้หลายหมวดบัญชีในใบเดียว (Split Items) — ผังบัญชีถูกต้องแล้ว
+                                                    </div>
+                                                @else
+                                                    <div class="p-2 rounded bg-light border small text-muted">
+                                                        <i class="bi bi-check-circle text-success me-1"></i> มีรายการปรับปรุงในระบบแล้ว
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">
+                                                <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                                                ไม่พบรายการตัดจ่ายข้ามผังบัญชี ข้อมูลถูกต้องสมบูรณ์
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Overpaid Bills -->
+                    <div class="tab-pane fade" id="audit-overpaid-pane" role="tabpanel">
+                        <div class="alert alert-warning border-0 rounded-3 p-3 mb-3 d-flex align-items-start gap-2.5 shadow-sm" style="background-color: #fef3c7; color: #92400e;">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 mt-0.5 flex-shrink-0"></i>
+                            <div class="small" style="line-height: 1.5;">
+                                <strong>คำชี้แจง:</strong> บิลด้านล่างมียอดตัดจ่าย (Debit) สูงกว่ายอดตั้งหนี้ (Credit) 
+                                สาเหตุอาจเกิดจาก (1) เศษสตางค์จากการปัดทศนิยม, (2) มีการบันทึกใบเสร็จจ่ายเงินซ้ำ, หรือ (3) ยังไม่ได้บันทึกใบตั้งหนี้/ใบลดหนี้ (CN) 
+                                กรุณาตรวจสอบและดำเนินการปรับปรุง
+                            </div>
+                        </div>
+
+                        <div class="table-responsive bg-white rounded-3 shadow-sm border">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center py-2.5" style="width: 40px;">#</th>
+                                        <th class="py-2.5">เลขที่บิล (APAR)</th>
+                                        <th class="py-2.5">บริษัทคู่ค้า</th>
+                                        <th class="text-end py-2.5">ยอดตั้งหนี้ (Cr)</th>
+                                        <th class="text-end py-2.5">ยอดตัดจ่าย (Dr)</th>
+                                        <th class="text-end py-2.5 text-danger fw-bold">ยอดจ่ายเกิน (Overpaid)</th>
+                                        <th class="py-2.5" style="min-width: 250px;">การวินิจฉัย & แนวทางแก้ไข</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($overpaidBills as $oIdx => $ob)
+                                        @php
+                                            $isRounding = $ob->overpaid_amount <= 5.00;
+                                        @endphp
+                                        <tr>
+                                            <td class="text-center text-muted fw-bold">{{ $oIdx + 1 }}</td>
+                                            <td class="font-monospace fw-bold text-primary">{{ $ob->bill_no }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ $ob->vendor_name ?: '-' }}</div>
+                                                <small class="text-muted">{{ $ob->category ?: 'ทั่วไป' }}</small>
+                                            </td>
+                                            <td class="text-end font-monospace">{{ number_format($ob->total_cr, 2) }}</td>
+                                            <td class="text-end font-monospace text-success">{{ number_format($ob->total_dr, 2) }}</td>
+                                            <td class="text-end font-monospace fw-bold text-danger" style="font-size: 0.95rem;">
+                                                +{{ number_format($ob->overpaid_amount, 2) }}
+                                            </td>
+                                            <td>
+                                                @if($isRounding)
+                                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-0.5 mb-1">
+                                                        <i class="bi bi-coin me-1"></i>เศษสตางค์ ({{ number_format($ob->overpaid_amount, 2) }} บ.)
+                                                    </span>
+                                                    <div class="small text-muted" style="font-size: 0.76rem;">
+                                                        เกิดจากการปัดทศนิยมในระบบ สามารถออก JV ปรับปรุงเข้าบัญชีกำไร/ขาดทุนจากเศษสตางค์ได้
+                                                    </div>
+                                                @else
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5 mb-1">
+                                                        <i class="bi bi-exclamation-octagon me-1"></i>จ่ายเกินยอดหนี้ ({{ number_format($ob->overpaid_amount, 2) }} บ.)
+                                                    </span>
+                                                    <div class="small text-danger fw-semibold" style="font-size: 0.76rem;">
+                                                        ตรวจสอบใบสำคัญจ่ายว่ามีการบันทึกซ้ำ หรือยังไม่ได้บันทึกใบตั้งหนี้/ใบลดหนี้ให้ครบถ้วน
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4 text-muted">
+                                                <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                                                ไม่พบบิลที่มีการจ่ายเงินเกินยอดหนี้
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Step-by-Step JV Guide -->
+                    <div class="tab-pane fade" id="audit-guide-pane" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="card h-100 border rounded-4 shadow-sm bg-white p-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">1</div>
+                                        <h6 class="fw-bold text-dark mb-0">เหตุผลที่ต้องออก JV</h6>
+                                    </div>
+                                    <p class="text-muted small mb-0" style="line-height: 1.6;">
+                                        ในระบบ HosFin Dashboard เราได้ทำการกระทบยอด (Net) ให้บิลที่มีการตัดจ่ายข้ามผังแสดงสถานะชำระครบแล้วเพื่อไม่ให้ยอดหนี้รวมบวมเกินจริง 
+                                        อย่างไรก็ตาม ในงบทดลองของโรงพยาบาล (Trial Balance) บัญชี <code>2101...</code> แต่ละหมวดจะยังคงมียอดค้างและยอดติดลบข้ามกันอยู่ 
+                                        การออก JV จะทำให้งบการเงินสะท้อนความเป็นจริง 100%
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border rounded-4 shadow-sm bg-white p-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <div class="rounded-circle bg-success bg-opacity-10 text-success fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">2</div>
+                                        <h6 class="fw-bold text-dark mb-0">ขั้นตอนการบันทึกใน GL</h6>
+                                    </div>
+                                    <ol class="text-muted small ps-3 mb-0" style="line-height: 1.7;">
+                                        <li>เปิดโปรแกรม <strong>GL</strong> -> เมนู <em>สมุดรายวันทั่วไป</em></li>
+                                        <li>กดปุ่ม <strong>"เพิ่มเอกสาร (JV)"</strong> ใส่วันที่งวดปัจจุบัน</li>
+                                        <li><strong>เดบิต (Dr)</strong> รหัสผังที่มียอดค้างเกินจริง (เช่น ยา 134)</li>
+                                        <li><strong>เครดิต (Cr)</strong> รหัสผังที่ถูกตัดจ่ายผิดไป (เช่น เวชภัณฑ์ 135)</li>
+                                        <li><strong>สำคัญที่สุด:</strong> ต้องกรอกช่อง <code>APAR</code> ให้ตรงกับเลขที่บิลเดิม</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border rounded-4 shadow-sm bg-white p-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">3</div>
+                                        <h6 class="fw-bold text-dark mb-0">การอัปเดตข้อมูล</h6>
+                                    </div>
+                                    <p class="text-muted small mb-0" style="line-height: 1.6;">
+                                        หลังจากบันทึกใบสำคัญ JV ในโปรแกรม GL แล้ว ให้กลับมาที่หน้านี้แล้วกดปุ่ม <strong>"Sync GL"</strong> หรือนำเข้าไฟล์ GL ล่าสุด 
+                                        ระบบจะดึงรายการ JV เข้ามาปรับล้างยอดหนี้ในผังย่อยและปิดข้อผิดพลาดให้โดยอัตโนมัติทันที
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between">
+                <span class="text-muted small">
+                    <i class="bi bi-shield-check text-success me-1"></i> ระบบตรวจสอบความถูกต้องอัตโนมัติโดย HosFin Audit Engine
                 </span>
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>

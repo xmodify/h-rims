@@ -131,6 +131,7 @@ class HosFinController extends Controller
                 'arAccountCount' => 0,
                 'arTypeSummaries' => collect([]),
                 'cashBalance' => 0.0,
+                'cashLiveBalance' => 0.0,
                 'cashAccountsCount' => 0,
                 'cashBankAccounts' => collect([]),
                 'glSyncTimeText' => 'ยังไม่มีการซิงค์ข้อมูล (รอเชื่อมต่อจากโปรแกรม Rims GL Sync)',
@@ -829,6 +830,24 @@ class HosFinController extends Controller
                 }
             }
 
+            // Cash Live balance (running balance up to present in GL)
+            $cashLiveBalance = 0.0;
+            $hasGlJournals = DB::table('hosfin_gl_journal_items')->exists();
+            if ($hasGlJournals) {
+                $cashLiveBalance = (float)DB::table('hosfin_gl_journal_items as i')
+                    ->where(function($q) use ($cashMappings) {
+                        $q->where('i.account_code', 'like', '1003%')
+                          ->orWhere('i.account_code', 'like', '1101%');
+                        foreach ($cashMappings as $c) {
+                            $q->orWhere('i.account_code', 'like', $c . '%');
+                        }
+                    })
+                    ->sum(DB::raw('i.debit - i.credit'));
+            }
+            if ($cashLiveBalance == 0 && $cashBalance > 0) {
+                $cashLiveBalance = $cashBalance;
+            }
+
             // Classify cash into Operating Cash (usable for AP) vs Restricted Cash (donations/specific grants)
             $operatingCash = 0.0;
             $restrictedCash = 0.0;
@@ -871,6 +890,7 @@ class HosFinController extends Controller
             'arAccountCount' => $arAccountCount,
             'arTypeSummaries' => $arTypeSummaries,
             'cashBalance' => $cashBalance,
+            'cashLiveBalance' => $cashLiveBalance,
             'operatingCash' => $operatingCash ?? 0,
             'restrictedCash' => $restrictedCash ?? 0,
             'cashAccountsCount' => $cashAccountsCount,

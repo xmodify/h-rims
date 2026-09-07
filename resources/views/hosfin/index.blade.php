@@ -352,9 +352,15 @@
                                             {{ number_format($cashBalance ?? 0, 2) }}
                                             <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
                                         </div>
-                                        <div class="mt-1">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
-                                                {{ number_format($cashAccountsCount ?? 0) }} บัญชี (สิ้นงวด {{ $latestPeriodLabel }})
+                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
+                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
+                                                ณ ปิดงวด {{ $latestPeriodLabel }}
+                                            </span>
+                                            <span class="badge bg-success text-white shadow-sm rounded-pill px-2.5 py-1 d-inline-flex align-items-center" style="font-size: 0.76rem; font-weight: 700;" title="ยอดเงินสดและเงินฝากธนาคารรวมล่าสุดในระบบ GL ณ ปัจจุบัน">
+                                                <span class="spinner-grow spinner-grow-sm text-light me-1.5" style="width: 6px; height: 6px;" role="status"></span>
+                                                <span>ปัจจุบัน:&nbsp;</span>
+                                                <span class="font-monospace fw-black" style="font-size: 0.82rem;">{{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }}</span>
+                                                <span style="font-size: 0.70rem; opacity: 0.95;">&nbsp;บ.</span>
                                             </span>
                                         </div>
                                     </div>
@@ -363,9 +369,9 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
-                                        <i class="bi bi-clock-history text-success me-1"></i>
-                                        งวด: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้ ({{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี)">
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
                                     <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสมุดบัญชี <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -388,13 +394,16 @@
                                             {{ number_format($apEndingBalance ?? $apUnpaidSum ?? 0, 2) }}
                                             <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
                                         </div>
-                                        <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5" style="font-size: 0.70rem;">
-                                                ณ สิ้นงวด {{ $latestPeriodLabel }}
+                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
+                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
+                                                ณ ปิดงวด {{ $latestPeriodLabel }}
                                             </span>
                                             @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
-                                                <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="บิลคงค้างจริงในระบบ GL ณ ปัจจุบัน">
-                                                    Live: {{ number_format($apUnpaidSum, 0) }} บ.
+                                                <span class="badge bg-danger text-white shadow-sm rounded-pill px-2.5 py-1 d-inline-flex align-items-center" style="font-size: 0.76rem; font-weight: 700;" title="บิลเจ้าหนี้คงค้างจริงในระบบ GL ณ ปัจจุบัน">
+                                                    <span class="spinner-grow spinner-grow-sm text-light me-1.5" style="width: 6px; height: 6px;" role="status"></span>
+                                                    <span>ปัจจุบัน:&nbsp;</span>
+                                                    <span class="font-monospace fw-black" style="font-size: 0.82rem;">{{ number_format($apUnpaidSum, 2) }}</span>
+                                                    <span style="font-size: 0.70rem; opacity: 0.95;">&nbsp;บ.</span>
                                                 </span>
                                             @endif
                                         </div>
@@ -429,9 +438,12 @@
                                             {{ number_format($arEndingBalance ?? $arOutstandingSum ?? 0, 2) }}
                                             <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
                                         </div>
-                                        <div class="mt-1">
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;">
-                                                {{ number_format($arAccountCount ?? 0) }} ผังบัญชี (สิ้นงวด {{ $latestPeriodLabel }})
+                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
+                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
+                                                ณ ปิดงวด {{ $latestPeriodLabel }}
+                                            </span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 0.70rem;">
+                                                {{ number_format($arAccountCount ?? 0) }} ผังบัญชี
                                             </span>
                                         </div>
                                     </div>
@@ -441,8 +453,8 @@
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
                                     <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
-                                        <i class="bi bi-clock-history text-primary me-1"></i>
-                                        งวด: <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
                                     <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -698,7 +710,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-warning">
-                            <small class="text-muted fw-bold d-block">บิลค้างชำระจริง (Live)</small>
+                            <small class="text-muted fw-bold d-block">บิลค้างชำระจริง (ปัจจุบัน)</small>
                             <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($apUnpaidSum, 2) }}</span>
                             <small class="text-muted d-block">บาท</small>
                         </div>
@@ -930,9 +942,15 @@
                             <div class="fs-5 fw-black text-primary font-monospace mt-0.5">
                                 {{ number_format($cashBalance ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
-                                รวม {{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี (สิ้นงวด {{ $latestPeriodLabel }})
-                            </small>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mt-1">
+                                <small class="text-muted" style="font-size: 0.72rem;">
+                                    รวม {{ number_format($cashAccountsCount ?? 0) }} เล่ม (ณ ปิดงวด {{ $latestPeriodLabel }})
+                                </small>
+                                <span class="badge bg-success text-white rounded-pill px-2.5 py-0.5 shadow-xs fw-bold" style="font-size: 0.72rem;">
+                                    <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
+                                    ปัจจุบัน:&nbsp;{{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }}&nbsp;บ.
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

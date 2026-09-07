@@ -717,6 +717,15 @@
                                         <i class="bi bi-file-earmark-medical-fill me-1" style="color: #60a5fa;"></i> งานเวชระเบียน
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                        <!-- ข้อมูลพื้นฐาน HOSxP (ใหม่) -->
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern fw-bold py-2 d-flex align-items-center justify-content-between" href="{{ route('mrec.hosxp_master') }}">
+                                                <span class="d-flex align-items-center"><i class="bi bi-database-check me-2 fs-6" style="color: #6366f1;"></i> ข้อมูลพื้นฐาน HOSxP</span>
+                                                <span class="badge rounded-pill text-white shadow-xs" style="background-color: #6366f1; font-size: 0.65rem;">Master Data</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+
                                         <!-- ผู้ป่วยนอก (OPD) -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">

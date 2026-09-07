@@ -115,7 +115,7 @@
             'health_id_client_id', 'health_id_client_secret',
             'provider_id_client_id', 'provider_id_secret_key',
             'moph_alert_client_id', 'moph_alert_client_secret',
-            'ktb_password', 'ai_api_key', 'ai_hosfin_api_key', 'ai_rag_api_key'
+            'ktb_password', 'ai_api_key', 'ai_hosfin_api_key', 'ai_rag_api_key', 'ai_hosxp_api_key'
         ];
         $booleanList = ['provider_id_active', 'moph_alert_active', 'ai_active'];
 
@@ -297,14 +297,17 @@
                          aria-labelledby="nav-tab-{{ $tabSlug }}"
                          tabindex="0">
                         
-                        {{-- Special Layout for RiMS Copilot (AI & LLM): Sub-tabs for HosFin and RAG --}}
+                        {{-- Special Layout for RiMS Copilot (AI & LLM): Sub-tabs for HosFin, RAG, and HOSxP --}}
                         @if($category === 'RiMS Copilot (AI & LLM)')
                             @php
                                 $hosfinSettings = $settings->filter(function($s) {
                                     return str_starts_with($s->name, 'ai_hosfin');
                                 });
                                 $ragSettings = $settings->filter(function($s) {
-                                    return !str_starts_with($s->name, 'ai_hosfin');
+                                    return str_starts_with($s->name, 'ai_rag');
+                                });
+                                $hosxpSettings = $settings->filter(function($s) {
+                                    return str_starts_with($s->name, 'ai_hosxp');
                                 });
                             @endphp
                             <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden setting-category-card">
@@ -316,7 +319,7 @@
                                         </span>
                                         <div>
                                             <h5 class="mb-0 fw-bold text-dark">{{ $category }}</h5>
-                                            <small class="text-muted">ระบบผู้ช่วยปัญญาประดิษฐ์ (การเงิน HosFin และคลังความรู้ RAG)</small>
+                                            <small class="text-muted">ระบบผู้ช่วยปัญญาประดิษฐ์ (การเงิน HosFin, คลังความรู้ RAG, ตรวจสอบข้อมูล HOSxP)</small>
                                         </div>
                                     </div>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
@@ -353,6 +356,20 @@
                                                 <i class="bi bi-book-half text-primary fs-6"></i>
                                                 <span>คลังความรู้ (RAG)</span>
                                                 <span class="badge rounded-pill bg-primary text-white ms-1">{{ count($ragSettings) }}</span>
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link px-4 py-2.5 fw-bold rounded-top-3 d-flex align-items-center gap-2" 
+                                                    id="tab-btn-hosxp" 
+                                                    data-bs-toggle="tab" 
+                                                    data-bs-target="#subpane-hosxp" 
+                                                    type="button" 
+                                                    role="tab" 
+                                                    aria-controls="subpane-hosxp" 
+                                                    aria-selected="false">
+                                                <i class="bi bi-database-check fs-6" style="color: #6366f1;"></i>
+                                                <span>ตรวจสอบข้อมูล HOSxP</span>
+                                                <span class="badge rounded-pill text-white ms-1" style="background-color: #6366f1;">{{ count($hosxpSettings) }}</span>
                                             </button>
                                         </li>
                                     </ul>
@@ -453,6 +470,78 @@
                                                 </thead>
                                                 <tbody>
                                                     @foreach ($ragSettings as $row)
+                                                        @php 
+                                                            $isSensitive = in_array($row->name, $sensitiveList);
+                                                            $isBoolean = in_array($row->name, $booleanList);
+                                                        @endphp
+                                                        <tr class="setting-row">
+                                                            <td class="ps-4 py-3">
+                                                                <span class="fw-bold text-dark">{{ $row->name_th }}</span>
+                                                                <div class="d-flex align-items-center gap-1 mt-0.5">
+                                                                    <code class="text-muted small">{{ $row->name }}</code>
+                                                                    @if($isSensitive)
+                                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill py-0 px-1.5" style="font-size: 10px;">Sensitive</span>
+                                                                    @endif
+                                                                </div>
+                                                            </td>
+                                                            <td class="py-3">
+                                                                @if($isBoolean)
+                                                                    <span class="badge bg-{{ $row->value === 'Y' ? 'success' : 'secondary' }} rounded-pill text-white fw-bold px-3 py-1.5 shadow-xs">
+                                                                        <i class="bi bi-{{ $row->value === 'Y' ? 'check-circle-fill' : 'dash-circle' }} me-1"></i>
+                                                                        {{ $row->value === 'Y' ? 'เปิดใช้งาน (ON)' : 'ปิดใช้งาน (OFF)' }}
+                                                                    </span>
+                                                                @elseif($isSensitive)
+                                                                    <div class="input-group input-group-sm" style="max-width: 280px;">
+                                                                        <input type="password" class="form-control border bg-light fw-semibold sensitive-input rounded-start-pill ps-3" value="{{ $row->value }}" readonly>
+                                                                        <button class="btn btn-light border border-start-0 btn-peek rounded-end-pill pe-3 text-muted" type="button" title="กดเพื่อดู/ซ่อนรหัสผ่าน">
+                                                                            <i class="bi bi-eye"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                @else
+                                                                    <span class="badge bg-light text-dark border p-2 px-3 rounded-pill fw-bold text-wrap text-break" style="max-width: 400px;">
+                                                                        {{ $row->value ?: '-' }}
+                                                                    </span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="pe-4 py-3 text-end">
+                                                                <button class="btn btn-warning btn-sm btn-edit rounded-pill shadow-xs hover-scale px-3" 
+                                                                    data-id="{{ $row->name }}"    
+                                                                    data-name="{{ $row->name }}"
+                                                                    data-name-th="{{ $row->name_th }}"
+                                                                    data-value="{{ $row->value }}"   
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#editModal">
+                                                                    <i class="bi bi-pencil-square me-1"></i> แก้ไข
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- HOSxP Pane -->
+                                    <div class="tab-pane fade" id="subpane-hosxp" role="tabpanel" aria-labelledby="tab-btn-hosxp" tabindex="0">
+                                        <div class="p-3 px-4 bg-light bg-opacity-30 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <span class="small text-muted">
+                                                <i class="bi bi-info-circle-fill me-1" style="color: #6366f1;"></i> การเชื่อมต่อ Provider, API Key และโมเดลสำหรับตรวจสอบข้อมูลพื้นฐาน HOSxP (แพทย์, ค่ารักษา, สิทธิการรักษา)
+                                            </span>
+                                            <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" style="border-color: #6366f1; color: #6366f1;" onclick="openAiSettingsModal('hosxp')">
+                                                <i class="bi bi-gear-fill me-1"></i> ตั้งค่า AI HOSxP
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0 align-middle setting-table">
+                                                <thead class="bg-light bg-opacity-75">
+                                                    <tr>
+                                                        <th class="ps-4 py-3 text-muted fw-semibold small text-uppercase" style="width: 42%;">ชื่อการตั้งค่า</th>
+                                                        <th class="py-3 text-muted fw-semibold small text-uppercase">ค่าที่ตั้งไว้</th>
+                                                        <th class="pe-4 py-3 text-end text-muted fw-semibold small text-uppercase" style="width: 110px;">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($hosxpSettings as $row)
                                                         @php 
                                                             $isSensitive = in_array($row->name, $sensitiveList);
                                                             $isBoolean = in_array($row->name, $booleanList);

@@ -22,7 +22,8 @@ class AiService
     public static function getProvider(?string $context = null)
     {
         $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
-        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $isHosxp = $context && str_contains(strtolower($context), 'hosxp');
+        $prefix = $isHosfin ? 'ai_hosfin_' : ($isHosxp ? 'ai_hosxp_' : 'ai_rag_');
         $val = self::getSetting($prefix . 'provider');
         if (!empty($val)) {
             return $val;
@@ -36,7 +37,8 @@ class AiService
     public static function getApiKey(?string $context = null)
     {
         $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
-        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $isHosxp = $context && str_contains(strtolower($context), 'hosxp');
+        $prefix = $isHosfin ? 'ai_hosfin_' : ($isHosxp ? 'ai_hosxp_' : 'ai_rag_');
         $val = self::getSetting($prefix . 'api_key');
         if (!empty($val)) {
             return $val;
@@ -51,7 +53,8 @@ class AiService
     {
         $provider = self::getProvider($context);
         $isHosfin = $context && str_contains(strtolower($context), 'hosfin');
-        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $isHosxp = $context && str_contains(strtolower($context), 'hosxp');
+        $prefix = $isHosfin ? 'ai_hosfin_' : ($isHosxp ? 'ai_hosxp_' : 'ai_rag_');
 
         $defaultUrl = ($provider === 'gemini') ? 'https://generativelanguage.googleapis.com' : 'http://localhost:11434';
         $url = self::getSetting($prefix . 'api_url');
@@ -73,6 +76,7 @@ class AiService
     {
         $provider = self::getProvider($pageContext);
         $isHosfin = $pageContext && str_contains(strtolower($pageContext), 'hosfin');
+        $isHosxp = $pageContext && str_contains(strtolower($pageContext), 'hosxp');
 
         if ($isHosfin) {
             $hosfinModel = self::getSetting('ai_hosfin_model_name');
@@ -85,6 +89,17 @@ class AiService
                     return (!str_contains(strtolower($generalModel), 'gemini')) ? $generalModel : 'gemma4:e4b';
                 }
                 return $hosfinModel;
+            }
+            return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
+        }
+
+        if ($isHosxp) {
+            $hosxpModel = self::getSetting('ai_hosxp_model_name');
+            if (!empty($hosxpModel)) {
+                if ($provider === 'ollama' && str_contains(strtolower($hosxpModel), 'gemini')) {
+                    return 'gemma4:e4b';
+                }
+                return $hosxpModel;
             }
             return ($provider === 'ollama') ? 'gemma4:e4b' : (($provider === 'openai_compatible') ? 'deepseek-chat' : 'gemini-3.7-flash');
         }
@@ -109,6 +124,14 @@ class AiService
     public static function getHosfinModelName()
     {
         return self::getModelName('hosfin');
+    }
+
+    /**
+     * Get HOSxP Master Data Specific Model Name
+     */
+    public static function getHosxpModelName()
+    {
+        return self::getModelName('hosxp');
     }
 
     /**
@@ -410,7 +433,7 @@ class AiService
      */
     public function generateChat(string $prompt, ?string $systemPrompt = null, ?string $pageContext = null): string
     {
-        $provider = self::getProvider();
+        $provider = self::getProvider($pageContext);
 
         if ($provider === 'gemini') {
             return $this->generateGeminiChat($prompt, $systemPrompt, $pageContext);

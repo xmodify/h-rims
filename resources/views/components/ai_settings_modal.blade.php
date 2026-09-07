@@ -13,8 +13,14 @@
         'model' => \App\Services\Ai\AiService::getModelName('rag'),
         'embed_model' => \App\Services\Ai\AiService::getEmbedModel(),
     ];
-    $initialScope = request()->is('*hosfin*') ? 'hosfin' : 'rag';
-    $aiConfig = ($initialScope === 'hosfin') ? $hosfinConfig : $ragConfig;
+    $hosxpConfig = [
+        'provider' => \App\Services\Ai\AiService::getProvider('hosxp'),
+        'api_url' => \App\Services\Ai\AiService::getApiUrl('hosxp'),
+        'api_key' => \App\Services\Ai\AiService::getApiKey('hosxp'),
+        'model' => \App\Services\Ai\AiService::getModelName('hosxp'),
+    ];
+    $initialScope = request()->is('*hosfin*') ? 'hosfin' : (request()->is('*hosxp*') || request()->is('*mrec*') ? 'hosxp' : 'rag');
+    $aiConfig = ($initialScope === 'hosfin') ? $hosfinConfig : (($initialScope === 'hosxp') ? $hosxpConfig : $ragConfig);
 @endphp
 
 <style>
@@ -37,14 +43,17 @@
             <form id="aiSettingsForm" onsubmit="handleSaveAiSettings(event)">
                 @csrf
                 <div class="modal-body p-4 bg-light bg-opacity-25">
-                    <!-- Scope Switcher Tabs (HosFin vs RAG) -->
+                    <!-- Scope Switcher Tabs (HosFin vs RAG vs HOSxP) -->
                     <div class="d-flex justify-content-center mb-3">
                         <div class="p-1 bg-white rounded-pill border shadow-sm d-inline-flex gap-1" role="tablist">
-                            <button type="button" class="btn btn-sm rounded-pill px-4 fw-bold {{ $initialScope === 'hosfin' ? 'btn-success text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeHosfin" onclick="switchModalScope('hosfin')">
-                                <i class="bi bi-graph-up-arrow me-1"></i> ระบบการเงิน (HosFin)
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold {{ $initialScope === 'hosfin' ? 'btn-success text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeHosfin" onclick="switchModalScope('hosfin')">
+                                <i class="bi bi-graph-up-arrow me-1"></i> การเงิน (HosFin)
                             </button>
-                            <button type="button" class="btn btn-sm rounded-pill px-4 fw-bold {{ $initialScope === 'rag' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeRag" onclick="switchModalScope('rag')">
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold {{ $initialScope === 'rag' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted border-0' }}" id="btnScopeRag" onclick="switchModalScope('rag')">
                                 <i class="bi bi-book-half me-1"></i> คลังความรู้ (RAG)
+                            </button>
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold {{ $initialScope === 'hosxp' ? 'text-white shadow-sm' : 'btn-light text-muted border-0' }}" style="{{ $initialScope === 'hosxp' ? 'background-color: #6366f1;' : '' }}" id="btnScopeHosxp" onclick="switchModalScope('hosxp')">
+                                <i class="bi bi-database-check me-1"></i> ตรวจสอบ HOSxP
                             </button>
                         </div>
                     </div>
@@ -161,6 +170,20 @@
                             </div>
                             <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">แปลงเอกสารเป็น Vector เพื่อการค้นหาความหมาย (Semantic Search)</small>
                         </div>
+
+                        <!-- 4. HOSxP Scope: Chat Model (Shown when HOSxP scope active) -->
+                        <div class="col-md-6 {{ $initialScope === 'hosxp' ? '' : 'd-none' }}" id="wrapperHosxpModel">
+                            <label class="form-label fw-bold small text-dark d-flex align-items-center gap-1">
+                                <i class="bi bi-database-check" style="color: #6366f1;"></i> ชื่อโมเดลตรวจสอบ HOSxP (Chat Model)
+                            </label>
+                            <input type="text" class="form-control font-monospace small" id="settingModelHosxp" name="ai_model_hosxp" 
+                                value="{{ $hosxpConfig['model'] ?? 'gemini-3.7-flash' }}" 
+                                placeholder="gemini-3.7-flash">
+                            <div class="mt-1 d-flex gap-1 flex-wrap" id="presetsHosxp">
+                                <!-- Dynamic badges inserted by JS -->
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">โมเดลสำหรับตรวจสอบความถูกต้องของข้อมูลพื้นฐาน HOSxP (แพทย์, ค่ารักษา, สิทธิ)</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2 d-flex justify-content-between">
@@ -183,10 +206,11 @@
 <script>
     window.aiScopesConfig = {
         hosfin: @json($hosfinConfig),
-        rag: @json($ragConfig)
+        rag: @json($ragConfig),
+        hosxp: @json($hosxpConfig)
     };
 
-    // Dynamically switch modal scope (HosFin vs RAG)
+    // Dynamically switch modal scope (HosFin vs RAG vs HOSxP)
     function switchModalScope(scope, syncCurrent = true) {
         if (syncCurrent && window.currentModalScope && window.aiScopesConfig && window.aiScopesConfig[window.currentModalScope]) {
             const cur = window.aiScopesConfig[window.currentModalScope];
@@ -199,6 +223,9 @@
             if (window.currentModalScope === 'hosfin') {
                 const hModel = document.getElementById('settingModelHosfin');
                 if (hModel) cur.model = hModel.value;
+            } else if (window.currentModalScope === 'hosxp') {
+                const xModel = document.getElementById('settingModelHosxp');
+                if (xModel) cur.model = xModel.value;
             } else {
                 const rModel = document.getElementById('settingModelName');
                 const eModel = document.getElementById('settingEmbedModel');
@@ -212,13 +239,22 @@
         // Update tab buttons
         const btnHosfin = document.getElementById('btnScopeHosfin');
         const btnRag = document.getElementById('btnScopeRag');
-        if (btnHosfin && btnRag) {
+        const btnHosxp = document.getElementById('btnScopeHosxp');
+        if (btnHosfin && btnRag && btnHosxp) {
+            btnHosfin.className = 'btn btn-sm rounded-pill px-3 fw-bold btn-light text-muted border-0';
+            btnHosfin.style.backgroundColor = '';
+            btnRag.className = 'btn btn-sm rounded-pill px-3 fw-bold btn-light text-muted border-0';
+            btnRag.style.backgroundColor = '';
+            btnHosxp.className = 'btn btn-sm rounded-pill px-3 fw-bold btn-light text-muted border-0';
+            btnHosxp.style.backgroundColor = '';
+
             if (scope === 'hosfin') {
-                btnHosfin.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-success text-white shadow-sm';
-                btnRag.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-light text-muted border-0';
+                btnHosfin.className = 'btn btn-sm rounded-pill px-3 fw-bold btn-success text-white shadow-sm';
+            } else if (scope === 'hosxp') {
+                btnHosxp.className = 'btn btn-sm rounded-pill px-3 fw-bold text-white shadow-sm';
+                btnHosxp.style.backgroundColor = '#6366f1';
             } else {
-                btnHosfin.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-light text-muted border-0';
-                btnRag.className = 'btn btn-sm rounded-pill px-4 fw-bold btn-primary text-white shadow-sm';
+                btnRag.className = 'btn btn-sm rounded-pill px-3 fw-bold btn-primary text-white shadow-sm';
             }
         }
 
@@ -238,13 +274,18 @@
         const hosfinEl = document.getElementById('wrapperHosfinModel');
         const ragEl = document.getElementById('wrapperRagModel');
         const embedEl = document.getElementById('wrapperEmbedModel');
-        if (hosfinEl && ragEl && embedEl) {
+        const hosxpEl = document.getElementById('wrapperHosxpModel');
+        if (hosfinEl && ragEl && embedEl && hosxpEl) {
+            hosfinEl.classList.add('d-none');
+            ragEl.classList.add('d-none');
+            embedEl.classList.add('d-none');
+            hosxpEl.classList.add('d-none');
+
             if (scope === 'hosfin') {
                 hosfinEl.classList.remove('d-none');
-                ragEl.classList.add('d-none');
-                embedEl.classList.add('d-none');
+            } else if (scope === 'hosxp') {
+                hosxpEl.classList.remove('d-none');
             } else {
-                hosfinEl.classList.add('d-none');
                 ragEl.classList.remove('d-none');
                 embedEl.classList.remove('d-none');
             }
@@ -266,6 +307,9 @@
             if (scope === 'hosfin') {
                 const hModelEl = document.getElementById('settingModelHosfin');
                 if (hModelEl && cfg.model) hModelEl.value = cfg.model;
+            } else if (scope === 'hosxp') {
+                const xModelEl = document.getElementById('settingModelHosxp');
+                if (xModelEl && cfg.model) xModelEl.value = cfg.model;
             } else {
                 const rModelEl = document.getElementById('settingModelName');
                 if (rModelEl && cfg.model) rModelEl.value = cfg.model;
@@ -312,6 +356,7 @@
         const pHosfin = document.getElementById('presetsHosfin');
         const pRag = document.getElementById('presetsRag');
         const pEmbed = document.getElementById('presetsEmbed');
+        const pHosxp = document.getElementById('presetsHosxp');
 
         if (provider === 'gemini') {
             if (pHosfin) {
@@ -326,6 +371,13 @@
                     <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setModelPreset('gemini-3.7-flash')">⭐ gemini-3.7-flash (แนะนำ)</span>
                     <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gemini-3.5-flash-lite')">⚡ gemini-3.5-flash-lite (ตอบไว)</span>
                     <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gemini-flash-latest')">gemini-flash-latest</span>
+                `;
+            }
+            if (pHosxp) {
+                pHosxp.innerHTML = `
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setHosxpModelPreset('gemini-3.7-flash')">⭐ gemini-3.7-flash (แนะนำ)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosxpModelPreset('gemini-3.5-flash-lite')">⚡ gemini-3.5-flash-lite (ตอบไว)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosxpModelPreset('gemini-flash-latest')">gemini-flash-latest</span>
                 `;
             }
             if (pEmbed) {
@@ -348,6 +400,13 @@
                     <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('llama3')">llama3</span>
                 `;
             }
+            if (pHosxp) {
+                pHosxp.innerHTML = `
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setHosxpModelPreset('gemma4:e4b')">⭐ gemma4:e4b (ในเครื่อง)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosxpModelPreset('typhoon')">typhoon</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosxpModelPreset('llama3')">llama3</span>
+                `;
+            }
             if (pEmbed) {
                 pEmbed.innerHTML = `
                     <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setEmbedPreset('nomic-embed-text')">⭐ nomic-embed-text</span>
@@ -365,6 +424,12 @@
                 pRag.innerHTML = `
                     <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setModelPreset('deepseek-chat')">⭐ deepseek-chat (แนะนำ)</span>
                     <span class="badge bg-light text-dark border small" role="button" onclick="setModelPreset('gpt-4o-mini')">gpt-4o-mini</span>
+                `;
+            }
+            if (pHosxp) {
+                pHosxp.innerHTML = `
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success small" role="button" onclick="setHosxpModelPreset('deepseek-chat')">⭐ deepseek-chat (แนะนำ)</span>
+                    <span class="badge bg-light text-dark border small" role="button" onclick="setHosxpModelPreset('gpt-4o-mini')">gpt-4o-mini</span>
                 `;
             }
             if (pEmbed) {
@@ -422,6 +487,7 @@
         const urlHelp = document.getElementById('helpApiUrl');
         const modelInput = document.getElementById('settingModelName');
         const modelHosfinInput = document.getElementById('settingModelHosfin');
+        const modelHosxpInput = document.getElementById('settingModelHosxp');
         const embedInput = document.getElementById('settingEmbedModel');
         const note = document.getElementById('keyRequiredNote');
         const keyHelp = document.getElementById('keyHelpText');
@@ -441,6 +507,9 @@
             }
             if (isUserChange || (modelHosfinInput && !modelHosfinInput.value.toLowerCase().includes('gemini'))) {
                 if (modelHosfinInput) modelHosfinInput.value = 'gemini-3.7-flash';
+            }
+            if (isUserChange || (modelHosxpInput && !modelHosxpInput.value.toLowerCase().includes('gemini'))) {
+                if (modelHosxpInput) modelHosxpInput.value = 'gemini-3.7-flash';
             }
             if (isUserChange || (modelInput && !modelInput.value.toLowerCase().includes('gemini'))) {
                 if (modelInput) modelInput.value = 'gemini-3.7-flash';
@@ -470,6 +539,9 @@
             if (isUserChange || (modelHosfinInput && modelHosfinInput.value.toLowerCase().includes('gemini'))) {
                 if (modelHosfinInput) modelHosfinInput.value = 'gemma4:e4b';
             }
+            if (isUserChange || (modelHosxpInput && modelHosxpInput.value.toLowerCase().includes('gemini'))) {
+                if (modelHosxpInput) modelHosxpInput.value = 'gemma4:e4b';
+            }
             if (isUserChange || (modelInput && modelInput.value.toLowerCase().includes('gemini'))) {
                 if (modelInput) modelInput.value = 'gemma4:e4b';
             }
@@ -496,6 +568,9 @@
             if (isUserChange || (modelHosfinInput && (modelHosfinInput.value.includes('gemini') || modelHosfinInput.value.includes('gemma')))) {
                 if (modelHosfinInput) modelHosfinInput.value = 'deepseek-chat';
             }
+            if (isUserChange || (modelHosxpInput && (modelHosxpInput.value.includes('gemini') || modelHosxpInput.value.includes('gemma')))) {
+                if (modelHosxpInput) modelHosxpInput.value = 'deepseek-chat';
+            }
             if (isUserChange || (modelInput && (modelInput.value.includes('gemini') || modelInput.value.includes('gemma')))) {
                 if (modelInput) modelInput.value = 'deepseek-chat';
             }
@@ -514,6 +589,11 @@
 
     function setHosfinModelPreset(name) {
         const el = document.getElementById('settingModelHosfin');
+        if (el) el.value = name;
+    }
+
+    function setHosxpModelPreset(name) {
+        const el = document.getElementById('settingModelHosxp');
         if (el) el.value = name;
     }
 
@@ -689,6 +769,8 @@
                     window.aiScopesConfig[scope].api_key = formData.get('ai_api_key');
                     if (scope === 'hosfin') {
                         window.aiScopesConfig[scope].model = formData.get('ai_model_hosfin');
+                    } else if (scope === 'hosxp') {
+                        window.aiScopesConfig[scope].model = formData.get('ai_model_hosxp');
                     } else {
                         window.aiScopesConfig[scope].model = formData.get('ai_model_name');
                         window.aiScopesConfig[scope].embed_model = formData.get('ai_embed_model');

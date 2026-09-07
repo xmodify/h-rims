@@ -73,7 +73,15 @@ class RagKnowledgeController extends Controller
 
         $scope = $request->input('scope', 'rag');
         $isHosfin = str_contains(strtolower($scope), 'hosfin');
-        $prefix = $isHosfin ? 'ai_hosfin_' : 'ai_rag_';
+        $isHosxp = str_contains(strtolower($scope), 'hosxp');
+
+        if ($isHosfin) {
+            $prefix = 'ai_hosfin_';
+        } elseif ($isHosxp) {
+            $prefix = 'ai_hosxp_';
+        } else {
+            $prefix = 'ai_rag_';
+        }
 
         $provider = $request->input('ai_provider', $request->input($prefix . 'provider', 'gemini'));
         $apiUrl = trim($request->input('ai_api_url', $request->input($prefix . 'api_url', '')));
@@ -96,6 +104,14 @@ class RagKnowledgeController extends Controller
             }
             if ($provider === 'ollama' && isset($settings['ai_hosfin_model_name']) && str_contains(strtolower($settings['ai_hosfin_model_name']), 'gemini')) {
                 $settings['ai_hosfin_model_name'] = 'gemma4:e4b';
+            }
+        } elseif ($isHosxp) {
+            $modelVal = $request->input('ai_hosxp_model_name', $request->input('ai_model_hosxp', $request->input('ai_model_name')));
+            if ($modelVal) {
+                $settings['ai_hosxp_model_name'] = trim($modelVal);
+            }
+            if ($provider === 'ollama' && isset($settings['ai_hosxp_model_name']) && str_contains(strtolower($settings['ai_hosxp_model_name']), 'gemini')) {
+                $settings['ai_hosxp_model_name'] = 'gemma4:e4b';
             }
         } else {
             $modelVal = $request->input('ai_rag_model_name', $request->input('ai_model_name'));
@@ -123,10 +139,11 @@ class RagKnowledgeController extends Controller
             );
         }
 
+        $scopeLabel = $isHosfin ? 'HosFin' : ($isHosxp ? 'HOSxP' : 'RAG');
         return response()->json([
             'success' => true,
             'scope' => $scope,
-            'message' => 'บันทึกการตั้งค่าระบบ AI (' . ($isHosfin ? 'HosFin' : 'RAG') . ') เรียบร้อยแล้ว'
+            'message' => 'บันทึกการตั้งค่าระบบ AI (' . $scopeLabel . ') เรียบร้อยแล้ว'
         ]);
     }
 

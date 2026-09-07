@@ -78,6 +78,10 @@ class MainSettingController extends Controller
                 'ai_rag_model_name',
                 'ai_rag_embed_model',
                 'ai_rag_api_url',
+                'ai_hosxp_provider',
+                'ai_hosxp_api_key',
+                'ai_hosxp_model_name',
+                'ai_hosxp_api_url',
             ],
             'Provider ID (Health ID)' => [
                 'provider_id_active',
@@ -161,7 +165,13 @@ class MainSettingController extends Controller
         }
 
         $scope = $request->input('scope', 'hosfin');
-        $prefix = (str_contains(strtolower($scope), 'rag')) ? 'ai_rag_' : 'ai_hosfin_';
+        if (str_contains(strtolower($scope), 'hosxp')) {
+            $prefix = 'ai_hosxp_';
+        } elseif (str_contains(strtolower($scope), 'rag')) {
+            $prefix = 'ai_rag_';
+        } else {
+            $prefix = 'ai_hosfin_';
+        }
 
         $apiKey = $request->input('ai_api_key', $request->input('api_key', $request->input($prefix . 'api_key')));
         if ($apiKey !== null && trim($apiKey) !== '') {
@@ -366,6 +376,10 @@ class MainSettingController extends Controller
                         ['name' => 'ai_rag_api_url', 'name_th' => 'AI Base URL (RAG)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_rag_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถามคลังความรู้ (RAG)', 'value' => 'gemini-3.7-flash'],
                         ['name' => 'ai_rag_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'gemini-embedding-001'],
+                        ['name' => 'ai_hosxp_provider', 'name_th' => 'ผู้ให้บริการ AI ตรวจสอบ HOSxP (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_hosxp_api_key', 'name_th' => 'AI API Key (HOSxP)', 'value' => ''],
+                        ['name' => 'ai_hosxp_api_url', 'name_th' => 'AI Base URL (HOSxP)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_hosxp_model_name', 'name_th' => 'ชื่อโมเดล AI ตรวจสอบ HOSxP', 'value' => 'gemini-3.7-flash'],
                     ];
                     foreach ($defaultAiSettings as $as) {
                         $existing = DB::table('main_setting')->where('name', $as['name'])->first();
@@ -957,6 +971,10 @@ class MainSettingController extends Controller
                         ['name' => 'ai_rag_api_url', 'name_th' => 'AI Base URL (RAG)', 'value' => 'https://generativelanguage.googleapis.com'],
                         ['name' => 'ai_rag_model_name', 'name_th' => 'ชื่อโมเดลตอบคำถามคลังความรู้ (RAG)', 'value' => 'gemini-3.7-flash'],
                         ['name' => 'ai_rag_embed_model', 'name_th' => 'ชื่อโมเดลทำ Vector (Embedding Model)', 'value' => 'gemini-embedding-001'],
+                        ['name' => 'ai_hosxp_provider', 'name_th' => 'ผู้ให้บริการ AI ตรวจสอบ HOSxP (gemini / ollama / openai_compatible)', 'value' => 'gemini'],
+                        ['name' => 'ai_hosxp_api_key', 'name_th' => 'AI API Key (HOSxP)', 'value' => ''],
+                        ['name' => 'ai_hosxp_api_url', 'name_th' => 'AI Base URL (HOSxP)', 'value' => 'https://generativelanguage.googleapis.com'],
+                        ['name' => 'ai_hosxp_model_name', 'name_th' => 'ชื่อโมเดล AI ตรวจสอบ HOSxP', 'value' => 'gemini-3.7-flash'],
                     ];
 
                     // Clean up only known obsolete/deprecated keys (never wipe user-configured settings)

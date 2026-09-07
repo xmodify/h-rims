@@ -461,6 +461,10 @@ Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);
 Route::get('check/doctor', [CheckController::class, 'doctor']);
 
+// ข้อมูลพื้นฐาน HOSxP (งานเวชระเบียน) -------------------------------------------------------------
+Route::get('mrec/hosxp_master', [\App\Http\Controllers\MrecHosxpMasterController::class, 'index'])->name('mrec.hosxp_master');
+Route::post('mrec/hosxp_master/copilot_ask', [\App\Http\Controllers\MrecHosxpMasterController::class, 'copilotAsk'])->name('mrec.hosxp_master.copilot_ask');
+
 //OPD------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'opd/oppp_visit', [OpdController::class, 'oppp_visit']);
 Route::match(['get', 'post'], 'opd/diag_sepsis', [OpdController::class, 'diag_sepsis']);

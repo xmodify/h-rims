@@ -620,14 +620,29 @@
                     </div>
 
                     <div class="col-12 mt-3">
-                      <ul class="nav nav-tabs nav-tabs-custom mb-2" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
-                        <li class="nav-item">
-                          <button class="nav-link active fw-bold text-primary" id="modal-drugs-tab" data-bs-toggle="tab" data-bs-target="#modal-drugs-panel" type="button" role="tab"><i class="bi bi-capsule me-1"></i>รายการยา</button>
-                        </li>
-                        <li class="nav-item">
-                          <button class="nav-link fw-bold text-success" id="modal-services-tab" data-bs-toggle="tab" data-bs-target="#modal-services-panel" type="button" role="tab"><i class="bi bi-list-check me-1"></i>ค่ารักษาพยาบาล</button>
-                        </li>
-                      </ul>
+                      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <ul class="nav nav-tabs nav-tabs-custom mb-0" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
+                          <li class="nav-item">
+                            <button class="nav-link active fw-bold text-primary" id="modal-drugs-tab" data-bs-toggle="tab" data-bs-target="#modal-drugs-panel" type="button" role="tab">
+                              <i class="bi bi-capsule me-1"></i>รายการยา <span id="modal-drugs-count" class="badge rounded-pill bg-light text-primary border ms-1"></span>
+                            </button>
+                          </li>
+                          <li class="nav-item">
+                            <button class="nav-link fw-bold text-success" id="modal-services-tab" data-bs-toggle="tab" data-bs-target="#modal-services-panel" type="button" role="tab">
+                              <i class="bi bi-list-check me-1"></i>ค่ารักษาพยาบาล <span id="modal-services-count" class="badge rounded-pill bg-light text-success border ms-1"></span>
+                            </button>
+                          </li>
+                        </ul>
+                        <div class="d-flex align-items-center">
+                          <div class="form-check form-switch m-0 d-flex align-items-center gap-2 bg-white px-3 py-1 rounded-pill shadow-sm border">
+                            <input class="form-check-input mt-0" type="checkbox" id="modalOnlyPpfsFilter" role="switch" style="cursor: pointer;">
+                            <label class="form-check-label small fw-bold text-dark mb-0 d-flex align-items-center" for="modalOnlyPpfsFilter" style="cursor: pointer;">
+                              <span class="badge badge-ppfs me-1 border text-dark" style="font-size: 0.65rem;">PPFS</span>
+                              เลือกแสดงเฉพาะรายการที่พบ PPFS
+                            </label>
+                          </div>
+                        </div>
+                      </div>
                       <div class="tab-content" id="modalDetailTabsContent">
                         <div class="tab-pane fade show active" id="modal-drugs-panel" role="tabpanel" style="font-size: 12px;">
                           <table id="modal-drugs-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
@@ -641,39 +656,7 @@
                                 <th class="text-center" width="12%">TMT</th>
                               </tr>
                             </thead>
-                            <tbody>
-                              ${(function() {
-                                    let drugsList = items.filter(d => d.icode.startsWith('1'));
-                                    if (drugsList.length === 0) {
-                                        return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
-                                    }
-                                    return drugsList.map(d => {
-                                        let type = '';
-                                        if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
-                                        if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
-                                        if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
-
-                                        let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
-                                            ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
-                                            : '';
-
-                                        let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
-                                            ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
-                                            : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
-                                        return `<tr>
-                                          <td>
-                                            <div class="fw-bold text-dark">${d.name} ${type} ${adpDrugTag}</div>
-                                            <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
-                                          </td>
-                                          <td class="text-center fw-bold">${d.qty}</td>
-                                          <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
-                                          <td class="text-center">${d.paids_name || d.paids || '-'}</td>
-                                          <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                          <td class="text-center">${tmtDisplay}</td>
-                                        </tr>`;
-                                    }).join('');
-                                })()}
-                            </tbody>
+                            <tbody></tbody>
                           </table>
                         </div>
                         <div class="tab-pane fade" id="modal-services-panel" role="tabpanel" style="font-size: 12px;">
@@ -688,40 +671,7 @@
                                 <th class="text-center" width="12%">ADP CODE</th>
                               </tr>
                             </thead>
-                            <tbody>
-                              ${(function() {
-                                  let servicesList = items.filter(d => !d.icode.startsWith('1'));
-                                  if (servicesList.length === 0) {
-                                      return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการค่าบริการ/รักษาพยาบาลใน Visit นี้</td></tr>';
-                                  }
-                                  return servicesList.map(d => {
-                                      let type = '';
-                                      if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
-                                      if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
-                                      if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
-                                      
-                                      const insWarn = (d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code)
-                                          ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${d.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
-                                          : '';
-                                      
-                                      let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
-                                          ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>` 
-                                          : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
-
-                                      return `<tr class="${(d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code) ? 'table-warning' : ''}">
-                                        <td>
-                                          <div class="fw-bold text-dark">${d.name ?? '-'}${insWarn} ${type}</div>
-                                          <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
-                                        </td>
-                                        <td class="text-center fw-bold">${d.qty}</td>
-                                        <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
-                                        <td class="text-center">${d.paids_name || d.paids || '-'}</td>
-                                        <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                        <td class="text-center">${adpBadge}</td>
-                                      </tr>`;
-                                  }).join('');
-                              })()}
-                            </tbody>
+                            <tbody></tbody>
                           </table>
                         </div>
                       </div>
@@ -730,34 +680,131 @@
 
                 body.innerHTML = html;
 
-                if ($.fn.DataTable.isDataTable('#modal-drugs-table')) $('#modal-drugs-table').DataTable().destroy();
-                if ($.fn.DataTable.isDataTable('#modal-services-table')) $('#modal-services-table').DataTable().destroy();
+                window.currentModalItems = items || [];
+                const hasPpfsInAny = window.currentModalItems.some(d => d.ppfs === 'Y');
+                const hasPpfsInServices = window.currentModalItems.some(d => !d.icode.startsWith('1') && d.ppfs === 'Y');
+                const hasPpfsInDrugs = window.currentModalItems.some(d => d.icode.startsWith('1') && d.ppfs === 'Y');
 
-                if (items.filter(d => d.icode.startsWith('1')).length > 0) {
-                    $('#modal-drugs-table').DataTable({
-                        pageLength: 5,
-                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
-                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                function renderModalTables(onlyPpfs) {
+                    if ($.fn.DataTable.isDataTable('#modal-drugs-table')) $('#modal-drugs-table').DataTable().destroy();
+                    if ($.fn.DataTable.isDataTable('#modal-services-table')) $('#modal-services-table').DataTable().destroy();
+
+                    let drugsList = window.currentModalItems.filter(d => d.icode.startsWith('1'));
+                    if (onlyPpfs) drugsList = drugsList.filter(d => d.ppfs === 'Y');
+
+                    let servicesList = window.currentModalItems.filter(d => !d.icode.startsWith('1'));
+                    if (onlyPpfs) servicesList = servicesList.filter(d => d.ppfs === 'Y');
+
+                    $('#modal-drugs-count').text(drugsList.length);
+                    $('#modal-services-count').text(servicesList.length);
+
+                    const drugsTbody = document.querySelector('#modal-drugs-table tbody');
+                    if (drugsTbody) {
+                        if (drugsList.length === 0) {
+                            drugsTbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">${onlyPpfs ? 'ไม่พบรายการยาที่เป็น PPFS ใน Visit นี้' : 'ไม่พบรายการสั่งยาใน Visit นี้'}</td></tr>`;
+                        } else {
+                            drugsTbody.innerHTML = drugsList.map(d => {
+                                let type = '';
+                                if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                                if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+
+                                let adpDrugTag = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '')
+                                    ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;" title="ส่งออกแฟ้ม ADP ด้วย"><i class="bi bi-tag-fill me-1"></i>ADP: ${d.nhso_adp_code}</span>`
+                                    : '';
+
+                                let tmtDisplay = (d.tmt_code || d.tmtid || d.sks_drug_code)
+                                    ? `<span class="badge bg-success fw-bold">${d.tmt_code || d.tmtid || d.sks_drug_code}</span>`
+                                    : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
+                                return `<tr>
+                                  <td>
+                                    <div class="fw-bold text-dark">${d.name} ${type} ${adpDrugTag}</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                  </td>
+                                  <td class="text-center fw-bold">${d.qty}</td>
+                                  <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                  <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                  <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                  <td class="text-center">${tmtDisplay}</td>
+                                </tr>`;
+                            }).join('');
                         }
-                    });
+                    }
+
+                    const servicesTbody = document.querySelector('#modal-services-table tbody');
+                    if (servicesTbody) {
+                        if (servicesList.length === 0) {
+                            servicesTbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">${onlyPpfs ? 'ไม่พบรายการค่าบริการที่เป็น PPFS ใน Visit นี้' : 'ไม่พบรายการค่าบริการ/รักษาพยาบาลใน Visit นี้'}</td></tr>`;
+                        } else {
+                            servicesTbody.innerHTML = servicesList.map(d => {
+                                let type = '';
+                                if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                                if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                                
+                                const insWarn = (d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code)
+                                    ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${d.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
+                                    : '';
+                                
+                                let adpBadge = (d.nhso_adp_code && String(d.nhso_adp_code).trim() !== '') 
+                                    ? `<span class="badge bg-primary text-white fw-bold px-2 py-1">${d.nhso_adp_code}</span>` 
+                                    : `<span class="badge bg-danger text-white fw-bold px-2 py-1" title="ไม่พบรหัส ADP ใน nondrugitems"><i class="bi bi-x-circle-fill me-1"></i>ไม่พบรหัส ADP</span>`;
+
+                                return `<tr class="${(d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code) ? 'table-warning' : ''}">
+                                  <td>
+                                    <div class="fw-bold text-dark">${d.name ?? '-'}${insWarn} ${type}</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                  </td>
+                                  <td class="text-center fw-bold">${d.qty}</td>
+                                  <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                  <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                  <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                  <td class="text-center">${adpBadge}</td>
+                                </tr>`;
+                            }).join('');
+                        }
+                    }
+
+                    if (drugsList.length > 0) {
+                        $('#modal-drugs-table').DataTable({
+                            pageLength: 5,
+                            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                            language: {
+                                search: "ค้นหา:",
+                                lengthMenu: "แสดง _MENU_ รายการ",
+                                info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                                paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                            }
+                        });
+                    }
+
+                    if (servicesList.length > 0) {
+                        $('#modal-services-table').DataTable({
+                            pageLength: 5,
+                            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                            language: {
+                                search: "ค้นหา:",
+                                lengthMenu: "แสดง _MENU_ รายการ",
+                                info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                                paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                            }
+                        });
+                    }
                 }
 
-                if (items.filter(d => !d.icode.startsWith('1')).length > 0) {
-                    $('#modal-services-table').DataTable({
-                        pageLength: 5,
-                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
-                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
-                        }
-                    });
+                const defaultOnlyPpfs = hasPpfsInAny;
+                $('#modalOnlyPpfsFilter').prop('checked', defaultOnlyPpfs);
+
+                if (hasPpfsInServices && !hasPpfsInDrugs) {
+                    const sTab = document.getElementById('modal-services-tab');
+                    if (sTab) bootstrap.Tab.getOrCreateInstance(sTab).show();
                 }
+
+                renderModalTables(defaultOnlyPpfs);
+
+                $('#modalOnlyPpfsFilter').off('change').on('change', function() {
+                    renderModalTables(this.checked);
+                });
 
                 $('#modalDetailTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
                     $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();

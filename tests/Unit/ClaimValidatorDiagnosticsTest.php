@@ -45,9 +45,9 @@ class ClaimValidatorDiagnosticsTest extends TestCase
 
         $this->assertFalse(empty($result['errors']));
         $this->assertTrue(collect($result['errors'])->contains(function ($err) {
-            return str_contains($err, 'สิ่งที่ขาดใน HOSxP')
-                && str_contains($err, '240')
-                && str_contains($err, 'ขาดรหัสโรคกลุ่มเสี่ยงทางทันตกรรม')
+            return str_contains($err, 'ติด C: 240')
+                && str_contains($err, '15001')
+                && str_contains($err, 'ขาดรหัสโรคกลุ่มเสี่ยงทันตกรรม')
                 && str_contains($err, 'K081');
         }));
     }
@@ -80,9 +80,9 @@ class ClaimValidatorDiagnosticsTest extends TestCase
         $result = $this->validator->validatePpfs($visit, $items);
 
         $this->assertTrue(collect($result['errors'])->contains(function ($err) {
-            return str_contains($err, 'สิ่งที่ขาดใน HOSxP')
-                && str_contains($err, 'ขาดรหัสโรคกลุ่มเสี่ยงทางทันตกรรม')
-                && str_contains($err, 'อาจทำให้ติด C-240');
+            return str_contains($err, '15001')
+                && str_contains($err, 'ขาดรหัสโรคกลุ่มเสี่ยงทันตกรรม')
+                && str_contains($err, 'อาจติด C: 240');
         }));
     }
 
@@ -114,8 +114,8 @@ class ClaimValidatorDiagnosticsTest extends TestCase
         $result = $this->validator->validatePpfs($visit, $items);
 
         $this->assertTrue(collect($result['errors'])->contains(function ($err) {
-            return str_contains($err, 'สิ่งที่ขาดใน HOSxP')
-                && str_contains($err, '217')
+            return str_contains($err, 'ติด C: 217')
+                && str_contains($err, 'FP002_2')
                 && str_contains($err, '8605');
         }));
     }
@@ -147,9 +147,9 @@ class ClaimValidatorDiagnosticsTest extends TestCase
         $result = $this->validator->validatePpfs($visit, $items);
 
         $this->assertTrue(collect($result['errors'])->contains(function ($err) {
-            return str_contains($err, 'สิ่งที่ขาดใน HOSxP')
+            return str_contains($err, 'FP002_2')
                 && str_contains($err, 'ขาดรหัสหัตถการ ICD-9 8605')
-                && str_contains($err, 'อาจทำให้ติด C-217');
+                && str_contains($err, 'อาจติด C: 217');
         }));
     }
 

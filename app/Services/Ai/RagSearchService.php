@@ -46,6 +46,7 @@ class RagSearchService
 
         $isHosfinPage = $pageContext && (str_contains($pageContext, 'hosfin') || str_contains($pageContext, 'financial'));
         $isRagPage = $pageContext && (str_contains($pageContext, 'rag-knowledge') || str_contains($pageContext, 'rag'));
+        $isHosxpPage = $pageContext && (str_contains($pageContext, 'mrec') || str_contains($pageContext, 'hosxp'));
 
         // On RAG page, retrieve more chunks (8) for thorough multi-document coverage
         if ($isRagPage && $topK < 8) {
@@ -90,12 +91,12 @@ class RagSearchService
         // If on RAG page, only lookup HOSxP if user explicitly mentions HOSxP configuration check
         $isHosxpQuery = $isRagPage
             ? (bool) preg_match('/(ตรวจการตั้งค่า|ตั้งค่าถูกไหม|ใน\s*hosxp|เทียบกับ\s*hosxp|ตาราง.*hosxp)/iu', $augmentedQuery)
-            : (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม)/iu', $augmentedQuery);
+            : ($isHosxpPage || (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม|แพทย์|หมอ|doctor|licenseno|council|pttype|สิทธิ|สิทธิการรักษา)/iu', $augmentedQuery));
 
         // Domain B: HosFin Financials (งบทดลอง, การเงิน, หนี้สิน, สภาพคล่อง, risk score, ผังบัญชี, AP, AR, GL)
-        // If on RAG page, strictly DISABLE HosFin financial data injection (focus 100% on RAG documents)
-        $isFinancialQuery = !$isRagPage && ($isHosfinPage || (bool) preg_match('/(hosfin|การเงิน|เงินบำรุง|สภาพคล่อง|วิกฤต|risk\s*score|ลูกหนี้|เจ้าหนี้|ค่ายา|งบ|งบทดลอง|รายได้|รายจ่าย|แนวโน้ม|วิเคราะห์|เงินเดือน|ค่าจ้าง|ค่าตอบแทน|จ่าย|ยอด|บริษัท|บิล|ค้างชำระ|aging|สมุดรายวัน|ใบสำคัญ|voucher)/iu', $augmentedQuery));
-        $isPeriodQuery = !$isRagPage && (bool) preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|ช่วงเวลา|ย้อนหลัง|มีข้อมูลถึงไหน|ดูได้ไหม|งวดบัญชี|งวด)/iu', $cleanQuestion);
+        // If on RAG or HOSxP page, strictly DISABLE HosFin financial data injection (focus on HOSxP Master Data / RAG documents)
+        $isFinancialQuery = !$isRagPage && !$isHosxpPage && ($isHosfinPage || (bool) preg_match('/(hosfin|การเงิน|เงินบำรุง|สภาพคล่อง|วิกฤต|risk\s*score|ลูกหนี้|เจ้าหนี้|ค่ายา|งบ|งบทดลอง|รายได้|รายจ่าย|แนวโน้ม|วิเคราะห์|เงินเดือน|ค่าจ้าง|ค่าตอบแทน|จ่าย|ยอด|บริษัท|บิล|ค้างชำระ|aging|สมุดรายวัน|ใบสำคัญ|voucher)/iu', $augmentedQuery));
+        $isPeriodQuery = !$isRagPage && !$isHosxpPage && (bool) preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|ช่วงเวลา|ย้อนหลัง|มีข้อมูลถึงไหน|ดูได้ไหม|งวดบัญชี|งวด)/iu', $cleanQuestion);
 
         // Domain C: Intro or Scope Query
         $isIntroOrScopeQuery = (bool) preg_match('/(ดูอะไรได้บ้าง|ทำอะไรได้บ้าง|เข้าถึง(ส่วน|ข้อมูล)?ไหน|มีข้อมูลอะไร|แหล่งที่มา|ช่วยอะไรได้|ความสามารถ|คุณคือใคร|สวัสดี|แนะนำตัว)/iu', $cleanQuestion);
@@ -242,6 +243,26 @@ class RagSearchService
                     'score' => 100.0,
                     'snippet' => "เอกสาร {$docCount} ฉบับ: " . mb_substr($docList, 0, 100) . '...'
                 ];
+            } elseif ($isHosxpPage) {
+                $scopeText = "ข้อมูลขอบเขตแหล่งข้อมูลและการตรวจสอบ HOSxP Master Data (งานเวชระเบียน):\n";
+                $scopeText .= "1. ข้อมูลแพทย์และบุคลากรทางการแพทย์ (Doctor Master Data):\n";
+                $scopeText .= "   - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (licenseno), รหัสสภาวิชาชีพ (council_code), เลขบัตรประชาชน 13 หลัก สำหรับแฟ้ม PROVIDER 43 แฟ้ม\n\n";
+                $scopeText .= "2. รายการค่ารักษาพยาบาล (Non-Drug Items):\n";
+                $scopeText .= "   - เชื่อมต่อตาราง nondrugitems, income, nhso_adp_type, nhso_adp_code\n";
+                $scopeText .= "   - ตรวจสอบรายการที่ยังไม่ได้ผูกรหัส ADP และแนะนำการจับคู่รหัสมาตรฐานตามเกณฑ์เบิกจ่าย สปสช./FDH/e-Claim\n\n";
+                $scopeText .= "3. สิทธิการรักษาพยาบาล (Pttype Master Data):\n";
+                $scopeText .= "   - เชื่อมต่อตาราง pttype ตรวจสอบการกำหนดรหัสมาตรฐาน pttype_std_code, รหัส export 43 แฟ้ม และการเปิดใช้งาน\n\n";
+                $scopeText .= "4. คลังความรู้ RAG คู่มือและระเบียบการเบิกจ่าย:\n";
+                $scopeText .= "   - สืบค้นคู่มือการเบิกจ่าย สปสช. กรมบัญชีกลาง และแนวทางแก้ไขข้อผิดพลาดติด C/Deny ประกอบการตรวจสอบ";
+
+                $contextParts[] = "[ข้อมูลความสามารถและแหล่งข้อมูล HOSxP Master Data]:\n" . $scopeText;
+                $sources[] = [
+                    'title' => "ขอบเขตการตรวจสอบ Master Data HOSxP (งานเวชระเบียน)",
+                    'filename' => 'hosxp_master_scope',
+                    'page' => 1,
+                    'score' => 100.0,
+                    'snippet' => "แพทย์/บุคลากร + ค่ารักษา nondrugitems/ADP + สิทธิการรักษา pttype"
+                ];
             } else {
                 $periodCount = $periodsInfo['count'] ?? 0;
                 $minPeriod = $periodsInfo['min'] ?? 'ไม่ระบุ';
@@ -304,6 +325,24 @@ class RagSearchService
    - ห้ามใช้แท็ก HTML เช่น <font color=...> หรือ <span> (หากต้องการเน้น ให้ใช้ตัวหนา **ข้อความ** หรือใส่วงเล็บ [ข้อควรระวัง] แทน)
    - ห้ามใช้ไวยากรณ์สมการคณิตศาสตร์แบบ LaTeX เช่น $$ \text{...} $$ ให้เขียนเป็นข้อความธรรมดา
 PROMPT;
+        } elseif ($isHosxpPage) {
+            $systemPrompt = <<<PROMPT
+คุณคือ "RiMS Copilot (HOSxP Master Data & Audit Specialist)" ผู้ช่วย AI อัจฉริยะด้านการตรวจสอบความถูกต้อง ความครบถ้วนของข้อมูลพื้นฐานในระบบ HOSxP (แพทย์/บุคลากร, หมวดค่ารักษาพยาบาล nondrugitems/ADP, สิทธิการรักษา pttype) ประจำระบบ RiMS งานเวชระเบียน
+
+บทบาทและหน้าที่สำคัญของคุณในหน้านี้ (ตรวจสอบข้อมูลพื้นฐาน HOSxP Master Data):
+1. ให้คำแนะนำและตรวจสอบความถูกต้องของข้อมูล Master Data ใน HOSxP เพื่อให้พร้อมสำหรับการออก 43 แฟ้ม (แฟ้ม PROVIDER), 16 แฟ้ม, และการส่งเคลม FDH / e-Claim
+2. สำหรับข้อมูลแพทย์/บุคลากร (Doctor):
+   - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (licenseno เช่น ว.xxxx สำหรับแพทย์ ท.xxxx สำหรับทันตแพทย์), สภาวิชาชีพ (council_code เช่น 01=แพทยสภา, 02=สภาการพยาบาล), และเลข 13 หลัก (CID)
+3. สำหรับรายการค่ารักษาพยาบาล (Non-Drug Items):
+   - แนะนำการจับคู่หมวดค่ารักษาพยาบาล (income) กับรหัสมาตรฐาน ADP (nhso_adp_type / nhso_adp_code)
+   - ชี้แนะแนวทางผูกรหัสสำหรับรายการที่ยังว่างอยู่ตามเกณฑ์ สปสช.
+4. สำหรับสิทธิการรักษาพยาบาล (Pttype):
+   - ตรวจสอบการผูกรหัสสิทธิมาตรฐาน (pttype_standard / pttype_std_code), export_code สำหรับ 43 แฟ้ม และกลุ่มสิทธิการเบิกจ่าย
+5. การเขียนคำสั่ง SQL:
+   - หากผู้ใช้ต้องการนำไปรันเพื่อตรวจสอบหรือแก้ไข ให้เขียน SQL syntax ที่ถูกต้องตาม MariaDB / MySQL ของ HOSxP โดยใช้ markdown code block และระบุเงื่อนไข WHERE ให้รัดกุมเสมอ
+6. จัดรูปแบบคำตอบด้วย Markdown อย่างสวยงาม ชัดเจน ใช้หัวข้อ, bullet points, และตัวหนา
+7. ห้ามใช้แท็ก HTML เช่น <font color=...> และห้ามใช้สูตร LaTeX เช่น $$ \text{...} $$
+PROMPT;
         } elseif ($isHosfinPage || $isFinancialQuery) {
             $systemPrompt = <<<PROMPT
 คุณคือ "RiMS Copilot" ผู้ช่วย AI อัจฉริยะประจำระบบมอนิเตอร์สถานะการเงินการคลังโรงพยาบาล (Hospital Financial Advisor & CFO Copilot) ประจำระบบ RiMS
@@ -360,6 +399,16 @@ PROMPT;
 {$cleanQuestion}
 
 กรุณาตอบคำถามโดยอ้างอิงจากเนื้อหาในเอกสารที่ได้รับข้างต้น ระบุชื่อเอกสารและหน้าอ้างอิง (ถ้ามี) อย่างชัดเจนและเป็นประโยชน์:
+PROMPT;
+        } elseif ($isHosxpPage) {
+            $userPrompt = <<<PROMPT
+{$historyText}[ข้อมูลบริบทจากระบบ HOSxP Live และคลังความรู้ RAG]:
+{$contextText}
+
+[คำถามปัจจุบันของผู้ใช้]:
+{$cleanQuestion}
+
+กรุณาวิเคราะห์ ตรวจสอบข้อมูล และให้คำแนะนำเกี่ยวกับ HOSxP Master Data อย่างเป็นมืออาชีพ มีขั้นตอน และสามารถนำไปปฏิบัติได้จริง:
 PROMPT;
         } elseif ($isHosfinPage || $isFinancialQuery) {
             $userPrompt = <<<PROMPT

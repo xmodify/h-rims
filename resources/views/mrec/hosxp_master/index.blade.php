@@ -120,7 +120,7 @@
             </div>
             <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
                 <div class="d-inline-flex flex-column align-items-lg-end gap-2">
-                    <button type="button" class="btn btn-warning px-4 py-2.5 rounded-pill shadow-sm fw-bold text-dark d-flex align-items-center gap-2" onclick="openCopilotDrawer()">
+                    <button type="button" class="btn btn-warning px-4 py-2.5 rounded-pill shadow-sm fw-bold text-dark d-flex align-items-center gap-2" onclick="toggleAiChatbot()">
                         <i class="bi bi-robot fs-5"></i>
                         <span>ปรึกษา RiMS Copilot</span>
                     </button>
@@ -544,158 +544,13 @@
     @endif
 </div>
 
-<!-- Offcanvas / Modal: RiMS Copilot for HOSxP Master Data -->
-<div class="modal fade" id="copilotModal" tabindex="-1" aria-labelledby="copilotModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-3 p-1.5 bg-white bg-opacity-20 text-white d-flex align-items-center justify-content-center">
-                        <i class="bi bi-robot fs-5"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title fw-bold mb-0" id="copilotModalLabel">RiMS Copilot • ผู้ช่วยข้อมูลพื้นฐาน HOSxP</h5>
-                        <small class="text-white-50">ขับเคลื่อนด้วย HosxpContextService + RAG Knowledge</small>
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 bg-light bg-opacity-30">
-                <!-- Suggested Prompt Chips -->
-                <div class="mb-3">
-                    <small class="text-muted fw-bold d-block mb-2">💡 ตัวอย่างคำถามด่วน:</small>
-                    <div class="d-flex flex-wrap gap-1.5">
-                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white" onclick="setCopilotQuestion('สรุปรายการค่ารักษาพยาบาล (nondrugitems) ที่ยังไม่ได้ใส่รหัส ADP ให้หน่อย')">
-                            ค่ารักษาที่ยังไม่ผูก ADP
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white" onclick="setCopilotQuestion('ตรวจสอบความสมบูรณ์ของข้อมูลแพทย์และบุคลากรในระบบ HOSxP สำหรับแฟ้ม PROVIDER')">
-                            ความสมบูรณ์ข้อมูลแพทย์
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white" onclick="setCopilotQuestion('ตรวจสอบสิทธิการรักษาที่เปิดใช้งานว่ามีตัวไหนยังไม่ผูกรหัสมาตรฐาน pttype_std_code บ้าง')">
-                            สิทธิที่ยังไม่ผูกรหัสมาตรฐาน
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Input Box -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-muted">พิมพ์คำถาม หรือข้อสงสัยเกี่ยวกับข้อมูล HOSxP:</label>
-                    <textarea class="form-control rounded-3" id="copilotQuestionInput" rows="3" placeholder="เช่น ขอคำแนะนำรหัส ADP สำหรับรายการ ค่าบริการตรวจคลื่นไฟฟ้าหัวใจ หรือ ช่วยเขียน SQL ตรวจสอบแพทย์ที่ไม่มีเลข ว."></textarea>
-                </div>
-
-                <!-- AI Response Card -->
-                <div id="copilotResponseWrapper" class="d-none">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small fw-bold text-primary"><i class="bi bi-stars me-1"></i>คำตอบและการวิเคราะห์จาก RiMS Copilot:</span>
-                        <span id="copilotModelBadge" class="badge bg-light text-muted border font-monospace small"></span>
-                    </div>
-                    <div id="copilotResponseText" class="chat-bubble-ai mb-2"></div>
-                </div>
-
-                <!-- Loading Spinner -->
-                <div id="copilotLoading" class="text-center py-4 d-none">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div class="mt-2 text-muted small">กำลังวิเคราะห์ข้อมูล HOSxP ร่วมกับคลังความรู้ RAG...</div>
-                </div>
-            </div>
-            <div class="modal-footer bg-white py-3 px-4 d-flex justify-content-between">
-                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
-                <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnSubmitCopilot" onclick="sendCopilotQuery()">
-                    <i class="bi bi-send-fill me-1"></i> ส่งคำถามให้ AI วิเคราะห์
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-    function openCopilotDrawer() {
-        const modal = new bootstrap.Modal(document.getElementById('copilotModal'));
-        modal.show();
-    }
-
-    function setCopilotQuestion(q) {
-        document.getElementById('copilotQuestionInput').value = q;
-        sendCopilotQuery();
-    }
-
     function askCopilotAbout(category, query) {
-        document.getElementById('copilotQuestionInput').value = query;
-        openCopilotDrawer();
-        setTimeout(() => {
-            sendCopilotQuery(category);
-        }, 400);
-    }
-
-    function sendCopilotQuery(category = '{{ $activeTab }}') {
-        const input = document.getElementById('copilotQuestionInput');
-        const q = input.value.trim();
-        if (!q) {
-            alert('กรุณาพิมพ์คำถามก่อนครับ');
-            return;
+        if (typeof window.openAiChatWithPrompt === 'function') {
+            window.openAiChatWithPrompt(query, true);
+        } else if (typeof toggleAiChatbot === 'function') {
+            toggleAiChatbot();
         }
-
-        const btn = document.getElementById('btnSubmitCopilot');
-        const loading = document.getElementById('copilotLoading');
-        const respWrapper = document.getElementById('copilotResponseWrapper');
-        const respText = document.getElementById('copilotResponseText');
-        const modelBadge = document.getElementById('copilotModelBadge');
-
-        btn.disabled = true;
-        loading.classList.remove('d-none');
-        respWrapper.classList.add('d-none');
-
-        fetch('{{ route("mrec.hosxp_master.copilot_ask") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                query: q,
-                tab: category
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            loading.classList.add('d-none');
-
-            if (data.success) {
-                respWrapper.classList.remove('d-none');
-                modelBadge.textContent = (data.provider || 'gemini') + ' • ' + (data.model || 'flash');
-                
-                // Format markdown-like code blocks & bold text simply
-                let html = data.answer
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-
-                // Code blocks ```sql ... ```
-                html = html.replace(/```(?:sql)?([\s\S]*?)```/g, function(match, code) {
-                    return '<pre><code>' + code.trim() + '</code></pre>';
-                });
-
-                // Bold **text**
-                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                // Bullet points
-                html = html.replace(/\n• (.*?)/g, '<br>• $1');
-                html = html.replace(/\n- (.*?)/g, '<br>• $1');
-                html = html.replace(/\n/g, '<br>');
-
-                respText.innerHTML = html;
-            } else {
-                alert(data.message || 'เกิดข้อผิดพลาดในการประมวลผล');
-            }
-        })
-        .catch(err => {
-            btn.disabled = false;
-            loading.classList.add('d-none');
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ AI: ' + err);
-        });
     }
 </script>
 @endsection

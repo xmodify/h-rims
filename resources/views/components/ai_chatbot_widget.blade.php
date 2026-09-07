@@ -418,7 +418,7 @@
     window.toggleAiChatbot = toggleAiChatbot;
 
     // Helper สำหรับส่ง Prompt ต่อเนื่องจากหน้าอื่น
-    window.openAiChatWithPrompt = function(promptText) {
+    window.openAiChatWithPrompt = function(promptText, autoSubmit = false) {
         const win = document.getElementById('aiChatbotWindow');
         if (win && !win.classList.contains('active')) {
             toggleAiChatbot();
@@ -426,7 +426,11 @@
         const input = document.getElementById('aiChatInput');
         if (input && promptText) {
             input.value = promptText;
-            setTimeout(() => input.focus(), 250);
+            if (autoSubmit) {
+                setTimeout(() => handleSendChat(new Event('submit')), 300);
+            } else {
+                setTimeout(() => input.focus(), 250);
+            }
         }
     };
 
@@ -625,6 +629,7 @@
         const path = window.location.pathname.toLowerCase();
         const isRag = path.includes('rag-knowledge') || path.includes('rag');
         const isHosfin = path.includes('hosfin');
+        const isHosxp = path.includes('mrec') || path.includes('hosxp');
 
         const subTitle = document.getElementById('aiChatHeaderSubtitle');
         const welcomeDesc = document.getElementById('aiWelcomeDesc');
@@ -639,6 +644,17 @@
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เกณฑ์การเบิกจ่ายค่าบริการฟอกเลือดไตเทียม สปสช.')">💉 เกณฑ์เบิกจ่ายฟอกไต สปสช.</button>
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('หลักเกณฑ์การส่งข้อมูล 16 แฟ้มมาตรฐาน')">🏥 หลักเกณฑ์ 16 แฟ้มมาตรฐาน</button>
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ในคลังความรู้มีคู่มือเอกสารอะไรบ้าง')">📚 ในคลังเอกสารมีคู่มืออะไรบ้าง?</button>
+                `;
+            }
+        } else if (isHosxp) {
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ตรวจสอบ Master Data HOSxP • แพทย์ • ค่ารักษา • สิทธิการรักษา';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะตรวจสอบความถูกต้องและความสมบูรณ์ของข้อมูล Master Data ในระบบ HOSxP พร้อมแนะนำการจับคู่รหัสสิทธิการรักษา, หมวดค่ารักษาพยาบาล/ADP และการตั้งค่าแพทย์ สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยครับ';
+            if (chipsContainer) {
+                chipsContainer.innerHTML = `
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปปัญหาความสมบูรณ์ของข้อมูลแพทย์ในระบบ HOSxP')">👨‍⚕️ สรุปปัญหาข้อมูลแพทย์</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('มีรายการค่ารักษาพยาบาลใดบ้างที่ยังไม่ได้ผูกรหัส ADP?')">💊 ค่ารักษาที่ยังไม่ผูกรหัส ADP</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจสอบสิทธิการรักษา (pttype) ที่ยังไม่ระบุ pttype_standard หรือ export_code')">📑 ตรวจสอบสิทธิ pttype</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('แนะนำแนวทางการตั้งค่าสิทธิการรักษาประกันสังคมและบัตรทองใน HOSxP')">🏥 แนะนำตั้งค่าสิทธิการรักษา</button>
                 `;
             }
         } else if (isHosfin) {

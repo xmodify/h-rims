@@ -2270,7 +2270,7 @@
     @auth
         @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
             @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
-                @if(request()->is('hosfin*') || request()->is('*rag-knowledge*'))
+                @if(request()->is('hosfin*') || request()->is('*rag-knowledge*') || request()->is('*mrec*') || request()->is('mrec*'))
                     @include('components.ai_chatbot_widget')
                 @endif
             @endif

@@ -368,12 +368,16 @@ class ImportEclaimController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาลในระะบบ RiMS'], 500);
         }
 
-        if (!$hospcode_incoming) {
-            $hospcode_incoming = $hospital_code_local ?: '10989';
+        if ($hospcode_incoming && $hospcode_incoming !== $hospital_code_local) {
+            return response()->json(['status' => 'error', 'message' => 'รหัสสถานพยาบาลไม่ตรงกับระบบ'], 403);
         }
 
         if (!isset($payload['data']) || !is_array($payload['data'])) {
             return response()->json(['status' => 'error', 'message' => 'Invalid data format'], 400);
+        }
+
+        if (count($payload['data']) > 5000) {
+            return response()->json(['status' => 'error', 'message' => 'Data payload exceeds maximum limit (5,000 items)'], 422);
         }
 
         $successCount = 0;

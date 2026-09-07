@@ -1502,10 +1502,19 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        $notify_summary = route('notify_summary');
-        $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday');
+        $scheduleSecretKey = config('app.schedule_secret_key');
+        if (!$scheduleSecretKey) {
+            $scheduleSecretKey = DB::table('main_setting')->where('name', 'schedule_secret_key')->value('value');
+        }
+        if (!$scheduleSecretKey) {
+            $hcodeVal = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: 'hrims';
+            $scheduleSecretKey = substr(hash('sha256', $hcodeVal . config('app.key', 'hrims_salt')), 0, 32);
+        }
+
+        $notify_summary = route('notify_summary') . '?key=' . $scheduleSecretKey;
+        $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday') . '?key=' . $scheduleSecretKey;
         $fdh_check_claim_lastdays = route('api.fdh.check_claim_lastdays');
-        $amnosend = url('api/amnosend');
+        $amnosend = url('api/amnosend') . '?key=' . $scheduleSecretKey;
 
         $aopodLogRaw = '';
         $nhsoLogRaw = '';

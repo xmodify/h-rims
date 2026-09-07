@@ -62,7 +62,15 @@ class AopodController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $amnosend = url('api/amnosend');
+        $scheduleSecretKey = config('app.schedule_secret_key');
+        if (!$scheduleSecretKey) {
+            $scheduleSecretKey = DB::table('main_setting')->where('name', 'schedule_secret_key')->value('value');
+        }
+        if (!$scheduleSecretKey) {
+            $hcodeVal = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: 'hrims';
+            $scheduleSecretKey = substr(hash('sha256', $hcodeVal . config('app.key', 'hrims_salt')), 0, 32);
+        }
+        $amnosend = url('api/amnosend') . '?key=' . $scheduleSecretKey;
         $aopod_token = DB::table('main_setting')->where('name', 'aopod_token')->value('value') ?? '';
         $aopod_url_api_death = DB::table('main_setting')->where('name', 'aopod_url_api_death')->value('value') ?? 'https://huataphanhospital.go.th/aopod/api/death-data';
 

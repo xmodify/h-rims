@@ -9,6 +9,20 @@ use PDF;
 
 class DebtorAdjController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_debtor !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'ลูกหนี้ค่ารักษา'], 403);
+                }
+                return $next($request);
+            }
+        ]);
+    }
+
     public function _1102050101_103(Request $request)
     {
         $start_date = $request->input('start_date') ?: date('Y-m-01');

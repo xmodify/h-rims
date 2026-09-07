@@ -126,8 +126,6 @@
                         </div>
                         <form method="POST" action="{{ route('register') }}">
                             @csrf
-                            <input type="hidden" name="active" value="N">
-                            <input type="hidden" name="status" value="user">
 
                             <!-- Name -->
                             <div class="mb-3">

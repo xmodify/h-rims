@@ -7,8 +7,48 @@ use Illuminate\Support\Facades\DB;
 
 class NotifyController extends Controller
 {
+    /**
+     * Check if request is authorized (Logged in User, Localhost Task Scheduler, or Valid Secret Key)
+     */
+    protected function isAuthorized(Request $request): bool
+    {
+        // 1. Authenticated user (Admin testing from web interface)
+        if (auth()->check()) {
+            return true;
+        }
+
+        // 2. Localhost call (Task Scheduler / local powershell)
+        $ip = $request->ip();
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'], true)) {
+            return true;
+        }
+
+        // 3. Secret Key check
+        $secretKey = config('app.schedule_secret_key');
+        if (!$secretKey) {
+            $secretKey = DB::table('main_setting')->where('name', 'schedule_secret_key')->value('value');
+        }
+        if (!$secretKey) {
+            $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: 'hrims';
+            $secretKey = substr(hash('sha256', $hcode . config('app.key', 'hrims_salt')), 0, 32);
+        }
+
+        $providedKey = $request->header('X-SCHEDULE-KEY') ?: $request->query('key') ?: $request->input('key');
+        if ($providedKey && hash_equals($secretKey, (string)$providedKey)) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function notify_summary(Request $request)
     {
+        if (!$this->isAuthorized($request)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: สิทธิ์การเข้าถึงถูกปฏิเสธ (ต้องเข้าจาก Localhost หรือระบุ Schedule Key ที่ถูกต้อง)'
+            ], 401);
+        }
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
             ->whereDate('DATE_END', '>=', date('Y-m-d'))

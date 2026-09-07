@@ -32,6 +32,7 @@ use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\DebtorAccController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\NhsoEndpointController;
+use App\Http\Controllers\Api\FdhClaimStatusController;
 use App\Http\Controllers\ImportSssController;
 use App\Http\Controllers\EclaimBotController;
 use App\Http\Controllers\ClaimAuditController;
@@ -93,6 +94,15 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::post('rag-knowledge/{id}/reindex', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reindex'])->name('rag.reindex');
     Route::post('rag-knowledge/reembed-missing', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'reembedMissing'])->name('rag.reembed_missing');
     Route::delete('rag-knowledge/{id}', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'destroy'])->name('rag.destroy');
+
+    // Clear-cache (Admin Only)
+    Route::get('/clear-cache', function () {
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        return 'DONE';
+    })->name('clear-cache');
 });
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
@@ -1033,14 +1043,6 @@ Route::get('notify_summary', [NotifyController::class, 'notify_summary'])->name(
 Route::get('auth/health-id/redirect', [\App\Http\Controllers\Auth\ProviderIdAuthController::class, 'redirectToProvider'])->name('auth.health-id.redirect');
 Route::get('auth/health-id/callback', [\App\Http\Controllers\Auth\ProviderIdAuthController::class, 'handleProviderCallback'])->name('auth.health-id.callback');
 
-// Clear-cache
-Route::get('/clear-cache', function () {
-    $exitCode = Artisan::call('config:clear');
-    $exitCode = Artisan::call('cache:clear');
-    $exitCode = Artisan::call('route:clear');
-    $exitCode = Artisan::call('view:clear');
-    return 'DONE'; //Return anything
-});
 
 Route::post('debtor/1102050101_103_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_103_bulk_adj']);
 Route::post('debtor/1102050101_109_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_109_bulk_adj']);
@@ -1097,15 +1099,30 @@ Route::post('debtor/1102050102_803_bulk_adj', [\App\Http\Controllers\DebtorAdjCo
 Route::put('debtor/1102050102_804/update/{id}', [DebtorController::class, '_1102050102_804_update']);
 Route::post('debtor/1102050102_804_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050102_804_bulk_adj']);
 
-// NHSO API (Integrated with Web Session)
+// Internal APIs (Protected by Web Auth Session)
 Route::prefix('api')->middleware(['auth'])->group(function () {
+    // NHSO Endpoints
+    Route::get('nhso/testconnection', [NhsoEndpointController::class, 'testConnection'])->name('api.nhso.testconnection');
+    Route::get('nhso/get-pull-list', [NhsoEndpointController::class, 'getPullList'])->name('api.nhso.get_pull_list');
+    Route::post('nhso/pull-chunk', [NhsoEndpointController::class, 'pullChunk'])->name('api.nhso.pull_chunk');
+    Route::post('nhso/log-manual-pull', [NhsoEndpointController::class, 'logManualPull'])->name('api.nhso.log_manual_pull');
     Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
-    Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('api.nhso.pull_indiv');
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
     Route::match(['get', 'post'], 'nhso_endpoint_data', [NhsoEndpointController::class, 'getEndpointData'])->name('api.nhso_endpoint_data');
     Route::match(['get', 'post'], 'nhso_get_pull_list', [NhsoEndpointController::class, 'getPullList'])->name('api.nhso_get_pull_list');
     Route::post('nhso_pull_chunk', [NhsoEndpointController::class, 'pullChunk'])->name('api.nhso_pull_chunk');
+
+    // FDH Endpoints
+    Route::get('fdh/testtoken', [FdhClaimStatusController::class, 'testToken'])->name('api.fdh.testtoken');
+    Route::get('fdh/get-check-list', [FdhClaimStatusController::class, 'getCheckList'])->name('api.fdh.get_check_list');
+    Route::post('fdh/check-chunk', [FdhClaimStatusController::class, 'checkChunk'])->name('api.fdh.check_chunk');
+    Route::post('fdh/check-claim', [FdhClaimStatusController::class, 'check'])->name('api.fdh.check_claim');
+    Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv'])->name('api.fdh.check_claim_indiv');
+    Route::post('fdh/check-claim-lastdays', [FdhClaimStatusController::class, 'checkLastDays'])->name('api.fdh.check_claim_lastdays');
+    Route::post('fdh/log-manual-check', [FdhClaimStatusController::class, 'logManualCheck'])->name('api.fdh.log_manual_check');
+
+    // EDC KTB
     Route::post('import_edc_zip', [\App\Http\Controllers\ImportEdcController::class, 'importZip'])->name('api.import_edc_zip');
     Route::post('import_edc_file', [\App\Http\Controllers\ImportEdcController::class, 'importFile'])->name('api.import_edc_file');
     Route::post('sync_edc_ktb', [\App\Http\Controllers\ImportEdcController::class, 'syncKtb'])->name('api.sync_edc_ktb');

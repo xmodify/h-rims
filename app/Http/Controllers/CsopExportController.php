@@ -10,6 +10,11 @@ use ZipArchive;
 
 class CsopExportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     private function escape_xml($val)
     {
         if (empty($val)) return '';

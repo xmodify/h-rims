@@ -8,6 +8,11 @@ use App\Services\LicenseVerificationService;
 
 class F16EclaimExportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * ดึงข้อมูลสรุป Record Count และตัวอย่างข้อมูลสำหรับแสดงใน Modal Preview
      */

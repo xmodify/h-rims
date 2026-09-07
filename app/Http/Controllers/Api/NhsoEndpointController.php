@@ -13,12 +13,39 @@ use Carbon\Carbon;
 class NhsoEndpointController extends Controller
 {
     /**
+     * Helper to verify if schedule task is authorized
+     */
+    protected function isAuthorizedSchedule(Request $request): bool
+    {
+        if (auth()->check()) {
+            return true;
+        }
+        $clientIp = $request->ip();
+        if (in_array($clientIp, ['127.0.0.1', '::1', 'localhost'], true)) {
+            return true;
+        }
+        $secretKey = config('app.schedule_secret_key');
+        if (!$secretKey) {
+            $secretKey = DB::table('main_setting')->where('name', 'schedule_secret_key')->value('value');
+        }
+        if (!$secretKey) {
+            $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: 'hrims';
+            $secretKey = substr(hash('sha256', $hcode . config('app.key', 'hrims_salt')), 0, 32);
+        }
+        $providedKey = $request->header('X-SCHEDULE-KEY') ?: $request->query('key') ?: $request->input('key');
+        if ($providedKey && hash_equals($secretKey, (string)$providedKey)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * ดึงข้อมูลจาก สปสช (แบบกลุ่ม)
      */
     public function pull(Request $request)
     {
         // ตรวจสอบสิทธิ์
-        if (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y') {
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
             return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ดึงข้อมูลปิดสิทธิ'], 403);
         }
 
@@ -359,8 +386,12 @@ class NhsoEndpointController extends Controller
     /**
      * ดึงข้อมูลจาก สปสช ของเมื่อวาน (Auto)
      */
-    public function pullYesterday()
+    public function pullYesterday(Request $request)
     {
+        if (!$this->isAuthorizedSchedule($request)) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized access'], 401);
+        }
+
         set_time_limit(600);
         $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
 
@@ -552,8 +583,8 @@ class NhsoEndpointController extends Controller
             $request->merge(['vstdate' => $vstdate]);
         }
 
-        // 1. ตรวจสอบสิทธิ์ (ถ้ามีระบบ Auth)
-        if (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y') {
+        // 1. ตรวจสอบสิทธิ์
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
             return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ส่งข้อมูลปิดสิทธิ'], 403);
         }
 
@@ -696,6 +727,10 @@ class NhsoEndpointController extends Controller
      */
     public function testConnection()
     {
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
+            return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้'], 403);
+        }
+
         $token = DB::connection('hosxp')
             ->table('sys_var')
             ->where('sys_name', 'NHSO-13FILE-FEE-SCHEDULE-API-TOKEN')
@@ -753,7 +788,7 @@ class NhsoEndpointController extends Controller
     public function getPullList(Request $request)
     {
         // ตรวจสอบสิทธิ์
-        if (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y') {
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
             return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ดึงข้อมูลปิดสิทธิ'], 403);
         }
 
@@ -826,7 +861,7 @@ class NhsoEndpointController extends Controller
     public function pullChunk(Request $request)
     {
         // ตรวจสอบสิทธิ์
-        if (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y') {
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
             return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ดึงข้อมูลปิดสิทธิ'], 403);
         }
 
@@ -1030,7 +1065,7 @@ class NhsoEndpointController extends Controller
     public function getEndpointData(Request $request)
     {
         // ตรวจสอบสิทธิ์
-        if (auth()->check() && auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y') {
+        if (!auth()->check() || (auth()->user()->status !== 'admin' && auth()->user()->allow_nhso_endpoint !== 'Y')) {
             return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์เข้าถึงข้อมูลปิดสิทธิ สปสช.'], 403);
         }
 

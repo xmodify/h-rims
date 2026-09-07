@@ -9,6 +9,11 @@ use App\Services\LicenseVerificationService;
 
 class F16FdhExportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * ดึงข้อมูลสรุป Record Count และตัวอย่างข้อมูลสำหรับแสดงใน Modal Preview (16 แฟ้ม FDH)
      */

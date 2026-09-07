@@ -10,6 +10,11 @@ use ZipArchive;
 
 class ImportCsController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * Import CSOP REP ZIP File
      */

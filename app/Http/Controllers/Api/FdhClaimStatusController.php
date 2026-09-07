@@ -10,6 +10,11 @@ use App\Models\FdhClaimStatus;
 
 class FdhClaimStatusController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     private function getToken()
     {
         // 🔍 ดึงค่าทั้งหมดจาก main_setting แล้วเก็บเป็น key => value
@@ -74,9 +79,18 @@ class FdhClaimStatusController extends Controller
 
     public function testToken()
     {
+        if (!auth()->check() || auth()->user()->status !== 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น'
+            ], 403);
+        }
+
         $token = $this->getToken();
+        $maskedToken = ($token && strlen($token) > 30) ? substr($token, 0, 16) . '...' . substr($token, -12) : $token;
+
         return response()->json([
-            "token" => $token,
+            "token" => $maskedToken,
             "status" => $token ? 'success' : 'failed'
         ]);
     }

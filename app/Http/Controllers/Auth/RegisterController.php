@@ -79,13 +79,15 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
+        // ป้องกัน Privilege Escalation: บังคับ status เป็น user และ active เป็น N เสมอ
+        // ไม่อนุญาตให้รับค่า status หรือ active จากฟอร์มหน้าบ้านเด็ดขาด
         return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'active' => $data['active'] ?? 'N',
-            'status' => $data['status'] ?? 'user',
+            'name' => trim($data['name']),
+            'email' => trim($data['email']),
+            'active' => 'N',
+            'status' => 'user',
             'password' => Hash::make($data['password']),
-            'cid' => $data['cid'] ?? null,
+            'cid' => !empty($data['cid']) ? trim($data['cid']) : null,
         ]);               
     }
 

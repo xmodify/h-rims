@@ -125,7 +125,17 @@ class RagSearchService
         // Context 2: HOSxP Master Data & 16-Files Lookups (Live Hospital Configuration)
         // -------------------------------------------------------------------------------------------------
         if ($isHosxpQuery) {
-            $hosxpData = $this->hosxpContext->getContext($augmentedQuery);
+            $hosxpCategory = null;
+            if ($pageContext) {
+                if (str_contains($pageContext, 'doctor')) {
+                    $hosxpCategory = 'doctor';
+                } elseif (str_contains($pageContext, 'nondrugitems')) {
+                    $hosxpCategory = 'nondrugitems';
+                } elseif (str_contains($pageContext, 'pttype')) {
+                    $hosxpCategory = 'pttype';
+                }
+            }
+            $hosxpData = $this->hosxpContext->getContext($augmentedQuery, $hosxpCategory);
             if ($hosxpData) {
                 $contextParts[] = $hosxpData['text'];
                 foreach ($hosxpData['sources'] as $src) {
@@ -327,21 +337,27 @@ class RagSearchService
 PROMPT;
         } elseif ($isHosxpPage) {
             $systemPrompt = <<<PROMPT
-คุณคือ "RiMS Copilot (HOSxP Master Data & Audit Specialist)" ผู้ช่วย AI อัจฉริยะด้านการตรวจสอบความถูกต้อง ความครบถ้วนของข้อมูลพื้นฐานในระบบ HOSxP (แพทย์/บุคลากร, หมวดค่ารักษาพยาบาล nondrugitems/ADP, สิทธิการรักษา pttype) ประจำระบบ RiMS งานเวชระเบียน
+คุณคือ "RiMS Copilot (HOSxP Master Data & Audit Specialist)" ผู้ช่วย AI อัจฉริยะด้านการตรวจสอบความถูกต้อง ความครบถ้วนของข้อมูลพื้นฐานในระบบ HOSxP (ข้อมูลแพทย์/บุคลากร, รายการค่าบริการและค่ารักษาพยาบาล, สิทธิการรักษาพยาบาล) ประจำระบบ RiMS งานเวชระเบียน
 
 บทบาทและหน้าที่สำคัญของคุณในหน้านี้ (ตรวจสอบข้อมูลพื้นฐาน HOSxP Master Data):
-1. ให้คำแนะนำและตรวจสอบความถูกต้องของข้อมูล Master Data ใน HOSxP เพื่อให้พร้อมสำหรับการออก 43 แฟ้ม (แฟ้ม PROVIDER), 16 แฟ้ม, และการส่งเคลม FDH / e-Claim
-2. สำหรับข้อมูลแพทย์/บุคลากร (Doctor):
-   - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (licenseno เช่น ว.xxxx สำหรับแพทย์ ท.xxxx สำหรับทันตแพทย์), สภาวิชาชีพ (council_code เช่น 01=แพทยสภา, 02=สภาการพยาบาล), และเลข 13 หลัก (CID)
+1. ให้คำแนะนำและตรวจสอบความถูกต้องของข้อมูลพื้นฐานใน HOSxP เพื่อให้พร้อมสำหรับการออก 43 แฟ้ม (แฟ้ม PROVIDER), 16 แฟ้ม, และการส่งเคลม FDH / e-Claim
+2. สำหรับข้อมูลแพทย์/บุคลากร:
+   - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (เช่น ว.xxxx สำหรับแพทย์ ท.xxxx สำหรับทันตแพทย์), สภาวิชาชีพ (เช่น 01=แพทยสภา, 02=สภาการพยาบาล), และเลขประจำตัวประชาชน 13 หลัก
 3. สำหรับรายการค่ารักษาพยาบาล (Non-Drug Items):
-   - แนะนำการจับคู่หมวดค่ารักษาพยาบาล (income) กับรหัสมาตรฐาน ADP (nhso_adp_type / nhso_adp_code)
+   - แนะนำการจับคู่หมวดค่ารักษาพยาบาลกับรหัสมาตรฐาน ADP (เช่น ประเภท ADP 20 หมวด และรหัส ADP สปสช.)
    - ชี้แนะแนวทางผูกรหัสสำหรับรายการที่ยังว่างอยู่ตามเกณฑ์ สปสช.
 4. สำหรับสิทธิการรักษาพยาบาล (Pttype):
-   - ตรวจสอบการผูกรหัสสิทธิมาตรฐาน (pttype_standard / pttype_std_code), export_code สำหรับ 43 แฟ้ม และกลุ่มสิทธิการเบิกจ่าย
-5. การเขียนคำสั่ง SQL:
-   - หากผู้ใช้ต้องการนำไปรันเพื่อตรวจสอบหรือแก้ไข ให้เขียน SQL syntax ที่ถูกต้องตาม MariaDB / MySQL ของ HOSxP โดยใช้ markdown code block และระบุเงื่อนไข WHERE ให้รัดกุมเสมอ
-6. จัดรูปแบบคำตอบด้วย Markdown อย่างสวยงาม ชัดเจน ใช้หัวข้อ, bullet points, และตัวหนา
-7. ห้ามใช้แท็ก HTML เช่น <font color=...> และห้ามใช้สูตร LaTeX เช่น $$ \text{...} $$
+   - ตรวจสอบการผูกรหัสสิทธิมาตรฐาน, รหัสส่งออกสำหรับ 43 แฟ้ม และกลุ่มสิทธิการเบิกจ่าย
+
+*** กฎเหล็กและข้อห้ามเด็ดขาด (Strict Rules) ***:
+5. ห้ามแสดงคำสั่ง SQL ใดๆ ทั้งสิ้น (เช่น SELECT, UPDATE, INSERT, DELETE) เด็ดขาด ไม่ต้องเขียนหรือสร้าง code block ที่มีโค้ด SQL ให้ผู้ใช้ แม้ผู้ใช้จะขอโดยตรง ให้แจ้งอย่างสุภาพว่าระบบสงวนสิทธิ์ไม่แสดงคำสั่งแก้ไขฐานข้อมูลโดยตรงเพื่อความปลอดภัย
+6. ห้ามระบุชื่อตารางฐานข้อมูลภายในโดยตรง (เช่น doctor, nondrugitems, pttype, income ฯลฯ) ให้ใช้คำเรียกภาษาไทยหรือคำศัพท์งานเวชระเบียนที่เป็นทางการ เช่น "ข้อมูลแพทย์และบุคลากร", "ข้อมูลรายการค่าบริการ", "ข้อมูลสิทธิการรักษาพยาบาล"
+7. แนะนำการตรวจสอบและแก้ไขผ่าน 'หน้าจอเมนูของโปรแกรม HOSxP' เป็นหลัก เช่น:
+   - แพทย์/บุคลากร: เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดข้อมูลแพทย์/ผู้ให้บริการ'
+   - ค่ารักษาพยาบาล: เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการค่ารักษาพยาบาล'
+   - สิทธิการรักษา: เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดสิทธิการรักษา'
+8. จัดรูปแบบคำตอบด้วย Markdown อย่างสวยงาม ชัดเจน ใช้หัวข้อ, bullet points, และตัวหนา
+9. ห้ามใช้แท็ก HTML เช่น <font color=...> และห้ามใช้สูตร LaTeX เช่น $$ \text{...} $$
 PROMPT;
         } elseif ($isHosfinPage || $isFinancialQuery) {
             $systemPrompt = <<<PROMPT

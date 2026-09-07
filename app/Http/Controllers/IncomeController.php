@@ -110,7 +110,7 @@ class IncomeController extends Controller
 
         // หากเป็นการเปิดหน้าจอครั้งแรก (ไม่ใช่ AJAX) ให้ส่งเฉพาะโครงสร้าง Blade กลับไปทันที
         if (!$request->ajax() && !$request->wantsJson()) {
-            return view('opd.opd_income', compact(
+            return view('emr.opd.opd_income', compact(
                 'budget_year_select',
                 'budget_year',
                 'categories',
@@ -192,7 +192,7 @@ class IncomeController extends Controller
         }
 
         // หากเป็น AJAX ดึงข้อมูลหลังโหลดหน้าเสร็จ
-        $table_html = view('opd.opd_income_table', compact(
+        $table_html = view('emr.opd.opd_income_table', compact(
             'categories',
             'report_data',
             'yearly_data',
@@ -299,7 +299,7 @@ class IncomeController extends Controller
 
         // หากเป็นการเปิดหน้าจอครั้งแรก (ไม่ใช่ AJAX) ให้ส่งเฉพาะโครงสร้าง Blade กลับไปทันที
         if (!$request->ajax() && !$request->wantsJson()) {
-            return view('ipd.ipd_income', compact(
+            return view('emr.ipd.ipd_income', compact(
                 'budget_year_select',
                 'budget_year',
                 'categories',
@@ -380,7 +380,7 @@ class IncomeController extends Controller
         }
 
         // หากเป็น AJAX ดึงข้อมูลหลังโหลดหน้าเสร็จ
-        $table_html = view('ipd.ipd_income_table', compact(
+        $table_html = view('emr.ipd.ipd_income_table', compact(
             'categories',
             'report_data',
             'yearly_data',

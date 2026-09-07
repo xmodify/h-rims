@@ -109,7 +109,7 @@ class OpdController extends Controller
         $visit_op = array_column($visit_month, 'visit_op');
         $visit_pp = array_column($visit_month, 'visit_pp');
 
-        return view('opd.oppp_visit', compact('budget_year_select', 'budget_year', 'visit_month', 'month', 'hn', 'visit', 'visit_op', 'visit_pp'));
+        return view('emr.opd.oppp_visit', compact('budget_year_select', 'budget_year', 'visit_month', 'month', 'hn', 'visit', 'visit_op', 'visit_pp'));
     }
     //Create diag_sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
     public function diag_sepsis(Request $request)
@@ -214,7 +214,7 @@ class OpdController extends Controller
             OR v.dx5 IN ("A419","R651","R572"))
             GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_sepsis', compact(
+        return view('emr.opd.diag_sepsis', compact(
             'budget_year_select',
             'budget_year',
             'diag_m',
@@ -333,7 +333,7 @@ class OpdController extends Controller
             OR v.dx5 IN ("I64"))
             GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_stroke', compact(
+        return view('emr.opd.diag_stroke', compact(
             'budget_year_select',
             'budget_year',
             'diag_m',
@@ -453,7 +453,7 @@ class OpdController extends Controller
             OR v.dx5 IN ("I21","I210","I211","I212","I213","I214","I219"))
             GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_stemi', compact(
+        return view('emr.opd.diag_stemi', compact(
             'budget_year_select',
             'budget_year',
             'diag_m',
@@ -573,7 +573,7 @@ class OpdController extends Controller
             OR v.dx5 IN ("J128","J159","J188","J189"))
             GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_pneumonia', compact(
+        return view('emr.opd.diag_pneumonia', compact(
             'budget_year_select',
             'budget_year',
             'diag_m',

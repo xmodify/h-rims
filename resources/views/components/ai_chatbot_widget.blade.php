@@ -480,7 +480,7 @@
             body: JSON.stringify({ 
                 question: text,
                 history: aiConversationHistory.slice(-6),
-                page_context: window.location.pathname
+                page_context: window.location.pathname + window.location.search
             })
         })
         .then(res => res.json())
@@ -629,7 +629,7 @@
         const path = window.location.pathname.toLowerCase();
         const isRag = path.includes('rag-knowledge') || path.includes('rag');
         const isHosfin = path.includes('hosfin');
-        const isHosxp = path.includes('mrec') || path.includes('hosxp');
+        const isHosxp = path.includes('hosxp-setting') || path.includes('hosxp_master');
 
         const subTitle = document.getElementById('aiChatHeaderSubtitle');
         const welcomeDesc = document.getElementById('aiWelcomeDesc');

@@ -60,6 +60,15 @@
             --dash-maroon: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
         }
 
+        /* Fallback for Bootstrap Icons 1.10+ database icons missing in local v1.8 font */
+        .bi-database::before,
+        .bi-database-check::before,
+        .bi-database-fill::before,
+        .bi-database-fill-gear::before,
+        .bi-database-fill-up::before {
+            content: "\f52c";
+        }
+
         /* Navbar Modern Styles */
         .navbar-modern {
             background: var(--nav-gradient) !important;
@@ -719,9 +728,8 @@
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ข้อมูลพื้นฐาน HOSxP (ใหม่) -->
                                         <li>
-                                            <a class="dropdown-item dropdown-item-modern fw-bold py-2 d-flex align-items-center justify-content-between" href="{{ route('mrec.hosxp_master') }}">
-                                                <span class="d-flex align-items-center"><i class="bi bi-database-check me-2 fs-6" style="color: #6366f1;"></i> ข้อมูลพื้นฐาน HOSxP</span>
-                                                <span class="badge rounded-pill text-white shadow-xs" style="background-color: #6366f1; font-size: 0.65rem;">Master Data</span>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('emr.hosxp_setting') }}">
+                                                <i class="bi bi-server me-2" style="color: #6366f1;"></i> ข้อมูลพื้นฐาน HOSxP
                                             </a>
                                         </li>
                                         <li><hr class="dropdown-divider my-1"></li>
@@ -733,12 +741,12 @@
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li>
-                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/oppp_visit') }}">
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/oppp_visit') }}">
                                                         <i class="bi bi-people-fill text-primary me-2"></i> สถิติผู้มารับบริการ OPD
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/income') }}">
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/income') }}">
                                                         <i class="bi bi-cash-coin text-primary me-2"></i> รายได้ตามหมวดค่ารักษา OPD
                                                     </a>
                                                 </li>
@@ -752,17 +760,17 @@
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li>
-                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('ipd/ipd_visit') }}">
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('emr/ipd/ipd_visit') }}">
                                                         <i class="bi bi-bar-chart-line-fill text-success me-2"></i> สถิติผู้ป่วยใน IPD
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('ipd/income') }}">
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('emr/ipd/income') }}">
                                                         <i class="bi bi-cash-coin text-success me-2"></i> รายได้ตามหมวดค่ารักษา IPD
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('/ipd/dchsummary') }}">
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('emr/ipd/dchsummary') }}">
                                                         <i class="bi bi-file-earmark-medical-fill text-success me-2"></i> D/C Summary
                                                     </a>
                                                 </li>
@@ -775,10 +783,10 @@
                                                 <i class="bi bi-activity text-danger me-2"></i> รายโรคสำคัญ
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_sepsis') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Sepsis</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stroke') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stroke</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stemi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stemi</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_pneumonia') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Pneumonia</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/diag_sepsis') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Sepsis</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/diag_stroke') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stroke</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/diag_stemi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stemi</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('emr/opd/diag_pneumonia') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Pneumonia</a></li>
                                             </ul>
                                         </li>
                                     </ul>
@@ -2270,7 +2278,7 @@
     @auth
         @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
             @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
-                @if(request()->is('hosfin*') || request()->is('*rag-knowledge*') || request()->is('*mrec*') || request()->is('mrec*'))
+                @if(request()->is('hosfin*') || request()->is('*rag-knowledge*') || request()->is('*hosxp-setting*') || request()->is('emr/hosxp-setting*'))
                     @include('components.ai_chatbot_widget')
                 @endif
             @endif

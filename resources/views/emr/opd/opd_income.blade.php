@@ -3,13 +3,13 @@
 @section('content')
 <div class="container-fluid px-lg-4">
     <!-- Page Header & Filter -->
-    <div class="page-header-box mt-3 mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-success border-5">
+    <div class="page-header-box mt-3 mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-primary border-5">
         <div>
             <h5 class="text-dark mb-0 fw-bold">
-                <i class="bi bi-cash-coin text-success me-2"></i>
-                รายได้ตามหมวดค่ารักษา IPD ปีงบประมาณ {{ $budget_year }}
+                <i class="bi bi-cash-coin text-primary me-2"></i>
+                รายได้ตามหมวดค่ารักษา OPD ปีงบประมาณ {{ $budget_year }}
             </h5>
-            <div class="text-muted small mt-1">ประมวลผลสำหรับผู้ป่วยใน IPD ตามวันที่จำหน่ายคนไข้</div>
+            <div class="text-muted small mt-1">ประมวลผลสำหรับผู้ป่วยนอก OPD ตามวันที่รับบริการ</div>
         </div>
         
         <div class="d-flex align-items-center">
@@ -25,7 +25,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit" class="btn btn-success px-3 ms-2 rounded-pill text-white">
+                    <button type="submit" class="btn btn-primary px-3 ms-2 rounded-pill">
                         <i class="bi bi-search me-1"></i> ค้นหา
                     </button>
                 </div>
@@ -36,10 +36,10 @@
     <!-- Main Page Loader (Shown only during loading) -->
     <div id="main-loader" class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
         <div class="card-body py-5 text-center">
-            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <h5 class="mt-3 fw-bold text-secondary">กำลังดึงข้อมูลสถิติรายได้ตามหมวดค่ารักษา IPD...</h5>
+            <h5 class="mt-3 fw-bold text-secondary">กำลังดึงข้อมูลสถิติรายได้ตามหมวดค่ารักษา...</h5>
             <p class="text-muted small mb-0">ตารางสถิตินี้ใช้เวลาในการประมวลผลข้อมูลขนาดใหญ่ประมาณ 5-15 วินาที โปรดรอสักครู่</p>
         </div>
     </div>
@@ -47,7 +47,7 @@
     <!-- Chart Card: Monthly Trend by Category -->
     <div id="chart-card-container" class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden; display: none;">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-graph-up text-success me-2"></i> กราฟแนวโน้มรายเดือนของรายได้ค่ารักษา IPD</h6>
+            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-graph-up text-primary me-2"></i> กราฟแนวโน้มรายเดือนของรายได้ค่ารักษา</h6>
             <div style="width: 250px;">
                 <select id="categorySelector" class="form-select form-select-sm">
                     <option value="all">ทั้งหมด (รายได้รวมทุกหมวด)</option>
@@ -116,7 +116,7 @@
 
             const chartOptions = {
                 series: [{
-                    name: 'ยอดรวม IPD (บาท)',
+                    name: 'ยอดรวม (บาท)',
                     data: chartData[initialCatId] || []
                 }],
                 chart: {
@@ -124,7 +124,7 @@
                     type: 'area',
                     toolbar: { show: false }
                 },
-                colors: ['#198754'],
+                colors: ['#0d6efd'],
                 fill: {
                     type: "gradient",
                     gradient: {
@@ -185,14 +185,14 @@
                 });
 
                 chart.updateSeries([{
-                    name: 'ยอดรวม IPD (บาท)',
+                    name: 'ยอดรวม (บาท)',
                     data: chartData[selectedCatId] || []
                 }]);
             });
         }
 
         // ดึงข้อมูลผ่าน AJAX หลังโหลดหน้าทันที
-        fetch("{{ url('ipd/income') }}", {
+        fetch("{{ url('emr/opd/income') }}", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

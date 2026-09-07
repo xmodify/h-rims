@@ -22,6 +22,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\OpdController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\HosxpSettingController;
 use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
 use App\Http\Controllers\MishosController;
@@ -461,25 +462,37 @@ Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);
 Route::get('check/doctor', [CheckController::class, 'doctor']);
 
-// ข้อมูลพื้นฐาน HOSxP (งานเวชระเบียน) -------------------------------------------------------------
-Route::get('mrec/hosxp_master', [\App\Http\Controllers\MrecHosxpMasterController::class, 'index'])->name('mrec.hosxp_master');
-Route::post('mrec/hosxp_master/copilot_ask', [\App\Http\Controllers\MrecHosxpMasterController::class, 'copilotAsk'])->name('mrec.hosxp_master.copilot_ask');
+// EMR (งานเวชระเบียน) -------------------------------------------------------------
+Route::prefix('emr')->name('emr.')->group(function () {
+    // ข้อมูลพื้นฐาน HOSxP (Master Data & Setting)
+    Route::get('hosxp-setting', [HosxpSettingController::class, 'index'])->name('hosxp_setting');
+    Route::post('hosxp-setting/copilot_ask', [HosxpSettingController::class, 'copilotAsk'])->name('hosxp_setting.copilot_ask');
 
-//OPD------------------------------------------------------------------------------------------------------------------------------
-Route::match(['get', 'post'], 'opd/oppp_visit', [OpdController::class, 'oppp_visit']);
-Route::match(['get', 'post'], 'opd/diag_sepsis', [OpdController::class, 'diag_sepsis']);
-Route::match(['get', 'post'], 'opd/diag_stroke', [OpdController::class, 'diag_stroke']);
-Route::match(['get', 'post'], 'opd/diag_stemi', [OpdController::class, 'diag_stemi']);
-Route::match(['get', 'post'], 'opd/diag_pneumonia', [OpdController::class, 'diag_pneumonia']);
-Route::match(['get', 'post'], 'opd/income', [IncomeController::class, 'opd_income']);
+    // ผู้ป่วยนอก OPD
+    Route::prefix('opd')->name('opd.')->group(function () {
+        Route::match(['get', 'post'], 'oppp_visit', [OpdController::class, 'oppp_visit'])->name('oppp_visit');
+        Route::match(['get', 'post'], 'diag_sepsis', [OpdController::class, 'diag_sepsis'])->name('diag_sepsis');
+        Route::match(['get', 'post'], 'diag_stroke', [OpdController::class, 'diag_stroke'])->name('diag_stroke');
+        Route::match(['get', 'post'], 'diag_stemi', [OpdController::class, 'diag_stemi'])->name('diag_stemi');
+        Route::match(['get', 'post'], 'diag_pneumonia', [OpdController::class, 'diag_pneumonia'])->name('diag_pneumonia');
+        Route::match(['get', 'post'], 'income', [IncomeController::class, 'opd_income'])->name('income');
+    });
 
-//Ipd-------------------------------------------------------------------------------------------------------------------------------
-Route::match(['get', 'post'], 'ipd/wait_doctor_dchsummary', [IpdController::class, 'wait_doctor_dchsummary']);
-Route::match(['get', 'post'], 'ipd/wait_icd_coder', [IpdController::class, 'wait_icd_coder']);
-Route::match(['get', 'post'], 'ipd/dchsummary', [IpdController::class, 'dchsummary']);
-Route::match(['get', 'post'], 'ipd/dchsummary_audit', [IpdController::class, 'dchsummary_audit']);
-Route::match(['get', 'post'], 'ipd/ipd_visit', [IpdController::class, 'ipd_visit']);
-Route::match(['get', 'post'], 'ipd/income', [IncomeController::class, 'ipd_income']);
+    // ผู้ป่วยใน IPD
+    Route::prefix('ipd')->name('ipd.')->group(function () {
+        Route::match(['get', 'post'], 'wait_doctor_dchsummary', [IpdController::class, 'wait_doctor_dchsummary'])->name('wait_doctor_dchsummary');
+        Route::match(['get', 'post'], 'wait_icd_coder', [IpdController::class, 'wait_icd_coder'])->name('wait_icd_coder');
+        Route::match(['get', 'post'], 'dchsummary', [IpdController::class, 'dchsummary'])->name('dchsummary');
+        Route::match(['get', 'post'], 'dchsummary_audit', [IpdController::class, 'dchsummary_audit'])->name('dchsummary_audit');
+        Route::match(['get', 'post'], 'ipd_visit', [IpdController::class, 'ipd_visit'])->name('ipd_visit');
+        Route::match(['get', 'post'], 'income', [IncomeController::class, 'ipd_income'])->name('income');
+    });
+});
+
+// Backward compatibility redirects for legacy URLs
+Route::redirect('mrec/hosxp_master', '/emr/hosxp-setting');
+Route::redirect('opd/{any}', '/emr/opd/{any}')->where('any', '.*');
+Route::redirect('ipd/{any}', '/emr/ipd/{any}')->where('any', '.*');
 
 //Claim_OP -------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'claim_op/ucs_incup', [ClaimOpController::class, 'ucs_incup']);

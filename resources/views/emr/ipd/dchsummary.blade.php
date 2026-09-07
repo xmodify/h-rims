@@ -47,7 +47,7 @@
             </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
-            <a href="{{ url('ipd/wait_doctor_dchsummary') }}" target="_blank" class="text-decoration-none h-100">
+            <a href="{{ url('emr/ipd/wait_doctor_dchsummary') }}" target="_blank" class="text-decoration-none h-100">
                 <div class="card dash-card border-0 h-100 border-start border-4 border-warning">
                     <div class="card-body p-3">
                         <div class="text-warning mb-2"><i class="bi bi-vector-pen fs-4"></i></div>
@@ -59,7 +59,7 @@
             </a>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
-            <a href="{{ url('ipd/wait_icd_coder') }}" class="text-decoration-none h-100">
+            <a href="{{ url('emr/ipd/wait_icd_coder') }}" class="text-decoration-none h-100">
                 <div class="card dash-card border-0 h-100 border-start border-4 border-info">
                     <div class="card-body p-3">
                         <div class="text-info mb-2"><i class="bi bi-tag-fill fs-4"></i></div>
@@ -71,7 +71,7 @@
             </a>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
-            <a href="{{ url('ipd/dchsummary') }}" class="text-decoration-none h-100">
+            <a href="{{ url('emr/ipd/dchsummary') }}" class="text-decoration-none h-100">
                 <div class="card dash-card border-0 h-100 border-start border-4 border-success">
                     <div class="card-body p-3">
                         <div class="text-success mb-2"><i class="bi bi-check-circle-fill fs-4"></i></div>
@@ -83,7 +83,7 @@
             </a>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
-            <a href="{{ url('ipd/dchsummary_audit') }}" class="text-decoration-none h-100">
+            <a href="{{ url('emr/ipd/dchsummary_audit') }}" class="text-decoration-none h-100">
                 <div class="card dash-card border-0 h-100 border-start border-4 border-danger">
                     <div class="card-body p-3">
                         <div class="text-danger mb-2"><i class="bi bi-clipboard-check-fill fs-4"></i></div>

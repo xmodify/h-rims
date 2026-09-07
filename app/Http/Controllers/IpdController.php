@@ -247,7 +247,7 @@ class IpdController extends Controller
         $request->session()->put('end_date', $end_date);
         $request->session()->save();
 
-        return view('ipd.dchsummary', compact(
+        return view('emr.ipd.dchsummary', compact(
             'start_date',
             'end_date',
             'sum_discharge',
@@ -392,7 +392,7 @@ class IpdController extends Controller
         $request->session()->put('end_date', $end_date);
         $request->session()->save();
 
-        return view('ipd.dchsummary', compact(
+        return view('emr.ipd.dchsummary', compact(
             'start_date',
             'end_date',
             'sum_discharge',
@@ -540,7 +540,7 @@ class IpdController extends Controller
         $request->session()->put('end_date', $end_date);
         $request->session()->save();
 
-        return view('ipd.dchsummary', compact(
+        return view('emr.ipd.dchsummary', compact(
             'start_date',
             'end_date',
             'sum_discharge',
@@ -699,7 +699,7 @@ class IpdController extends Controller
         $month = array_column($ip_all, 'month');
         $bed_occupancy = array_column($ip_all, 'bed_occupancy');
 
-        return view('ipd.ipd_visit', compact(
+        return view('emr.ipd.ipd_visit', compact(
             'budget_year_select',
             'budget_year',
             'ip_all',

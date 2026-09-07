@@ -19,7 +19,7 @@
         'api_key' => \App\Services\Ai\AiService::getApiKey('hosxp'),
         'model' => \App\Services\Ai\AiService::getModelName('hosxp'),
     ];
-    $initialScope = request()->is('*hosfin*') ? 'hosfin' : (request()->is('*hosxp*') || request()->is('*mrec*') ? 'hosxp' : 'rag');
+    $initialScope = request()->is('*hosfin*') ? 'hosfin' : (request()->is('*hosxp-setting*') || request()->is('emr/hosxp-setting*') ? 'hosxp' : 'rag');
     $aiConfig = ($initialScope === 'hosfin') ? $hosfinConfig : (($initialScope === 'hosxp') ? $hosxpConfig : $ragConfig);
 @endphp
 

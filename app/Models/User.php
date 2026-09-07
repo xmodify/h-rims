@@ -26,7 +26,6 @@ class User extends Authenticatable
         'cid',
         'allow_home',
         'allow_import',
-        'allow_check',
         'allow_emr',
         'allow_claim_op',
         'allow_claim_ip',

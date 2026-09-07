@@ -7,7 +7,7 @@
         <div class="col-md-8">
             <div class="card dash-card accent-13">
                 <div class="card-body">
-                    <form id="importForm" onsubmit="showLoadingAlert()" action="{{ route('check.sss_equipdev_aipn_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <form id="importForm" onsubmit="showLoadingAlert()" action="{{ route('import.sss_equipdev_aipn_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf
                         <div class="text-center mb-3">
                             <h6 class="fw-bold text-dark">
@@ -231,7 +231,7 @@
         }
 
         $(document).ready(function () {
-            var baseUrl = "{{ route('check.sss_equipdev_aipn') }}";
+            var baseUrl = "{{ route('import.sss_equipdev_aipn') }}";
 
             // Table: Active (dateexp > today)
             var tableActive = $('#equipdevTableActive').DataTable({

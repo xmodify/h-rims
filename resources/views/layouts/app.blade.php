@@ -628,32 +628,19 @@
                                                 <i class="bi bi-puzzle-fill me-1 text-warning"></i> Seamless For DMIS
                                             </a>
                                         </li>
-                                    </ul>
-                                </li>
-                            @endif
-
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
-                                <li class="nav-item dropdown">
-                                    <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
-                                        role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                                        v-pre>
-                                        <i class="bi bi-check-circle-fill me-1" style="color: #facc15;"></i> ตรวจสอบข้อมูล
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
-                                        <!-- เมนูอื่น -->
                                         <li>
-                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
-                                                <a class="dropdown-item dropdown-item-modern"
-                                                    href="{{ url('check/fdh_claim_status') }}">
-                                                    <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
-                                                </a>
-                                                <a class="dropdown-item dropdown-item-modern"
-                                                    href="{{ url('check/eclaim_status') }}">
-                                                    <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
-                                                </a>
-                                            @endif
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ url('import/fdh_claim_status') }}">
+                                                <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
+                                            </a>
                                         </li>
-                                        <!-- ชี้ขวา -->
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ url('import/eclaim_status') }}">
+                                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
+                                            </a>
+                                        </li>
+                                        <!-- ชี้ขวา Drug Catalog -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                  data-bs-toggle="dropdown">
@@ -661,14 +648,14 @@
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/drugcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
+                                                        href="{{ url('import/drugcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/drugcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
+                                                        href="{{ url('import/drugcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/drugcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
+                                                        href="{{ url('import/drugcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
                                             </ul>
                                         </li>
-                                        <!-- ชี้ขวา -->
+                                        <!-- ชี้ขวา Lab Catalog -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                 data-bs-toggle="dropdown">
@@ -676,45 +663,32 @@
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/labcat_tmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> TMLT</a></li>
+                                                        href="{{ url('import/labcat_tmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> TMLT</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/labcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
+                                                        href="{{ url('import/labcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/labcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
+                                                        href="{{ url('import/labcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/labcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
+                                                        href="{{ url('import/labcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
                                             </ul>
                                         </li>
-
-                                        <!-- ชี้ขวา -->
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                <i class="bi bi-card-checklist text-primary me-2"></i> ข้อมูลพื้นฐาน
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.sss_equipdev_aipn') }}">
+                                                <i class="bi bi-database-fill-gear me-2" style="color: #0d9488;"></i> Equipdev AIPN
                                             </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/doctor') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บุคลากรทางการแพทย์</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/nondrugitems') }}"><i class="bi bi-chevron-right text-muted me-1"></i> ค่ารักษาพยาบาล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/pttype') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สิทธิการักษา HOSxP</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/nhso_subinscl') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สิทธิการรักษา สปสช.</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/sss_equipdev_aipn') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Equipdev AIPN</a></li>
-                                            </ul>
                                         </li>
                                     </ul>
                                 </li>
                             @endif
+
+
 
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y' || Auth::user()->allow_check_right == 'Y')
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-file-earmark-medical-fill me-1" style="color: #60a5fa;"></i> งานเวชระเบียน
+                                        <i class="bi bi-file-earmark-medical-fill me-1" style="color: #facc15;"></i> งานเวชระเบียน
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ข้อมูลพื้นฐาน HOSxP (ใหม่) -->
@@ -1213,7 +1187,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-07 23.00
+                                V.69-09-08 01.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

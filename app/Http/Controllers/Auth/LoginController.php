@@ -70,9 +70,7 @@ class LoginController extends Controller
                             'email' => $input['email'],
                             'password' => bcrypt($input['password']),
                             'status' => 'admin',
-                            'active' => 'Y',
-                            'allow_check' => 'Y',
-                            'allow_check_right' => 'Y'
+                            'active' => 'Y'
                         ]);
                     }
                 }

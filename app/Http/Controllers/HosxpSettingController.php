@@ -39,7 +39,7 @@ class HosxpSettingController extends Controller
 
         $activeTab = $request->input('tab', 'doctor');
         $search = trim($request->input('search', ''));
-        $filter = $request->input('filter', 'all');
+        $filter = $request->input('filter', ($activeTab === 'pttype' ? 'active' : 'all'));
 
         $hosxpAlive = false;
         try {
@@ -177,17 +177,6 @@ class HosxpSettingController extends Controller
                 $q->whereNull('nhso_adp_code')->orWhere('nhso_adp_code', '');
             })->count();
 
-        $ptTotal = $hosxp->table('pttype')->count();
-        $ptActive = $hosxp->table('pttype')->where('isuse', 'Y')->count();
-        $ptMissingStd = $hosxp->table('pttype')->where('isuse', 'Y')
-            ->where(function ($q) {
-                $q->whereNull('pttype_std_code')->orWhere('pttype_std_code', '');
-            })->count();
-        $ptMissingHip = $hosxp->table('pttype')->where('isuse', 'Y')
-            ->where(function ($q) {
-                $q->whereNull('hipdata_code')->orWhere('hipdata_code', '');
-            })->count();
-
         $stats['nondrugitems'] = [
             'total' => $itemTotal,
             'active' => $itemActive,
@@ -195,14 +184,99 @@ class HosxpSettingController extends Controller
             'mapped_adp' => $itemActive - $itemMissingAdp,
             'health_rate' => $itemActive > 0 ? round((($itemActive - $itemMissingAdp) / $itemActive) * 100, 1) : 100,
         ];
-        $stats['pttype'] = [
-            'total' => $ptTotal,
-            'active' => $ptActive,
-            'missing_std' => $ptMissingStd,
-            'missing_hip' => $ptMissingHip,
-            'mapped_std' => $ptActive - $ptMissingStd,
-            'health_rate' => $ptActive > 0 ? round((($ptActive - $ptMissingStd) / $ptActive) * 100, 1) : 100,
+
+        // Stats for pttype
+        $validHipdataCodes = [
+            'UCS', 'WEL', 'OFC', 'LGO', 'SSS', 'STP', 'NHS', 'BKK', 'BMT', 'SRT', 'KKT', 'PTY',
+            'A1', 'CSH', 'A9', 'INS', 'GOF', 'NRD', 'NRH', 'SSI', 'PVT', 'FWF'
         ];
+
+        try {
+            $pttypeAllRows = $hosxp->select('
+                SELECT p.pttype, inscl.nhso_subinscl, p.`name`, CONCAT(p1.paidst, SPACE(1), p1.`name`) AS paidst,
+                       p.export_eclaim, p.hipdata_code, p.pttype_std_code, p.isuse, p.pcode, p.nhso_code,
+                       CONCAT(pi.`code`, SPACE(1), pi.`name`) AS pi_name, pi.pttype_std_code AS pi_pttype_std_code,
+                       pg.pttype_price_group_name
+                FROM pttype p
+                LEFT JOIN paidst p1 ON p1.paidst = p.paidst
+                LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id = p.pttype_price_group_id
+                LEFT JOIN provis_instype pi ON pi.`code` = p.nhso_code
+                LEFT JOIN (
+                    SELECT pttype, GROUP_CONCAT(nhso_subinscl ORDER BY nhso_subinscl SEPARATOR ", ") AS nhso_subinscl
+                    FROM pttype_nhso_subinscl
+                    GROUP BY pttype
+                ) inscl ON inscl.pttype = p.pttype
+                ORDER BY p.isuse DESC, p.hipdata_code ASC, p.pttype ASC
+            ');
+
+            $ptTotal = count($pttypeAllRows);
+            $ptActiveRows = array_filter($pttypeAllRows, fn($r) => ($r->isuse ?? '') === 'Y');
+            $ptActive = count($ptActiveRows);
+            $ptInactive = $ptTotal - $ptActive;
+            
+            $ptActiveInvalid = 0;
+            foreach ($ptActiveRows as $r) {
+                $hasErr = false;
+                if (empty($r->pi_name)) {
+                    $hasErr = true;
+                } elseif (empty($r->pttype_std_code)) {
+                    $hasErr = true;
+                } elseif (strtoupper(trim($r->hipdata_code ?? '')) === 'UCS' && $r->pttype_std_code !== '0100') {
+                    $hasErr = true;
+                } elseif ($r->pttype_std_code !== $r->pi_pttype_std_code) {
+                    $hasErr = true;
+                } elseif (empty($r->hipdata_code) || !in_array(strtoupper(trim($r->hipdata_code)), $validHipdataCodes)) {
+                    $hasErr = true;
+                }
+                if ($hasErr) {
+                    $ptActiveInvalid++;
+                }
+            }
+            $ptActiveValid = $ptActive - $ptActiveInvalid;
+
+            $stats['pttype'] = [
+                'total' => $ptTotal,
+                'active' => $ptActive,
+                'inactive' => $ptInactive,
+                'invalid' => $ptActiveInvalid,
+                'valid' => $ptActiveValid,
+                'health_rate' => $ptActive > 0 ? round(($ptActiveValid / $ptActive) * 100, 1) : 100,
+            ];
+        } catch (\Throwable $e) {
+            $stats['pttype'] = [
+                'total' => 0,
+                'active' => 0,
+                'inactive' => 0,
+                'invalid' => 0,
+                'valid' => 0,
+                'health_rate' => 100,
+            ];
+        }
+
+        // Stats for nhso_subinscl
+        try {
+            $subinsclRows = $hosxp->select('
+                SELECT s.code, p.pttype 
+                FROM hrims.subinscl s
+                LEFT JOIN pttype p ON p.pttype = s.`code`
+            ');
+            $subTotal = count($subinsclRows);
+            $subFound = count(array_filter($subinsclRows, fn($r) => !is_null($r->pttype)));
+            $subNotfound = $subTotal - $subFound;
+            $stats['nhso_subinscl'] = [
+                'total' => $subTotal,
+                'found' => $subFound,
+                'notfound' => $subNotfound,
+                'match_rate' => $subTotal > 0 ? round(($subFound / $subTotal) * 100, 1) : 0,
+            ];
+        } catch (\Throwable $e) {
+            $stats['nhso_subinscl'] = [
+                'total' => 0,
+                'found' => 0,
+                'notfound' => 0,
+                'match_rate' => 0,
+            ];
+        }
 
         // ==========================================
         // 2. Query Tab Records with Pagination & Search
@@ -265,59 +339,118 @@ class HosxpSettingController extends Controller
             }
 
         } elseif ($activeTab === 'pttype') {
-            $query = $hosxp->table('pttype as p')
-                ->select([
-                    'p.pttype', 'p.name', 'p.pcode', 'p.paidst',
-                    'p.hipdata_code', 'p.nhso_code', 'p.pttype_std_code',
-                    'p.export_eclaim', 'p.isuse', 'p.nhso_subinscl'
-                ]);
+            $validHipdataCodes = [
+                'UCS', 'WEL', 'OFC', 'LGO', 'SSS', 'STP', 'NHS', 'BKK', 'BMT', 'SRT', 'KKT', 'PTY',
+                'A1', 'CSH', 'A9', 'INS', 'GOF', 'NRD', 'NRH', 'SSI', 'PVT', 'FWF'
+            ];
+
+            $queryRows = $hosxp->select('
+                SELECT p.pttype, inscl.nhso_subinscl, p.`name`, CONCAT(p1.paidst, SPACE(1), p1.`name`) AS paidst,
+                       p.export_eclaim, p.hipdata_code, p.pttype_std_code, p.isuse, p.pcode, p.nhso_code,
+                       CONCAT(pi.`code`, SPACE(1), pi.`name`) AS pi_name, pi.pttype_std_code AS pi_pttype_std_code,
+                       pg.pttype_price_group_name
+                FROM pttype p
+                LEFT JOIN paidst p1 ON p1.paidst = p.paidst
+                LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id = p.pttype_price_group_id
+                LEFT JOIN provis_instype pi ON pi.`code` = p.nhso_code
+                LEFT JOIN (
+                    SELECT pttype, GROUP_CONCAT(nhso_subinscl ORDER BY nhso_subinscl SEPARATOR ", ") AS nhso_subinscl
+                    FROM pttype_nhso_subinscl
+                    GROUP BY pttype
+                ) inscl ON inscl.pttype = p.pttype
+                ORDER BY p.isuse DESC, p.hipdata_code ASC, p.pttype ASC
+            ');
+
+            foreach ($queryRows as $pt) {
+                $ptErrors = [];
+                $statusType = 'valid';
+                $statusText = 'ปกติ';
+
+                if (empty($pt->pi_name)) {
+                    $ptErrors[] = 'ไม่ได้เชื่อมรหัสมาตรฐาน (nhso_code)';
+                    $statusType = 'danger';
+                    $statusText = 'ไม่ได้เชื่อมรหัสมาตรฐาน (nhso_code)';
+                } elseif (empty($pt->pttype_std_code)) {
+                    $ptErrors[] = 'ไม่ได้ระบุรหัสส่งออกใน HOSxP';
+                    $statusType = 'danger';
+                    $statusText = 'ไม่ได้ระบุรหัสส่งออกใน HOSxP';
+                } elseif (strtoupper(trim($pt->hipdata_code ?? '')) === 'UCS' && $pt->pttype_std_code !== '0100') {
+                    $ptErrors[] = 'สิทธิหลักประกันสุขภาพ (UCS) รหัสส่งออกต้องเป็น 0100';
+                    $statusType = 'danger';
+                    $statusText = 'รหัสส่งออกต้องเป็น 0100';
+                } elseif ($pt->pttype_std_code !== $pt->pi_pttype_std_code) {
+                    $ptErrors[] = 'รหัสส่งออกไม่ตรงกัน (HOSxP: ' . ($pt->pttype_std_code ?: '-') . ' != PROVIS: ' . ($pt->pi_pttype_std_code ?: '-') . ')';
+                    $statusType = 'danger';
+                    $statusText = 'รหัสส่งออกไม่ตรงกัน';
+                } elseif (empty($pt->hipdata_code) || !in_array(strtoupper(trim($pt->hipdata_code)), $validHipdataCodes)) {
+                    $ptErrors[] = empty($pt->hipdata_code) ? 'รหัส Hipdata ว่าง (ไม่ได้ระบุ)' : 'รหัส Hipdata (' . $pt->hipdata_code . ') ไม่ถูกต้อง';
+                    $statusType = 'warning';
+                    $statusText = 'รหัส Hipdata ไม่ถูกต้อง';
+                }
+
+                $pt->item_errors = $ptErrors;
+                $pt->is_valid = empty($ptErrors);
+                $pt->status_type = $statusType;
+                $pt->status_text = $statusText;
+            }
 
             if ($filter === 'active') {
-                $query->where('p.isuse', 'Y');
+                $queryRows = array_filter($queryRows, fn($r) => ($r->isuse ?? '') === 'Y');
             } elseif ($filter === 'inactive') {
-                $query->where(function ($q) {
-                    $q->whereNull('p.isuse')->orWhere('p.isuse', '!=', 'Y');
-                });
-            } elseif ($filter === 'missing_std') {
-                $query->where('p.isuse', 'Y')
-                    ->where(function ($q) {
-                        $q->whereNull('p.pttype_std_code')->orWhere('p.pttype_std_code', '');
-                    });
-            } elseif ($filter === 'missing_hip') {
-                $query->where('p.isuse', 'Y')
-                    ->where(function ($q) {
-                        $q->whereNull('p.hipdata_code')->orWhere('p.hipdata_code', '');
-                    });
+                $queryRows = array_filter($queryRows, fn($r) => ($r->isuse ?? '') !== 'Y');
+            } elseif ($filter === 'invalid') {
+                $queryRows = array_filter($queryRows, fn($r) => ($r->isuse ?? '') === 'Y' && !$r->is_valid);
             }
 
             if (!empty($search)) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('p.name', 'like', "%{$search}%")
-                      ->orWhere('p.pttype', 'like', "%{$search}%")
-                      ->orWhere('p.pttype_std_code', 'like', "%{$search}%")
-                      ->orWhere('p.pcode', 'like', "%{$search}%")
-                      ->orWhere('p.hipdata_code', 'like', "%{$search}%");
+                $searchLower = mb_strtolower($search);
+                $queryRows = array_filter($queryRows, function ($r) use ($searchLower) {
+                    return str_contains(mb_strtolower($r->pttype ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->name ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->paidst ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->hipdata_code ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->pttype_std_code ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->nhso_subinscl ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->pi_name ?? ''), $searchLower);
                 });
             }
 
-            $records = $query->orderBy('p.isuse', 'desc')
-                ->orderBy('p.pttype', 'asc')
-                ->get();
+            $records = collect($queryRows)->values();
+        } elseif ($activeTab === 'nhso_subinscl') {
+            $queryRows = $hosxp->select('
+                SELECT s.*, p.pttype, p.`name` AS pttype_name, p.hipdata_code 
+                FROM hrims.subinscl s
+                LEFT JOIN pttype p ON p.pttype = s.`code`
+                ORDER BY CAST(s.`code` AS UNSIGNED) ASC, s.`code` ASC
+            ');
 
-            // Validate each pttype record
-            foreach ($records as $pt) {
-                $ptErrors = [];
-                if (empty(trim($pt->pttype_std_code ?? ''))) {
-                    $ptErrors[] = 'ขาดรหัสมาตรฐาน 4 หลัก (std_code)';
+            if ($filter === 'found') {
+                $queryRows = array_filter($queryRows, fn($r) => !is_null($r->pttype));
+            } elseif ($filter === 'notfound') {
+                $queryRows = array_filter($queryRows, fn($r) => is_null($r->pttype));
+            }
+
+            if (!empty($search)) {
+                $searchLower = mb_strtolower($search);
+                $queryRows = array_filter($queryRows, function ($r) use ($searchLower) {
+                    return str_contains(mb_strtolower($r->code ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->name ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->maininscl ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->pttype ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->pttype_name ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->hipdata_code ?? ''), $searchLower);
+                });
+            }
+
+            $records = collect($queryRows)->values();
+
+            foreach ($records as $row) {
+                $rowErrors = [];
+                if (empty($row->pttype)) {
+                    $rowErrors[] = 'ไม่พบรหัสสิทธินี้ในตาราง pttype ของ HOSxP';
                 }
-                if (empty(trim($pt->hipdata_code ?? ''))) {
-                    $ptErrors[] = 'ขาดรหัส HIPDATA';
-                }
-                if (empty(trim($pt->pcode ?? ''))) {
-                    $ptErrors[] = 'ขาดกลุ่มสิทธิ (pcode)';
-                }
-                $pt->item_errors = $ptErrors;
-                $pt->is_valid = empty($ptErrors);
+                $row->item_errors = $rowErrors;
+                $row->is_valid = empty($rowErrors);
             }
         }
 

@@ -160,7 +160,7 @@
                 <h5 class="mb-1 text-dark fw-bold">
                     ข้อมูลพื้นฐาน HOSxP (Master Data & Setting)
                 </h5>
-                <small class="text-muted">ตรวจสอบความถูกต้องและครบถ้วนของข้อมูลแพทย์, ค่ารักษาพยาบาล (nondrugitems) และสิทธิการรักษา (pttype)</small>
+                <small class="text-muted">ตรวจสอบความถูกต้องและครบถ้วนของข้อมูลแพทย์, ค่ารักษาพยาบาล (nondrugitems) และสิทธิการรักษา (pttype, สิทธิ สปสช)</small>
             </div>
         </div>
         
@@ -192,7 +192,7 @@
                                 <i class="bi bi-grid-fill me-1 text-primary"></i> หมวดหมู่ข้อมูลพื้นฐาน
                             </span>
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
-                                3 หมวด
+                                4 หมวด
                             </span>
                         </div>
                     </div>
@@ -225,7 +225,7 @@
                                         <i class="bi bi-capsule-pill"></i>
                                     </span>
                                     <div class="text-truncate">
-                                        <div class="setting-nav-title text-truncate">ค่ารักษาพยาบาล (Non-Drug)</div>
+                                        <div class="setting-nav-title text-truncate">ค่ารักษาพยาบาล</div>
                                         <div class="setting-nav-sub text-truncate">หมวดรายได้, รหัสมาตรฐาน ADP</div>
                                     </div>
                                 </div>
@@ -242,12 +242,29 @@
                                         <i class="bi bi-shield-check"></i>
                                     </span>
                                     <div class="text-truncate">
-                                        <div class="setting-nav-title text-truncate">สิทธิการรักษา (Pttype)</div>
-                                        <div class="setting-nav-sub text-truncate">รหัสสิทธิมาตรฐาน, รหัสส่งออก</div>
+                                        <div class="setting-nav-title text-truncate">สิทธิการรักษา HOSxP</div>
+                                        <div class="setting-nav-sub text-truncate">ตาราง pttype, ตรวจสอบ PROVIS</div>
                                     </div>
                                 </div>
                                 <span class="badge rounded-pill setting-nav-badge">
                                     {{ number_format($stats['pttype']['active'] ?? 0) }}
+                                </span>
+                            </a>
+
+                            <!-- Tab 4: NHSO Subinscl -->
+                            <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl']) }}" 
+                               class="nav-link setting-nav-btn {{ $activeTab === 'nhso_subinscl' ? 'active' : '' }}">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <span class="setting-nav-icon me-2.5" style="background-color: #e0f2fe; color: #0284c7;">
+                                        <i class="bi bi-person-vcard-fill"></i>
+                                    </span>
+                                    <div class="text-truncate">
+                                        <div class="setting-nav-title text-truncate">สิทธิการรักษา สปสช.</div>
+                                        <div class="setting-nav-sub text-truncate">เปรียบเทียบรหัส สปสช กับ HOSxP</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill setting-nav-badge">
+                                    {{ number_format($stats['nhso_subinscl']['total'] ?? 0) }}
                                 </span>
                             </a>
                         </div>
@@ -518,7 +535,7 @@
                                             <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-shield"></i></span>
                                         </div>
                                         <h3 class="fw-bold text-dark mb-1">{{ number_format($stats['pttype']['total'] ?? 0) }}</h3>
-                                        <div class="text-muted" style="font-size: 0.75rem;">สิทธิการรักษาในระบบ</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">สิทธิการรักษาในระบบ HOSxP</div>
                                     </div>
                                 </a>
                             </div>
@@ -535,28 +552,77 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'missing_std']) }}" class="text-decoration-none">
-                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'missing_std' ? 'border-danger' : '' }}">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'inactive']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-secondary {{ $filter === 'inactive' ? 'border-secondary' : '' }}">
                                         <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="text-muted small fw-semibold">ขาดรหัสมาตรฐาน</span>
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-exclamation-triangle"></i></span>
+                                            <span class="text-muted small fw-semibold">ปิดใช้งาน (Inactive)</span>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill"><i class="bi bi-eye-slash"></i></span>
                                         </div>
-                                        <h3 class="fw-bold text-danger mb-1">{{ number_format($stats['pttype']['missing_std'] ?? 0) }}</h3>
-                                        <div class="text-muted" style="font-size: 0.75rem;">ขาด pttype_std_code</div>
+                                        <h3 class="fw-bold text-secondary mb-1">{{ number_format($stats['pttype']['inactive'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">สิทธิที่ปิดการใช้งาน</div>
                                     </div>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'missing_hip']) }}" class="text-decoration-none">
-                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-warning {{ $filter === 'missing_hip' ? 'border-warning' : '' }}">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'invalid']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'invalid' ? 'border-danger' : '' }}">
                                         <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="text-muted small fw-semibold">ขาดรหัส Hipdata</span>
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill"><i class="bi bi-database-exclamation"></i></span>
+                                            <span class="text-muted small fw-semibold">พบข้อผิดพลาด</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-exclamation-octagon-fill"></i></span>
                                         </div>
-                                        <h3 class="fw-bold text-warning mb-1">{{ number_format($stats['pttype']['missing_hip'] ?? 0) }}</h3>
-                                        <div class="text-muted" style="font-size: 0.75rem;">ขาด hipdata_code</div>
+                                        <h3 class="fw-bold text-danger mb-1">{{ number_format($stats['pttype']['invalid'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสไม่ตรง/ไม่ผูกมาตรฐาน</div>
                                     </div>
                                 </a>
+                            </div>
+                        </div>
+                    @elseif($activeTab === 'nhso_subinscl')
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'all']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card {{ $filter === 'all' ? 'border-primary ring-1' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">สิทธิ สปสช ทั้งหมด</span>
+                                            <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-list-ul"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-dark mb-1">{{ number_format($stats['nhso_subinscl']['total'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสมาตรฐาน INSCL สปสช</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'found']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-success {{ $filter === 'found' ? 'border-success' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">พบที่ HOSxP</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="bi bi-check-circle-fill"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-success mb-1">{{ number_format($stats['nhso_subinscl']['found'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">มีรหัสตรงกับตาราง pttype</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'notfound']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'notfound' ? 'border-danger' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ไม่พบที่ HOSxP</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-x-circle-fill"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-danger mb-1">{{ number_format($stats['nhso_subinscl']['notfound'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ยังไม่มีในตาราง pttype</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-info">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted small fw-semibold">อัตราความครอบคลุม</span>
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill"><i class="bi bi-percent"></i></span>
+                                    </div>
+                                    <h3 class="fw-bold text-info-dark mb-1">{{ number_format($stats['nhso_subinscl']['match_rate'] ?? 0, 1) }}%</h3>
+                                    <div class="text-muted" style="font-size: 0.75rem;">สัดส่วนสิทธิที่พบในระบบ</div>
+                                </div>
                             </div>
                         </div>
                     @endif
@@ -582,17 +648,21 @@
                                        <i class="bi bi-exclamation-circle me-1"></i>ยังไม่ผูกรหัส ADP ({{ $stats['nondrugitems']['missing_adp'] }})
                                     </a>
                                 @elseif($activeTab === 'pttype')
-                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'all']) }}" 
-                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">ทั้งหมด</a>
                                     <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'active']) }}" 
-                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-primary text-white' : 'btn-light text-muted' }}">เปิดใช้งาน (Active)</a>
-                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'missing_std']) }}" 
-                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_std' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
-                                       <i class="bi bi-exclamation-circle me-1"></i>ยังไม่ผูกรหัสมาตรฐาน ({{ $stats['pttype']['missing_std'] }})
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-success text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-check-circle me-1"></i>เปิดใช้งาน (Active) ({{ number_format($stats['pttype']['active'] ?? 0) }})
                                     </a>
-                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'missing_hip']) }}" 
-                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_hip' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted' }}">
-                                       <i class="bi bi-database-exclamation me-1"></i>ขาด Hipdata ({{ $stats['pttype']['missing_hip'] }})
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'inactive']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'inactive' ? 'btn-secondary text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-eye-slash me-1"></i>ปิดใช้งาน ({{ number_format($stats['pttype']['inactive'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'invalid']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'invalid' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-exclamation-octagon me-1"></i>พบข้อผิดพลาด ({{ number_format($stats['pttype']['invalid'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">
+                                       ทั้งหมด ({{ number_format($stats['pttype']['total'] ?? 0) }})
                                     </a>
                                 @endif
                             </div>
@@ -675,7 +745,7 @@
                                                             <button type="button" 
                                                                     class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
                                                                     style="width: 32px; height: 32px;"
-                                                                    data-category="ค่ารักษาพยาบาล (Non-Drug Items)"
+                                                                    data-category="ค่ารักษาพยาบาล"
                                                                     data-code="{{ $item->icode }}"
                                                                     data-name="{{ $item->name }}"
                                                                     data-errors='@json($item->item_errors ?? [])'
@@ -691,58 +761,69 @@
                                     </table>
 
                                 @elseif($activeTab === 'pttype')
-                                    {{-- 3. Pttype Table --}}
+                                    {{-- 3. Pttype Table (สิทธิการรักษา HOSxP) --}}
+                                    @php
+                                        $validCodes = [
+                                            'UCS', 'WEL', 'OFC', 'LGO', 'SSS', 'STP', 'NHS', 'BKK', 'BMT', 'SRT', 'KKT', 'PTY',
+                                            'A1', 'CSH', 'A9', 'INS', 'GOF', 'NRD', 'NRH', 'SSI', 'PVT', 'FWF'
+                                        ];
+                                    @endphp
                                     <table id="table-pttype" class="table data-table-modern w-100 align-middle">
                                         <thead>
                                             <tr>
-                                                <th class="text-center" style="width: 80px;">รหัสสิทธิ</th>
-                                                <th class="text-start">ชื่อสิทธิการรักษา</th>
-                                                <th class="text-center" style="width: 100px;">กลุ่มสิทธิ (pcode)</th>
-                                                <th class="text-center" style="width: 140px;">รหัสมาตรฐาน 4 หลัก (std_code)</th>
-                                                <th class="text-center" style="width: 100px;">HIPDATA</th>
-                                                <th class="text-center" style="width: 90px;">paidst</th>
-                                                <th class="text-center" style="width: 90px;">ส่งออก e-Claim</th>
-                                                <th class="text-center" style="width: 90px;">สถานะ</th>
-                                                <th class="text-center" style="width: 70px;">ผลการตรวจสอบ</th>
+                                                <th class="text-center" colspan="7">ตาราง pttype (HOSxP)</th>
+                                                <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ตาราง PROVIS_INSTYPE</th>                
+                                                <th class="text-center" style="background-color: #f5f5f5; width: 75px;">ตรวจสอบ</th>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($records as $pt)
+                                            <tr>
+                                                <th class="text-center" style="width: 75px;">สปสช</th>  
+                                                <th class="text-center" style="width: 65px;">รหัส</th>
+                                                <th class="text-start">ชื่อสิทธิ</th>  
+                                                <th class="text-start" style="width: 140px;">ประเภท</th>     
+                                                <th class="text-center" style="width: 70px;">Eclaim</th>
+                                                <th class="text-center" style="width: 85px;">Hipdata</th> 
+                                                <th class="text-start" style="width: 110px;">กลุ่มราคา</th>
+                                                <th class="text-start" style="background-color: #f0f9ff">ชื่อสิทธิ</th>
+                                                <th class="text-center" style="background-color: #f0f9ff; width: 85px;">รหัสส่งออก</th>
+                                                <th class="text-center" style="background-color: #fafafa; width: 75px;">ผลการตรวจ</th>
+                                            </tr>
+                                        </thead> 
+                                        <tbody> 
+                                            @foreach($records as $row) 
                                                 <tr>
-                                                    <td class="text-center"><span class="code-badge fw-bold">{{ $pt->pttype }}</span></td>
-                                                    <td><div class="fw-bold text-dark">{{ $pt->name }}</div></td>
                                                     <td class="text-center">
-                                                        <span class="badge bg-light text-dark border font-monospace">{{ $pt->pcode ?: '-' }}</span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @if(!empty($pt->pttype_std_code))
-                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary font-monospace">{{ $pt->pttype_std_code }}</span>
+                                                        @if(!empty($row->nhso_subinscl))
+                                                            <span class="badge bg-light text-dark border">{{ $row->nhso_subinscl }}</span>
                                                         @else
-                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">⚠️ ขาดรหัสมาตรฐาน</span>
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td> 
+                                                    <td class="text-center fw-bold"><span class="code-badge fw-bold">{{ $row->pttype }}</span></td>                                
+                                                    <td class="text-start">
+                                                        <div class="fw-bold text-dark">{{ $row->name }}</div>
+                                                    </td>            
+                                                    <td class="text-start small text-muted">{{ $row->paidst ?: '-' }}</td>
+                                                    <td class="text-center">
+                                                        @if($row->export_eclaim === 'Y')
+                                                            <span class="badge bg-success-soft text-success">Y</span>
+                                                        @else
+                                                            <span class="badge bg-light text-muted border">{{ $row->export_eclaim ?: 'N' }}</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        <code class="text-muted">{{ $pt->hipdata_code ?: '-' }}</code>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-light text-muted border">{{ $pt->paidst ?: '-' }}</span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @if($pt->export_eclaim === 'Y')
-                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success">เปิด (Y)</span>
+                                                        @if(empty($row->hipdata_code))
+                                                            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>ว่าง (ไม่ได้ระบุ)</span>
+                                                        @elseif(!in_array(strtoupper(trim($row->hipdata_code)), $validCodes))
+                                                            <span class="badge bg-danger" title="รหัสไม่ตรงกับระบบเรียกเก็บ">{{ $row->hipdata_code }} <i class="bi bi-x-circle ms-1"></i></span>
                                                         @else
-                                                            <span class="badge bg-light text-muted border">ปิด (N)</span>
+                                                            <span class="badge bg-success-soft text-success">{{ $row->hipdata_code }}</span>
                                                         @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @if($pt->isuse === 'Y')
-                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">ใช้งาน</span>
-                                                        @else
-                                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">ไม่ใช้</span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center" data-order="{{ $pt->is_valid ? 2 : 1 }}" data-sort="{{ $pt->is_valid ? 2 : 1 }}" data-search="{{ $pt->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $pt->item_errors ?? []) }}">
-                                                        @if($pt->is_valid)
+                                                    </td> 
+                                                    <td class="text-start small text-muted">{{ $row->pttype_price_group_name ?: '-' }}</td>
+                                                    <td class="text-start small">{{ $row->pi_name ?: '-' }}</td>  
+                                                    <td class="text-center font-monospace small text-muted">{{ $row->pi_pttype_std_code ?: '-' }}</td>
+                                                    <td class="text-center" data-order="{{ $row->is_valid ? 2 : 1 }}" data-sort="{{ $row->is_valid ? 2 : 1 }}" data-search="{{ $row->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $row->item_errors ?? []) }}">
+                                                        @if($row->is_valid)
                                                             <span class="d-none">2</span>
                                                             <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / สมบูรณ์">
                                                                 <i class="bi bi-eye-fill fs-6"></i>
@@ -751,22 +832,102 @@
                                                             <span class="d-none">1</span>
                                                             @php
                                                                 $ptDetails = [
-                                                                    'กลุ่มสิทธิ (pcode)' => ($pt->pcode ?? '') ?: '-',
-                                                                    'รหัสมาตรฐาน 4 หลัก' => ($pt->pttype_std_code ?? '') ?: 'ยังไม่ระบุ',
-                                                                    'รหัส HIPDATA' => ($pt->hipdata_code ?? '') ?: '-',
-                                                                    'ส่งออก e-Claim' => (($pt->export_eclaim ?? '') === 'Y') ? 'เปิด (Y)' : 'ปิด (N)',
-                                                                    'สถานะ' => (($pt->isuse ?? '') === 'Y') ? 'Active (ใช้งาน)' : 'Inactive (ไม่ใช้)'
+                                                                    'รหัสสิทธิ HOSxP' => $row->pttype,
+                                                                    'ชื่อสิทธิ' => $row->name,
+                                                                    'สิทธิ สปสช (subinscl)' => ($row->nhso_subinscl ?? '') ?: 'ไม่ได้ระบุ',
+                                                                    'ประเภท (paidst)' => ($row->paidst ?? '') ?: '-',
+                                                                    'Hipdata Code' => ($row->hipdata_code ?? '') ?: 'ว่าง',
+                                                                    'รหัสส่งออก HOSxP' => ($row->pttype_std_code ?? '') ?: 'ว่าง',
+                                                                    'กลุ่มราคา' => ($row->pttype_price_group_name ?? '') ?: '-',
+                                                                    'ตาราง PROVIS' => ($row->pi_name ?? '') ?: 'ไม่ได้เชื่อม',
+                                                                    'รหัสส่งออก PROVIS' => ($row->pi_pttype_std_code ?? '') ?: '-',
+                                                                    'ส่งออก e-Claim' => (($row->export_eclaim ?? '') === 'Y') ? 'ส่งออก (Y)' : 'ไม่ส่งออก (N)',
+                                                                    'สถานะ' => (($row->isuse ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive (ปิดใช้งาน)'
                                                                 ];
                                                             @endphp
                                                             <button type="button" 
                                                                     class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
                                                                     style="width: 32px; height: 32px;"
-                                                                    data-category="สิทธิการรักษา (Pttype)"
-                                                                    data-code="{{ $pt->pttype }}"
-                                                                    data-name="{{ $pt->name }}"
-                                                                    data-errors='@json($pt->item_errors ?? [])'
+                                                                    data-category="สิทธิการรักษา HOSxP (pttype)"
+                                                                    data-code="{{ $row->pttype }}"
+                                                                    data-name="{{ $row->name }}"
+                                                                    data-errors='@json($row->item_errors ?? [])'
                                                                     data-details='@json($ptDetails)'
-                                                                    title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                    title="พบข้อผิดพลาด: {{ $row->status_text }} (คลิกดูสาเหตุ)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach                 
+                                        </tbody>
+                                    </table>
+                                @elseif($activeTab === 'nhso_subinscl')
+                                    {{-- 4. NHSO Subinscl Table --}}
+                                    <table id="table-nhso-subinscl" class="table data-table-modern w-100 align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-center" colspan="3">ข้อมูล สปสช (NHSO)</th>
+                                                <th class="text-center" colspan="3" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ข้อมูล HOSxP</th>
+                                                <th class="text-center" rowspan="2" style="width: 70px;">ผลการตรวจ</th>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-center" style="width: 80px;">CODE</th>
+                                                <th class="text-start">NAME</th>
+                                                <th class="text-center" style="width: 110px;">MAININSCL</th>
+                                                <th class="text-center" style="width: 90px; background-color: #f0f9ff;">PTTYPE</th>
+                                                <th class="text-start" style="background-color: #f0f9ff;">PTTYPE_NAME</th>
+                                                <th class="text-center" style="width: 100px; background-color: #f0f9ff;">HIPDATA_CODE</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($records as $row)
+                                                <tr>
+                                                    <td class="text-center"><span class="code-badge fw-bold">{{ $row->code }}</span></td>
+                                                    <td><div class="fw-bold text-dark">{{ $row->name }}</div></td>
+                                                    <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->maininscl ?: '-' }}</span></td>
+                                                    <td class="text-center">
+                                                        @if(!empty($row->pttype))
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary font-monospace">{{ $row->pttype }}</span>
+                                                        @else
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">ไม่พบ</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="small">{{ $row->pttype_name ?: '-' }}</td>
+                                                    <td class="text-center">
+                                                        @if(!empty($row->hipdata_code))
+                                                            <code class="text-muted">{{ $row->hipdata_code }}</code>
+                                                        @else
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center" data-order="{{ $row->is_valid ? 2 : 1 }}" data-sort="{{ $row->is_valid ? 2 : 1 }}" data-search="{{ $row->is_valid ? 'ปกติ สมบูรณ์ ผ่าน พบ' : 'ผิดพลาด ไม่พบ ข้อผิดพลาด' }}">
+                                                        @if($row->is_valid)
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="พบสิทธิใน HOSxP">
+                                                                <i class="bi bi-check-lg fs-6"></i>
+                                                            </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $rowDetails = [
+                                                                    'รหัส CODE' => $row->code,
+                                                                    'ชื่อสิทธิ สปสช' => $row->name,
+                                                                    'หมวดหลัก (MAININSCL)' => $row->maininscl ?: '-',
+                                                                    'รหัส PTTYPE' => $row->pttype ?: 'ไม่พบใน HOSxP',
+                                                                    'ชื่อสิทธิ HOSxP' => $row->pttype_name ?: '-',
+                                                                    'รหัส HIPDATA' => $row->hipdata_code ?: '-'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="สิทธิการรักษา สปสช (NHSO)"
+                                                                    data-code="{{ $row->code }}"
+                                                                    data-name="{{ $row->name }}"
+                                                                    data-errors='@json($row->item_errors ?? [])'
+                                                                    data-details='@json($rowDetails)'
+                                                                    title="ไม่พบรหัสใน HOSxP (คลิกดูรายละเอียด)">
                                                                 <i class="bi bi-eye-fill fs-6"></i>
                                                             </button>
                                                         @endif
@@ -936,6 +1097,35 @@
         @elseif($activeTab === 'pttype')
             if ($('#table-pttype').length && !$.fn.DataTable.isDataTable('#table-pttype')) {
                 $('#table-pttype').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'สิทธิการรักษา HOSxP'
+                        }
+                    ],
+                    pageLength: 10,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[1, 'asc']],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        infoEmpty: "ไม่พบข้อมูล",
+                        infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                        zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    },
+                    drawCallback: function () {
+                        initTooltips();
+                    }
+                });
+            }
+        @elseif($activeTab === 'nhso_subinscl')
+            if ($('#table-nhso-subinscl').length && !$.fn.DataTable.isDataTable('#table-nhso-subinscl')) {
+                $('#table-nhso-subinscl').DataTable({
                     pageLength: 10,
                     lengthMenu: [10, 25, 50, 100],
                     order: [[0, 'asc']],
@@ -984,6 +1174,34 @@
             'ขาดรหัส HIPDATA': {
                 desc: 'ยังไม่มีการระบุรหัสกลุ่มสิทธิ HIPDATA สำหรับเชื่อมโยงระบบข้อมูลสุขภาพ',
                 action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วระบุรหัส hipdata_code ให้ครบถ้วน'
+            },
+            'ไม่ได้เชื่อมรหัสมาตรฐาน (nhso_code)': {
+                desc: 'สิทธินี้ยังไม่ได้ผูกรหัสมาตรฐาน nhso_code เพื่อเชื่อมโยงกับตาราง provis_instype',
+                action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วระบุรหัส nhso_code ให้ตรงกับมาตรฐาน'
+            },
+            'ไม่ได้ระบุรหัสส่งออกใน HOSxP': {
+                desc: 'ยังไม่มีการระบุรหัสส่งออกมาตรฐาน (pttype_std_code) ในระบบ HOSxP',
+                action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วระบุรหัสส่งออก 4 หลัก (pttype_std_code)'
+            },
+            'สิทธิหลักประกันสุขภาพ (UCS) รหัสส่งออกต้องเป็น 0100': {
+                desc: 'สิทธิกลุ่มหลักประกันสุขภาพถ้วนหน้า (UCS) ต้องใช้รหัสส่งออกตามมาตรฐานกระทรวงฯ คือ 0100 เท่านั้น',
+                action: 'แก้ไขรหัสส่งออก (pttype_std_code) ของสิทธินี้ในตาราง pttype ให้เป็น 0100'
+            },
+            'รหัสส่งออกไม่ตรงกัน': {
+                desc: 'รหัสส่งออกของสิทธิใน HOSxP ไม่ตรงกับรหัสกลุ่มของตารางมาตรฐาน provis_instype',
+                action: 'ตรวจสอบและปรับรหัส pttype_std_code ใน HOSxP ให้ตรงกับ pi.pttype_std_code ในตาราง provis_instype'
+            },
+            'รหัส Hipdata ไม่ถูกต้อง': {
+                desc: 'รหัส Hipdata ไม่อยู่ในกลุ่มรหัสมาตรฐาน 22 สิทธิของระบบเบิกจ่าย',
+                action: 'แก้ไขรหัส hipdata_code ใน HOSxP ให้เป็นรหัสมาตรฐาน เช่น UCS, WEL, OFC, LGO, SSS, STP, ฯลฯ'
+            },
+            'รหัส Hipdata ว่าง (ไม่ได้ระบุ)': {
+                desc: 'ยังไม่มีการระบุรหัสกลุ่มสิทธิ hipdata_code',
+                action: 'ระบุรหัส hipdata_code ในตาราง pttype ให้ถูกต้อง'
+            },
+            'ไม่พบรหัสสิทธินี้ในตาราง pttype ของ HOSxP': {
+                desc: 'รหัสสิทธิย่อย สปสช (Sub-Insurance Class) นี้ยังไม่มีการตั้งค่ารหัสสิทธิที่ตรงกันในตาราง pttype ของ HOSxP',
+                action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วเพิ่มรหัสสิทธินี้ หรือตรวจสอบการจับคู่รหัสระหว่าง สปสช กับ HOSxP'
             }
         };
 

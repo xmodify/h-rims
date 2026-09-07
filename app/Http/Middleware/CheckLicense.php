@@ -43,13 +43,11 @@ class CheckLicense
             } elseif (str_starts_with($path, 'claim_op/csop_export') && !str_starts_with($path, 'claim_op/csop_export_preview')) {
                 $module = 'export_csop';
             } elseif (
-                str_starts_with($path, 'claim_ip/sss_export_aipn') ||
-                str_starts_with($path, 'check/sss_equipdev_aipn')
+                str_starts_with($path, 'claim_ip/sss_export_aipn')
             ) {
                 $module = 'export_aipn';
             } elseif (
-                str_starts_with($path, 'claim_ip/cipn_export') ||
-                str_starts_with($path, 'claim_ip/sss_export_cipn')
+                str_starts_with($path, 'claim_ip/cipn_export')
             ) {
                 $module = 'export_cipn';
             } elseif (

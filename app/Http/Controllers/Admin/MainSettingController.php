@@ -279,9 +279,16 @@ class MainSettingController extends Controller
                     // Align column collations with HOSxP legacy tables to optimize performance
                     $this->alignColumnCollations();
 
+                    // Drop obsolete allow_check column from users table
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'allow_check')) {
+                        \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                            $table->dropColumn('allow_check');
+                        });
+                    }
+
                     // Set Admin default permissions in users table
                     $permissionColumns = [
-                        'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
+                        'allow_home', 'allow_import', 'allow_emr', 
                         'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
                         'allow_debtor', 'allow_debtor_lock', 'allow_debtor_acc', 'allow_receipt',
                         'allow_nhso_endpoint', 'allow_aopod_death', 'allow_check_right', 'allow_hosfin',

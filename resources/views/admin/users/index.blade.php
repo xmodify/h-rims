@@ -96,7 +96,6 @@
                                                 <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
                                                     @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
                                                     @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
-                                                    @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
                                                      @if($user->allow_check_right === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ตรวจสอบสิทธิการรักษา (สปสช.)</span> @endif
                                                     @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
                                                     @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
@@ -129,7 +128,6 @@
                                                     data-status="{{ $user->status }}"
                                                     data-allow_home="{{ $user->allow_home }}"
                                                     data-allow_import="{{ $user->allow_import }}"
-                                                    data-allow_check="{{ $user->allow_check }}"
                                                      data-allow_check_right="{{ $user->allow_check_right }}"
                                                     data-allow_emr="{{ $user->allow_emr }}"
                                                     data-allow_claim_op="{{ $user->allow_claim_op }}"
@@ -240,7 +238,6 @@
                                                 <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
                                                     @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
                                                     @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
-                                                    @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
                                                      @if($user->allow_check_right === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ตรวจสอบสิทธิการรักษา (สปสช.)</span> @endif
                                                     @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
                                                     @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
@@ -273,7 +270,6 @@
                                                     data-status="{{ $user->status }}"
                                                     data-allow_home="{{ $user->allow_home }}"
                                                     data-allow_import="{{ $user->allow_import }}"
-                                                    data-allow_check="{{ $user->allow_check }}"
                                                      data-allow_check_right="{{ $user->allow_check_right }}"
                                                     data-allow_emr="{{ $user->allow_emr }}"
                                                     data-allow_claim_op="{{ $user->allow_claim_op }}"
@@ -471,12 +467,6 @@
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" name="allow_import" id="add_allow_import" value="Y">
                                             <label class="form-check-label small text-primary fw-bold" for="add_allow_import"><i class="bi bi-file-earmark-arrow-down me-1"></i>นำเข้าข้อมูล</label>
-                                        </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="allow_check" id="add_allow_check" value="Y">
-                                            <label class="form-check-label small" for="add_allow_check">ตรวจสอบข้อมูล</label>
                                         </div>
                                     </div>
                                     <div class="col">
@@ -793,12 +783,6 @@
                                     </div>
                                     <div class="col">
                                         <div class="form-check form-switch">
-                                            <input class="form-check-input p_switch" type="checkbox" name="allow_check" id="edit_allow_check" value="Y">
-                                            <label class="form-check-label small" for="edit_allow_check">ตรวจสอบข้อมูล</label>
-                                        </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="form-check form-switch">
                                             <input class="form-check-input p_switch" type="checkbox" name="allow_emr" id="edit_allow_emr" value="Y">
                                             <label class="form-check-label small" for="edit_allow_emr">งานเวชระเบียน</label>
                                         </div>
@@ -1015,7 +999,6 @@
             // Set Permissions
             $('#edit_allow_home').prop('checked', (data.allow_home || $btn.attr('data-allow_home')) === 'Y');
             $('#edit_allow_import').prop('checked', (data.allow_import || $btn.attr('data-allow_import')) === 'Y');
-            $('#edit_allow_check').prop('checked', (data.allow_check || $btn.attr('data-allow_check')) === 'Y');
             $('#edit_allow_check_right').prop('checked', (data.allow_check_right || $btn.attr('data-allow_check_right')) === 'Y');
             $('#edit_allow_emr').prop('checked', (data.allow_emr || $btn.attr('data-allow_emr')) === 'Y');
             $('#edit_allow_claim_op').prop('checked', (data.allow_claim_op || $btn.attr('data-allow_claim_op')) === 'Y');

@@ -14,7 +14,7 @@
         </div>
         
         <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
-            <form method="POST" action="{{ url('check/eclaim_status') }}" class="d-flex align-items-center gap-2 m-0">
+            <form method="POST" action="{{ url('import/eclaim_status') }}" class="d-flex align-items-center gap-2 m-0">
                 @csrf
                 <div class="input-group input-group-sm" style="width: auto;">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
@@ -192,7 +192,7 @@
         <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-excel-fill me-2"></i> นำเข้าข้อมูล E-Claim จาก Excel</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form action="{{ url('check/eclaim_status/import') }}" method="POST" enctype="multipart/form-data">
+      <form action="{{ url('import/eclaim_status/import') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal-body p-4">
             <div class="alert alert-info border-0 shadow-sm rounded-3 mb-4">
@@ -392,7 +392,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "{{ url('check/eclaim_status') }}",
+            url: "{{ url('import/eclaim_status') }}",
             data: function (d) {
                 d.start_date = $('#start_date').val();
                 d.end_date = $('#end_date').val();

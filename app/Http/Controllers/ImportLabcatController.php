@@ -14,7 +14,7 @@ use App\Models\Labcat_nhso;
 use App\Models\Labcat_chi;
 use App\Models\Labcat_tmt;
 
-class CheckLabcatController extends Controller
+class ImportLabcatController extends Controller
 {
     public function __construct()
     {
@@ -22,8 +22,8 @@ class CheckLabcatController extends Controller
             'auth',
             function ($request, $next) {
                 $user = auth()->user();
-                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
-                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                if ($user && $user->status !== 'admin' && $user->allow_import !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'นำเข้าข้อมูล'], 403);
                 }
                 return $next($request);
             }
@@ -103,7 +103,7 @@ class CheckLabcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.labcat_nhso')->with('success', $file_name);
+        return redirect()->route('import.labcat_nhso')->with('success', $file_name);
     }
 
     private function getLabItems($extraWhere = '')
@@ -191,7 +191,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels();
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_non_nhso()
@@ -200,7 +200,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_price_notmatch_hosxp()
@@ -209,7 +209,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_tmlt_notmatch_hosxp()
@@ -218,7 +218,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NOT NULL AND ln.tmlt <> sg.tmlt_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_loinc_notmatch_hosxp()
@@ -227,7 +227,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NOT NULL AND ln.loinc <> sg.loinc_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_tmlt_missing_hosxp()
@@ -236,7 +236,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NOT NULL AND (sg.tmlt_code IS NULL OR sg.tmlt_code = '') AND ln.tmlt IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_nhso_loinc_missing_hosxp()
@@ -245,7 +245,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanels("AND ln.lccode IS NOT NULL AND (sg.loinc_code IS NULL OR sg.loinc_code = '') AND ln.loinc IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_nhso', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     // =========================================================================
@@ -324,7 +324,7 @@ class CheckLabcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.labcat_chi')->with('success', $file_name);
+        return redirect()->route('import.labcat_chi')->with('success', $file_name);
     }
 
     private function getLabItemsChi($extraWhere = '')
@@ -387,7 +387,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi();
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_non_nhso()
@@ -396,7 +396,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_price_notmatch_hosxp()
@@ -405,7 +405,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_tmlt_notmatch_hosxp()
@@ -414,7 +414,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NOT NULL AND ln.tmlt <> sg.tmlt_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_loinc_notmatch_hosxp()
@@ -423,7 +423,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NOT NULL AND ln.loinc <> sg.loinc_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_tmlt_missing_hosxp()
@@ -432,7 +432,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NOT NULL AND (sg.tmlt_code IS NULL OR sg.tmlt_code = '') AND ln.tmlt IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_chi_loinc_missing_hosxp()
@@ -441,7 +441,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsChi("AND ln.lccode IS NOT NULL AND (sg.loinc_code IS NULL OR sg.loinc_code = '') AND ln.loinc IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_chi', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     // =========================================================================
@@ -600,7 +600,7 @@ class CheckLabcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.labcat_fdh')->with('success', $file_name);
+        return redirect()->route('import.labcat_fdh')->with('success', $file_name);
     }
 
     public function labcat_fdh()
@@ -609,7 +609,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh();
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_non_nhso()
@@ -618,7 +618,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_price_notmatch_hosxp()
@@ -627,7 +627,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_tmlt_notmatch_hosxp()
@@ -636,7 +636,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NOT NULL AND ln.tmlt <> sg.tmlt_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_loinc_notmatch_hosxp()
@@ -645,7 +645,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NOT NULL AND ln.loinc <> sg.loinc_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_tmlt_missing_hosxp()
@@ -654,7 +654,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NOT NULL AND (sg.tmlt_code IS NULL OR sg.tmlt_code = '') AND ln.tmlt IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_loinc_missing_hosxp()
@@ -663,7 +663,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getLabPanelsFdh("AND ln.lccode IS NOT NULL AND (sg.loinc_code IS NULL OR sg.loinc_code = '') AND ln.loinc IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_fdh', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_fdh_export(Request $request, $seq = '001')
@@ -1247,7 +1247,7 @@ class CheckLabcatController extends Controller
             return response()->json(['success' => true, 'file_name' => $file_name]);
         }
 
-        return redirect()->route('check.labcat_tmt')->with('success', $file_name);
+        return redirect()->route('import.labcat_tmt')->with('success', $file_name);
     }
 
     private function getTmtLabItems($extraWhere = '')
@@ -1310,7 +1310,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels();
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_non_nhso()
@@ -1319,7 +1319,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_price_notmatch_hosxp()
@@ -1328,7 +1328,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_tmlt_notmatch_hosxp()
@@ -1337,7 +1337,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.tmlt <> sg.tmlt_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_loinc_notmatch_hosxp()
@@ -1346,7 +1346,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.loinc <> sg.loinc_code");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_tmlt_missing_hosxp()
@@ -1355,7 +1355,7 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND (sg.tmlt_code IS NULL OR sg.tmlt_code = '') AND ln.tmlt IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 
     public function labcat_tmt_loinc_missing_hosxp()
@@ -1364,6 +1364,6 @@ class CheckLabcatController extends Controller
         $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND (sg.loinc_code IS NULL OR sg.loinc_code = '') AND ln.loinc IS NOT NULL");
         $items_unmapped_i = $this->getUnmappedLabItems();
         $items_unmapped_p = $this->getUnmappedLabPanels();
-        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+        return view('import.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 }

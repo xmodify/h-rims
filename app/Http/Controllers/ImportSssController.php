@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use ZipArchive;
 use SimpleXMLElement;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Models\LookupSssEquipdevAipn;
+use Carbon\Carbon;
 
 class ImportSssController extends Controller
 {
@@ -1481,6 +1484,188 @@ class ImportSssController extends Controller
                 File::deleteDirectory($extractPath);
             }
             return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล STM: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // sss_equipdev_aipn -----------------------------------------------------------------------------------------
+    public function sss_equipdev_aipn(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = DB::table('lookup_sss_equipdev_aipn');
+
+            // Tab filter: active = dateexp >= today, expired = dateexp < today
+            $tab = $request->input('tab', 'all');
+            $today = now()->format('Y-m-d');
+            if ($tab === 'active') {
+                $query->where('dateexp', '>=', $today);
+            } elseif ($tab === 'expired') {
+                $query->where('dateexp', '<', $today);
+            }
+
+            // Searching
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $search = $request->search['value'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%$search%")
+                      ->orWhere('desc', 'like', "%$search%")
+                      ->orWhere('billgroup', 'like', "%$search%")
+                      ->orWhere('dtcond', 'like', "%$search%");
+                });
+            }
+
+            $recordsTotal = DB::table('lookup_sss_equipdev_aipn')->count();
+            $recordsFiltered = $query->count();
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            
+            // Order
+            if ($request->has('order')) {
+                $columns = [
+                    0 => 'billgroup',
+                    1 => 'code',
+                    2 => 'unit',
+                    3 => 'rate',
+                    4 => 'rate2',
+                    5 => 'desc',
+                    6 => 'daterev',
+                    7 => 'dateeff',
+                    8 => 'dateexp',
+                    9 => 'lastupd',
+                    10 => 'dtcond',
+                    11 => 'note'
+                ];
+                foreach ($request->order as $order) {
+                    if (isset($columns[$order['column']])) {
+                        $query->orderBy($columns[$order['column']], $order['dir']);
+                    }
+                }
+            } else {
+                $query->orderBy('id', 'asc');
+            }
+
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
+
+        $total_records = DB::table('lookup_sss_equipdev_aipn')->count();
+        $active_records = DB::table('lookup_sss_equipdev_aipn')->where('dateexp', '>=', now()->format('Y-m-d'))->count();
+        $expired_records = DB::table('lookup_sss_equipdev_aipn')->where('dateexp', '<', now()->format('Y-m-d'))->count();
+        return view('import.sss_equipdev_aipn', compact('total_records', 'active_records', 'expired_records'));
+    }
+
+    // sss_equipdev_aipn_save ------------------------------------------------------------------------------------
+    public function sss_equipdev_aipn_save(Request $request)
+    {
+        set_time_limit(300);
+        ini_set('memory_limit', '1024M');
+
+        $this->validate($request, [
+            'file' => 'required|file|extensions:xls,xlsx'
+        ]);
+
+        $the_file = $request->file('file');
+        $file_name = $the_file->getClientOriginalName();
+
+        try {
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet = $spreadsheet->setActiveSheetIndex(0);
+            $row_limit = $sheet->getHighestDataRow();
+
+            $data = [];
+
+            // Helper function to format Excel date safely
+            $parseDate = function ($value) {
+                if (empty($value) || $value === '-' || trim($value) === '') {
+                    return null;
+                }
+                
+                $value = trim($value);
+                if (is_numeric($value)) {
+                    try {
+                        return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
+                }
+                
+                foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                    try {
+                        return Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // continue
+                    }
+                }
+                
+                try {
+                    return Carbon::parse($value)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    return null;
+                }
+            };
+
+            $cleanRate = function ($val) {
+                if ($val === null || $val === '-' || trim($val) === '') {
+                    return null;
+                }
+                $val = str_replace(',', '', $val);
+                return is_numeric($val) ? (float) $val : null;
+            };
+
+            for ($row = 2; $row <= $row_limit; $row++) {
+                $billgroup = $sheet->getCell('A' . $row)->getValue();
+                $code = $sheet->getCell('B' . $row)->getValue();
+
+                if (empty($billgroup) && empty($code)) {
+                    continue;
+                }
+
+                $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
+                $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+
+                $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
+                $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
+                $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+
+                $data[] = [
+                    'billgroup' => $sheet->getCell('A' . $row)->getValue(),
+                    'code' => $sheet->getCell('B' . $row)->getValue(),
+                    'unit' => $sheet->getCell('C' . $row)->getValue(),
+                    'rate' => $rate,
+                    'rate2' => $rate2,
+                    'desc' => $sheet->getCell('F' . $row)->getValue(),
+                    'daterev' => $daterev,
+                    'dateeff' => $dateeff,
+                    'dateexp' => $dateexp,
+                    'lastupd' => $sheet->getCell('J' . $row)->getValue(),
+                    'dtcond' => $sheet->getCell('K' . $row)->getValue(),
+                    'note' => $sheet->getCell('L' . $row)->getValue(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (!empty($data)) {
+                LookupSssEquipdevAipn::truncate();
+                DB::transaction(function () use ($data) {
+                    $chunks = array_chunk($data, 1000);
+                    foreach ($chunks as $chunk) {
+                        LookupSssEquipdevAipn::insert($chunk);
+                    }
+                });
+            }
+
+            return redirect()->route('import.sss_equipdev_aipn')->with('success', 'นำเข้าข้อมูล ' . $file_name . ' สำเร็จ จำนวน ' . count($data) . ' รายการ');
+
+        } catch (\Exception $e) {
+            return redirect()->route('import.sss_equipdev_aipn')->with('error', 'เกิดข้อผิดพลาดในการนำเข้า: ' . $e->getMessage());
         }
     }
 }

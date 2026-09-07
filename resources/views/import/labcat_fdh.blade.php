@@ -19,10 +19,10 @@
     <div class="page-header-box mt-3 mb-4">
         <div>
             <h5 class="text-dark mb-0 fw-bold">
-                <i class="bi bi-clipboard-pulse text-warning me-2"></i>
-                ตรวจสอบ Lab Catalog (สกส.)
+                <i class="bi bi-clipboard-pulse text-primary me-2"></i>
+                ตรวจสอบ Lab Catalog FDH
             </h5>
-            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ สกส.</div>
+            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ FDH</div>
         </div>
         <div class="d-flex gap-2">
             @if ($message = Session::get('success'))
@@ -43,10 +43,10 @@
         <div class="col-lg-5">
             <div class="card dash-card h-100">
                 <div class="card-body">
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog สกส.</h6>
-                    <form id="importForm" action="{{ url('check/labcat_chi_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog FDH</h6>
+                    <form id="importForm" action="{{ url('import/labcat_fdh_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf  
-                        <div class="input-group">
+                        <div class="input-group mb-3">
                             <input class="form-control" id="formFile" name="file" type="file" required style="border-radius: 10px 0 0 10px;">
                             <button type="button" onclick="handleImportSubmit(event)" class="btn btn-success px-4" style="border-radius: 0 10px 10px 0;">
                                 <i class="bi bi-cloud-upload me-1"></i> นำเข้า
@@ -56,15 +56,15 @@
                     
                     <hr class="my-3 text-muted opacity-25">
                     
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-arrow-down me-2 text-primary"></i> ส่งออกไฟล์ LAB Catalog สกส.</h6>
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-arrow-down me-2 text-primary"></i> ส่งออกไฟล์ LAB Catalog FDH</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-sm-4">
                             <label for="seq_no" class="form-label small text-muted mb-1">งวดที่ส่ง (Sequence)</label>
                             <input type="text" id="seq_no" class="form-control text-center fw-bold" value="001" placeholder="001" maxlength="3" style="border-radius: 8px; height: 38px;">
                         </div>
                         <div class="col-sm-8 d-flex flex-column gap-2">
-                            <button type="button" onclick="exportData('chi')" class="btn btn-primary btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> ส่งออกไฟล์ LAB Catalog สกส.
+                            <button type="button" onclick="exportData('fdh')" class="btn btn-primary btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> ส่งออกไฟล์ LAB Catalog FDH
                             </button>
                         </div>
                     </div>
@@ -76,25 +76,25 @@
                 <div class="card-body">
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-funnel me-2 text-primary"></i> ตัวกรองข้อมูล</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi') }}">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh') }}">
                             <i class="bi bi-list-check me-1"></i> ทั้งหมด
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_non_nhso') }}">
-                            <i class="bi bi-search me-1"></i> ไม่พบที่ สกส.
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_non_nhso') }}">
+                            <i class="bi bi-search me-1"></i> ไม่พบที่ FDH
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_price_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_price_notmatch_hosxp') }}">
                             <i class="bi bi-currency-dollar me-1"></i> ราคาไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_tmlt_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_tmlt_notmatch_hosxp') }}">
                             <i class="bi bi-upc-scan me-1"></i> TMLT ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_loinc_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_loinc_notmatch_hosxp') }}">
                             <i class="bi bi-hash me-1"></i> LOINC ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_tmlt_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_tmlt_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก TMLT
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_chi_loinc_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_fdh_loinc_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก LOINC
                         </a>
                     </div>
@@ -102,7 +102,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="labTab" role="tablist" style="border-bottom: 2px solid #dee2e6;">
         <li class="nav-item" role="presentation">
@@ -130,7 +130,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" rowspan="2" style="width: 40px; vertical-align: middle;"><input type="checkbox" id="checkAllI" class="form-check-input"></th>
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">สกส.</th>   
+                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">FDH</th>   
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;" width="15%">ชื่อแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสเบิก (icode)</th>             
@@ -141,13 +141,13 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สกส.</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">FDH</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">สกส.</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">FDH</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">สกส.</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">FDH</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">สกส.</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">FDH</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
@@ -234,7 +234,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" rowspan="2" style="width: 40px; vertical-align: middle;"><input type="checkbox" id="checkAllP" class="form-check-input"></th>
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">สกส.</th>   
+                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">FDH</th>   
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;" width="15%">ชื่อแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสเบิก (icode)</th>             
@@ -245,13 +245,13 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สกส.</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">FDH</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">สกส.</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">FDH</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">สกส.</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">FDH</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">สกส.</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">FDH</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
@@ -344,30 +344,27 @@
             <div class="modal-body p-4">
                 <div class="alert alert-info py-2 px-3 small border-0 d-flex align-items-center" style="background-color: rgba(13, 202, 240, 0.1); color: #055160; border-radius: 8px;">
                     <i class="bi bi-info-circle-fill me-2"></i> 
-                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ LAB Catalog สกส. จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
+                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ LAB Catalog FDH จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
                 </div>
                 <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                     <table class="table table-bordered table-striped table-hover small text-nowrap" id="previewTable">
                         <thead class="bg-light sticky-top" style="top: 0;">
                             <tr>
-                                <th>LCCode</th>
-                                <th>BillGroup</th>
-                                <th>CsCode</th>
-                                <th>TMLT</th>
+                                <th>row</th>
+                                <th>สิทธิประโยชน์</th>
+                                <th>รหัสกรมบัญชีกลาง</th>
+                                <th>ชื่อ</th>
+                                <th>หน่วย</th>
+                                <th>ราคากลาง</th>
+                                <th>gyear</th>
+                                <th>วันที่เริ่มต้น</th>
+                                <th>วันที่สิ้นสุด</th>
+                                <th>flag</th>
+                                <th>TMLT Code</th>
+                                <th>TMLT Name</th>
+                                <th>Lab Code</th>
                                 <th>LOINC</th>
-                                <th>Panel</th>
-                                <th>Name</th>
-                                <th>SFlag</th>
-                                <th>ChargeCat</th>
-                                <th>UnitPrice</th>
-                                <th>BenefitPlan</th>
-                                <th>ReimbPrice</th>
-                                <th>UpdateFlag</th>
-                                <th>UPDateBeg</th>
-                                <th>UPDateEnd</th>
-                                <th>RPDateBeg</th>
-                                <th>RPDateEnd</th>
-                                <th>DateUpd</th>
+                                <th>Exception</th>
                             </tr>
                         </thead>
                         <tbody id="previewTableBody">
@@ -430,7 +427,7 @@
             }
         });
 
-        fetch('{{ url("check/labcat_chi_export_preview") }}', {
+        fetch('{{ url("import/labcat_fdh_export_preview") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -456,24 +453,21 @@
                     const tr = document.createElement('tr');
                     
                     const cells = [
-                        row.lccode,
-                        row.billgroup,
-                        row.cscode,
-                        row.tmlt,
-                        row.loinc,
-                        row.panel,
-                        row.name,
-                        row.sflag,
-                        row.chargecat,
-                        row.unitprice,
+                        idx + 1,
                         row.benefitplan,
-                        row.reimbprice,
-                        row.updateflag,
+                        row.cscode,
+                        row.name,
+                        row.unit,
+                        row.unitprice,
+                        row.gyear,
                         row.updatebeg,
                         row.updateend,
-                        row.rpdatebeg,
-                        row.rpdateend,
-                        row.dateupd
+                        row.updateflag,
+                        row.tmlt,
+                        row.tmlt_name,
+                        row.lccode,
+                        row.loinc,
+                        row.exception
                     ];
                     
                     cells.forEach(val => {
@@ -490,7 +484,7 @@
                 $('#previewTable').DataTable({
                     pageLength: 10,
                     lengthMenu: [5, 10, 25, 50, 100],
-                    scrollX: true,
+                    scrollX: false,
                     language: {
                         search: "ค้นหาในตารางพรีวิว:",
                         lengthMenu: "แสดง _MENU_ รายการ",
@@ -536,7 +530,7 @@
             let seq = document.getElementById('seq_no').value.trim() || '001';
             seq = seq.padStart(3, '0');
             
-            let baseUrl = '{{ url("check/labcat_chi_export") }}';
+            let baseUrl = '{{ url("import/labcat_fdh_export") }}';
             
             $('#previewExportModal').modal('hide');
             
@@ -624,7 +618,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'ตรวจสอบ Lab Catalog สกส.',
+              title: 'ตรวจสอบ Lab Catalog FDH',
               exportOptions: {
                   columns: ':gt(1)'
               }

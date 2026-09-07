@@ -40,7 +40,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/amnosend', [AopodSendController::class, 'send']);
 
 // API E-Claim ---------------------------------------------------------------------------------
-Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class, 'sync_eclaim_extension']);
+Route::post('/eclaim/sync', [\App\Http\Controllers\ImportEclaimController::class, 'sync_eclaim_extension']);
 Route::post('/eclaim/session-sync', [\App\Http\Controllers\EclaimBotController::class, 'saveSessionFromExtension']);
 
 // API HOSFIN GL Microservice Sync ----------------------------------------------

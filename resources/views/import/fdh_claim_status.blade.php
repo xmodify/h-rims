@@ -186,7 +186,7 @@
 
       // ✔ ปิด Modal → Redirect
       modalEl.addEventListener('hidden.bs.modal', function () {
-          window.location.href = "{{ url('check/fdh_claim_status') }}";
+          window.location.href = "{{ url('import/fdh_claim_status') }}";
       });
 
       function getDatesInRange(startDateStr, endDateStr) {

@@ -20,9 +20,9 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-clipboard-pulse text-warning me-2"></i>
-                ตรวจสอบ Lab Catalog
+                ตรวจสอบ Lab Catalog TMLT
             </h5>
-            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ สปสช.</div>
+            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ TMLT</div>
         </div>
         <div class="d-flex gap-2">
             @if ($message = Session::get('success'))
@@ -43,11 +43,11 @@
         <div class="col-lg-5">
             <div class="card dash-card h-100">
                 <div class="card-body">
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog สปสช.</h6>
-                    <form id="importForm" action="{{ url('check/labcat_nhso_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog TMLT</h6>
+                    <form id="importForm" action="{{ url('import/labcat_tmt_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf  
                         <div class="input-group">
-                            <input class="form-control" id="formFile" name="file" type="file" required style="border-radius: 10px 0 0 10px;">
+                            <input class="form-control" id="formFile" name="files[]" type="file" required style="border-radius: 10px 0 0 10px;" multiple>
                             <button type="button" onclick="handleImportSubmit(event)" class="btn btn-success px-4" style="border-radius: 0 10px 10px 0;">
                                 <i class="bi bi-cloud-upload me-1"></i> นำเข้า
                             </button>
@@ -61,25 +61,25 @@
                 <div class="card-body">
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-funnel me-2 text-primary"></i> ตัวกรองข้อมูล</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso') }}">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt') }}">
                             <i class="bi bi-list-check me-1"></i> ทั้งหมด
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_non_nhso') }}">
-                            <i class="bi bi-search me-1"></i> ไม่พบที่ สปสช.
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_non_nhso') }}">
+                            <i class="bi bi-search me-1"></i> ไม่พบที่ TMLT
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_price_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_price_notmatch_hosxp') }}">
                             <i class="bi bi-currency-dollar me-1"></i> ราคาไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_tmlt_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_tmlt_notmatch_hosxp') }}">
                             <i class="bi bi-upc-scan me-1"></i> TMLT ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_loinc_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_loinc_notmatch_hosxp') }}">
                             <i class="bi bi-hash me-1"></i> LOINC ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_tmlt_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_tmlt_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก TMLT
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_nhso_loinc_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_tmt_loinc_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก LOINC
                         </a>
                     </div>
@@ -113,7 +113,7 @@
                         <table id="labTableI" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-center" rowspan="2">สปสช.</th>   
+                                    <th class="text-center" rowspan="2">TMLT</th>   
                                     <th class="text-center" rowspan="2">รหัสแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" width="15%">ชื่อแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2">รหัสเบิก (icode)</th>             
@@ -124,13 +124,13 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สปสช.</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">TMLT</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">สปสช.</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">TMLT</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">สปสช.</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">TMLT</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">สปสช.</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">TMLT</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
@@ -213,7 +213,7 @@
                         <table id="labTableP" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-center" rowspan="2">สปสช.</th>   
+                                    <th class="text-center" rowspan="2">TMLT</th>   
                                     <th class="text-center" rowspan="2">รหัสแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2" width="15%">ชื่อแล็บ HOSxP</th>             
                                     <th class="text-center" rowspan="2">รหัสเบิก (icode)</th>             
@@ -224,13 +224,13 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สปสช.</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">TMLT</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">สปสช.</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">TMLT</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">สปสช.</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">TMLT</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">สปสช.</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">TMLT</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
@@ -311,17 +311,6 @@
 
 @push('scripts')  
   <script>
-    function showLoadingAlert() {
-        Swal.fire({
-            title: 'กำลังนำเข้าข้อมูล...',
-            text: 'กรุณารอสักครู่',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading()
-            }
-        });
-    }
-
     function handleImportSubmit(e) {
         const fileInput = document.getElementById('formFile');
         if (!fileInput.files || fileInput.files.length === 0) {
@@ -334,8 +323,124 @@
             return;
         }
 
-        showLoadingAlert();
-        document.getElementById('importForm').submit();
+        const files = Array.from(fileInput.files);
+        const totalFiles = files.length;
+        let currentFileIndex = 0;
+
+        Swal.fire({
+            title: 'กำลังนำเข้าข้อมูล...',
+            html: `
+                <div class="text-start mb-2">
+                    <strong>ความคืบหน้ารวม: </strong> <span id="swal-total-text">0 / ${totalFiles} ไฟล์</span>
+                </div>
+                <div class="progress mb-3" style="height: 12px; border-radius: 6px;">
+                    <div id="swal-total-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="text-start mb-1">
+                    <span id="swal-file-name" class="fw-bold">กำลังเริ่ม...</span>
+                </div>
+                <div class="progress" style="height: 20px; border-radius: 10px;">
+                    <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                uploadNextFile();
+            }
+        });
+
+        function uploadNextFile() {
+            if (currentFileIndex >= totalFiles) {
+                // Show final total progress state 100%
+                document.getElementById('swal-total-bar').style.width = '100%';
+                document.getElementById('swal-total-text').textContent = `${totalFiles} / ${totalFiles} ไฟล์`;
+
+                Swal.fire({
+                    title: 'นำเข้าสำเร็จ!',
+                    text: `นำเข้าไฟล์สำเร็จทั้งหมด ${totalFiles} ไฟล์เรียบร้อยแล้ว`,
+                    icon: 'success',
+                    confirmButtonText: 'ตกลง'
+                }).then(() => {
+                    window.location.reload();
+                });
+                return;
+            }
+
+            const file = files[currentFileIndex];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            // Update UI for the current file
+            document.getElementById('swal-file-name').textContent = `กำลังโหลด: ${file.name}`;
+            
+            // Total progress
+            const totalPercent = Math.round((currentFileIndex / totalFiles) * 100);
+            document.getElementById('swal-total-bar').style.width = `${totalPercent}%`;
+            document.getElementById('swal-total-text').textContent = `${currentFileIndex} / ${totalFiles} ไฟล์`;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ url("import/labcat_tmt_save") }}', true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            // Track upload progress
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    // Show 95% maximum during upload, saving last 5% for server processing response
+                    const displayPercent = Math.min(percentComplete, 95);
+                    const progressBar = document.getElementById('swal-progress-bar');
+                    if (progressBar) {
+                        progressBar.style.width = `${displayPercent}%`;
+                        progressBar.textContent = `${displayPercent}%`;
+                        progressBar.setAttribute('aria-valuenow', displayPercent);
+                    }
+                }
+            });
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            // Finish current file progress
+                            const progressBar = document.getElementById('swal-progress-bar');
+                            if (progressBar) {
+                                progressBar.style.width = '100%';
+                                progressBar.textContent = '100%';
+                                progressBar.setAttribute('aria-valuenow', 100);
+                            }
+
+                            // Go to next file
+                            currentFileIndex++;
+                            // Show final file success state before transitioning
+                            setTimeout(uploadNextFile, 500);
+                        } else {
+                            showError(response.message || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์');
+                        }
+                    } else {
+                        let errMsg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                        try {
+                            const errResp = JSON.parse(xhr.responseText);
+                            if (errResp.message) errMsg = errResp.message;
+                        } catch(ex) {}
+                        showError(errMsg);
+                    }
+                }
+            };
+
+            xhr.send(formData);
+        }
+
+        function showError(msg) {
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด!',
+                text: msg,
+                icon: 'error',
+                confirmButtonText: 'ตกลง'
+            });
+        }
     }
 
     $(document).ready(function () {
@@ -371,7 +476,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'ตรวจสอบ Lab Catalog สปสช.'
+              title: 'ตรวจสอบ Lab Catalog TMLT'
             }
         ],
         language: {

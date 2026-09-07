@@ -11,7 +11,7 @@ use App\Models\EclaimStatus;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 
-class CheckEclaimController extends Controller
+class ImportEclaimController extends Controller
 {
     public function __construct()
     {
@@ -19,8 +19,8 @@ class CheckEclaimController extends Controller
             'auth',
             function ($request, $next) {
                 $user = auth()->user();
-                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
-                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                if ($user && $user->status !== 'admin' && $user->allow_import !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'นำเข้าข้อมูล'], 403);
                 }
                 return $next($request);
             }
@@ -228,7 +228,7 @@ class CheckEclaimController extends Controller
             ->get()
             ->keyBy('status_code');
 
-        return view('check.eclaim_status', compact('start_date', 'end_date', 'summary', 'hipdata_list', 'hipdata', 'patient_type'));
+        return view('import.eclaim_status', compact('start_date', 'end_date', 'summary', 'hipdata_list', 'hipdata', 'patient_type'));
     }
 
 

@@ -301,7 +301,7 @@ function openSyncEclaimClientModal(fromModalId) {
 
 // --- E-Claim Auto Pull Functions ---
 function refreshPullModalBotStatus() {
-    fetch("{{ route('check.eclaim_status.bot_status') }}")
+    fetch("{{ route('import.eclaim_status.bot_status') }}")
         .then(res => res.json())
         .then(data => {
             const icon = document.getElementById('pullSessionIcon');
@@ -354,7 +354,7 @@ function submitAutoPull() {
     if (document.getElementById('btnPullCancel')) document.getElementById('btnPullCancel').disabled = true;
     if (document.getElementById('btnAutoPullCloseX')) document.getElementById('btnAutoPullCloseX').disabled = true;
 
-    fetch("{{ route('check.eclaim_status.auto_pull') }}", {
+    fetch("{{ route('import.eclaim_status.auto_pull') }}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -509,7 +509,7 @@ function reloadEclaimTable() {
             $('select[name="hipdata"]').val(pullHip);
         }
 
-        // Case 1: If on check/eclaim_status page with DataTable #list
+        // Case 1: If on import/eclaim_status page with DataTable #list
         if ($.fn.DataTable && $.fn.DataTable.isDataTable('#list')) {
             $('#list').DataTable().ajax.reload(null, false);
             return;

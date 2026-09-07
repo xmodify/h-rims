@@ -15,9 +15,10 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ImportDmisController;
 use App\Http\Controllers\ImportRepController;
-use App\Http\Controllers\CheckController;
-use App\Http\Controllers\CheckDrugcatController;
-use App\Http\Controllers\CheckLabcatController;
+use App\Http\Controllers\ImportDrugcatController;
+use App\Http\Controllers\ImportLabcatController;
+use App\Http\Controllers\ImportEclaimController;
+use App\Http\Controllers\ImportFdhController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OpdController;
 use App\Http\Controllers\IpdController;
@@ -364,100 +365,99 @@ Route::post('import/stm_sss_kidney_updateReceipt', [ImportController::class, 'st
 Route::get('import/stm_sss_kidney/chart-data', [ImportController::class, 'stm_sss_kidney_getChartData'])->name('import.stm_sss_kidney.chart-data');
 Route::match(['get', 'post'], 'import/stm_sss_kidneydetail', [ImportController::class, 'stm_sss_kidneydetail'])->name('stm_sss_kidneydetail');
 
-Route::match(['get', 'post'], 'check/sss_equipdev_aipn', [CheckController::class, 'sss_equipdev_aipn'])->name('check.sss_equipdev_aipn');
-Route::post('check/sss_equipdev_aipn_save', [CheckController::class, 'sss_equipdev_aipn_save'])->name('check.sss_equipdev_aipn_save');
+Route::match(['get', 'post'], 'import/sss_equipdev_aipn', [ImportSssController::class, 'sss_equipdev_aipn'])->name('import.sss_equipdev_aipn');
+Route::post('import/sss_equipdev_aipn_save', [ImportSssController::class, 'sss_equipdev_aipn_save'])->name('import.sss_equipdev_aipn_save');
 
-//Check------------------------------------------------------------------------------------------------------------------------------
+// Import FDH Claim Status
+Route::match(['get', 'post'], 'import/fdh_claim_status', [ImportFdhController::class, 'fdh_claim_status'])->name('import.fdh_claim_status');
 
-Route::match(['get', 'post'], 'check/nhso_endpoint', function () {
-    return redirect('/?open_nhso_modal=1');
-});
-Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);
-Route::post('check/drugcat_nhso_save', [CheckDrugcatController::class, 'drugcat_nhso_save']);
-Route::get('check/drugcat_nhso', [CheckDrugcatController::class, 'drugcat_nhso'])->name('check.drugcat_nhso');
-Route::match(['get', 'post'], 'check/eclaim_status', [\App\Http\Controllers\CheckEclaimController::class, 'eclaim_status']);
-Route::get('check/eclaim_status/bot-status', [\App\Http\Controllers\CheckEclaimController::class, 'getBotStatus'])->name('check.eclaim_status.bot_status');
-Route::post('check/eclaim_status/auto-pull', [\App\Http\Controllers\CheckEclaimController::class, 'autoPullEclaimStatus'])->name('check.eclaim_status.auto_pull');
-Route::post('check/eclaim_status/import', [\App\Http\Controllers\CheckEclaimController::class, 'import_eclaim_excel']);
-Route::get('check/drugcat_nhso_non_nhso', [CheckDrugcatController::class, 'drugcat_nhso_non_nhso']);
-Route::get('check/drugcat_nhso_price_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_price_notmatch_hosxp']);
-Route::get('check/drugcat_nhso_tmt_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_tmt_notmatch_hosxp']);
-Route::get('check/drugcat_nhso_code24_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_code24_notmatch_hosxp']);
-Route::get('check/drugcat_nhso_herb', [CheckDrugcatController::class, 'drugcat_nhso_herb']);
-Route::get('check/drugcat_nhso_ised_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_ised_notmatch_hosxp']);
-Route::get('check/drugcat_nhso_code24_missing_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_code24_missing_hosxp']);
-Route::get('check/drugcat_nhso_tmt_missing_hosxp', [CheckDrugcatController::class, 'drugcat_nhso_tmt_missing_hosxp']);
-Route::post('check/drugcat_chi_save', [CheckDrugcatController::class, 'drugcat_chi_save']);
-Route::get('check/drugcat_chi', [CheckDrugcatController::class, 'drugcat_chi'])->name('check.drugcat_chi');
-Route::get('check/drugcat_chi_non_nhso', [CheckDrugcatController::class, 'drugcat_chi_non_nhso']);
-Route::get('check/drugcat_chi_price_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_chi_price_notmatch_hosxp']);
-Route::get('check/drugcat_chi_tmt_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_chi_tmt_notmatch_hosxp']);
-Route::get('check/drugcat_chi_code24_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_chi_code24_notmatch_hosxp']);
-Route::get('check/drugcat_chi_herb', [CheckDrugcatController::class, 'drugcat_chi_herb']);
-Route::get('check/drugcat_chi_ised_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_chi_ised_notmatch_hosxp']);
-Route::get('check/drugcat_chi_code24_missing_hosxp', [CheckDrugcatController::class, 'drugcat_chi_code24_missing_hosxp']);
-Route::get('check/drugcat_chi_tmt_missing_hosxp', [CheckDrugcatController::class, 'drugcat_chi_tmt_missing_hosxp']);
-Route::match(['get', 'post'], 'check/drugcat_chi_export_new/{seq?}', [CheckDrugcatController::class, 'drugcat_chi_export_new'])->name('check.drugcat_chi_export_new');
-Route::match(['get', 'post'], 'check/drugcat_chi_export_edit/{seq?}', [CheckDrugcatController::class, 'drugcat_chi_export_edit'])->name('check.drugcat_chi_export_edit');
-Route::match(['get', 'post'], 'check/drugcat_chi_export_update/{seq?}', [CheckDrugcatController::class, 'drugcat_chi_export_update'])->name('check.drugcat_chi_export_update');
-Route::post('check/drugcat_chi_export_preview', [CheckDrugcatController::class, 'drugcat_chi_export_preview'])->name('check.drugcat_chi_export_preview');
-Route::post('check/drugcat_fdh_save', [CheckDrugcatController::class, 'drugcat_fdh_save']);
-Route::get('check/drugcat_fdh', [CheckDrugcatController::class, 'drugcat_fdh'])->name('check.drugcat_fdh');
-Route::get('check/drugcat_fdh_non_nhso', [CheckDrugcatController::class, 'drugcat_fdh_non_nhso']);
-Route::get('check/drugcat_fdh_price_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_price_notmatch_hosxp']);
-Route::get('check/drugcat_fdh_tmt_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_tmt_notmatch_hosxp']);
-Route::get('check/drugcat_fdh_code24_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_code24_notmatch_hosxp']);
-Route::get('check/drugcat_fdh_herb', [CheckDrugcatController::class, 'drugcat_fdh_herb']);
-Route::get('check/drugcat_fdh_ised_notmatch_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_ised_notmatch_hosxp']);
-Route::get('check/drugcat_fdh_code24_missing_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_code24_missing_hosxp']);
-Route::get('check/drugcat_fdh_tmt_missing_hosxp', [CheckDrugcatController::class, 'drugcat_fdh_tmt_missing_hosxp']);
-Route::match(['get', 'post'], 'check/drugcat_fdh_export/{seq?}', [CheckDrugcatController::class, 'drugcat_fdh_export'])->name('check.drugcat_fdh_export');
-Route::post('check/drugcat_fdh_export_preview', [CheckDrugcatController::class, 'drugcat_fdh_export_preview'])->name('check.drugcat_fdh_export_preview');
-    Route::post('check/labcat_nhso_save', [CheckLabcatController::class, 'labcat_nhso_save']);
-    Route::get('check/labcat_nhso', [CheckLabcatController::class, 'labcat_nhso'])->name('check.labcat_nhso');
-    Route::get('check/labcat_nhso_non_nhso', [CheckLabcatController::class, 'labcat_nhso_non_nhso']);
-    Route::get('check/labcat_nhso_price_notmatch_hosxp', [CheckLabcatController::class, 'labcat_nhso_price_notmatch_hosxp']);
-    Route::get('check/labcat_nhso_tmlt_notmatch_hosxp', [CheckLabcatController::class, 'labcat_nhso_tmlt_notmatch_hosxp']);
-    Route::get('check/labcat_nhso_loinc_notmatch_hosxp', [CheckLabcatController::class, 'labcat_nhso_loinc_notmatch_hosxp']);
-    Route::get('check/labcat_nhso_tmlt_missing_hosxp', [CheckLabcatController::class, 'labcat_nhso_tmlt_missing_hosxp']);
-    Route::get('check/labcat_nhso_loinc_missing_hosxp', [CheckLabcatController::class, 'labcat_nhso_loinc_missing_hosxp']);
+// Import E-Claim Status
+Route::match(['get', 'post'], 'import/eclaim_status', [ImportEclaimController::class, 'eclaim_status'])->name('import.eclaim_status');
+Route::get('import/eclaim_status/bot-status', [ImportEclaimController::class, 'getBotStatus'])->name('import.eclaim_status.bot_status');
+Route::post('import/eclaim_status/auto-pull', [ImportEclaimController::class, 'autoPullEclaimStatus'])->name('import.eclaim_status.auto_pull');
+Route::post('import/eclaim_status/import', [ImportEclaimController::class, 'import_eclaim_excel'])->name('import.eclaim_status.import');
 
-    Route::post('check/labcat_fdh_save', [CheckLabcatController::class, 'labcat_fdh_save']);
-    Route::get('check/labcat_fdh', [CheckLabcatController::class, 'labcat_fdh'])->name('check.labcat_fdh');
-    Route::get('check/labcat_fdh_non_nhso', [CheckLabcatController::class, 'labcat_fdh_non_nhso']);
-    Route::get('check/labcat_fdh_price_notmatch_hosxp', [CheckLabcatController::class, 'labcat_fdh_price_notmatch_hosxp']);
-    Route::get('check/labcat_fdh_tmlt_notmatch_hosxp', [CheckLabcatController::class, 'labcat_fdh_tmlt_notmatch_hosxp']);
-    Route::get('check/labcat_fdh_loinc_notmatch_hosxp', [CheckLabcatController::class, 'labcat_fdh_loinc_notmatch_hosxp']);
-    Route::get('check/labcat_fdh_tmlt_missing_hosxp', [CheckLabcatController::class, 'labcat_fdh_tmlt_missing_hosxp']);
-    Route::get('check/labcat_fdh_loinc_missing_hosxp', [CheckLabcatController::class, 'labcat_fdh_loinc_missing_hosxp']);
-    Route::match(['get', 'post'], 'check/labcat_fdh_export/{seq?}', [CheckLabcatController::class, 'labcat_fdh_export'])->name('check.labcat_fdh_export');
-    Route::post('check/labcat_fdh_export_preview', [CheckLabcatController::class, 'labcat_fdh_export_preview'])->name('check.labcat_fdh_export_preview');
+// Import Drug Catalog (NHSO, CHI, FDH)
+Route::post('import/drugcat_nhso_save', [ImportDrugcatController::class, 'drugcat_nhso_save'])->name('import.drugcat_nhso_save');
+Route::get('import/drugcat_nhso', [ImportDrugcatController::class, 'drugcat_nhso'])->name('import.drugcat_nhso');
+Route::get('import/drugcat_nhso_non_nhso', [ImportDrugcatController::class, 'drugcat_nhso_non_nhso']);
+Route::get('import/drugcat_nhso_price_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_price_notmatch_hosxp']);
+Route::get('import/drugcat_nhso_tmt_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_tmt_notmatch_hosxp']);
+Route::get('import/drugcat_nhso_code24_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_code24_notmatch_hosxp']);
+Route::get('import/drugcat_nhso_herb', [ImportDrugcatController::class, 'drugcat_nhso_herb']);
+Route::get('import/drugcat_nhso_ised_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_ised_notmatch_hosxp']);
+Route::get('import/drugcat_nhso_code24_missing_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_code24_missing_hosxp']);
+Route::get('import/drugcat_nhso_tmt_missing_hosxp', [ImportDrugcatController::class, 'drugcat_nhso_tmt_missing_hosxp']);
 
+Route::post('import/drugcat_chi_save', [ImportDrugcatController::class, 'drugcat_chi_save'])->name('import.drugcat_chi_save');
+Route::get('import/drugcat_chi', [ImportDrugcatController::class, 'drugcat_chi'])->name('import.drugcat_chi');
+Route::get('import/drugcat_chi_non_nhso', [ImportDrugcatController::class, 'drugcat_chi_non_nhso']);
+Route::get('import/drugcat_chi_price_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_chi_price_notmatch_hosxp']);
+Route::get('import/drugcat_chi_tmt_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_chi_tmt_notmatch_hosxp']);
+Route::get('import/drugcat_chi_code24_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_chi_code24_notmatch_hosxp']);
+Route::get('import/drugcat_chi_herb', [ImportDrugcatController::class, 'drugcat_chi_herb']);
+Route::get('import/drugcat_chi_ised_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_chi_ised_notmatch_hosxp']);
+Route::get('import/drugcat_chi_code24_missing_hosxp', [ImportDrugcatController::class, 'drugcat_chi_code24_missing_hosxp']);
+Route::get('import/drugcat_chi_tmt_missing_hosxp', [ImportDrugcatController::class, 'drugcat_chi_tmt_missing_hosxp']);
+Route::match(['get', 'post'], 'import/drugcat_chi_export_new/{seq?}', [ImportDrugcatController::class, 'drugcat_chi_export_new'])->name('import.drugcat_chi_export_new');
+Route::match(['get', 'post'], 'import/drugcat_chi_export_edit/{seq?}', [ImportDrugcatController::class, 'drugcat_chi_export_edit'])->name('import.drugcat_chi_export_edit');
+Route::match(['get', 'post'], 'import/drugcat_chi_export_update/{seq?}', [ImportDrugcatController::class, 'drugcat_chi_export_update'])->name('import.drugcat_chi_export_update');
+Route::post('import/drugcat_chi_export_preview', [ImportDrugcatController::class, 'drugcat_chi_export_preview'])->name('import.drugcat_chi_export_preview');
 
-    Route::post('check/labcat_chi_save', [CheckLabcatController::class, 'labcat_chi_save']);
-    Route::get('check/labcat_chi', [CheckLabcatController::class, 'labcat_chi'])->name('check.labcat_chi');
-    Route::get('check/labcat_chi_non_nhso', [CheckLabcatController::class, 'labcat_chi_non_nhso']);
-    Route::get('check/labcat_chi_price_notmatch_hosxp', [CheckLabcatController::class, 'labcat_chi_price_notmatch_hosxp']);
-    Route::get('check/labcat_chi_tmlt_notmatch_hosxp', [CheckLabcatController::class, 'labcat_chi_tmlt_notmatch_hosxp']);
-    Route::get('check/labcat_chi_loinc_notmatch_hosxp', [CheckLabcatController::class, 'labcat_chi_loinc_notmatch_hosxp']);
-    Route::get('check/labcat_chi_tmlt_missing_hosxp', [CheckLabcatController::class, 'labcat_chi_tmlt_missing_hosxp']);
-    Route::get('check/labcat_chi_loinc_missing_hosxp', [CheckLabcatController::class, 'labcat_chi_loinc_missing_hosxp']);
-    Route::match(['get', 'post'], 'check/labcat_chi_export/{seq?}', [CheckLabcatController::class, 'labcat_chi_export'])->name('check.labcat_chi_export');
-    Route::post('check/labcat_chi_export_preview', [CheckLabcatController::class, 'labcat_chi_export_preview'])->name('check.labcat_chi_export_preview');
+Route::post('import/drugcat_fdh_save', [ImportDrugcatController::class, 'drugcat_fdh_save'])->name('import.drugcat_fdh_save');
+Route::get('import/drugcat_fdh', [ImportDrugcatController::class, 'drugcat_fdh'])->name('import.drugcat_fdh');
+Route::get('import/drugcat_fdh_non_nhso', [ImportDrugcatController::class, 'drugcat_fdh_non_nhso']);
+Route::get('import/drugcat_fdh_price_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_price_notmatch_hosxp']);
+Route::get('import/drugcat_fdh_tmt_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_tmt_notmatch_hosxp']);
+Route::get('import/drugcat_fdh_code24_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_code24_notmatch_hosxp']);
+Route::get('import/drugcat_fdh_herb', [ImportDrugcatController::class, 'drugcat_fdh_herb']);
+Route::get('import/drugcat_fdh_ised_notmatch_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_ised_notmatch_hosxp']);
+Route::get('import/drugcat_fdh_code24_missing_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_code24_missing_hosxp']);
+Route::get('import/drugcat_fdh_tmt_missing_hosxp', [ImportDrugcatController::class, 'drugcat_fdh_tmt_missing_hosxp']);
+Route::match(['get', 'post'], 'import/drugcat_fdh_export/{seq?}', [ImportDrugcatController::class, 'drugcat_fdh_export'])->name('import.drugcat_fdh_export');
+Route::post('import/drugcat_fdh_export_preview', [ImportDrugcatController::class, 'drugcat_fdh_export_preview'])->name('import.drugcat_fdh_export_preview');
 
-    Route::post('check/labcat_tmt_save', [CheckLabcatController::class, 'labcat_tmt_save']);
-    Route::get('check/labcat_tmt', [CheckLabcatController::class, 'labcat_tmt'])->name('check.labcat_tmt');
-    Route::get('check/labcat_tmt_non_nhso', [CheckLabcatController::class, 'labcat_tmt_non_nhso']);
-    Route::get('check/labcat_tmt_price_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_price_notmatch_hosxp']);
-    Route::get('check/labcat_tmt_tmlt_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_tmlt_notmatch_hosxp']);
-    Route::get('check/labcat_tmt_loinc_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_loinc_notmatch_hosxp']);
-    Route::get('check/labcat_tmt_tmlt_missing_hosxp', [CheckLabcatController::class, 'labcat_tmt_tmlt_missing_hosxp']);
-    Route::get('check/labcat_tmt_loinc_missing_hosxp', [CheckLabcatController::class, 'labcat_tmt_loinc_missing_hosxp']);
+// Import Lab Catalog (NHSO, FDH, CHI, TMT)
+Route::post('import/labcat_nhso_save', [ImportLabcatController::class, 'labcat_nhso_save'])->name('import.labcat_nhso_save');
+Route::get('import/labcat_nhso', [ImportLabcatController::class, 'labcat_nhso'])->name('import.labcat_nhso');
+Route::get('import/labcat_nhso_non_nhso', [ImportLabcatController::class, 'labcat_nhso_non_nhso']);
+Route::get('import/labcat_nhso_price_notmatch_hosxp', [ImportLabcatController::class, 'labcat_nhso_price_notmatch_hosxp']);
+Route::get('import/labcat_nhso_tmlt_notmatch_hosxp', [ImportLabcatController::class, 'labcat_nhso_tmlt_notmatch_hosxp']);
+Route::get('import/labcat_nhso_loinc_notmatch_hosxp', [ImportLabcatController::class, 'labcat_nhso_loinc_notmatch_hosxp']);
+Route::get('import/labcat_nhso_tmlt_missing_hosxp', [ImportLabcatController::class, 'labcat_nhso_tmlt_missing_hosxp']);
+Route::get('import/labcat_nhso_loinc_missing_hosxp', [ImportLabcatController::class, 'labcat_nhso_loinc_missing_hosxp']);
 
-Route::get('check/pttype', [CheckController::class, 'pttype']);
-Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
-Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);
-Route::get('check/doctor', [CheckController::class, 'doctor']);
+Route::post('import/labcat_fdh_save', [ImportLabcatController::class, 'labcat_fdh_save'])->name('import.labcat_fdh_save');
+Route::get('import/labcat_fdh', [ImportLabcatController::class, 'labcat_fdh'])->name('import.labcat_fdh');
+Route::get('import/labcat_fdh_non_nhso', [ImportLabcatController::class, 'labcat_fdh_non_nhso']);
+Route::get('import/labcat_fdh_price_notmatch_hosxp', [ImportLabcatController::class, 'labcat_fdh_price_notmatch_hosxp']);
+Route::get('import/labcat_fdh_tmlt_notmatch_hosxp', [ImportLabcatController::class, 'labcat_fdh_tmlt_notmatch_hosxp']);
+Route::get('import/labcat_fdh_loinc_notmatch_hosxp', [ImportLabcatController::class, 'labcat_fdh_loinc_notmatch_hosxp']);
+Route::get('import/labcat_fdh_tmlt_missing_hosxp', [ImportLabcatController::class, 'labcat_fdh_tmlt_missing_hosxp']);
+Route::get('import/labcat_fdh_loinc_missing_hosxp', [ImportLabcatController::class, 'labcat_fdh_loinc_missing_hosxp']);
+Route::match(['get', 'post'], 'import/labcat_fdh_export/{seq?}', [ImportLabcatController::class, 'labcat_fdh_export'])->name('import.labcat_fdh_export');
+Route::post('import/labcat_fdh_export_preview', [ImportLabcatController::class, 'labcat_fdh_export_preview'])->name('import.labcat_fdh_export_preview');
+
+Route::post('import/labcat_chi_save', [ImportLabcatController::class, 'labcat_chi_save'])->name('import.labcat_chi_save');
+Route::get('import/labcat_chi', [ImportLabcatController::class, 'labcat_chi'])->name('import.labcat_chi');
+Route::get('import/labcat_chi_non_nhso', [ImportLabcatController::class, 'labcat_chi_non_nhso']);
+Route::get('import/labcat_chi_price_notmatch_hosxp', [ImportLabcatController::class, 'labcat_chi_price_notmatch_hosxp']);
+Route::get('import/labcat_chi_tmlt_notmatch_hosxp', [ImportLabcatController::class, 'labcat_chi_tmlt_notmatch_hosxp']);
+Route::get('import/labcat_chi_loinc_notmatch_hosxp', [ImportLabcatController::class, 'labcat_chi_loinc_notmatch_hosxp']);
+Route::get('import/labcat_chi_tmlt_missing_hosxp', [ImportLabcatController::class, 'labcat_chi_tmlt_missing_hosxp']);
+Route::get('import/labcat_chi_loinc_missing_hosxp', [ImportLabcatController::class, 'labcat_chi_loinc_missing_hosxp']);
+Route::match(['get', 'post'], 'import/labcat_chi_export/{seq?}', [ImportLabcatController::class, 'labcat_chi_export'])->name('import.labcat_chi_export');
+Route::post('import/labcat_chi_export_preview', [ImportLabcatController::class, 'labcat_chi_export_preview'])->name('import.labcat_chi_export_preview');
+
+Route::post('import/labcat_tmt_save', [ImportLabcatController::class, 'labcat_tmt_save'])->name('import.labcat_tmt_save');
+Route::get('import/labcat_tmt', [ImportLabcatController::class, 'labcat_tmt'])->name('import.labcat_tmt');
+Route::get('import/labcat_tmt_non_nhso', [ImportLabcatController::class, 'labcat_tmt_non_nhso']);
+Route::get('import/labcat_tmt_price_notmatch_hosxp', [ImportLabcatController::class, 'labcat_tmt_price_notmatch_hosxp']);
+Route::get('import/labcat_tmt_tmlt_notmatch_hosxp', [ImportLabcatController::class, 'labcat_tmt_tmlt_notmatch_hosxp']);
+Route::get('import/labcat_tmt_loinc_notmatch_hosxp', [ImportLabcatController::class, 'labcat_tmt_loinc_notmatch_hosxp']);
+Route::get('import/labcat_tmt_tmlt_missing_hosxp', [ImportLabcatController::class, 'labcat_tmt_tmlt_missing_hosxp']);
+Route::get('import/labcat_tmt_loinc_missing_hosxp', [ImportLabcatController::class, 'labcat_tmt_loinc_missing_hosxp']);
+
 
 // EMR (งานเวชระเบียน) -------------------------------------------------------------
 Route::prefix('emr')->name('emr.')->group(function () {

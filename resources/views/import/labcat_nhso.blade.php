@@ -19,10 +19,10 @@
     <div class="page-header-box mt-3 mb-4">
         <div>
             <h5 class="text-dark mb-0 fw-bold">
-                <i class="bi bi-clipboard-pulse text-primary me-2"></i>
-                ตรวจสอบ Lab Catalog FDH
+                <i class="bi bi-clipboard-pulse text-warning me-2"></i>
+                ตรวจสอบ Lab Catalog
             </h5>
-            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ FDH</div>
+            <div class="text-muted small mt-1">ตรวจสอบความถูกต้องของรหัสแล็บ TMLT/LOINC และราคาระหว่าง HOSxP และ สปสช.</div>
         </div>
         <div class="d-flex gap-2">
             @if ($message = Session::get('success'))
@@ -43,31 +43,16 @@
         <div class="col-lg-5">
             <div class="card dash-card h-100">
                 <div class="card-body">
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog FDH</h6>
-                    <form id="importForm" action="{{ url('check/labcat_fdh_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Lab Catalog สปสช.</h6>
+                    <form id="importForm" action="{{ url('import/labcat_nhso_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf  
-                        <div class="input-group mb-3">
+                        <div class="input-group">
                             <input class="form-control" id="formFile" name="file" type="file" required style="border-radius: 10px 0 0 10px;">
                             <button type="button" onclick="handleImportSubmit(event)" class="btn btn-success px-4" style="border-radius: 0 10px 10px 0;">
                                 <i class="bi bi-cloud-upload me-1"></i> นำเข้า
                             </button>
                         </div>
                     </form>
-                    
-                    <hr class="my-3 text-muted opacity-25">
-                    
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-arrow-down me-2 text-primary"></i> ส่งออกไฟล์ LAB Catalog FDH</h6>
-                    <div class="row g-2 align-items-end">
-                        <div class="col-sm-4">
-                            <label for="seq_no" class="form-label small text-muted mb-1">งวดที่ส่ง (Sequence)</label>
-                            <input type="text" id="seq_no" class="form-control text-center fw-bold" value="001" placeholder="001" maxlength="3" style="border-radius: 8px; height: 38px;">
-                        </div>
-                        <div class="col-sm-8 d-flex flex-column gap-2">
-                            <button type="button" onclick="exportData('fdh')" class="btn btn-primary btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> ส่งออกไฟล์ LAB Catalog FDH
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -76,25 +61,25 @@
                 <div class="card-body">
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-funnel me-2 text-primary"></i> ตัวกรองข้อมูล</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh') }}">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso') }}">
                             <i class="bi bi-list-check me-1"></i> ทั้งหมด
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_non_nhso') }}">
-                            <i class="bi bi-search me-1"></i> ไม่พบที่ FDH
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_non_nhso') }}">
+                            <i class="bi bi-search me-1"></i> ไม่พบที่ สปสช.
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_price_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_price_notmatch_hosxp') }}">
                             <i class="bi bi-currency-dollar me-1"></i> ราคาไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_tmlt_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_tmlt_notmatch_hosxp') }}">
                             <i class="bi bi-upc-scan me-1"></i> TMLT ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_loinc_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_loinc_notmatch_hosxp') }}">
                             <i class="bi bi-hash me-1"></i> LOINC ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_tmlt_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_tmlt_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก TMLT
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/labcat_fdh_loinc_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/labcat_nhso_loinc_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก LOINC
                         </a>
                     </div>
@@ -102,7 +87,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="labTab" role="tablist" style="border-bottom: 2px solid #dee2e6;">
         <li class="nav-item" role="presentation">
@@ -129,11 +113,10 @@
                         <table id="labTableI" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-center" rowspan="2" style="width: 40px; vertical-align: middle;"><input type="checkbox" id="checkAllI" class="form-check-input"></th>
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">FDH</th>   
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสแล็บ HOSxP</th>             
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;" width="15%">ชื่อแล็บ HOSxP</th>             
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสเบิก (icode)</th>             
+                                    <th class="text-center" rowspan="2">สปสช.</th>   
+                                    <th class="text-center" rowspan="2">รหัสแล็บ HOSxP</th>             
+                                    <th class="text-center" rowspan="2" width="15%">ชื่อแล็บ HOSxP</th>             
+                                    <th class="text-center" rowspan="2">รหัสเบิก (icode)</th>             
                                     <th class="text-center" colspan="2" style="background-color: #f8fafc; border-bottom-color: #cbd5e1 !important;">ชื่อรายการ</th>                   
                                     <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ราคา</th>                   
                                     <th class="text-center" colspan="2" style="background-color: #f0f9ff; border-bottom-color: #bae6fd !important;">รหัส TMLT</th> 
@@ -141,21 +124,18 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">FDH</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สปสช.</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">FDH</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">สปสช.</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">FDH</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">สปสช.</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">FDH</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">สปสช.</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
                                 @foreach($items_i as $row)          
                                 <tr>          
-                                    <td class="text-center" style="vertical-align: middle;">
-                                        <input type="checkbox" name="selected_labs[]" value="{{ $row->icode }}" class="form-check-input lab-checkbox">
-                                    </td>
                                     <td class="text-center" data-order="{{ $row->chk_nhso_labcat == 'Y' ? 1 : 0 }}">
                                         @if($row->chk_nhso_labcat == 'Y')
                                             <i class="bi bi-check-circle-fill text-success"></i>
@@ -233,11 +213,10 @@
                         <table id="labTableP" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-center" rowspan="2" style="width: 40px; vertical-align: middle;"><input type="checkbox" id="checkAllP" class="form-check-input"></th>
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">FDH</th>   
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสแล็บ HOSxP</th>             
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;" width="15%">ชื่อแล็บ HOSxP</th>             
-                                    <th class="text-center" rowspan="2" style="vertical-align: middle;">รหัสเบิก (icode)</th>             
+                                    <th class="text-center" rowspan="2">สปสช.</th>   
+                                    <th class="text-center" rowspan="2">รหัสแล็บ HOSxP</th>             
+                                    <th class="text-center" rowspan="2" width="15%">ชื่อแล็บ HOSxP</th>             
+                                    <th class="text-center" rowspan="2">รหัสเบิก (icode)</th>             
                                     <th class="text-center" colspan="2" style="background-color: #f8fafc; border-bottom-color: #cbd5e1 !important;">ชื่อรายการ</th>                   
                                     <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ราคา</th>                   
                                     <th class="text-center" colspan="2" style="background-color: #f0f9ff; border-bottom-color: #bae6fd !important;">รหัส TMLT</th> 
@@ -245,21 +224,18 @@
                                 </tr>
                                 <tr>                    
                                     <th class="text-center small" style="background-color: #f8fafc" width="15%">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">FDH</th> 
+                                    <th class="text-center small" style="background-color: #f8fafc" width="15%">สปสช.</th> 
                                     <th class="text-center small" style="background-color: #e0f2fe">HOSxP</th>   
-                                    <th class="text-center small" style="background-color: #e0f2fe">FDH</th> 
+                                    <th class="text-center small" style="background-color: #e0f2fe">สปสช.</th> 
                                     <th class="text-center small" style="background-color: #f0f9ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f0f9ff">FDH</th>
+                                    <th class="text-center small" style="background-color: #f0f9ff">สปสช.</th>
                                     <th class="text-center small" style="background-color: #f5f3ff">HOSxP</th> 
-                                    <th class="text-center small" style="background-color: #f5f3ff">FDH</th>  
+                                    <th class="text-center small" style="background-color: #f5f3ff">สปสช.</th>  
                                 </tr>
                             </thead>                          
                             <tbody>
                                 @foreach($items_p as $row)          
                                 <tr>          
-                                    <td class="text-center" style="vertical-align: middle;">
-                                        <input type="checkbox" name="selected_labs[]" value="{{ $row->icode }}" class="form-check-input lab-checkbox">
-                                    </td>
                                     <td class="text-center" data-order="{{ $row->chk_nhso_labcat == 'Y' ? 1 : 0 }}">
                                         @if($row->chk_nhso_labcat == 'Y')
                                             <i class="bi bi-check-circle-fill text-success"></i>
@@ -331,233 +307,10 @@
 </div>
 <br>
 
-<!-- Modal for Export Preview -->
-<div class="modal fade" id="previewExportModal" tabindex="-1" aria-labelledby="previewExportModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
-            <div class="modal-header bg-light border-bottom-0" style="border-radius: 15px 15px 0 0;">
-                <h6 class="modal-title fw-bold text-dark" id="previewExportModalLabel">
-                    <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i> ตรวจสอบโครงสร้างข้อมูลก่อนส่งออก (Preview)
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="alert alert-info py-2 px-3 small border-0 d-flex align-items-center" style="background-color: rgba(13, 202, 240, 0.1); color: #055160; border-radius: 8px;">
-                    <i class="bi bi-info-circle-fill me-2"></i> 
-                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ LAB Catalog FDH จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
-                </div>
-                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-bordered table-striped table-hover small text-nowrap" id="previewTable">
-                        <thead class="bg-light sticky-top" style="top: 0;">
-                            <tr>
-                                <th>row</th>
-                                <th>สิทธิประโยชน์</th>
-                                <th>รหัสกรมบัญชีกลาง</th>
-                                <th>ชื่อ</th>
-                                <th>หน่วย</th>
-                                <th>ราคากลาง</th>
-                                <th>gyear</th>
-                                <th>วันที่เริ่มต้น</th>
-                                <th>วันที่สิ้นสุด</th>
-                                <th>flag</th>
-                                <th>TMLT Code</th>
-                                <th>TMLT Name</th>
-                                <th>Lab Code</th>
-                                <th>LOINC</th>
-                                <th>Exception</th>
-                            </tr>
-                        </thead>
-                        <tbody id="previewTableBody">
-                            <!-- Data rows will be dynamically appended here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
-                <button type="button" class="btn btn-success rounded-pill px-4" id="confirmExportBtn">
-                    <i class="bi bi-check-circle me-1"></i> ยืนยันส่งออกไฟล์ Excel
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @push('scripts')  
   <script>
-    let currentExportType = '';
-    let currentCheckedBoxes = [];
-
-    function exportData(type) {
-        const checkedBoxes = [];
-        
-        // Collect checked boxes from labTableI node and labTableP node
-        if ($.fn.DataTable.isDataTable('#labTableI')) {
-            $('#labTableI').DataTable().$('.lab-checkbox:checked').each(function() {
-                checkedBoxes.push(this.value);
-            });
-        }
-        if ($.fn.DataTable.isDataTable('#labTableP')) {
-            $('#labTableP').DataTable().$('.lab-checkbox:checked').each(function() {
-                checkedBoxes.push(this.value);
-            });
-        }
-
-        if (checkedBoxes.length === 0) {
-            Swal.fire({
-                title: 'แจ้งเตือน',
-                text: 'กรุณาเลือกรายการแล็บที่ต้องการส่งออกอย่างน้อย 1 รายการ หรือเลือกทั้งหมด',
-                icon: 'warning',
-                confirmButtonText: 'ตกลง'
-            });
-            return;
-        }
-
-        currentExportType = type;
-        currentCheckedBoxes = checkedBoxes;
-
-        Swal.fire({
-            title: 'กำลังเตรียมข้อมูลตัวอย่าง...',
-            text: 'กรุณารอสักครู่',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading()
-            }
-        });
-
-        fetch('{{ url("check/labcat_fdh_export_preview") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                icodes: checkedBoxes
-            })
-        })
-        .then(response => response.json())
-        .then(res => {
-            Swal.close();
-            if (res.success) {
-                if ($.fn.DataTable.isDataTable('#previewTable')) {
-                    $('#previewTable').DataTable().destroy();
-                }
-
-                document.getElementById('previewCount').innerText = res.data.length;
-                const tbody = document.getElementById('previewTableBody');
-                tbody.innerHTML = '';
-                
-                res.data.forEach((row, idx) => {
-                    const tr = document.createElement('tr');
-                    
-                    const cells = [
-                        idx + 1,
-                        row.benefitplan,
-                        row.cscode,
-                        row.name,
-                        row.unit,
-                        row.unitprice,
-                        row.gyear,
-                        row.updatebeg,
-                        row.updateend,
-                        row.updateflag,
-                        row.tmlt,
-                        row.tmlt_name,
-                        row.lccode,
-                        row.loinc,
-                        row.exception
-                    ];
-                    
-                    cells.forEach(val => {
-                        const td = document.createElement('td');
-                        td.innerText = val !== null ? val : '';
-                        tr.appendChild(td);
-                    });
-                    
-                    tbody.appendChild(tr);
-                });
-                
-                $('#previewExportModal').modal('show');
-                
-                $('#previewTable').DataTable({
-                    pageLength: 10,
-                    lengthMenu: [5, 10, 25, 50, 100],
-                    scrollX: false,
-                    language: {
-                        search: "ค้นหาในตารางพรีวิว:",
-                        lengthMenu: "แสดง _MENU_ รายการ",
-                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                        paginate: {
-                            previous: "ก่อนหน้า",
-                            next: "ถัดไป"
-                        }
-                    }
-                });
-            } else {
-                Swal.fire({
-                    title: 'เกิดข้อผิดพลาด',
-                    text: res.message || 'ไม่สามารถดึงข้อมูลตัวอย่างได้',
-                    icon: 'error',
-                    confirmButtonText: 'ตกลง'
-                });
-            }
-        })
-        .catch(err => {
-            Swal.close();
-            Swal.fire({
-                title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้: ' + err.message,
-                icon: 'error',
-                confirmButtonText: 'ตกลง'
-            });
-        });
-    }
-
-    $(document).ready(function() {
-        $('#previewExportModal').on('shown.bs.modal', function () {
-            if ($.fn.DataTable.isDataTable('#previewTable')) {
-                $('#previewTable').DataTable().columns.adjust().draw();
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('confirmExportBtn').addEventListener('click', function() {
-            if (currentCheckedBoxes.length === 0) return;
-            
-            let seq = document.getElementById('seq_no').value.trim() || '001';
-            seq = seq.padStart(3, '0');
-            
-            let baseUrl = '{{ url("check/labcat_fdh_export") }}';
-            
-            $('#previewExportModal').modal('hide');
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = baseUrl + '/' + seq;
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = '{{ csrf_token() }}';
-            form.appendChild(csrfInput);
-
-            currentCheckedBoxes.forEach(code => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'icodes[]';
-                input.value = code;
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-        });
-    });
-
     function showLoadingAlert() {
         Swal.fire({
             title: 'กำลังนำเข้าข้อมูล...',
@@ -618,10 +371,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'ตรวจสอบ Lab Catalog FDH',
-              exportOptions: {
-                  columns: ':gt(1)'
-              }
+              title: 'ตรวจสอบ Lab Catalog สปสช.'
             }
         ],
         language: {
@@ -633,15 +383,12 @@
                 next: "ถัดไป"
             }
         },
-        columnDefs: [
-            { orderable: false, targets: [0] }
-        ],
         orderCellsTop: true,
-        order: [[4, 'asc']] // Sort by name
+        order: [[3, 'asc']] // Sort by name (column index 3)
       };
 
-      const tableI = $('#labTableI').DataTable(datatableConfig);
-      const tableP = $('#labTableP').DataTable(datatableConfig);
+      $('#labTableI').DataTable(datatableConfig);
+      $('#labTableP').DataTable(datatableConfig);
 
       const datatableConfigUnmappedI = {
         ...datatableConfig,
@@ -669,78 +416,6 @@
       };
       $('#labTableUnmappedI').DataTable(datatableConfigUnmappedI);
       $('#labTableUnmappedP').DataTable(datatableConfigUnmappedP);
-
-      function updateCheckAllStateI() {
-         const rows = tableI.rows({ page: 'current' }).nodes();
-         const checkboxes = $('input[name="selected_labs[]"]', rows);
-         const checkedCount = checkboxes.filter(':checked').length;
-         const el = $('#checkAllI').get(0);
-         
-         if (el && checkboxes.length > 0) {
-            if (checkedCount === 0) {
-               el.checked = false;
-               el.indeterminate = false;
-            } else if (checkedCount === checkboxes.length) {
-               el.checked = true;
-               el.indeterminate = false;
-            } else {
-               el.checked = false;
-               el.indeterminate = true;
-            }
-         } else if (el) {
-            el.checked = false;
-            el.indeterminate = false;
-         }
-      }
-
-      $('#checkAllI').on('click', function() {
-         const rows = tableI.rows({ page: 'current' }).nodes();
-         $('input[name="selected_labs[]"]', rows).prop('checked', this.checked);
-      });
-
-      $('#labTableI tbody').on('change', 'input[name="selected_labs[]"]', function() {
-         updateCheckAllStateI();
-      });
-
-      tableI.on('draw', function() {
-         updateCheckAllStateI();
-      });
-
-      function updateCheckAllStateP() {
-         const rows = tableP.rows({ page: 'current' }).nodes();
-         const checkboxes = $('input[name="selected_labs[]"]', rows);
-         const checkedCount = checkboxes.filter(':checked').length;
-         const el = $('#checkAllP').get(0);
-         
-         if (el && checkboxes.length > 0) {
-            if (checkedCount === 0) {
-               el.checked = false;
-               el.indeterminate = false;
-            } else if (checkedCount === checkboxes.length) {
-               el.checked = true;
-               el.indeterminate = false;
-            } else {
-               el.checked = false;
-               el.indeterminate = true;
-            }
-         } else if (el) {
-            el.checked = false;
-            el.indeterminate = false;
-         }
-      }
-
-      $('#checkAllP').on('click', function() {
-         const rows = tableP.rows({ page: 'current' }).nodes();
-         $('input[name="selected_labs[]"]', rows).prop('checked', this.checked);
-      });
-
-      $('#labTableP tbody').on('change', 'input[name="selected_labs[]"]', function() {
-         updateCheckAllStateP();
-      });
-
-      tableP.on('draw', function() {
-         updateCheckAllStateP();
-      });
     });
   </script>
 @endpush

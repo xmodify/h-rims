@@ -81,8 +81,8 @@ class CheckLicenseTest extends TestCase
         });
         $this->assertTrue($passed5);
 
-        // 7. hosfin and hosfin/trial_balance (allowed for previewing structure)
-        $request7 = \Illuminate\Http\Request::create('/hosfin/trial_balance', 'GET');
+        // 7. import/stm_ofc_cipn (whitelisted without license)
+        $request7 = \Illuminate\Http\Request::create('/import/stm_ofc_cipn', 'GET');
         $passed7 = false;
         $response7 = $middleware->handle($request7, function ($req) use (&$passed7) {
             $passed7 = true;
@@ -107,6 +107,15 @@ class CheckLicenseTest extends TestCase
             return response('OK');
         });
         $this->assertTrue($passed9);
+
+        // 10. import/sss_equipdev_aipn (no license required)
+        $request10 = \Illuminate\Http\Request::create('/import/sss_equipdev_aipn', 'GET');
+        $passed10 = false;
+        $response10 = $middleware->handle($request10, function ($req) use (&$passed10) {
+            $passed10 = true;
+            return response('OK');
+        });
+        $this->assertTrue($passed10);
     }
 
     public function test_guarded_route_is_blocked_when_license_inactive()
@@ -145,15 +154,7 @@ class CheckLicenseTest extends TestCase
         });
         $this->assertEquals(403, $response3->getStatusCode());
 
-        // 4. check/sss_equipdev_aipn (guarded via export_aipn auto-detection)
-        $request4 = \Illuminate\Http\Request::create('/check/sss_equipdev_aipn', 'GET');
-        $this->app->instance('request', $request4);
-        $response4 = $middleware->handle($request4, function ($req) {
-            return response('OK');
-        });
-        $this->assertEquals(403, $response4->getStatusCode());
-
-        // 5. f16_eclaim_export (guarded via export_f16_eclaim auto-detection)
+        // 4. f16_eclaim_export (guarded via export_f16_eclaim auto-detection)
         $request5 = \Illuminate\Http\Request::create('/f16_eclaim_export/export-data', 'POST');
         $this->app->instance('request', $request5);
         $response5 = $middleware->handle($request5, function ($req) {

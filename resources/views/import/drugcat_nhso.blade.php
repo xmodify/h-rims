@@ -44,7 +44,7 @@
             <div class="card dash-card h-100">
                 <div class="card-body">
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Drug Catalog NHSO</h6>
-                    <form id="importForm" action="{{ url('check/drugcat_nhso_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                    <form id="importForm" action="{{ url('import/drugcat_nhso_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf  
                         <div class="input-group">
                             <input class="form-control" id="formFile" name="file" type="file" required style="border-radius: 10px 0 0 10px;">
@@ -61,31 +61,31 @@
                 <div class="card-body">
                     <h6 class="fw-bold text-dark mb-3"><i class="bi bi-funnel me-2 text-primary"></i> ตัวกรองข้อมูล</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso') }}">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso') }}">
                             <i class="bi bi-list-check me-1"></i> ทั้งหมด
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_non_nhso') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_non_nhso') }}">
                             <i class="bi bi-search me-1"></i> ไม่พบที่ NHSO
                         </a>  
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_price_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_price_notmatch_hosxp') }}">
                             <i class="bi bi-currency-dollar me-1"></i> ราคาไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_tmt_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_tmt_notmatch_hosxp') }}">
                             <i class="bi bi-upc-scan me-1"></i> TMT ไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_code24_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_code24_notmatch_hosxp') }}">
                             <i class="bi bi-hash me-1"></i> 24 หลักไม่ตรง
                         </a> 
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_herb') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_herb') }}">
                             <i class="bi bi-leaf me-1"></i> ยาสมุนไพร
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_ised_notmatch_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_ised_notmatch_hosxp') }}">
                             <i class="bi bi-exclamation-triangle me-1"></i> บัญชียา ED/NED ไม่ตรง
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_code24_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_code24_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก 24 หลัก
                         </a>
-                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('check/drugcat_nhso_tmt_missing_hosxp') }}">
+                        <a class="btn btn-outline-purple btn-sm rounded-pill px-3" href="{{ url('import/drugcat_nhso_tmt_missing_hosxp') }}">
                             <i class="bi bi-patch-question me-1"></i> ยังไม่ผูก TMT
                         </a>
                     </div>

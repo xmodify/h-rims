@@ -14,7 +14,7 @@ use App\Models\Drugcat_nhso;
 use App\Models\Drugcat_chi;
 use App\Models\Drugcat_fdh;
 
-class CheckDrugcatController extends Controller
+class ImportDrugcatController extends Controller
 {
     public function __construct()
     {
@@ -22,8 +22,8 @@ class CheckDrugcatController extends Controller
             'auth',
             function ($request, $next) {
                 $user = auth()->user();
-                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
-                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                if ($user && $user->status !== 'admin' && $user->allow_import !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'นำเข้าข้อมูล'], 403);
                 }
                 return $next($request);
             }
@@ -123,7 +123,7 @@ class CheckDrugcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.drugcat_nhso')->with('success', $file_name);
+        return redirect()->route('import.drugcat_nhso')->with('success', $file_name);
     }
     //Drug ทั้งหมดใน HOSxP-----------------------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso()
@@ -146,7 +146,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug ไม่พบที่ NHSO----------------------------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_non_nhso()
@@ -169,7 +169,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ราคาไม่ตรงกับ HOSxP-------------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_price_notmatch_hosxp()
@@ -192,7 +192,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog รหัส TMT ไม่ตรงกับ HOSxP
     public function drugcat_nhso_tmt_notmatch_hosxp()
@@ -215,7 +215,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog รหัส 24 หลักไม่ตรงกับ HOSxP---------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_code24_notmatch_hosxp()
@@ -238,7 +238,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ยาสมุนไพร---------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_herb()
@@ -261,7 +261,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND d2.ref_code LIKE '4%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog บัญชียาหลักไม่ตรงกัน (ED/NED Mismatch)-----------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_ised_notmatch_hosxp()
@@ -286,7 +286,7 @@ class CheckDrugcatController extends Controller
               AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ลืมผูกรหัส 24 หลักใน HOSxP-----------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_code24_missing_hosxp()
@@ -311,7 +311,7 @@ class CheckDrugcatController extends Controller
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ลืมผูกรหัส TMT ใน HOSxP-----------------------------------------------------------------------------------------------------------------------------
     public function drugcat_nhso_tmt_missing_hosxp()
@@ -336,7 +336,7 @@ class CheckDrugcatController extends Controller
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_nhso', compact('drug'));
+        return view('import.drugcat_nhso', compact('drug'));
     }
 
     //นำเข้า Drug Catalog สกส.-----------------------------------------------------------------------------------------------------------------
@@ -446,7 +446,7 @@ class CheckDrugcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.drugcat_chi')->with('success', $file_name);
+        return redirect()->route('import.drugcat_chi')->with('success', $file_name);
     }
 
     //Drug ทั้งหมดใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------------------
@@ -472,7 +472,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug ไม่พบที่ สกส.----------------------------------------------------------------------------------------------------------------------------------------------
@@ -498,7 +498,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog ราคาไม่ตรงกับ HOSxP (CSMBS)-------------------------------------------------------------------------------------------------------------------------------
@@ -524,7 +524,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog รหัส TMT ไม่ตรงกับ HOSxP (CSMBS)
@@ -550,7 +550,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog รหัส 24 หลักไม่ตรงกับ HOSxP (CSMBS)---------------------------------------------------------------------------------------------------------------------------
@@ -576,7 +576,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog ยาสมุนไพร (CSMBS)---------------------------------------------------------------------------------------------------------------------------
@@ -602,7 +602,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND d2.ref_code LIKE '4%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog บัญชียาหลักไม่ตรงกัน (ED/NED Mismatch - CSMBS)-----------------------------------------------------------------------------------------------------------------
@@ -630,7 +630,7 @@ class CheckDrugcatController extends Controller
               AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog ลืมผูกรหัส 24 หลักใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------
@@ -658,7 +658,7 @@ class CheckDrugcatController extends Controller
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //Drug Catalog ลืมผูกรหัส TMT ใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------
@@ -686,7 +686,7 @@ class CheckDrugcatController extends Controller
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_chi', compact('drug'));
+        return view('import.drugcat_chi', compact('drug'));
     }
 
     //ส่งออกรายการใหม่ สกส (กรณีไม่พบที่ สกส) - UpdateFlag = A-------------------------------------------------------------------------------------------------
@@ -1137,7 +1137,7 @@ class CheckDrugcatController extends Controller
             return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('check.drugcat_fdh')->with('success', $file_name);
+        return redirect()->route('import.drugcat_fdh')->with('success', $file_name);
     }
 
     //Drug ทั้งหมดใน HOSxP (FDH)-----------------------------------------------------------------------------------------------------------------------------------------
@@ -1161,7 +1161,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug ไม่พบที่ FDH----------------------------------------------------------------------------------------------------------------------------------------------
@@ -1185,7 +1185,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog ราคาไม่ตรงกับ HOSxP (FDH)-------------------------------------------------------------------------------------------------------------------------------
@@ -1209,7 +1209,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog รหัส TMT ไม่ตรงกับ HOSxP (FDH)
@@ -1233,7 +1233,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog รหัส 24 หลักไม่ตรงกับ HOSxP (FDH)---------------------------------------------------------------------------------------------------------------------------
@@ -1257,7 +1257,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog ยาสมุนไพร (FDH)---------------------------------------------------------------------------------------------------------------------------
@@ -1281,7 +1281,7 @@ class CheckDrugcatController extends Controller
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND d2.ref_code LIKE '4%'
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog บัญชียาหลักไม่ตรงกัน (ED/NED Mismatch - FDH)-----------------------------------------------------------------------------------------------------------------
@@ -1307,7 +1307,7 @@ class CheckDrugcatController extends Controller
               AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog ยังไม่ผูกรหัส 24 หลักใน HOSxP (FDH)-------------------------------------------------------------------------------------------------------------
@@ -1333,7 +1333,7 @@ class CheckDrugcatController extends Controller
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //Drug Catalog ยังไม่ผูกรหัส TMT ใน HOSxP (FDH)-----------------------------------------------------------------------------------------------------------------------------
@@ -1359,7 +1359,7 @@ class CheckDrugcatController extends Controller
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drugcat_fdh', compact('drug'));
+        return view('import.drugcat_fdh', compact('drug'));
     }
 
     //ส่งออกรายการ FDH-------------------------------------------------------------------------------------------------

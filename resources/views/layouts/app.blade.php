@@ -1244,7 +1244,7 @@
                                     @auth
                                         @if (auth()->user()->status === 'admin')
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.main_setting') }}">
+                                                href="{{ route('admin.main_setting') }}#basic-info">
                                                 <i class="bi bi-gear-fill me-2 text-secondary"></i> Main Setting
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"

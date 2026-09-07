@@ -1157,15 +1157,25 @@
         });
 
         const hash = window.location.hash.replace('#', '');
-        const savedTab = localStorage.getItem('rims_setting_active_tab');
-        const targetSlug = hash || savedTab;
+        const targetSlug = hash || 'basic-info';
 
         if (targetSlug) {
-            const targetBtn = document.querySelector(`.setting-nav-btn[data-slug="${targetSlug}"]`);
+            const targetBtn = document.querySelector(`.setting-nav-btn[data-slug="${targetSlug}"]`)
+                           || document.querySelector('.setting-nav-btn[data-bs-toggle="pill"]');
             if (targetBtn) {
                 activateSettingTab(targetBtn);
             }
         }
+
+        // Handle hashchange event (e.g. clicking Main Setting from top navbar while on page)
+        window.addEventListener('hashchange', function () {
+            const newHash = window.location.hash.replace('#', '') || 'basic-info';
+            const targetBtn = document.querySelector(`.setting-nav-btn[data-slug="${newHash}"]`)
+                           || document.querySelector('.setting-nav-btn[data-bs-toggle="pill"]');
+            if (targetBtn) {
+                activateSettingTab(targetBtn);
+            }
+        });
     });
 
     // Global Search Across All Categories

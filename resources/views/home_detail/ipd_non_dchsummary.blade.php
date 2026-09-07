@@ -1,217 +1,266 @@
-<!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="{{ asset('images/favicon.ico?v=2') }}" type="image/x-icon">
-    <link rel="icon" href="{{ asset('images/favicon.ico?v=2') }}" type="image/x-icon">
+@extends('layouts.app')
 
-    <!-- CSRF Token -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('content')
+<div class="container-fluid py-3 px-lg-4">
+  <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header bg-white pt-3 pb-0 border-0">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+          <h5 class="card-title text-primary fw-bold mb-0">
+            <i class="bi bi-file-earmark-medical me-2"></i> รายงานผู้ป่วยในรอดำเนินการ (Chart รอแพทย์สรุป & บันทึก ICD10)
+          </h5>
+          <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
+            ข้อมูลผู้ป่วยในจำหน่ายแล้วแต่ยังรอดำเนินการสรุปเวชระเบียน
+          </small>
+        </div>
 
-    <title >ผู้ป่วยรอสรุป Chart</title>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" onclick="location.reload()" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+            <i class="bi bi-arrow-clockwise me-1"></i> รีเฟรช
+          </button>
+        </div>
+      </div>
 
-    <!-- Scripts -->
-    <script src="{{ asset('js/app.js') }}" defer></script>
-
-    <!-- Fonts -->
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    <!-- <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet"> -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-
-    <!-- Styles -->
-    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
-
-<style>
-  table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  width: 100%;
-  border: 1px solid #ddd;
-  }
-  th, td {
-  padding: 8px;
-  }  
-</style>
-</head>
-<body>
-<!-- row -->
-<div class="container mt-4">
-  <div class="card">
-    <div class="card-header bg-white pt-3">
-        <h5 class="card-title text-primary"><i class="bi bi-file-earmark-medical"></i> รายงานผู้ป่วยในรอดำเนินการ</h5>
-        <ul class="nav nav-tabs card-header-tabs" id="ipdTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="diag-tab" data-bs-toggle="tab" data-bs-target="#diag" type="button" role="tab" aria-controls="diag" aria-selected="true">
-                    รอสรุป Chart <span class="badge bg-danger">{{ count($non_diagtext_list) }}</span>
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="icd10-tab" data-bs-toggle="tab" data-bs-target="#icd10" type="button" role="tab" aria-controls="icd10" aria-selected="false">
-                    รอบันทึก ICD10 <span class="badge bg-warning text-dark">{{ count($non_icd10_list) }}</span>
-                </button>
-            </li>
-        </ul>
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs card-header-tabs" id="ipdTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-semibold" id="diag-tab" data-bs-toggle="tab" data-bs-target="#diag" type="button" role="tab" aria-controls="diag" aria-selected="true">
+            <i class="bi bi-hourglass-split me-1 text-danger"></i> รอแพทย์สรุป Chart 
+            <span class="badge bg-danger rounded-pill ms-1">{{ count($non_diagtext_list) }}</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold" id="icd10-tab" data-bs-toggle="tab" data-bs-target="#icd10" type="button" role="tab" aria-controls="icd10" aria-selected="false">
+            <i class="bi bi-code-square me-1 text-warning"></i> รอบันทึก ICD10 
+            <span class="badge bg-warning text-dark rounded-pill ms-1">{{ count($non_icd10_list) }}</span>
+          </button>
+        </li>
+      </ul>
     </div>
-    <div class="card-body">  
-      <div class="row">        
-        <div class="col-md-12"> 
-          <div id="non_dchsummary_sum" class="mb-4" style="width: 100%; height: 400px"></div>
-          
-          <div class="tab-content" id="ipdTabContent">
-            <!-- Tab รอสรุป Chart -->
-            <div class="tab-pane fade show active" id="diag" role="tabpanel" aria-labelledby="diag-tab">
-              <div style="overflow-x:auto;">
-                <table class="table table-hover table-bordered">
-                  <thead class="table-danger">
-                    <tr>
-                        <th class="text-center">ลำดับ</th>           
-                        <th class="text-center">Ward</th>              
-                        <th class="text-center">AN</th> 
-                        <th class="text-center">แพทย์เจ้าของคนไข้</th>    
-                        <th class="text-center">วันที่จำหน่าย</th>  
-                        <th class="text-center">จำนวนวัน</th> 
-                        <th class="text-center">สถานะ</th>      
-                    </tr>
-                  </thead> 
-                  <tbody> 
-                    @forelse($non_diagtext_list as $index => $row) 
-                    <tr>
-                      <td align="center">{{ $index + 1 }}</td>
-                      <td align="left">{{$row->ward}}</td> 
-                      <td align="center">{{$row->an}}</td> 
-                      <td align="left">{{$row->owner_doctor_name}}</td> 
-                      <td align="left">{{DateThai($row->dchdate)}}</td>
-                      <td align="center" class="text-danger fw-bold">{{$row->dch_day}}</td> 
-                      <td align="center"><span class="badge bg-danger">รอแพทย์สรุป Chart</span></td> 
-                    </tr>
-                    @empty
-                    <tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>
-                    @endforelse                 
-                  </tbody>
-                </table>   
-              </div>
-            </div>
 
-            <!-- Tab รอบันทึก ICD10 -->
-            <div class="tab-pane fade" id="icd10" role="tabpanel" aria-labelledby="icd10-tab">
-              <div style="overflow-x:auto;">
-                <table class="table table-hover table-bordered">
-                  <thead class="table-warning">
-                    <tr>
-                        <th class="text-center">ลำดับ</th>           
-                        <th class="text-center">Ward</th>              
-                        <th class="text-center">AN</th> 
-                        <th class="text-center">แพทย์เจ้าของคนไข้</th>    
-                        <th class="text-center">วันที่จำหน่าย</th>  
-                        <th class="text-center">จำนวนวัน</th> 
-                        <th class="text-center">สถานะ</th>      
-                    </tr>
-                  </thead> 
-                  <tbody> 
-                    @forelse($non_icd10_list as $index => $row) 
-                    <tr>
-                      <td align="center">{{ $index + 1 }}</td>
-                      <td align="left">{{$row->ward}}</td> 
-                      <td align="center">{{$row->an}}</td> 
-                      <td align="left">{{$row->owner_doctor_name}}</td> 
-                      <td align="left">{{DateThai($row->dchdate)}}</td>
-                      <td align="center" class="text-warning fw-bold">{{$row->dch_day}}</td> 
-                      <td align="center"><span class="badge bg-warning text-dark">รอลงรหัสวินิจฉัยโรค</span></td> 
-                    </tr>
-                    @empty
-                    <tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>
-                    @endforelse                 
-                  </tbody>
-                </table>   
-              </div>
-            </div>
+    <div class="card-body">  
+      <!-- Stacked Bar Chart Overview -->
+      <div class="card border-0 bg-light p-3 mb-4 rounded-3 shadow-none">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-bold text-dark small"><i class="bi bi-bar-chart-fill me-1 text-primary"></i> สรุปจำนวน Chart รอดำเนินการแยกตามแพทย์</span>
+        </div>
+        <div id="non_dchsummary_sum" style="width: 100%; min-height: 380px;"></div>
+      </div>
+      
+      <!-- Tab Content (DataTables) -->
+      <div class="tab-content" id="ipdTabContent">
+        
+        <!-- Tab 1: รอสรุป Chart -->
+        <div class="tab-pane fade show active" id="diag" role="tabpanel" aria-labelledby="diag-tab">
+          <div class="table-responsive">
+            <table id="table_diag" class="table table-hover table-bordered align-middle w-100" style="font-size: 0.85rem;">
+              <thead class="table-danger">
+                <tr>
+                  <th class="text-center" style="width: 55px;">ลำดับ</th>           
+                  <th class="text-start">Ward</th>              
+                  <th class="text-center" style="width: 100px;">AN</th> 
+                  <th class="text-start">แพทย์เจ้าของคนไข้</th>    
+                  <th class="text-center" style="width: 110px;">วันที่จำหน่าย</th>  
+                  <th class="text-center" style="width: 80px;">จำนวนวัน</th> 
+                  <th class="text-center" style="width: 140px;">สถานะ</th>      
+                </tr>
+              </thead> 
+              <tbody> 
+                @foreach($non_diagtext_list as $index => $row) 
+                <tr>
+                  <td class="text-center text-muted">{{ $index + 1 }}</td>
+                  <td class="text-start fw-medium">{{ $row->ward }}</td> 
+                  <td class="text-center fw-bold text-primary">{{ $row->an }}</td> 
+                  <td class="text-start">{{ $row->owner_doctor_name }}</td> 
+                  <td class="text-center">{{ DateThai($row->dchdate) }}</td>
+                  <td class="text-center text-danger fw-bold">{{ $row->dch_day }}</td> 
+                  <td class="text-center">
+                    <span class="badge bg-danger rounded-pill px-2.5 py-1">รอแพทย์สรุป Chart</span>
+                  </td> 
+                </tr>
+                @endforeach                 
+              </tbody>
+            </table>   
           </div>
-        </div>  
-      </div>             
+        </div>
+
+        <!-- Tab 2: รอบันทึก ICD10 -->
+        <div class="tab-pane fade" id="icd10" role="tabpanel" aria-labelledby="icd10-tab">
+          <div class="table-responsive">
+            <table id="table_icd10" class="table table-hover table-bordered align-middle w-100" style="font-size: 0.85rem;">
+              <thead class="table-warning">
+                <tr>
+                  <th class="text-center" style="width: 55px;">ลำดับ</th>           
+                  <th class="text-start">Ward</th>              
+                  <th class="text-center" style="width: 100px;">AN</th> 
+                  <th class="text-start">แพทย์เจ้าของคนไข้</th>    
+                  <th class="text-center" style="width: 110px;">วันที่จำหน่าย</th>  
+                  <th class="text-center" style="width: 80px;">จำนวนวัน</th> 
+                  <th class="text-center" style="width: 140px;">สถานะ</th>      
+                </tr>
+              </thead> 
+              <tbody> 
+                @foreach($non_icd10_list as $index => $row) 
+                <tr>
+                  <td class="text-center text-muted">{{ $index + 1 }}</td>
+                  <td class="text-start fw-medium">{{ $row->ward }}</td> 
+                  <td class="text-center fw-bold text-primary">{{ $row->an }}</td> 
+                  <td class="text-start">{{ $row->owner_doctor_name }}</td> 
+                  <td class="text-center">{{ DateThai($row->dchdate) }}</td>
+                  <td class="text-center text-warning fw-bold">{{ $row->dch_day }}</td> 
+                  <td class="text-center">
+                    <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1">รอบันทึก ICD10</span>
+                  </td> 
+                </tr>
+                @endforeach                 
+              </tbody>
+            </table>   
+          </div>
+        </div>
+
+      </div>
     </div>      
   </div>          
 </div>      
-</body>
-</html>
- <!-- Vendor JS Files -->
- <script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
- <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
- <script src="{{ asset('assets/vendor/echarts/echarts.min.js') }}"></script>
- <!-- Bootstrap Bundle with Popper -->
- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+@endsection
 
-<!-- Bar Chart -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const options = {
-      series: [
-        {
-          name: 'รอสรุป Chart',
-          data: <?php echo json_encode($chart_data['non_diagtext']); ?>
-        },
-        {
-          name: 'รอบันทึก ICD10',
-          data: <?php echo json_encode($chart_data['non_icd10']); ?>
+@push('scripts')
+  <!-- Vendor ApexCharts -->
+  <script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
+
+  <script>
+    $(document).ready(function () {
+      const dtConfig = {
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
+              '>',
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "ค้นหาข้อมูล...",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            infoEmpty: "ไม่พบรายการ",
+            zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+            paginate: {
+              previous: '<i class="bi bi-chevron-left"></i>',
+              next: '<i class="bi bi-chevron-right"></i>'
+            }
         }
-      ],
-      chart: {
-        type: 'bar',
-        height: 400,
-        stacked: true,
-      },
-      colors: ['#dc3545', '#ffc107'],
-      plotOptions: {
-        bar: {
-          horizontal: true,
-          dataLabels: {
-            total: {
-              enabled: true,
-              offsetX: 10,
-              style: {
-                fontSize: '13px',
-                fontWeight: 900
+      };
+
+      $('#table_diag').DataTable({
+        ...dtConfig,
+        order: [[5, 'desc']], // เรียงตามจำนวนวันมากไปน้อย
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel (รอสรุป Chart)',
+            className: 'btn btn-danger btn-sm shadow-sm rounded-pill px-3',
+            title: 'IPD_Pending_Chart_Summary_{{ date("Y-m-d") }}'
+          }
+        ]
+      });
+
+      $('#table_icd10').DataTable({
+        ...dtConfig,
+        order: [[5, 'desc']], // เรียงตามจำนวนวันมากไปน้อย
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel (รอบันทึก ICD10)',
+            className: 'btn btn-warning btn-sm shadow-sm rounded-pill px-3 text-dark',
+            title: 'IPD_Pending_ICD10_{{ date("Y-m-d") }}'
+          }
+        ]
+      });
+
+      // ปรับขนาดคอลัมน์ DataTable อัตโนมัติเมื่อสลับแท็บ
+      $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+      });
+
+      // ApexCharts Stacked Bar
+      const options = {
+        series: [
+          {
+            name: 'รอสรุป Chart',
+            data: @json($chart_data['non_diagtext'])
+          },
+          {
+            name: 'รอบันทึก ICD10',
+            data: @json($chart_data['non_icd10'])
+          }
+        ],
+        chart: {
+          type: 'bar',
+          height: 380,
+          stacked: true,
+          toolbar: { show: false }
+        },
+        colors: ['#dc3545', '#ffc107'],
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            borderRadius: 4,
+            dataLabels: {
+              total: {
+                enabled: true,
+                offsetX: 10,
+                style: {
+                  fontSize: '12px',
+                  fontWeight: 800
+                }
               }
+            }
+          },
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff']
+        },
+        xaxis: {
+          categories: @json($chart_data['doctors']),
+          labels: {
+            formatter: function (val) {
+              return val;
             }
           }
         },
-      },
-      stroke: {
-        width: 1,
-        colors: ['#fff']
-      },
-      xaxis: {
-        categories: <?php echo json_encode($chart_data['doctors']); ?>,
-        labels: {
-          formatter: function (val) {
-            return val
+        yaxis: {
+          labels: {
+            style: {
+              fontSize: '12px',
+              fontWeight: 600
+            }
           }
-        }
-      },
-      yaxis: {
-        title: {
-          text: undefined
         },
-      },
-      tooltip: {
-        y: {
-          formatter: function (val) {
-            return val + " ราย"
+        tooltip: {
+          y: {
+            formatter: function (val) {
+              return val + " ราย";
+            }
           }
+        },
+        fill: {
+          opacity: 1
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'left',
+          offsetX: 20
         }
-      },
-      fill: {
-        opacity: 1
-      },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'left',
-        offsetX: 40
-      }
-    };
+      };
 
-    const chart = new ApexCharts(document.querySelector("#non_dchsummary_sum"), options);
-    chart.render();
-  });
-</script>
-<!-- End Bar Chart -->
+      const chart = new ApexCharts(document.querySelector("#non_dchsummary_sum"), options);
+      chart.render();
+    });
+  </script>
+@endpush

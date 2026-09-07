@@ -57,7 +57,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-credit-card-2-front me-1 icon-color-1"></i> OFC Visit : รูดบัตร : ปิดสิทธิ</span>
               <div class="card-metric">{{$ofc}} : {{$ofc_edc}} : {{$ofc_endpoint}}</div> 
-              <a href="{{ url('/opd_ofc') }}" target="_blank" class="card-footer-link text-color-1">
+              <a href="{{ url('/opd_ofc') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ofc') }}', 'OFC Visit : รูดบัตร : ปิดสิทธิ', 'bi bi-credit-card-2-front', '#3b82f6')" class="card-footer-link text-color-1" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -68,7 +68,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-shield-lock me-1 icon-color-2"></i> ไม่ขอ AuthenCode</span>
               <div class="card-metric">{{$non_authen}}</div>  
-              <a href="{{ url('/opd_non_authen') }}" target="_blank" class="card-footer-link text-color-2">
+              <a href="{{ url('/opd_non_authen') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_non_authen') }}', 'ไม่ขอ AuthenCode', 'bi bi-shield-lock', '#6366f1')" class="card-footer-link text-color-2" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -79,7 +79,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-building me-1 icon-color-3"></i> ไม่บันทึกสถานพยาบาลหลัก</span>
               <div class="card-metric">{{$non_hmain}}</div>
-              <a href="{{ url('/opd_non_hospmain') }}" target="_blank" class="card-footer-link text-color-3">
+              <a href="{{ url('/opd_non_hospmain') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_non_hospmain') }}', 'ไม่บันทึกสถานพยาบาลหลัก', 'bi bi-building', '#06b6d4')" class="card-footer-link text-color-3" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -90,7 +90,7 @@
           <div class="card-body">
             <span class="card-label"><i class="bi bi-check2-square me-1 icon-color-4"></i> PPFS : ปิดสิทธิ </span>
             <div class="card-metric">{{$ppfs}} : {{$ppfs_endpoint}}</div> 
-            <a href="{{ url('/opd_ppfs') }}" target="_blank" class="card-footer-link text-color-4">
+            <a href="{{ url('/opd_ppfs') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ppfs') }}', 'PPFS : ปิดสิทธิ', 'bi bi-check2-square', '#f59e0b')" class="card-footer-link text-color-4" title="เปิดดูรายงานใน Modal">
               View Report <i class="bi bi-chevron-right"></i>
             </a>
           </div>
@@ -101,7 +101,7 @@
           <div class="card-body">
             <span class="card-label"><i class="bi bi-star me-1 icon-color-5"></i> UC บริการเฉพาะ : ปิดสิทธิ</span>
             <div class="card-metric">{{$uc_cr}} : {{$uc_cr_endpoint}}</div>  
-            <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="card-footer-link text-color-5">
+            <a href="{{ url('/opd_ucs_cr') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ucs_cr') }}', 'UC บริการเฉพาะ : ปิดสิทธิ', 'bi bi-star', '#f97316')" class="card-footer-link text-color-5" title="เปิดดูรายงานใน Modal">
               View Report <i class="bi bi-chevron-right"></i>
             </a>
           </div>
@@ -112,7 +112,7 @@
           <div class="card-body">
             <span class="card-label"><i class="bi bi-flower1 me-1 icon-color-6"></i> UC ยาสมุนไพร : ปิดสิทธิ</span>
             <div class="card-metric">{{$uc_herb}} : {{$uc_herb_endpoint}}</div>
-            <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="card-footer-link text-color-6">
+            <a href="{{ url('/opd_ucs_herb') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ucs_herb') }}', 'UC ยาสมุนไพร : ปิดสิทธิ', 'bi bi-flower1', '#f43f5e')" class="card-footer-link text-color-6" title="เปิดดูรายงานใน Modal">
               View Report <i class="bi bi-chevron-right"></i>
             </a>
           </div>
@@ -123,7 +123,7 @@
           <div class="card-body">
             <span class="card-label"><i class="bi bi-hospital me-1 icon-color-7"></i> UC แพทย์แผนไทย : ปิดสิทธิ </span>
             <div class="card-metric">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}}</div>  
-            <a href="{{ url('/opd_ucs_healthmed') }}" target="_blank" class="card-footer-link text-color-7">
+            <a href="{{ url('/opd_ucs_healthmed') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ucs_healthmed') }}', 'UC แพทย์แผนไทย : ปิดสิทธิ', 'bi bi-hospital', '#ec4899')" class="card-footer-link text-color-7" title="เปิดดูรายงานใน Modal">
               View Report <i class="bi bi-chevron-right"></i>
             </a>
           </div>
@@ -134,7 +134,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-geo-alt me-1 icon-color-8"></i> UC Anywhere : ปิดสิทธิ</span>
               <div class="card-metric">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}}</div>  
-              <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="card-footer-link text-color-8">
+              <a href="{{ url('/opd_ucs_anywhere') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ucs_anywhere') }}', 'UC Anywhere : ปิดสิทธิ', 'bi bi-geo-alt', '#a855f7')" class="card-footer-link text-color-8" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -145,7 +145,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-droplet me-1 icon-color-13"></i> UC ฟอกไต : ปิดสิทธิ</span>
               <div class="card-metric">{{$uc_kidney}} : {{$uc_kidney_endpoint}}</div>  
-              <a href="{{ url('/opd_ucs_kidney') }}" target="_blank" class="card-footer-link text-color-13">
+              <a href="{{ url('/opd_ucs_kidney') }}" onclick="handleHomeDetailClick(event, '{{ url('/opd_ucs_kidney') }}', 'UC ฟอกไต : ปิดสิทธิ', 'bi bi-droplet', '#0d9488')" class="card-footer-link text-color-13" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -174,7 +174,7 @@
           <div class="card-body">
             <span class="card-label"><i class="bi bi-house me-1 icon-color-9"></i> Admit Homeward : Authen</span>
             <div class="card-metric">{{$admit_homeward}} : {{$admit_homeward_endpoint}}</div> 
-            <a href="{{ url('/ipd_homeward') }}" target="_blank" class="card-footer-link text-color-9">
+            <a href="{{ url('/ipd_homeward') }}" onclick="handleHomeDetailClick(event, '{{ url('/ipd_homeward') }}', 'Admit Homeward : Authen', 'bi bi-house', '#10b981')" class="card-footer-link text-color-9" title="เปิดดูรายงานใน Modal">
               View Report <i class="bi bi-chevron-right"></i>
             </a>
           </div>
@@ -185,7 +185,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-file-earmark-medical me-1 icon-color-10"></i> Chart รอแพทย์สรุป : รอบันทึก ICD10</span>
               <div class="card-metric">{{$non_diagtext}} : {{$non_icd10}}</div>  
-              <a href="{{ url('/ipd_non_dchsummary') }}" target="_blank" class="card-footer-link text-color-10">
+              <a href="{{ url('/ipd_non_dchsummary') }}" onclick="handleHomeDetailClick(event, '{{ url('/ipd_non_dchsummary') }}', 'Chart รอแพทย์สรุป : รอบันทึก ICD10', 'bi bi-file-earmark-medical', '#22c55e')" class="card-footer-link text-color-10" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -196,7 +196,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-arrow-left-right me-1 icon-color-11"></i> รอโอนค่าใช้จ่าย</span>
               <div class="card-metric">{{$not_transfer}}</div>
-              <a href="{{ url('/ipd_finance_chk_opd_wait_transfer') }}" target="_blank" class="card-footer-link text-color-11">
+              <a href="{{ url('/ipd_finance_chk_opd_wait_transfer') }}" onclick="handleHomeDetailClick(event, '{{ url('/ipd_finance_chk_opd_wait_transfer') }}', 'รอโอนค่าใช้จ่าย', 'bi bi-arrow-left-right', '#ef4444')" class="card-footer-link text-color-11" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -207,7 +207,7 @@
             <div class="card-body">
               <span class="card-label"><i class="bi bi-cash-coin me-1 icon-color-12"></i> รอชำระเงินสด : จำนวนเงิน</span>
               <div class="card-metric" style="font-size: 1.25rem;">{{$wait_paid_money}} : {{number_format($sum_wait_paid_money,2)}}</div>  
-              <a href="{{ url('/ipd_finance_chk_wait_rcpt_money') }}" target="_blank" class="card-footer-link text-color-12">
+              <a href="{{ url('/ipd_finance_chk_wait_rcpt_money') }}" onclick="handleHomeDetailClick(event, '{{ url('/ipd_finance_chk_wait_rcpt_money') }}', 'รอชำระเงินสด : จำนวนเงิน', 'bi bi-cash-coin', '#991b1b')" class="card-footer-link text-color-12" title="เปิดดูรายงานใน Modal">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>
             </div>
@@ -221,14 +221,97 @@
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 
-
+<!-- Home Detail Modal Component -->
+@include('components.home_detail_modal')
 
 </div>
 @endsection
 
 @push('scripts')
 <script>
-  // No home scripts needed
+  // Permission flag from backend
+  const canAccessHomeDetail = {{ (Auth::user()->status === 'admin' || Auth::user()->allow_home === 'Y') ? 'true' : 'false' }};
+
+  function handleHomeDetailClick(event, url, title, iconClass, colorHex) {
+    // If middle click or modifier keys pressed, allow default browser behavior (open in new tab)
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1) {
+      return;
+    }
+    event.preventDefault();
+
+    // Check permission
+    if (!canAccessHomeDetail) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่มีสิทธิ์เข้าถึง',
+        text: 'คุณไม่มีสิทธิ์เข้าถึงรายงานนี้ (เฉพาะผู้ได้รับสิทธิ์ Home Detail)',
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#6c757d'
+      });
+      return;
+    }
+
+    // Open in sleek modal
+    openHomeDetailModal(url, title, iconClass, colorHex);
+  }
+
+  function openHomeDetailModal(url, title, iconClass, colorHex) {
+    const modalEl = document.getElementById('homeDetailModal');
+    if (!modalEl) return;
+
+    const titleEl = document.getElementById('homeDetailModalTitle');
+    const iconEl = document.getElementById('homeDetailModalIcon');
+    const iconWrapperEl = document.getElementById('homeDetailIconWrapper');
+    const loadingTitleEl = document.getElementById('homeDetailLoadingTitle');
+    const loadingEl = document.getElementById('homeDetailLoading');
+    const iframeEl = document.getElementById('homeDetailIframe');
+
+    if (titleEl) titleEl.innerText = title;
+    if (loadingTitleEl) loadingTitleEl.innerText = 'กำลังเปิด: ' + title;
+
+    if (iconEl) {
+      iconEl.className = iconClass + ' fs-5';
+      iconEl.style.color = colorHex || '#3b82f6';
+    }
+    if (iconWrapperEl) {
+      iconWrapperEl.style.background = (colorHex || '#3b82f6') + '20'; // ~12% tint
+    }
+
+    // Show loading spinner
+    if (loadingEl) {
+      loadingEl.classList.remove('d-none');
+      loadingEl.style.opacity = '1';
+    }
+
+    // Construct embed URL with query parameter embed=1
+    const embedUrl = new URL(url, window.location.origin);
+    embedUrl.searchParams.set('embed', '1');
+
+    if (iframeEl) {
+      iframeEl.src = embedUrl.toString();
+    }
+
+    // Show Modal: Support Bootstrap 5 (global or window) and jQuery fallback
+    try {
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      } else if (window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      } else if (window.jQuery && typeof window.jQuery(modalEl).modal === 'function') {
+        window.jQuery(modalEl).modal('show');
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch (err) {
+      console.warn('Bootstrap modal open fallback:', err);
+      if (window.jQuery && typeof window.jQuery(modalEl).modal === 'function') {
+        window.jQuery(modalEl).modal('show');
+      } else {
+        window.open(url, '_blank');
+      }
+    }
+  }
+
   @if(session('provider_login_success'))
       Swal.fire({
           icon: 'success',

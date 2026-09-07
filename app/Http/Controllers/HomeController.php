@@ -33,7 +33,7 @@ class HomeController extends Controller
         })->only([
             'opd_ofc', 'opd_non_authen', 'opd_non_hospmain', 'opd_ucs_anywhere',
             'opd_ucs_cr', 'opd_ucs_herb', 'opd_ucs_healthmed', 'opd_ppfs',
-            'ipd_homeward', 'ipd_finance_chk_opd_wait_transfer',
+            'opd_ucs_kidney', 'ipd_homeward', 'ipd_finance_chk_opd_wait_transfer',
             'ipd_finance_chk_wait_rcpt_money'
         ]);
     }

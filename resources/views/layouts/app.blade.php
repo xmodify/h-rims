@@ -572,8 +572,9 @@
     </style>
 </head>
 
-<body>
+<body class="{{ request('embed') ? 'bg-white p-0 m-0 overflow-x-hidden' : '' }}">
     <div id="app">
+        @if(!request('embed'))
         <nav class="navbar navbar-expand-md navbar-dark navbar-modern sticky-top">
             <div class="container-fluid px-lg-4">
                 <a class="navbar-brand-modern" href="{{ url('/') }}">
@@ -1317,8 +1318,9 @@
                 </div>
             </div>
         </nav>
+        @endif
 
-        <main class="py-4">
+        <main class="{{ request('embed') ? 'p-0 m-0' : 'py-4' }}">
             @if (request()->routeIs('stm_*') || request()->is('import/stm_*') || request()->is('import/stm_*/*'))
                 <div class="container-fluid px-lg-4 mb-3">
                     @php
@@ -1353,6 +1355,9 @@
 
     <!-- jQuery -->
     <script src="{{ asset('assets/vendor/jquery/jquery-3.7.0.min.js') }}"></script>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
     <!-- DataTables core -->
     <script src="{{ asset('assets/vendor/datatables/jquery.dataTables.min.js') }}"></script>
@@ -2257,40 +2262,68 @@
     });
     </script>
 
-    <!-- Global Sync e-Claim Client Modal (ThaiD Session Powered) -->
-    <x-eclaim_auto_pull_modal />
+    @if(!request('embed'))
+        <!-- Global Sync e-Claim Client Modal (ThaiD Session Powered) -->
+        <x-eclaim_auto_pull_modal />
 
-    <!-- Global e-Claim ThaiD QR Code Modal -->
-    <x-eclaim_thaid_qr_modal />
+        <!-- Global e-Claim ThaiD QR Code Modal -->
+        <x-eclaim_thaid_qr_modal />
 
-    <!-- Global Pre-Audit Modal (ตาสีแดง 👁️) -->
-    @include('components.pre_audit_modal')
+        <!-- Global Pre-Audit Modal (ตาสีแดง 👁️) -->
+        @include('components.pre_audit_modal')
 
-    <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
-    @include('components.download_tools_modal')
+        <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
+        @include('components.download_tools_modal')
 
-    <!-- Global NHSO Endpoint Pull Modal (ปิดสิทธิ สปสช.) -->
-    @auth
-        @if(Auth::user()->status == 'admin' || Auth::user()->allow_nhso_endpoint == 'Y')
-            @include('components.nhso_endpoint_modal')
-        @endif
-    @endauth
+        <!-- Global NHSO Endpoint Pull Modal (ปิดสิทธิ สปสช.) -->
+        @auth
+            @if(Auth::user()->status == 'admin' || Auth::user()->allow_nhso_endpoint == 'Y')
+                @include('components.nhso_endpoint_modal')
+            @endif
+        @endauth
 
-    <!-- Global AI & LLM Settings Modal -->
-    @auth
-        @include('components.ai_settings_modal')
-    @endauth
+        <!-- Global AI & LLM Settings Modal -->
+        @auth
+            @include('components.ai_settings_modal')
+        @endauth
 
-    <!-- AI Chatbot Floating Widget (RiMS Copilot - Prototype on HosFin) -->
-    @auth
-        @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
-            @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
-                @if(request()->is('hosfin*') || request()->is('*rag-knowledge*') || request()->is('*hosxp-setting*') || request()->is('emr/hosxp-setting*'))
-                    @include('components.ai_chatbot_widget')
+        <!-- AI Chatbot Floating Widget (RiMS Copilot - Prototype on HosFin) -->
+        @auth
+            @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
+                @if(Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y')
+                    @if(request()->is('hosfin*') || request()->is('*rag-knowledge*') || request()->is('*hosxp-setting*') || request()->is('emr/hosxp-setting*'))
+                        @include('components.ai_chatbot_widget')
+                    @endif
                 @endif
             @endif
-        @endif
-    @endauth
+        @endauth
+    @else
+        <!-- Embed Mode Script: Ensure pagination and forms keep embed=1 -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Ensure all forms retain embed=1
+                document.querySelectorAll('form').forEach(function(form) {
+                    if (!form.querySelector('input[name="embed"]')) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'embed';
+                        input.value = '1';
+                        form.appendChild(input);
+                    }
+                });
+                // Ensure pagination links retain embed=1
+                document.querySelectorAll('a.page-link, .pagination a').forEach(function(link) {
+                    try {
+                        const url = new URL(link.href, window.location.origin);
+                        if (url.origin === window.location.origin && !url.searchParams.has('embed')) {
+                            url.searchParams.set('embed', '1');
+                            link.href = url.toString();
+                        }
+                    } catch(e){}
+                });
+            });
+        </script>
+    @endif
 </body>
 
 </html>

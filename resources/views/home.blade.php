@@ -224,7 +224,6 @@
 <!-- Home Detail Modal Component -->
 @include('components.home_detail_modal')
 
-</div>
 @endsection
 
 @push('scripts')

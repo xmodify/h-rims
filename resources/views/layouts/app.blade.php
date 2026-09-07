@@ -1356,9 +1356,6 @@
     <!-- jQuery -->
     <script src="{{ asset('assets/vendor/jquery/jquery-3.7.0.min.js') }}"></script>
 
-    <!-- Bootstrap 5 Bundle JS -->
-    <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-
     <!-- DataTables core -->
     <script src="{{ asset('assets/vendor/datatables/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/datatables/dataTables.bootstrap5.min.js') }}"></script>

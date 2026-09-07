@@ -631,7 +631,7 @@
                                 </li>
                             @endif
 
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y' || Auth::user()->allow_check_right == 'Y')
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -641,17 +641,7 @@
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- เมนูอื่น -->
                                         <li>
-                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check_right == 'Y')
-                                                <a class="dropdown-item dropdown-item-modern"
-                                                    href="{{ url('check/nhso_right') }}">
-                                                    <i class="bi bi-card-checklist text-info me-2"></i> ตรวจสอบสิทธิการรักษา
-                                                </a>
-                                            @endif
                                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
-                                                <a class="dropdown-item dropdown-item-modern"
-                                                    href="{{ url('check/nhso_endpoint') }}">
-                                                    <i class="bi bi-person-x-fill text-danger me-2"></i> ปิดสิทธิ สปสช.
-                                                </a>
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ url('check/fdh_claim_status') }}">
                                                     <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
@@ -665,7 +655,7 @@
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
+                                                 data-bs-toggle="dropdown">
                                                 <i class="bi bi-capsule-pill text-info me-2"></i> Drug Catalog
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
@@ -718,7 +708,7 @@
                                 </li>
                             @endif
 
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y')
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y' || Auth::user()->allow_check_right == 'Y')
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -727,11 +717,21 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ข้อมูลพื้นฐาน HOSxP (ใหม่) -->
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('emr.hosxp_setting') }}">
-                                                <i class="bi bi-server me-2" style="color: #6366f1;"></i> ข้อมูลพื้นฐาน HOSxP
-                                            </a>
-                                        </li>
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y')
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern" href="{{ route('emr.hosxp_setting') }}">
+                                                    <i class="bi bi-server me-2" style="color: #6366f1;"></i> ข้อมูลพื้นฐาน HOSxP
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y' || Auth::user()->allow_check_right == 'Y')
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ route('emr.nhso_right') }}">
+                                                    <i class="bi bi-card-checklist text-info me-2"></i> ตรวจสอบสิทธิการรักษา
+                                                </a>
+                                            </li>
+                                        @endif
                                         <li><hr class="dropdown-divider my-1"></li>
 
                                         <!-- ผู้ป่วยนอก (OPD) -->
@@ -1212,7 +1212,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-07 18.30
+                                V.69-09-07 23.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1503,7 +1503,7 @@
             icon: overallSuccess ? 'success' : 'warning',
             title: 'ดึงสถานะ FDH เสร็จสิ้น',
             html: summaryHtml,
-            confirmButtonText: 'โหลดข้อมูล',
+            confirmButtonText: 'ปิด',
             confirmButtonColor: '#0dcaf0'
         });
 
@@ -2268,6 +2268,13 @@
 
     <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
     @include('components.download_tools_modal')
+
+    <!-- Global NHSO Endpoint Pull Modal (ปิดสิทธิ สปสช.) -->
+    @auth
+        @if(Auth::user()->status == 'admin' || Auth::user()->allow_nhso_endpoint == 'Y')
+            @include('components.nhso_endpoint_modal')
+        @endif
+    @endauth
 
     <!-- Global AI & LLM Settings Modal -->
     @auth

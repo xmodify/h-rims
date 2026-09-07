@@ -41,11 +41,13 @@
                 <small class="text-muted d-block" style="font-size: 0.65rem;">ปิดสิทธิ สปสช.</small>
                 <div class="h6 mb-0 fw-bold text-primary text-center">{{$endpoint}}</div>
               </div>
+              @if(Auth::user()->status == 'admin' || Auth::user()->allow_nhso_endpoint == 'Y')
               <div>
-                <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/nhso_endpoint') }}" target="_blank" style="font-size: 0.75rem; border-width: 2px;">
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#nhsoEndpointModal" style="font-size: 0.75rem; border-width: 2px;">
                   <i class="bi bi-cloud-download me-1"></i> ดึงปิดสิทธิ สปสช.
-                </a>
+                </button>
               </div>
+              @endif
             </div>
           </div>
         </div>

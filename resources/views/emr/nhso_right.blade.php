@@ -251,7 +251,7 @@
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
         $.ajax({
-            url: "{{ route('check.nhso_right.load_local_token') }}",
+            url: "{{ route('emr.nhso_right.load_local_token') }}",
             method: 'POST',
             data: {
                 _token: "{{ csrf_token() }}"
@@ -327,7 +327,7 @@
         });
 
         $.ajax({
-            url: "{{ route('check.nhso_right.tokens_history') }}",
+            url: "{{ route('emr.nhso_right.tokens_history') }}",
             method: 'POST',
             data: {
                 _token: "{{ csrf_token() }}"
@@ -521,7 +521,7 @@
                 $('#resultBox').addClass('d-none');
 
                 $.ajax({
-                    url: "{{ route('check.nhso_right.load_local_token') }}",
+                    url: "{{ route('emr.nhso_right.load_local_token') }}",
                     method: 'POST',
                     data: {
                         _token: "{{ csrf_token() }}"
@@ -575,7 +575,7 @@
         $('#resultBox').addClass('d-none');
 
         $.ajax({
-            url: "{{ route('check.nhso_right.search') }}",
+            url: "{{ route('emr.nhso_right.search') }}",
             method: 'POST',
             data: {
                 _token: "{{ csrf_token() }}",

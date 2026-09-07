@@ -17,7 +17,7 @@ class NhsoCheckRightController extends Controller
             'auth',
             function ($request, $next) {
                 $user = auth()->user();
-                if ($user && $user->status !== 'admin' && $user->allow_check_right !== 'Y') {
+                if ($user && $user->status !== 'admin' && $user->allow_check_right !== 'Y' && ($user->allow_emr ?? 'N') !== 'Y') {
                     return response()->json(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ใช้งานโมดูลตรวจสอบสิทธินี้'], 403);
                 }
                 

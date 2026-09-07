@@ -26,15 +26,8 @@ class CheckController extends Controller
             function ($request, $next) {
                 $user = auth()->user();
                 if ($user && $user->status !== 'admin') {
-                    $routeName = $request->route() ? $request->route()->getName() : null;
-                    if (in_array($routeName, ['check.nhso_right', 'check.nhso_right.open_folder'])) {
-                        if ($user->allow_check_right !== 'Y') {
-                            return response()->view('errors.restricted', ['module' => 'ตรวจสอบสิทธิการรักษา (สปสช.)'], 403);
-                        }
-                    } else {
-                        if ($user->allow_check !== 'Y') {
-                            return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
-                        }
+                    if ($user->allow_check !== 'Y') {
+                        return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
                     }
                 }
                 return $next($request);
@@ -42,88 +35,6 @@ class CheckController extends Controller
         ]);
     }
 
-    public function nhso_right(Request $request)
-    {
-        return view('check.nhso_right');
-    }
-
-    public function openFolder(Request $request)
-    {
-        $userprofile = getenv('USERPROFILE') ?: ($_SERVER['USERPROFILE'] ?? null);
-        if (empty($userprofile)) {
-            $homedrive = getenv('HOMEDRIVE') ?: 'C:';
-            $homepath = getenv('HOMEPATH') ?: '';
-            if ($homepath) {
-                $userprofile = $homedrive . $homepath;
-            }
-        }
-
-        if ($userprofile) {
-            $path = $userprofile . DIRECTORY_SEPARATOR . 'SRM Smart Card Single Sign-On';
-            if (is_dir($path)) {
-                // Run explorer.exe to open folder in Windows
-                @shell_exec('explorer.exe "' . $path . '"');
-                return response()->json(['status' => 'success', 'message' => 'เปิดโฟลเดอร์สำเร็จ']);
-            }
-            return response()->json(['status' => 'error', 'message' => 'ไม่พบโฟลเดอร์ในเครื่องเซิร์ฟเวอร์: ' . $path], 400);
-        }
-        return response()->json(['status' => 'error', 'message' => 'ไม่พบพาธผู้ใช้งานบนเครื่องเซิร์ฟเวอร์'], 400);
-    }
-
-    public function nhso_endpoint(Request $request)
-    {
-        $start_date = $request->start_date ?: date('Y-m-d');
-        $end_date = $request->end_date ?: date('Y-m-d');
-        Session::put('start_date', $start_date);
-        Session::put('end_date', $end_date);
-
-        // 1. Closed Records (Visits that have an EP prefix in RiMS)
-        $closed = DB::connection('hosxp')->select('
-            SELECT pt.fname AS firstName, pt.lname AS lastName, pt.cid, 
-                   COALESCE(ep.subInsclName, p.name) as subInsclName, ep.subInscl,
-                   CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime,
-                   COALESCE(ep.claimType, "") as claimType,
-                   ep.claimCode as claimCode
-            FROM ovst o
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN patient pt ON pt.hn = o.hn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
-                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%")
-            WHERE o.vstdate BETWEEN ? AND ?
-            AND ep.claimCode LIKE "EP%"        
-            AND (o.an = "" OR o.an IS NULL)
-            ORDER BY o.vstdate DESC, o.vsttime DESC', [$start_date, $end_date]);
-
-        $pending = DB::connection('hosxp')->select('
-            SELECT o.vn, pt.cid, pt.hn, CONCAT(pt.pname, pt.fname, pt.lname) AS ptname, pt.mobile_phone_number,
-                   p.name AS subInsclName, o.vstdate, o.vsttime, o.oqueue, vp.hospmain, vs.pdx, vs.income, 
-                   vs.paid_money,vs.rcpt_money,vs.uc_money as debtor,
-                   CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime, vp.auth_code AS claimCode
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn = o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN vn_stat vs ON vs.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
-                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
-            LEFT JOIN (
-                SELECT ori.vn FROM opitemrece ori 
-                INNER JOIN hrims.lookup_icode li ON li.icode = ori.icode 
-                WHERE li.kidney = "Y" AND ori.vstdate BETWEEN ? AND ?
-                GROUP BY ori.vn
-            ) kidney ON kidney.vn = o.vn
-            WHERE o.vstdate BETWEEN ? AND ?
-            AND (o.an = "" OR o.an IS NULL)
-            AND vs.uc_money > 0
-            AND p.hipdata_code IN ("UCS","OFC","SSS","LGO","NHS","STP","BKK","BMT","SRT","KKT","PTY")
-            AND ep.cid IS NULL
-            AND kidney.vn IS NULL
-            ORDER BY o.vstdate DESC, o.vsttime DESC', 
-            [$start_date, $end_date, $start_date, $end_date]);
-
-        return view('check.nhso_endpoint', compact('start_date', 'end_date', 'closed', 'pending'));
-    }
     ###################################################################################################################################################
     //ข้อมูล FDH Claim Status---------------------------------------------------------------------------------------------------------------------------
     public function fdh_claim_status(Request $request)

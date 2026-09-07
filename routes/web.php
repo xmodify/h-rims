@@ -23,6 +23,7 @@ use App\Http\Controllers\OpdController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\HosxpSettingController;
+use App\Http\Controllers\NhsoRightController;
 use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
 use App\Http\Controllers\MishosController;
@@ -367,14 +368,10 @@ Route::match(['get', 'post'], 'check/sss_equipdev_aipn', [CheckController::class
 Route::post('check/sss_equipdev_aipn_save', [CheckController::class, 'sss_equipdev_aipn_save'])->name('check.sss_equipdev_aipn_save');
 
 //Check------------------------------------------------------------------------------------------------------------------------------
-Route::match(['get', 'post'], 'check/nhso_right', [CheckController::class, 'nhso_right'])->name('check.nhso_right');
-Route::post('check/nhso_right/open-folder', [CheckController::class, 'openFolder'])->name('check.nhso_right.open_folder');
-Route::post('check/nhso_right/load-local-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'loadLocalToken'])->name('check.nhso_right.load_local_token');
-Route::post('check/nhso_right/search', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'search'])->name('check.nhso_right.search');
-Route::post('check/nhso_right/refresh-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'refreshToken'])->name('check.nhso_right.refresh_token');
-Route::post('check/nhso_right/tokens-history', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'getHosxpTokensHistory'])->name('check.nhso_right.tokens_history');
 
-Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);
+Route::match(['get', 'post'], 'check/nhso_endpoint', function () {
+    return redirect('/?open_nhso_modal=1');
+});
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);
 Route::post('check/drugcat_nhso_save', [CheckDrugcatController::class, 'drugcat_nhso_save']);
 Route::get('check/drugcat_nhso', [CheckDrugcatController::class, 'drugcat_nhso'])->name('check.drugcat_nhso');
@@ -467,6 +464,14 @@ Route::prefix('emr')->name('emr.')->group(function () {
     // ข้อมูลพื้นฐาน HOSxP (Master Data & Setting)
     Route::get('hosxp-setting', [HosxpSettingController::class, 'index'])->name('hosxp_setting');
     Route::post('hosxp-setting/copilot_ask', [HosxpSettingController::class, 'copilotAsk'])->name('hosxp_setting.copilot_ask');
+
+    // ตรวจสอบสิทธิการรักษา (สปสช. SRM)
+    Route::match(['get', 'post'], 'nhso_right', [NhsoRightController::class, 'index'])->name('nhso_right');
+    Route::post('nhso_right/open-folder', [NhsoRightController::class, 'openFolder'])->name('nhso_right.open_folder');
+    Route::post('nhso_right/load-local-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'loadLocalToken'])->name('nhso_right.load_local_token');
+    Route::post('nhso_right/search', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'search'])->name('nhso_right.search');
+    Route::post('nhso_right/refresh-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'refreshToken'])->name('nhso_right.refresh_token');
+    Route::post('nhso_right/tokens-history', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'getHosxpTokensHistory'])->name('nhso_right.tokens_history');
 
     // ผู้ป่วยนอก OPD
     Route::prefix('opd')->name('opd.')->group(function () {
@@ -1098,6 +1103,9 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('api.nhso.pull_indiv');
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
+    Route::match(['get', 'post'], 'nhso_endpoint_data', [NhsoEndpointController::class, 'getEndpointData'])->name('api.nhso_endpoint_data');
+    Route::match(['get', 'post'], 'nhso_get_pull_list', [NhsoEndpointController::class, 'getPullList'])->name('api.nhso_get_pull_list');
+    Route::post('nhso_pull_chunk', [NhsoEndpointController::class, 'pullChunk'])->name('api.nhso_pull_chunk');
     Route::post('import_edc_zip', [\App\Http\Controllers\ImportEdcController::class, 'importZip'])->name('api.import_edc_zip');
     Route::post('import_edc_file', [\App\Http\Controllers\ImportEdcController::class, 'importFile'])->name('api.import_edc_file');
     Route::post('sync_edc_ktb', [\App\Http\Controllers\ImportEdcController::class, 'syncKtb'])->name('api.sync_edc_ktb');

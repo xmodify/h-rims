@@ -83,6 +83,45 @@
         border-bottom: 2px solid #cbd5e1 !important;
         white-space: nowrap;
     }
+    /* Searchable Checkbox Dropdown Styling */
+    .hover-bg {
+        transition: background-color 0.15s ease;
+    }
+    .hover-bg:hover {
+        background-color: #f1f5f9 !important;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .account-options-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .account-options-list::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 4px;
+    }
+    .account-options-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .account-options-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    .account-filter-btn {
+        min-width: 270px;
+        max-width: 380px;
+        background-color: #ffffff;
+        border-color: #cbd5e1;
+        font-size: 0.83rem;
+    }
+    .account-filter-btn:hover, .account-filter-btn:focus {
+        border-color: #94a3b8;
+        background-color: #f8fafc;
+    }
+    .account-search-input:focus {
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+    }
 </style>
 
 <div class="container-fluid pt-2 pb-4 px-lg-5" style="background-color: #f8fafc; min-height: 100vh;">
@@ -328,7 +367,72 @@
                         <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns-reverse me-2 text-danger"></i> ทะเบียนบริษัทคู่ค้าและยอดหนี้คงค้าง</h6>
                         <small class="text-muted">เรียงลำดับตามยอดหนี้คงค้างสูงสุด (Cr - Dr) สามารถคลิกหัวตารางเพื่อเรียงลำดับ หรือค้นหาได้ทันที</small>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <label class="small text-muted fw-bold mb-0 text-nowrap" for="vendorAccountDropdownBtn">
+                                <i class="bi bi-funnel-fill text-danger"></i> หมวดบัญชี:
+                            </label>
+                            <div class="dropdown account-filter-dropdown" id="vendorAccountDropdownWrapper">
+                                <button class="btn btn-sm rounded-pill shadow-xs border-secondary-subtle fw-semibold dropdown-toggle text-start d-flex align-items-center justify-content-between gap-2 px-3 py-1.5 account-filter-btn" 
+                                        type="button" 
+                                        id="vendorAccountDropdownBtn" 
+                                        data-bs-toggle="dropdown" 
+                                        data-bs-auto-close="outside" 
+                                        aria-expanded="false">
+                                    <span class="text-truncate dropdown-label flex-grow-1">ทุกหมวดบัญชี (ทั้งหมด)</span>
+                                </button>
+                                <div class="dropdown-menu shadow-lg border-0 rounded-4 p-2 mt-1" aria-labelledby="vendorAccountDropdownBtn" style="min-width: 320px; max-width: 380px; font-size: 0.83rem;">
+                                    <!-- Search Input -->
+                                    <div class="p-1 mb-1">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-0 rounded-start-pill text-muted ps-2.5">
+                                                <i class="bi bi-search"></i>
+                                            </span>
+                                            <input type="text" class="form-control bg-light border-0 rounded-end-pill account-search-input pe-2.5" placeholder="ค้นหารหัส หรือชื่อหมวดบัญชี...">
+                                        </div>
+                                    </div>
+                                    <!-- Quick Actions Toolbar -->
+                                    <div class="d-flex justify-content-between align-items-center px-2 py-1 mb-1 border-bottom pb-2">
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 fw-bold btn-select-all text-danger" style="font-size: 0.78rem;">
+                                            <i class="bi bi-check-all me-1"></i>เลือกทั้งหมด
+                                        </button>
+                                        <div class="small text-muted selected-count-text" style="font-size: 0.75rem;">
+                                            เลือก <span class="selected-count-num fw-bold text-dark">{{ isset($accountChoices) ? $accountChoices->count() : 0 }}</span> / {{ isset($accountChoices) ? $accountChoices->count() : 0 }}
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted btn-deselect-all" style="font-size: 0.78rem;">
+                                            <i class="bi bi-x-circle me-1"></i>ล้างค่า
+                                        </button>
+                                    </div>
+                                    <!-- Scrollable Checkbox List -->
+                                    <div class="account-options-list overflow-auto px-1" style="max-height: 260px;">
+                                        @if(isset($accountChoices))
+                                            @foreach($accountChoices as $acc)
+                                                <label class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-2 rounded-2 cursor-pointer hover-bg account-check-item mb-0.5" 
+                                                       data-code="{{ $acc->account_code }}" 
+                                                       data-name="{{ $acc->account_name }}"
+                                                       data-search="{{ strtolower($acc->account_code . ' ' . $acc->account_name) }}">
+                                                    <input class="form-check-input mt-0 flex-shrink-0 account-checkbox" 
+                                                           type="checkbox" 
+                                                           value="{{ $acc->account_code }}" 
+                                                           data-name="{{ $acc->account_name }}" 
+                                                           checked>
+                                                    <div class="text-truncate flex-grow-1" style="line-height: 1.25;">
+                                                        <span class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">{{ $acc->account_code }}</span>
+                                                        <span class="text-muted d-block text-truncate" style="font-size: 0.75rem;">{{ $acc->account_name }}</span>
+                                                    </div>
+                                                    <span class="badge bg-light text-secondary border rounded-pill ms-auto flex-shrink-0" style="font-size: 0.7rem;">
+                                                        {{ number_format($acc->bill_count) }} ใบ
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        @endif
+                                        <div class="text-center text-muted small py-3 no-account-found" style="display: none;">
+                                            <i class="bi bi-search me-1"></i>ไม่พบหมวดบัญชีที่ค้นหา
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-bold">
                             หนี้คงค้างรวม {{ number_format($totalUnpaidSum, 2) }} บาท
                         </span>
@@ -356,7 +460,7 @@
                                     $rem = (float)$v->remaining_debt;
                                     $hasDebt = $rem > 0.01;
                                 @endphp
-                                <tr class="vendor-row {{ $hasDebt ? '' : 'table-light opacity-75' }}">
+                                <tr class="vendor-row {{ $hasDebt ? '' : 'table-light opacity-75' }}" data-account-codes="{{ $v->account_codes ?? '' }}">
                                     <td class="ps-3 text-center fw-bold text-muted" data-order="{{ $vIdx }}">{{ $vIdx++ }}</td>
                                     <td>
                                         <div class="fw-bold text-dark vendor-name-cell">{{ $v->vendor_name }}</div>
@@ -437,19 +541,89 @@
                             รวมบิลทั้งหมด {{ number_format($bills->count()) }} ใบ สามารถค้นหา จัดเรียงลำดับ และส่งออก Excel ได้ทันที
                         </span>
                     </div>
-                    <!-- Status Filter Pills -->
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="text-muted small fw-bold me-1">สถานะ:</span>
-                        <div class="btn-group btn-group-sm rounded-pill p-1 bg-light border shadow-sm" role="group">
-                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold active btn-secondary text-white btn-bill-status" data-status="all">
-                                บิลทั้งหมด <span class="badge bg-light text-dark rounded-pill ms-1">{{ number_format($bills->count()) }}</span>
-                            </button>
-                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold text-dark btn-bill-status" data-status="unpaid">
-                                ค้างชำระ <span class="badge bg-danger text-white rounded-pill ms-1">{{ number_format($totalUnpaidBillsCount) }}</span>
-                            </button>
-                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold text-dark btn-bill-status" data-status="paid">
-                                ชำระครบแล้ว <span class="badge bg-success text-white rounded-pill ms-1">{{ number_format($totalPaidBillsCount) }}</span>
-                            </button>
+                    <!-- Status & Account Filter -->
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <!-- Account Category Filter -->
+                        <div class="d-flex align-items-center gap-1.5">
+                            <label class="small text-muted fw-bold mb-0 text-nowrap" for="billAccountDropdownBtn">
+                                <i class="bi bi-funnel-fill text-primary"></i> หมวดบัญชี:
+                            </label>
+                            <div class="dropdown account-filter-dropdown" id="billAccountDropdownWrapper">
+                                <button class="btn btn-sm rounded-pill shadow-xs border-secondary-subtle fw-semibold dropdown-toggle text-start d-flex align-items-center justify-content-between gap-2 px-3 py-1.5 account-filter-btn" 
+                                        type="button" 
+                                        id="billAccountDropdownBtn" 
+                                        data-bs-toggle="dropdown" 
+                                        data-bs-auto-close="outside" 
+                                        aria-expanded="false">
+                                    <span class="text-truncate dropdown-label flex-grow-1">ทุกหมวดบัญชี (ทั้งหมด)</span>
+                                </button>
+                                <div class="dropdown-menu shadow-lg border-0 rounded-4 p-2 mt-1" aria-labelledby="billAccountDropdownBtn" style="min-width: 320px; max-width: 380px; font-size: 0.83rem;">
+                                    <!-- Search Input -->
+                                    <div class="p-1 mb-1">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-0 rounded-start-pill text-muted ps-2.5">
+                                                <i class="bi bi-search"></i>
+                                            </span>
+                                            <input type="text" class="form-control bg-light border-0 rounded-end-pill account-search-input pe-2.5" placeholder="ค้นหารหัส หรือชื่อหมวดบัญชี...">
+                                        </div>
+                                    </div>
+                                    <!-- Quick Actions Toolbar -->
+                                    <div class="d-flex justify-content-between align-items-center px-2 py-1 mb-1 border-bottom pb-2">
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 fw-bold btn-select-all text-primary" style="font-size: 0.78rem;">
+                                            <i class="bi bi-check-all me-1"></i>เลือกทั้งหมด
+                                        </button>
+                                        <div class="small text-muted selected-count-text" style="font-size: 0.75rem;">
+                                            เลือก <span class="selected-count-num fw-bold text-dark">{{ isset($accountChoices) ? $accountChoices->count() : 0 }}</span> / {{ isset($accountChoices) ? $accountChoices->count() : 0 }}
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted btn-deselect-all" style="font-size: 0.78rem;">
+                                            <i class="bi bi-x-circle me-1"></i>ล้างค่า
+                                        </button>
+                                    </div>
+                                    <!-- Scrollable Checkbox List -->
+                                    <div class="account-options-list overflow-auto px-1" style="max-height: 260px;">
+                                        @if(isset($accountChoices))
+                                            @foreach($accountChoices as $acc)
+                                                <label class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-2 rounded-2 cursor-pointer hover-bg account-check-item mb-0.5" 
+                                                       data-code="{{ $acc->account_code }}" 
+                                                       data-name="{{ $acc->account_name }}"
+                                                       data-search="{{ strtolower($acc->account_code . ' ' . $acc->account_name) }}">
+                                                    <input class="form-check-input mt-0 flex-shrink-0 account-checkbox" 
+                                                           type="checkbox" 
+                                                           value="{{ $acc->account_code }}" 
+                                                           data-name="{{ $acc->account_name }}" 
+                                                           checked>
+                                                    <div class="text-truncate flex-grow-1" style="line-height: 1.25;">
+                                                        <span class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">{{ $acc->account_code }}</span>
+                                                        <span class="text-muted d-block text-truncate" style="font-size: 0.75rem;">{{ $acc->account_name }}</span>
+                                                    </div>
+                                                    <span class="badge bg-light text-secondary border rounded-pill ms-auto flex-shrink-0" style="font-size: 0.7rem;">
+                                                        {{ number_format($acc->bill_count) }} ใบ
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        @endif
+                                        <div class="text-center text-muted small py-3 no-account-found" style="display: none;">
+                                            <i class="bi bi-search me-1"></i>ไม่พบหมวดบัญชีที่ค้นหา
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Filter Pills -->
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted small fw-bold me-1">สถานะ:</span>
+                            <div class="btn-group btn-group-sm rounded-pill p-1 bg-light border shadow-sm" role="group">
+                                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold active btn-secondary text-white btn-bill-status" data-status="all">
+                                    บิลทั้งหมด <span class="badge bg-light text-dark rounded-pill ms-1">{{ number_format($bills->count()) }}</span>
+                                </button>
+                                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold text-dark btn-bill-status" data-status="unpaid">
+                                    ค้างชำระ <span class="badge bg-danger text-white rounded-pill ms-1">{{ number_format($totalUnpaidBillsCount) }}</span>
+                                </button>
+                                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold text-dark btn-bill-status" data-status="paid">
+                                    ชำระครบแล้ว <span class="badge bg-success text-white rounded-pill ms-1">{{ number_format($totalPaidBillsCount) }}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -462,7 +636,7 @@
                                 <th class="ps-3 text-center" style="width: 50px;">#</th>
                                 <th>เลขที่บิล (ApAr)</th>
                                 <th class="text-center" style="width: 110px;">วันที่บิล</th>
-                                <th class="text-center" style="width: 100px;">ค้างชำระ</th>
+                                <th class="text-center" style="width: 110px;">ค้างชำระ (วัน)</th>
                                 <th>บริษัทคู่ค้า / เจ้าหนี้</th>
                                 <th>หมวดบัญชี</th>
                                 <th class="text-end">ยอดตั้งหนี้ (Cr)</th>
@@ -474,7 +648,7 @@
                         <tbody>
                             @php $bIdx = 1; @endphp
                             @foreach($bills as $b)
-                                <tr>
+                                <tr class="bill-row" data-account-code="{{ $b->account_code }}">
                                     <td class="ps-3 text-center fw-bold text-muted" data-order="{{ $bIdx }}">{{ $bIdx++ }}</td>
                                     <td class="fw-bold font-monospace text-primary">{{ $b->bill_no }}</td>
                                     <td class="text-center small text-nowrap" data-order="{{ $b->parsed_bill_date }}">{{ $b->thai_bill_date }}</td>
@@ -483,15 +657,15 @@
                                             <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5">-</span>
                                         @elseif($b->aging_days > 90)
                                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5 fw-bold">
-                                                {{ number_format($b->aging_days) }} วัน
+                                                {{ number_format($b->aging_days) }}
                                             </span>
                                         @elseif($b->aging_days > 30)
                                             <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5">
-                                                {{ number_format($b->aging_days) }} วัน
+                                                {{ number_format($b->aging_days) }}
                                             </span>
                                         @else
                                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5">
-                                                {{ number_format($b->aging_days) }} วัน
+                                                {{ number_format($b->aging_days) }}
                                             </span>
                                         @endif
                                     </td>
@@ -580,7 +754,7 @@
                                     <th class="ps-3 text-center" style="width: 50px;">#</th>
                                     <th>เลขที่บิล (ApAr)</th>
                                     <th class="text-center" style="width: 110px;">วันที่บิล</th>
-                                    <th class="text-center" style="width: 100px;">ค้างชำระ</th>
+                                    <th class="text-center" style="width: 110px;">ค้างชำระ (วัน)</th>
                                     <th>หมวดบัญชี</th>
                                     <th class="text-end">ยอดตั้งหนี้ (Cr)</th>
                                     <th class="text-end">ยอดจ่ายแล้ว (Dr)</th>
@@ -946,6 +1120,69 @@
                 return num.toLocaleString('th-TH');
             };
 
+            // Independent Multi-select Account Filter states
+            var allVendorAccountCodes = [];
+            var selectedVendorAccounts = new Set();
+
+            $('#vendorAccountDropdownWrapper .account-checkbox').each(function() {
+                var c = $(this).val();
+                if (c && allVendorAccountCodes.indexOf(c) === -1) {
+                    allVendorAccountCodes.push(c);
+                    selectedVendorAccounts.add(c);
+                }
+            });
+
+            var allBillAccountCodes = [];
+            var selectedBillAccounts = new Set();
+
+            $('#billAccountDropdownWrapper .account-checkbox').each(function() {
+                var c = $(this).val();
+                if (c && allBillAccountCodes.indexOf(c) === -1) {
+                    allBillAccountCodes.push(c);
+                    selectedBillAccounts.add(c);
+                }
+            });
+
+            // Custom search filter for DataTables (both Vendor Table and Bills Table - INDEPENDENT)
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                if (!settings.nTable) return true;
+
+                // Vendor Table filter (Tab 1)
+                if (settings.nTable.id === 'vendorTable') {
+                    if (allVendorAccountCodes.length === 0 || selectedVendorAccounts.size === allVendorAccountCodes.length) {
+                        return true;
+                    }
+                    if (selectedVendorAccounts.size === 0) {
+                        return false;
+                    }
+                    var rowNode = settings.aoData[dataIndex].nTr;
+                    var accCodesStr = $(rowNode).attr('data-account-codes') || '';
+                    if (!accCodesStr) return false;
+                    var rowCodes = accCodesStr.split(',');
+                    for (var i = 0; i < rowCodes.length; i++) {
+                        if (selectedVendorAccounts.has(rowCodes[i].trim())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                // Bills Table filter (Tab 2)
+                if (settings.nTable.id === 'billsTable') {
+                    if (allBillAccountCodes.length === 0 || selectedBillAccounts.size === allBillAccountCodes.length) {
+                        return true;
+                    }
+                    if (selectedBillAccounts.size === 0) {
+                        return false;
+                    }
+                    var rowNode = settings.aoData[dataIndex].nTr;
+                    var code = $(rowNode).attr('data-account-code') || '';
+                    return selectedBillAccounts.has(code.trim());
+                }
+
+                return true;
+            });
+
             // 1. Initialize Vendor Table DataTable
             if ($.fn.DataTable.isDataTable('#vendorTable')) {
                 $('#vendorTable').DataTable().destroy();
@@ -1018,7 +1255,19 @@
                         title: 'รายการบิลเจ้าหนี้การค้าทั้งหมด_HosFin',
                         exportOptions: {
                             columns: ':visible',
-                            footer: true
+                            footer: true,
+                            format: {
+                                body: function (data, row, column, node) {
+                                    var text = $('<div>').html(data).text().trim();
+                                    // Column 3 is ค้างชำระ (วัน) - export pure integer
+                                    if (column === 3) {
+                                        if (text === '-' || text === '') return '';
+                                        var cleanNum = text.replace(/วัน/g, '').replace(/,/g, '').trim();
+                                        return isNaN(cleanNum) || cleanNum === '' ? '' : parseInt(cleanNum, 10);
+                                    }
+                                    return text;
+                                }
+                            }
                         }
                     }
                 ],
@@ -1053,6 +1302,194 @@
                         $('#btTotalDebit').html(fmt(totalDebit || 0));
                         $('#btTotalRemaining').html(fmt(totalRemaining || 0));
                     } catch (e) {}
+                }
+            });
+
+            // -------------------------------------------------------------
+            // Independent Account Filter: Tab 1 (Vendor Summary)
+            // -------------------------------------------------------------
+            function updateVendorFilterState() {
+                var total = allVendorAccountCodes.length;
+                var count = selectedVendorAccounts.size;
+
+                $('#vendorAccountDropdownWrapper .selected-count-num').text(count);
+
+                var labelHtml = '';
+                if (count === total && total > 0) {
+                    labelHtml = 'ทุกหมวดบัญชี (ทั้งหมด)';
+                } else if (count === 0) {
+                    labelHtml = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-circle me-1"></i>ไม่ได้เลือกหมวดบัญชี</span>';
+                } else if (count === 1) {
+                    var singleCode = Array.from(selectedVendorAccounts)[0];
+                    var singleItem = $('#vendorAccountDropdownWrapper .account-checkbox[value="' + singleCode + '"]').first();
+                    var singleName = singleItem.data('name') || '';
+                    labelHtml = '<span class="fw-bold font-monospace">' + singleCode + '</span> - ' + singleName;
+                } else {
+                    labelHtml = 'เลือก <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 ms-1">' + count + '</span> หมวดบัญชี';
+                }
+
+                $('#vendorAccountDropdownBtn .dropdown-label').html(labelHtml);
+                if (vendorDt) vendorDt.draw();
+            }
+
+            $('#vendorAccountDropdownWrapper').on('change', '.account-checkbox', function() {
+                var code = $(this).val();
+                if ($(this).prop('checked')) {
+                    selectedVendorAccounts.add(code);
+                } else {
+                    selectedVendorAccounts.delete(code);
+                }
+                updateVendorFilterState();
+            });
+
+            $('#vendorAccountDropdownWrapper').on('click', '.btn-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var menu = $(this).closest('.dropdown-menu');
+                var visibleItems = menu.find('.account-check-item:not(.d-none) .account-checkbox');
+                var totalItems = menu.find('.account-checkbox');
+
+                if (visibleItems.length > 0 && visibleItems.length < totalItems.length) {
+                    visibleItems.each(function() {
+                        var val = $(this).val();
+                        $(this).prop('checked', true);
+                        selectedVendorAccounts.add(val);
+                    });
+                } else {
+                    totalItems.prop('checked', true);
+                    allVendorAccountCodes.forEach(function(c) {
+                        selectedVendorAccounts.add(c);
+                    });
+                }
+                updateVendorFilterState();
+            });
+
+            $('#vendorAccountDropdownWrapper').on('click', '.btn-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var menu = $(this).closest('.dropdown-menu');
+                var visibleItems = menu.find('.account-check-item:not(.d-none) .account-checkbox');
+                var totalItems = menu.find('.account-checkbox');
+
+                if (visibleItems.length > 0 && visibleItems.length < totalItems.length) {
+                    visibleItems.each(function() {
+                        var val = $(this).val();
+                        $(this).prop('checked', false);
+                        selectedVendorAccounts.delete(val);
+                    });
+                } else {
+                    totalItems.prop('checked', false);
+                    selectedVendorAccounts.clear();
+                }
+                updateVendorFilterState();
+            });
+
+            // -------------------------------------------------------------
+            // Independent Account Filter: Tab 2 (Bills Detail)
+            // -------------------------------------------------------------
+            function updateBillFilterState() {
+                var total = allBillAccountCodes.length;
+                var count = selectedBillAccounts.size;
+
+                $('#billAccountDropdownWrapper .selected-count-num').text(count);
+
+                var labelHtml = '';
+                if (count === total && total > 0) {
+                    labelHtml = 'ทุกหมวดบัญชี (ทั้งหมด)';
+                } else if (count === 0) {
+                    labelHtml = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-circle me-1"></i>ไม่ได้เลือกหมวดบัญชี</span>';
+                } else if (count === 1) {
+                    var singleCode = Array.from(selectedBillAccounts)[0];
+                    var singleItem = $('#billAccountDropdownWrapper .account-checkbox[value="' + singleCode + '"]').first();
+                    var singleName = singleItem.data('name') || '';
+                    labelHtml = '<span class="fw-bold font-monospace">' + singleCode + '</span> - ' + singleName;
+                } else {
+                    labelHtml = 'เลือก <span class="badge bg-primary text-white rounded-pill px-2 py-0.5 ms-1">' + count + '</span> หมวดบัญชี';
+                }
+
+                $('#billAccountDropdownBtn .dropdown-label').html(labelHtml);
+                if (billsDt) billsDt.draw();
+            }
+
+            $('#billAccountDropdownWrapper').on('change', '.account-checkbox', function() {
+                var code = $(this).val();
+                if ($(this).prop('checked')) {
+                    selectedBillAccounts.add(code);
+                } else {
+                    selectedBillAccounts.delete(code);
+                }
+                updateBillFilterState();
+            });
+
+            $('#billAccountDropdownWrapper').on('click', '.btn-select-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var menu = $(this).closest('.dropdown-menu');
+                var visibleItems = menu.find('.account-check-item:not(.d-none) .account-checkbox');
+                var totalItems = menu.find('.account-checkbox');
+
+                if (visibleItems.length > 0 && visibleItems.length < totalItems.length) {
+                    visibleItems.each(function() {
+                        var val = $(this).val();
+                        $(this).prop('checked', true);
+                        selectedBillAccounts.add(val);
+                    });
+                } else {
+                    totalItems.prop('checked', true);
+                    allBillAccountCodes.forEach(function(c) {
+                        selectedBillAccounts.add(c);
+                    });
+                }
+                updateBillFilterState();
+            });
+
+            $('#billAccountDropdownWrapper').on('click', '.btn-deselect-all', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var menu = $(this).closest('.dropdown-menu');
+                var visibleItems = menu.find('.account-check-item:not(.d-none) .account-checkbox');
+                var totalItems = menu.find('.account-checkbox');
+
+                if (visibleItems.length > 0 && visibleItems.length < totalItems.length) {
+                    visibleItems.each(function() {
+                        var val = $(this).val();
+                        $(this).prop('checked', false);
+                        selectedBillAccounts.delete(val);
+                    });
+                } else {
+                    totalItems.prop('checked', false);
+                    selectedBillAccounts.clear();
+                }
+                updateBillFilterState();
+            });
+
+            // Prevent dropdown from closing when interacting inside
+            $(document).on('click', '.account-filter-dropdown .dropdown-menu', function(e) {
+                e.stopPropagation();
+            });
+
+            // Live search in account dropdown (scoped to current dropdown)
+            $(document).on('input', '.account-search-input', function() {
+                var query = $(this).val().toLowerCase().trim();
+                var menu = $(this).closest('.dropdown-menu');
+                var items = menu.find('.account-check-item');
+                var noFound = menu.find('.no-account-found');
+                var visibleCount = 0;
+
+                items.each(function() {
+                    var searchStr = $(this).attr('data-search') || '';
+                    if (!query || searchStr.indexOf(query) !== -1) {
+                        $(this).removeClass('d-none').addClass('d-flex');
+                        visibleCount++;
+                    } else {
+                        $(this).removeClass('d-flex').addClass('d-none');
+                    }
+                });
+
+                if (visibleCount === 0) {
+                    noFound.show();
+                } else {
+                    noFound.hide();
                 }
             });
 
@@ -1122,7 +1559,7 @@
                                 var agingBadge = '<span class="badge bg-light text-muted border rounded-pill px-2 py-0.5">-</span>';
                                 if (!isPaid && b.aging_days > 0) {
                                     var badgeClass = b.aging_days > 90 ? 'bg-danger-subtle text-danger border border-danger-subtle fw-bold' : (b.aging_days > 30 ? 'bg-warning-subtle text-dark border border-warning-subtle' : 'bg-success-subtle text-success border border-success-subtle');
-                                    agingBadge = '<span class="badge ' + badgeClass + ' rounded-pill px-2 py-0.5">' + Number(b.aging_days).toLocaleString() + ' วัน</span>';
+                                    agingBadge = '<span class="badge ' + badgeClass + ' rounded-pill px-2 py-0.5">' + Number(b.aging_days).toLocaleString() + '</span>';
                                 }
 
                                 rowsHtml += '<tr>' +
@@ -1152,7 +1589,22 @@
                                         text: '<i class="bi bi-file-earmark-excel-fill text-white fs-6"></i> ส่งออก Excel',
                                         className: 'btn btn-success btn-sm rounded-pill px-3 shadow-sm text-white fw-bold',
                                         title: 'รายการบิล_' + vendorName + '_HosFin',
-                                        exportOptions: { columns: ':visible', footer: true }
+                                        exportOptions: { 
+                                            columns: ':visible', 
+                                            footer: true,
+                                            format: {
+                                                body: function (data, row, column, node) {
+                                                    var text = $('<div>').html(data).text().trim();
+                                                    // Column 3 is ค้างชำระ (วัน)
+                                                    if (column === 3) {
+                                                        if (text === '-' || text === '') return '';
+                                                        var cleanNum = text.replace(/วัน/g, '').replace(/,/g, '').trim();
+                                                        return isNaN(cleanNum) || cleanNum === '' ? '' : parseInt(cleanNum, 10);
+                                                    }
+                                                    return text;
+                                                }
+                                            }
+                                        }
                                     }
                                 ],
                                 language: {

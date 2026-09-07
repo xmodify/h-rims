@@ -2451,10 +2451,21 @@ class HosFinController extends Controller
                 DB::raw('SUM(CASE WHEN is_paid = 0 THEN 1 ELSE 0 END) as unpaid_bills'),
                 DB::raw('SUM(total_credit) as total_credit'),
                 DB::raw('SUM(total_debit) as total_debit'),
-                DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt')
+                DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt'),
+                DB::raw('GROUP_CONCAT(DISTINCT account_code) as account_codes'),
+                DB::raw('GROUP_CONCAT(DISTINCT account_name) as account_names')
             )
             ->groupBy('vendor_name')
             ->orderBy('remaining_debt', 'desc')
+            ->get();
+
+        // Get all unique account categories for dropdown filter
+        $accountChoices = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+            ->whereNotNull('account_code')
+            ->where('account_code', '<>', '')
+            ->select('account_code', 'account_name', DB::raw('COUNT(*) as bill_count'))
+            ->groupBy('account_code', 'account_name')
+            ->orderBy('account_code')
             ->get();
 
         $bills = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
@@ -2549,6 +2560,7 @@ class HosFinController extends Controller
             'bills' => $bills,
             'crossAccountDetails' => $crossAccountDetails,
             'overpaidBills' => $overpaidBills,
+            'accountChoices' => $accountChoices,
         ]);
     }
 

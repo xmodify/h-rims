@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -53,9 +54,22 @@ type JournalPayload struct {
 type SyncRequest struct {
 	SyncType     string               `json:"sync_type"`
 	AgentVersion string               `json:"agent_version"`
+	Hospcode     string               `json:"hospcode,omitempty"`
 	Accounts     []AccountPayload     `json:"accounts,omitempty"`
 	Subledgers   []SubledgerPayload   `json:"subledgers,omitempty"`
 	Journals     []JournalPayload     `json:"journals,omitempty"`
+}
+
+func extractHospcode(token string) string {
+	parts := strings.Split(token, "-")
+	for _, p := range parts {
+		if len(p) == 5 {
+			if _, err := strconv.Atoi(p); err == nil {
+				return p
+			}
+		}
+	}
+	return ""
 }
 
 type SyncResponse struct {
@@ -155,17 +169,42 @@ func runSyncJob(cfg *Config, logFn func(level, msg string)) error {
 	}
 	defer conn.Release()
 
-	connStr := fmt.Sprintf("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=%s;Persist Security Info=False;", cfg.DbPath)
-	_, err = oleutil.CallMethod(conn, "Open", connStr)
-	if err != nil {
-		connStrJet := fmt.Sprintf("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=%s;", cfg.DbPath)
-		_, errJet := oleutil.CallMethod(conn, "Open", connStrJet)
-		if errJet != nil {
-			return fmt.Errorf("ไม่สามารถเปิดไฟล์ฐานข้อมูล: ACE err: %v | Jet err: %v", err, errJet)
+	providers := []string{
+		"Microsoft.ACE.OLEDB.16.0",
+		"Microsoft.ACE.OLEDB.12.0",
+		"Microsoft.ACE.OLEDB.15.0",
+		"Microsoft.Jet.OLEDB.4.0",
+	}
+
+	var lastErr error
+	connected := false
+	var activeProvider string
+
+	for _, prov := range providers {
+		connStr := fmt.Sprintf("Provider=%s;Data Source=%s;Persist Security Info=False;", prov, cfg.DbPath)
+		if strings.HasPrefix(prov, "Microsoft.Jet") {
+			connStr = fmt.Sprintf("Provider=%s;Data Source=%s;", prov, cfg.DbPath)
 		}
+		_, err = oleutil.CallMethod(conn, "Open", connStr)
+		if err == nil {
+			connected = true
+			activeProvider = prov
+			break
+		}
+		lastErr = err
+	}
+
+	if !connected {
+		arch := "64-bit (x64)"
+		altArch := "32-bit (x86)"
+		if runtime.GOARCH == "386" {
+			arch = "32-bit (x86)"
+			altArch = "64-bit (x64)"
+		}
+		return fmt.Errorf("ไม่สามารถเปิดไฟล์ฐานข้อมูล Access: %v\n[ข้อแนะนำ] โปรแกรมนี้ทำงานในโหมด %s หากเครื่องของท่านใช้ Microsoft Office อีกแบบ แนะนำให้ดาวน์โหลด Rims GL Sync รุ่น %s", lastErr, arch, altArch)
 	}
 	defer oleutil.CallMethod(conn, "Close")
-	logFn("SUCCESS", "เชื่อมต่อฐานข้อมูล Access (OLEDB) สำเร็จ!")
+	logFn("SUCCESS", fmt.Sprintf("เชื่อมต่อฐานข้อมูล Access สำเร็จ (Driver: %s)", activeProvider))
 
 	// 1. Read ChartOfAccounts
 	logFn("INFO", "กำลังดึงข้อมูลผังบัญชี (ChartOfAccounts)...")
@@ -254,7 +293,8 @@ func runSyncJob(cfg *Config, logFn func(level, msg string)) error {
 	logFn("INFO", "กำลังส่งข้อมูลผังบัญชีและเจ้าหนี้-ลูกหนี้เข้า Server...")
 	initReq := &SyncRequest{
 		SyncType:     "metadata",
-		AgentVersion: "1.2.0",
+		AgentVersion: "2.0.0",
+		Hospcode:     extractHospcode(cfg.ApiToken),
 		Accounts:     accounts,
 		Subledgers:   subledgers,
 	}
@@ -422,7 +462,8 @@ func runSyncJob(cfg *Config, logFn func(level, msg string)) error {
 
 		chunkReq := &SyncRequest{
 			SyncType:     "journals_chunk",
-			AgentVersion: "1.2.0",
+			AgentVersion: "2.0.0",
+			Hospcode:     extractHospcode(cfg.ApiToken),
 			Journals:     batchJournals,
 		}
 
@@ -437,7 +478,8 @@ func runSyncJob(cfg *Config, logFn func(level, msg string)) error {
 	logFn("INFO", "กำลังประมวลผลคำนวณยอดสรุปหนี้สิน AP, ลูกหนี้ AR และต้นทุนบน Server...")
 	finalizeReq := &SyncRequest{
 		SyncType:     "finalize",
-		AgentVersion: "1.2.0",
+		AgentVersion: "2.0.0",
+		Hospcode:     extractHospcode(cfg.ApiToken),
 	}
 	finResp, err := postToAPI(cfg.ApiUrl, cfg.ApiToken, finalizeReq)
 	if err != nil {

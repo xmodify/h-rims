@@ -170,9 +170,9 @@ class HosxpSettingController extends Controller
             ];
         }
 
-        $itemTotal = $hosxp->table('nondrugitems')->count();
-        $itemActive = $hosxp->table('nondrugitems')->where('istatus', 'Y')->count();
-        $itemMissingAdp = $hosxp->table('nondrugitems')->where('istatus', 'Y')
+        $itemTotal = $hosxp->table('nondrugitems')->where('price', '>', 0)->count();
+        $itemActive = $hosxp->table('nondrugitems')->where('istatus', 'Y')->where('price', '>', 0)->count();
+        $itemMissingAdp = $hosxp->table('nondrugitems')->where('istatus', 'Y')->where('price', '>', 0)
             ->where(function ($q) {
                 $q->whereNull('nhso_adp_code')->orWhere('nhso_adp_code', '');
             })->count();
@@ -219,7 +219,8 @@ class HosxpSettingController extends Controller
                     'n.nhso_adp_type_id', 'n.istatus', 'n.unit',
                     'n.income', 'n.billcode',
                     'i.name as income_name'
-                ]);
+                ])
+                ->where('n.price', '>', 0);
 
             if ($filter === 'active') {
                 $query->where('n.istatus', 'Y');
@@ -258,9 +259,6 @@ class HosxpSettingController extends Controller
                 }
                 if (empty(trim($item->income ?? ''))) {
                     $itemErrors[] = 'ยังไม่ระบุหมวดรายได้ (income)';
-                }
-                if (($item->price ?? 0) <= 0) {
-                    $itemErrors[] = 'ราคา OPD เป็น 0 หรือไม่ได้ระบุ';
                 }
                 $item->item_errors = $itemErrors;
                 $item->is_valid = empty($itemErrors);

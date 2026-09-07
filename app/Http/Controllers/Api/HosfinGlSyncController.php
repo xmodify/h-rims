@@ -20,21 +20,96 @@ use App\Models\MainSetting;
 class HosfinGlSyncController extends Controller
 {
     /**
-     * Default API Token for GL Agent Sync
+     * Get Current Hospital Code
      */
-    protected function getExpectedToken()
+    protected function getCurrentHospcode()
     {
-        return config('services.gl_sync.token', env('GL_SYNC_TOKEN', 'rims-gl-token-2569-secret'));
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hospcode) {
+            $hospcode = DB::table('lookup_hospcode')->value('hospcode');
+        }
+        return $hospcode ? trim($hospcode) : '';
     }
 
     /**
-     * Check Token Auth
+     * Expected GL Sync Tokens for this Hospital
      */
-    protected function validateToken(Request $request)
+    protected function getExpectedTokens()
+    {
+        $tokens = [];
+        $hospcode = $this->getCurrentHospcode();
+        if ($hospcode) {
+            $tokens[] = 'rims-gl-' . $hospcode . '-token-2569';
+        }
+
+        // Custom token from env / config if set explicitly
+        $customToken = config('services.gl_sync.token', env('GL_SYNC_TOKEN'));
+        if ($customToken && !in_array($customToken, ['rims-gl-token-2569-secret', ''])) {
+            $tokens[] = $customToken;
+        }
+
+        return $tokens;
+    }
+
+    /**
+     * Validate GL Sync Token with Hospital Isolation
+     */
+    protected function validateRequestToken(Request $request)
     {
         $token = $request->bearerToken() ?: $request->input('token') ?: $request->header('X-GL-SYNC-TOKEN');
-        $expected = $this->getExpectedToken();
-        return ($token && hash_equals($expected, $token));
+        if (!$token) {
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Unauthorized: ไม่พบ API Token สำหรับซิงค์ข้อมูล (Missing GL Sync Token)'
+            ];
+        }
+
+        $currentHospcode = $this->getCurrentHospcode();
+
+        // 1. Detect if token belongs to another hospital (rims-gl-{hospcode}-token-2569)
+        if (preg_match('/rims-gl-(\d{5})-token-2569/', $token, $matches)) {
+            $tokenHospcode = $matches[1];
+            if ($currentHospcode && $tokenHospcode !== $currentHospcode) {
+                Log::warning("HosfinGlSync: Cross-hospital sync attempt blocked! Token Hospcode: {$tokenHospcode}, Server Hospcode: {$currentHospcode}, IP: " . $request->ip());
+                return [
+                    'valid' => false,
+                    'status' => 403,
+                    'message' => "Cross-Hospital Sync Blocked: ตรวจพบการส่งข้อมูลข้าม รพ.! (Token นี้เป็นของ รพ. รหัส {$tokenHospcode} แต่ Server นี้คือ รพ. รหัส {$currentHospcode})"
+                ];
+            }
+        }
+
+        // 2. Detect if payload contains a different hospital code
+        $payloadHospcode = $request->input('hospcode');
+        if ($payloadHospcode && $currentHospcode && $payloadHospcode !== $currentHospcode) {
+            Log::warning("HosfinGlSync: Cross-hospital sync payload blocked! Payload Hospcode: {$payloadHospcode}, Server Hospcode: {$currentHospcode}, IP: " . $request->ip());
+            return [
+                'valid' => false,
+                'status' => 403,
+                'message' => "Cross-Hospital Sync Blocked: ข้อมูลบัญชีที่ส่งมาเป็นของ รพ. รหัส {$payloadHospcode} แต่ Server ปลายทางนี้คือ รพ. รหัส {$currentHospcode}"
+            ];
+        }
+
+        // 3. Match against expected tokens for this hospital
+        $expectedTokens = $this->getExpectedTokens();
+        $isMatch = false;
+        foreach ($expectedTokens as $expected) {
+            if (hash_equals($expected, $token)) {
+                $isMatch = true;
+                break;
+            }
+        }
+
+        if (!$isMatch) {
+            return [
+                'valid' => false,
+                'status' => 401,
+                'message' => 'Unauthorized: API Token ไม่ถูกต้องสำหรับโรงพยาบาลนี้ (กรุณาคัดลอก Token ประจำ รพ. จากหน้าศูนย์ดาวน์โหลด RiMS)'
+            ];
+        }
+
+        return ['valid' => true];
     }
 
     /**
@@ -44,11 +119,12 @@ class HosfinGlSyncController extends Controller
     {
         $startTime = microtime(true);
 
-        if (!$this->validateToken($request)) {
+        $authCheck = $this->validateRequestToken($request);
+        if (!$authCheck['valid']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: Invalid GL Sync Token'
-            ], 401);
+                'message' => $authCheck['message']
+            ], $authCheck['status']);
         }
 
         if (!\App\Services\LicenseVerificationService::isModuleLicensed('hosfin')) {
@@ -56,6 +132,20 @@ class HosfinGlSyncController extends Controller
                 'success' => false,
                 'message' => 'License Error: โรงพยาบาลของท่านยังไม่ได้รับอนุญาตให้ใช้งานระบบ HosFin (กรุณาเปิดสิทธิ์ License)'
             ], 403);
+        }
+
+        // If GET request (e.g. Test Connection from Rims-GL-Sync client)
+        if ($request->isMethod('get')) {
+            $hospcode = $this->getCurrentHospcode();
+            $hospName = DB::table('main_setting')->where('name', 'hospital_name')->value('value')
+                ?: DB::table('lookup_hospcode')->where('hospcode', $hospcode)->value('hospcode_name')
+                ?: 'โรงพยาบาล';
+            return response()->json([
+                'success' => true,
+                'message' => "เชื่อมต่อ API สำเร็จและ Token ถูกต้อง (สถานพยาบาล: {$hospName} [{$hospcode}])",
+                'hospcode' => $hospcode,
+                'hospital_name' => $hospName
+            ]);
         }
 
         $syncType = $request->input('sync_type', 'full');

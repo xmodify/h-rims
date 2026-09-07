@@ -26,7 +26,7 @@ const (
 func getDefaultConfig() *Config {
 	return &Config{
 		ApiUrl:              "http://127.0.0.1/rims/api/hosfin/gl/sync",
-		ApiToken:            "rims-gl-token-2569-secret",
+		ApiToken:            "",
 		DbPath:              "",
 		SyncIntervalMinutes: 30,
 		AutoStart:           true,

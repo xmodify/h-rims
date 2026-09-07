@@ -44,6 +44,6 @@ Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class,
 Route::post('/eclaim/session-sync', [\App\Http\Controllers\EclaimBotController::class, 'saveSessionFromExtension']);
 
 // API HOSFIN GL Microservice Sync ----------------------------------------------
-Route::post('/hosfin/gl/sync', [\App\Http\Controllers\Api\HosfinGlSyncController::class, 'sync'])->name('api.hosfin.gl.sync');
+Route::match(['get', 'post'], '/hosfin/gl/sync', [\App\Http\Controllers\Api\HosfinGlSyncController::class, 'sync'])->name('api.hosfin.gl.sync');
 Route::get('/hosfin/gl/status', [\App\Http\Controllers\Api\HosfinGlSyncController::class, 'status'])->name('api.hosfin.gl.status');
 

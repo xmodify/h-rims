@@ -906,7 +906,7 @@
                         <h5 class="modal-title fw-bold text-white mb-0" id="cashBankModalLabel">
                             สมุดบัญชีเงินสดและเงินฝากธนาคารทั้งหมด (Cash & Bank)
                         </h5>
-                        <small class="text-white-50">ข้อมูลจากงบทดลอง GL งวดล่าสุด: {{ $latestPeriodLabel }} (ปีงบประมาณ {{ $budgetYear }})</small>
+                        <small class="text-white-50">ข้อมูลจากงบทดลอง GL ณ สิ้นงวด: {{ $latestPeriodLabel }} (ปีงบประมาณ {{ $budgetYear }})</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>

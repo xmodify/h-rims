@@ -627,8 +627,12 @@ func runGUI(cfgPath string) {
 	hInstance, _, _ := getModuleHandleW.Call(0)
 	hIcon, _, _ := loadIconW.Call(hInstance, 1)
 
+	archSuffix := " (x64)"
+	if runtime.GOARCH == "386" {
+		archSuffix = " (x86)"
+	}
 	className, _ := syscall.UTF16PtrFromString("RimsGLSyncWinClass")
-	windowTitle, _ := syscall.UTF16PtrFromString("Rims GL Sync - ระบบเชื่อมต่อฐานข้อมูลบัญชีโรงพยาบาล")
+	windowTitle, _ := syscall.UTF16PtrFromString("Rims GL Sync" + archSuffix + " - ระบบเชื่อมต่อฐานข้อมูลบัญชีโรงพยาบาล v2.0")
 
 	wc := WNDCLASSEXW{
 		CbSize:        uint32(unsafe.Sizeof(WNDCLASSEXW{})),
@@ -722,7 +726,11 @@ func runGUI(cfgPath string) {
 	showWindow.Call(hwnd, 5) // SW_SHOW
 	updateWindow.Call(hwnd)
 
-	app.appendLog("INFO", "โปรแกรม HosFin GL Sync Agent พร้อมใช้งาน")
+	archLabel := "64-bit (x64)"
+	if runtime.GOARCH == "386" {
+		archLabel = "32-bit (x86)"
+	}
+	app.appendLog("INFO", fmt.Sprintf("โปรแกรม Rims GL Sync Agent v2.0 [%s] พร้อมใช้งาน", archLabel))
 	if cfg.DbPath != "" {
 		app.appendLog("INFO", fmt.Sprintf("ไฟล์ GL ที่ตั้งค่าไว้: %s", cfg.DbPath))
 	} else {

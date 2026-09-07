@@ -348,7 +348,7 @@
                                                     <th class="text-center" style="width: 6%;">เพศ</th>
                                                     <th class="text-center" style="width: 8%;">วันเกิด</th>
                                                     <th class="text-center" style="width: 7%;">สถานะ</th>
-                                                    <th class="text-center" style="width: 13%;">ผลการตรวจสอบ</th>
+                                                    <th class="text-center" style="width: 70px;">ผลการตรวจสอบ</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -359,20 +359,6 @@
                                                         $cid = trim($row->cid ?? '');
                                                         $isCidValid = $row->is_cid_valid ?? false;
                                                         $doc_errors = $row->doc_errors ?? [];
-
-                                                        if (empty($doc_errors)) {
-                                                            $statusHtml = '<span class="badge bg-success-soft text-success"><i class="bi bi-eye-fill me-1"></i>ข้อมูลปกติ</span>';
-                                                        } else {
-                                                            $tooltipText = implode(' | ', $doc_errors);
-                                                            $statusHtml = '<span class="badge bg-danger-soft text-danger cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" title="'.e($tooltipText).' (คลิกเพื่อปรึกษา Copilot)" onclick="consultCopilotForRecord(\'doctor\', \''.$row->code.'\', \''.addslashes($row->name).'\', \''.addslashes($tooltipText).'\')"><i class="bi bi-eye-slash-fill me-1"></i>พบข้อผิดพลาด</span>';
-                                                        }
-
-                                                        $sexText = '-';
-                                                        if (($row->sex ?? '') == '1') {
-                                                            $sexText = 'ชาย';
-                                                        } elseif (($row->sex ?? '') == '2') {
-                                                            $sexText = 'หญิง';
-                                                        }
 
                                                         $councilMap = [
                                                             '01' => 'แพทยสภา',
@@ -385,6 +371,37 @@
                                                             '08' => 'สภาการแพทย์แผนไทย'
                                                         ];
                                                         $councilName = !empty($row->council_code) && isset($councilMap[$row->council_code]) ? $councilMap[$row->council_code] : null;
+
+                                                        if (empty($doc_errors)) {
+                                                            $orderVal = 2;
+                                                            $statusSearchText = 'ปกติ สมบูรณ์ ผ่าน';
+                                                            $statusHtml = '<span class="d-none">2</span><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / สมบูรณ์"><i class="bi bi-eye-fill fs-6"></i></span>';
+                                                        } else {
+                                                            $orderVal = 1;
+                                                            $statusSearchText = 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $doc_errors);
+                                                            $docDetails = [
+                                                                'เลขใบอนุญาต' => $lic ?: 'ไม่ได้ระบุ',
+                                                                'เลขบัตรประชาชน' => $cid ?: 'ไม่ได้ระบุ',
+                                                                'ตำแหน่ง' => $row->position_name ?? ($row->position ?? '-'),
+                                                                'สภาวิชาชีพ' => $councilName ?: ($row->council_code ?? '-'),
+                                                                'สถานะ' => (($row->active ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
+                                                            ];
+                                                            $statusHtml = '<span class="d-none">1</span><button type="button" class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation" style="width: 32px; height: 32px;" '
+                                                                . 'data-category="แพทย์และบุคลากร (Doctor)" '
+                                                                . 'data-code="'.e($row->code ?? '').'" '
+                                                                . 'data-name="'.e($row->name ?? '').'" '
+                                                                . 'data-errors="'.e(json_encode($doc_errors)).'" '
+                                                                . 'data-details="'.e(json_encode($docDetails)).'" '
+                                                                . 'title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">'
+                                                                . '<i class="bi bi-eye-fill fs-6"></i></button>';
+                                                        }
+
+                                                        $sexText = '-';
+                                                        if (($row->sex ?? '') == '1') {
+                                                            $sexText = 'ชาย';
+                                                        } elseif (($row->sex ?? '') == '2') {
+                                                            $sexText = 'หญิง';
+                                                        }
                                                     @endphp
                                                     <tr>
                                                         <td class="text-center fw-bold text-muted">{{ $row->code }}</td>
@@ -428,7 +445,7 @@
                                                                 <span class="badge bg-secondary-soft text-secondary rounded-pill px-2">Inactive</span>
                                                             @endif
                                                         </td>
-                                                        <td class="text-center">{!! $statusHtml !!}</td>
+                                                        <td class="text-center" data-order="{{ $orderVal }}" data-sort="{{ $orderVal }}" data-search="{{ $statusSearchText }}">{!! $statusHtml !!}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -596,7 +613,7 @@
                                                 <th class="text-center" style="width: 90px;">ADP Type</th>
                                                 <th class="text-end" style="width: 110px;">ราคา OPD</th>
                                                 <th class="text-center" style="width: 95px;">สถานะ</th>
-                                                <th class="text-center" style="width: 125px;">ผลการตรวจสอบ</th>
+                                                <th class="text-center" style="width: 70px;">ผลการตรวจสอบ</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -638,15 +655,34 @@
                                                             <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">Inactive</span>
                                                         @endif
                                                     </td>
-                                                    <td class="text-center">
+                                                    <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $item->item_errors ?? []) }}">
                                                         @if($item->is_valid)
-                                                            <span class="badge bg-success-soft text-success"><i class="bi bi-eye-fill me-1"></i>สมบูรณ์</span>
-                                                        @else
-                                                            <span class="badge bg-danger-soft text-danger cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                                                  title="{{ implode(' | ', $item->item_errors ?? []) }} (คลิกเพื่อปรึกษา Copilot)"
-                                                                  onclick="consultCopilotForRecord('nondrugitems', '{{ $item->icode }}', '{{ addslashes($item->name) }}', '{{ addslashes(implode(' | ', $item->item_errors ?? [])) }}')">
-                                                                <i class="bi bi-eye-slash-fill me-1"></i>พบข้อผิดพลาด
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / สมบูรณ์">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
                                                             </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $itemDetails = [
+                                                                    'หมวดรายได้' => ($item->income_name ?? '') ?: (($item->income ?? '') ?: 'ไม่ได้ระบุ'),
+                                                                    'ราคา OPD' => number_format($item->price ?? 0, 2) . ' บ.',
+                                                                    'รหัส ADP' => ($item->nhso_adp_code ?? '') ?: 'ยังไม่ผูก',
+                                                                    'ADP Type' => ($item->nhso_adp_type_id ?? '') ?: '-',
+                                                                    'สถานะ' => (($item->istatus ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="ค่ารักษาพยาบาล (Non-Drug Items)"
+                                                                    data-code="{{ $item->icode }}"
+                                                                    data-name="{{ $item->name }}"
+                                                                    data-errors='@json($item->item_errors ?? [])'
+                                                                    data-details='@json($itemDetails)'
+                                                                    title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
                                                         @endif
                                                     </td>
                                                 </tr>
@@ -667,7 +703,7 @@
                                                 <th class="text-center" style="width: 90px;">paidst</th>
                                                 <th class="text-center" style="width: 90px;">ส่งออก e-Claim</th>
                                                 <th class="text-center" style="width: 90px;">สถานะ</th>
-                                                <th class="text-center" style="width: 125px;">ผลการตรวจสอบ</th>
+                                                <th class="text-center" style="width: 70px;">ผลการตรวจสอบ</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -705,15 +741,34 @@
                                                             <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">ไม่ใช้</span>
                                                         @endif
                                                     </td>
-                                                    <td class="text-center">
+                                                    <td class="text-center" data-order="{{ $pt->is_valid ? 2 : 1 }}" data-sort="{{ $pt->is_valid ? 2 : 1 }}" data-search="{{ $pt->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $pt->item_errors ?? []) }}">
                                                         @if($pt->is_valid)
-                                                            <span class="badge bg-success-soft text-success"><i class="bi bi-eye-fill me-1"></i>ข้อมูลปกติ</span>
-                                                        @else
-                                                            <span class="badge bg-danger-soft text-danger cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                                                  title="{{ implode(' | ', $pt->item_errors ?? []) }} (คลิกเพื่อปรึกษา Copilot)"
-                                                                  onclick="consultCopilotForRecord('pttype', '{{ $pt->pttype }}', '{{ addslashes($pt->name) }}', '{{ addslashes(implode(' | ', $pt->item_errors ?? [])) }}')">
-                                                                <i class="bi bi-eye-slash-fill me-1"></i>พบข้อผิดพลาด
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / สมบูรณ์">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
                                                             </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $ptDetails = [
+                                                                    'กลุ่มสิทธิ (pcode)' => ($pt->pcode ?? '') ?: '-',
+                                                                    'รหัสมาตรฐาน 4 หลัก' => ($pt->pttype_std_code ?? '') ?: 'ยังไม่ระบุ',
+                                                                    'รหัส HIPDATA' => ($pt->hipdata_code ?? '') ?: '-',
+                                                                    'ส่งออก e-Claim' => (($pt->export_eclaim ?? '') === 'Y') ? 'เปิด (Y)' : 'ปิด (N)',
+                                                                    'สถานะ' => (($pt->isuse ?? '') === 'Y') ? 'Active (ใช้งาน)' : 'Inactive (ไม่ใช้)'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="สิทธิการรักษา (Pttype)"
+                                                                    data-code="{{ $pt->pttype }}"
+                                                                    data-name="{{ $pt->name }}"
+                                                                    data-errors='@json($pt->item_errors ?? [])'
+                                                                    data-details='@json($ptDetails)'
+                                                                    title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
                                                         @endif
                                                     </td>
                                                 </tr>
@@ -742,34 +797,91 @@
     @endif
 </div>
 
-<script>
-    window.askCopilotAbout = function(category, query) {
-        if (typeof window.openAiChatWithPrompt === 'function') {
-            window.openAiChatWithPrompt(query, true);
-        } else if (typeof toggleAiChatbot === 'function') {
-            toggleAiChatbot();
-        }
-    };
+<!-- Modal รายละเอียดสาเหตุของข้อผิดพลาด (Data Validation Detail Modal) -->
+<div class="modal fade" id="validationDetailModal" tabindex="-1" aria-labelledby="validationDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="bi bi-shield-exclamation fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="validationDetailModalLabel">
+                            รายละเอียดสาเหตุของข้อผิดพลาด (Validation Details)
+                        </h5>
+                        <small class="text-white-50" id="modalValCategory">ระบบตรวจสอบความสมบูรณ์ของข้อมูลพื้นฐาน HOSxP</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
-    window.consultCopilotForRecord = function(type, code, name, errorText) {
-        let prompt = '';
-        if (type === 'nondrugitems') {
-            prompt = `ขอคำปรึกษาเกี่ยวกับรายการค่ารักษาพยาบาล รหัส icode ${code} (${name}): ตรวจพบปัญหา "${errorText}" ควรเลือกผูกรหัส NHSO ADP Code หมวดใด และมีคำแนะนำการตั้งค่าใน HOSxP อย่างไร`;
-        } else if (type === 'doctor') {
-            prompt = `ขอคำปรึกษาเกี่ยวกับข้อมูลแพทย์/บุคลากร รหัส ${code} (${name}): ตรวจพบปัญหา "${errorText}" ข้อมูลที่ถูกต้องตามมาตรฐาน 43 แฟ้ม/สภาวิชาชีพต้องเป็นอย่างไร และต้องเข้าไปแก้ไขในเมนูใดของ HOSxP`;
-        } else if (type === 'pttype') {
-            prompt = `ขอคำปรึกษาเกี่ยวกับสิทธิการรักษา รหัส ${code} (${name}): ตรวจพบปัญหา "${errorText}" ควรผูกรหัสมาตรฐาน 4 หลัก (std_code) และ HIPDATA อย่างไรให้ถูกต้องตามเกณฑ์ สปสช./FDH`;
-        } else {
-            prompt = `ขอคำปรึกษาเกี่ยวกับรหัส ${code} (${name}): ตรวจพบปัญหา "${errorText}"`;
-        }
+            <!-- Modal Body -->
+            <div class="modal-body p-4 bg-light">
+                <!-- Record Header Card -->
+                <div class="card border-0 shadow-xs rounded-3 bg-white p-3 mb-3 border-start border-4 border-danger">
+                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+                        <div>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill mb-1" id="modalValCategoryBadge" style="font-size: 0.72rem;">
+                                หมวดข้อมูล
+                            </span>
+                            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2 flex-wrap">
+                                <span class="font-monospace text-primary" id="modalValCode">#CODE</span>
+                                <span id="modalValName">ชื่อรายการ</span>
+                            </h5>
+                        </div>
+                        <span class="badge bg-danger text-white rounded-pill px-3 py-1.5 fw-bold" id="modalValErrorCountBadge" style="font-size: 0.80rem;">
+                            พบ 1 ข้อผิดพลาด
+                        </span>
+                    </div>
 
-        if (typeof window.openAiChatWithPrompt === 'function') {
-            window.openAiChatWithPrompt(prompt, true);
-        } else if (typeof toggleAiChatbot === 'function') {
-            toggleAiChatbot();
-        }
-    };
-</script>
+                    <!-- Metadata Grid -->
+                    <div class="row g-2 pt-2 border-top small" id="modalValDetailsContainer">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Validation Issues Section -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.90rem;">
+                            <i class="bi bi-x-circle-fill text-danger"></i> สาเหตุและเงื่อนไขที่ไม่ผ่านเกณฑ์:
+                        </h6>
+                        <small class="text-muted" style="font-size: 0.74rem;">ตรวจสอบอัตโนมัติจากโครงสร้าง HOSxP</small>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2.5" id="modalValErrorsList">
+                        <!-- Error Cards populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Guidance Box -->
+                <div class="p-3 rounded-3 bg-white border d-flex align-items-start gap-2.5 shadow-xs">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                        <i class="bi bi-lightbulb-fill fs-6"></i>
+                    </div>
+                    <div class="small">
+                        <strong class="text-dark d-block mb-0.5">คำแนะนำในการแก้ไขข้อมูล:</strong>
+                        <span class="text-muted">
+                            สามารถเข้าไปแก้ไขหรือผูกรหัสข้อมูลให้ถูกต้องได้ในโปรแกรม HOSxP เมื่อบันทึกเสร็จแล้ว ระบบ RiMS จะดึงข้อมูลล่าสุดมาตรวจสอบใหม่อัตโนมัติ
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-white py-2.5 px-4 d-flex justify-content-between align-items-center border-top">
+                <small class="text-muted" style="font-size: 0.74rem;">
+                    <i class="bi bi-check2-circle text-success me-1"></i> พร้อมรองรับการเพิ่มกฎและเกณฑ์การ Validate เพิ่มเติม
+                </small>
+                <button type="button" class="btn btn-secondary btn-sm px-4 rounded-pill" data-bs-dismiss="modal">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -842,6 +954,142 @@
                 });
             }
         @endif
+
+        // Extensible Error Guidance Map
+        const errorGuidanceMap = {
+            'ยังไม่ผูกรหัส ADP': {
+                desc: 'รายการค่ารักษาพยาบาลนี้ยังไม่มีการระบุรหัสมาตรฐาน nhso_adp_code ของ สปสช.',
+                action: 'เข้าเมนู HOSxP > ระบบห้องยา/การเงิน > รายการค่ารักษาพยาบาล (nondrugitems) แล้วเลือกผูกรหัส ADP Code และ ADP Type ให้ตรงกับสิทธิการเบิก'
+            },
+            'ยังไม่ระบุหมวดรายได้ (income)': {
+                desc: 'รายการนี้ยังไม่มีการกำหนดหมวดรายได้หลัก (ฟิลด์ income ในตาราง nondrugitems เป็นค่าว่าง)',
+                action: 'เข้าเมนู nondrugitems ใน HOSxP เพื่อเลือกหมวดรายได้ให้ตรงกับ 16 หมวดมาตรฐานของกระทรวง'
+            },
+            'เลข ว. ไม่ถูกต้อง': {
+                desc: 'เลขที่ใบประกอบวิชาชีพเวชกรรมไม่ขึ้นต้นด้วย "ว." หรือรูปแบบตัวเลขไม่ถูกต้อง',
+                action: 'เข้าเมนูข้อมูลแพทย์ (doctor) ใน HOSxP แก้ไขเลขใบอนุญาตให้มีคำนำหน้า ว. ตามด้วยเลข 4-6 หลัก'
+            },
+            'เลขใบอนุญาตไม่ถูกต้อง': {
+                desc: 'เลขที่ใบประกอบวิชาชีพไม่อยู่ในเกณฑ์มาตรฐานตามสภาวิชาชีพที่สังกัด',
+                action: 'ตรวจสอบคำนำหน้าใบอนุญาต เช่น ว. (แพทย์), พ. (พยาบาล), ภ. (เภสัชกร) ให้ถูกต้อง'
+            },
+            'เลขบัตรประชาชน 13 หลักไม่ถูกต้อง': {
+                desc: 'เลขประจำตัวประชาชน 13 หลักไม่ถูกต้องตามสูตร Check Digit ของกรมการปกครอง',
+                action: 'ตรวจสอบสำเนาบัตรประชาชนของเจ้าหน้าที่ แล้วแก้ไขให้ถูกต้องครบ 13 หลักในตาราง doctor'
+            },
+            'ขาดรหัสมาตรฐาน 4 หลัก (std_code)': {
+                desc: 'สิทธิการรักษานี้ยังไม่ได้ผูกรหัสมาตรฐาน 4 หลัก (pttype_std_code)',
+                action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วระบุรหัสมาตรฐาน 4 หลักเพื่อใช้ส่งออก e-Claim/FDH'
+            },
+            'ขาดรหัส HIPDATA': {
+                desc: 'ยังไม่มีการระบุรหัสกลุ่มสิทธิ HIPDATA สำหรับเชื่อมโยงระบบข้อมูลสุขภาพ',
+                action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วระบุรหัส hipdata_code ให้ครบถ้วน'
+            }
+        };
+
+        // Open Validation Details Modal
+        $(document).on('click', '.btn-open-validation', function () {
+            const $btn = $(this);
+            const category = $btn.data('category') || 'ข้อมูลพื้นฐาน HOSxP';
+            const code = $btn.data('code') || '-';
+            const name = $btn.data('name') || '-';
+            let errors = $btn.data('errors') || [];
+            let details = $btn.data('details') || {};
+
+            if (typeof errors === 'string') {
+                try { errors = JSON.parse(errors); } catch(e) { errors = [errors]; }
+            }
+            if (typeof details === 'string') {
+                try { details = JSON.parse(details); } catch(e) { details = {}; }
+            }
+
+            $('#modalValCategory').text(category);
+            $('#modalValCategoryBadge').text(category);
+            $('#modalValCode').text('#' + code);
+            $('#modalValName').text(name);
+            $('#modalValErrorCountBadge').text(`พบ ${errors.length} ข้อผิดพลาด`);
+
+            // Render Metadata Grid
+            const $detailsContainer = $('#modalValDetailsContainer').empty();
+            Object.keys(details).forEach(key => {
+                $detailsContainer.append(`
+                    <div class="col-sm-6 col-md-4">
+                        <span class="text-muted d-block" style="font-size: 0.72rem;">${key}:</span>
+                        <strong class="text-dark font-monospace" style="font-size: 0.82rem;">${details[key]}</strong>
+                    </div>
+                `);
+            });
+
+            // Render Error Cards List
+            const $errorsList = $('#modalValErrorsList').empty();
+            if (errors.length === 0) {
+                $errorsList.append(`
+                    <div class="alert alert-success d-flex align-items-center gap-2 mb-0 py-2.5 rounded-3">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div>ไม่พบข้อผิดพลาด ข้อมูลผ่านเกณฑ์การตรวจสอบเรียบร้อยแล้ว</div>
+                    </div>
+                `);
+            } else {
+                errors.forEach((err, idx) => {
+                    const guidance = errorGuidanceMap[err] || {
+                        desc: 'ข้อมูลในรายการนี้ไม่ผ่านเกณฑ์การตรวจสอบความสมบูรณ์',
+                        action: 'กรุณาตรวจสอบและปรับปรุงข้อมูลในฐานข้อมูล HOSxP ตามมาตรฐาน'
+                    };
+
+                    $errorsList.append(`
+                        <div class="card border border-danger-subtle rounded-3 bg-white p-3 shadow-xs">
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center flex-shrink-0 fw-bold" style="width: 28px; height: 28px; font-size: 0.80rem;">
+                                    ${idx + 1}
+                                </div>
+                                <div class="w-100">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+                                        <strong class="text-danger" style="font-size: 0.88rem;">${err}</strong>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.68rem;">ต้องแก้ไข</span>
+                                    </div>
+                                    <p class="text-muted small mb-2" style="font-size: 0.80rem;">${guidance.desc}</p>
+                                    <div class="p-2 px-2.5 rounded-2 bg-light border small text-secondary" style="font-size: 0.76rem;">
+                                        <i class="bi bi-wrench-adjustable text-primary me-1"></i>
+                                        <strong>วิธีแก้ไขใน HOSxP:</strong> ${guidance.action}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+            }
+
+            const modalEl = document.getElementById('validationDetailModal');
+            if (modalEl) {
+                const bs = window.bootstrap || (typeof bootstrap !== 'undefined' ? bootstrap : null);
+                if (bs && bs.Modal) {
+                    try {
+                        const modal = bs.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                        return;
+                    } catch (e) {
+                        console.warn('Bootstrap modal error:', e);
+                    }
+                }
+                if (window.jQuery && typeof $('#validationDetailModal').modal === 'function') {
+                    $('#validationDetailModal').modal('show');
+                    return;
+                }
+                // Fallback direct display
+                $(modalEl).addClass('show').css('display', 'block');
+                $('body').addClass('modal-open');
+                if (!$('#valModalBackdrop').length) {
+                    $('body').append('<div class="modal-backdrop fade show" id="valModalBackdrop"></div>');
+                }
+            }
+        });
+
+        // Safe dismiss handler for fallback modal
+        $(document).on('click', '#validationDetailModal [data-bs-dismiss="modal"], #valModalBackdrop', function() {
+            $('#validationDetailModal').removeClass('show').css('display', 'none');
+            $('body').removeClass('modal-open');
+            $('#valModalBackdrop').remove();
+        });
 
         function initTooltips() {
             if (typeof bootstrap !== 'undefined') {

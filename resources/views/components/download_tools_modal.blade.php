@@ -1,3 +1,17 @@
+@php
+    $glHospcode = \App\Models\MainSetting::where('name', 'hospital_code')->value('value')
+                  ?: \Illuminate\Support\Facades\DB::table('lookup_hospcode')->value('hospcode')
+                  ?: '';
+    $glHospname = \App\Models\MainSetting::where('name', 'hospital_name')->value('value')
+                  ?: \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', $glHospcode)->value('hospcode_name')
+                  ?: 'โรงพยาบาล';
+    $glExpectedToken = $glHospcode ? ('rims-gl-' . $glHospcode . '-token-2569') : 'rims-gl-token-2569-secret';
+    $glCustomToken = config('services.gl_sync.token', env('GL_SYNC_TOKEN'));
+    if ($glCustomToken && !in_array($glCustomToken, ['rims-gl-token-2569-secret', ''])) {
+        $glExpectedToken = $glCustomToken;
+    }
+@endphp
+
 <!-- Global Download Tools Modal -->
 <div class="modal fade" id="downloadToolsModal" tabindex="-1" aria-labelledby="downloadToolsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -19,79 +33,126 @@
             </div>
 
             <!-- Modal Body -->
-            <div class="modal-body p-4 bg-light">
-                <div class="row g-4">
+            <div class="modal-body p-3 p-md-4 bg-light">
+                <div class="row g-3">
                     <!-- Tool 1: GL Sync Agent -->
                     <div class="col-12">
-                        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 border-start border-4 border-primary">
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                                <div class="d-flex gap-3">
-                                    <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;">
-                                        <i class="bi bi-bank fs-2"></i>
+                        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-4 border-primary">
+                            <!-- Top: Header + Badges -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                        <i class="bi bi-windows fs-3"></i>
                                     </div>
                                     <div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <h6 class="fw-bold text-dark mb-0 fs-5">Rims GL Sync</h6>
-                                            <span class="badge bg-success text-white rounded-pill px-2.5 py-1">โปรแกรม Windows (.exe ไฟล์เดียว)</span>
-                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill">v1.2 (Standalone GUI)</span>
+                                            <h6 class="fw-bold text-dark mb-0 fs-6">Rims GL Sync</h6>
+                                            <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;"><i class="bi bi-windows me-1"></i>โปรแกรม Windows (.exe)</span>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill" style="font-size: 0.70rem;">v2.0</span>
+                                            @if($glHospcode)
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill" style="font-size: 0.70rem;"><i class="bi bi-hospital me-1"></i> ประจำ: {{ $glHospname }} ({{ $glHospcode }})</span>
+                                            @endif
                                         </div>
-                                        <p class="text-muted small mt-1 mb-2" style="line-height: 1.5;">
-                                            โปรแกรม <strong>Rims-GL-Sync.exe ไฟล์เดียว ดับเบิ้ลคลิกเปิดหน้าจอ GUI ได้ทันที</strong> มีช่องกรอก Server API, Token, ปุ่ม Browse เลือกไฟล์ GL (.accdb), ติ๊กเริ่มทำงานอัตโนมัติเมื่อเปิดเครื่อง (Auto-Start Windows), กำหนดความถี่ส่งข้อมูลอัตโนมัติ และปุ่มกดซิงค์ทันที
-                                        </p>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-                                            <span class="badge bg-light text-dark border"><i class="bi bi-windows me-1 text-success"></i> Windows 64-bit (.exe)</span>
-                                            <span class="badge bg-light text-dark border"><i class="bi bi-display me-1 text-info"></i> หน้าต่าง GUI ในตัว</span>
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-folder2-open me-1"></i> มีปุ่ม Browse ที่อยู่ไฟล์ GL</span>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold"><i class="bi bi-clock-history me-1"></i> Auto-Schedule 30 นาที</span>
-                                            <span class="badge bg-light text-dark border"><i class="bi bi-power me-1 text-danger"></i> Auto-Start Windows</span>
-                                            <span class="badge bg-light text-muted border">ขนาด 6.5 MB</span>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">เชื่อมต่อและส่งข้อมูลบัญชี MS Access (.accdb) เข้าสู่ระบบ HosFin Dashboard อัตโนมัติ ปลอดภัยด้วย Token ประจำ รพ.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- API Config Box: Separate Rows so URL and Token are full width -->
+                            <div class="p-2.5 rounded-3 bg-light border">
+                                <div class="mb-2">
+                                    <label class="form-label text-muted small mb-0.5 fw-bold d-flex align-items-center gap-1" style="font-size: 0.74rem;">
+                                        <i class="bi bi-hdd-network text-primary"></i> Server API URL:
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white text-muted py-0.5 px-2"><i class="bi bi-link-45deg"></i></span>
+                                        <input type="text" class="form-control font-monospace bg-white text-primary fw-bold py-1" id="modalGlSyncApiUrl" 
+                                               value="{{ url('api/hosfin/gl/sync') }}" readonly style="font-size: 0.82rem;">
+                                        <button class="btn btn-outline-primary px-3 py-1 fw-bold d-flex align-items-center gap-1" type="button" 
+                                                onclick="copyModalText('modalGlSyncApiUrl', 'คัดลอก API URL สำเร็จ!')" style="font-size: 0.76rem;">
+                                            <i class="bi bi-clipboard"></i> คัดลอก
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="form-label text-muted small mb-0.5 fw-bold d-flex align-items-center justify-content-between" style="font-size: 0.74rem;">
+                                        <span><i class="bi bi-key-fill text-warning me-1"></i> API Token (Secret Key):</span>
+                                        <span class="text-primary fw-semibold" style="font-size: 0.70rem;">({{ $glHospname }})</span>
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white text-muted py-0.5 px-2"><i class="bi bi-shield-lock"></i></span>
+                                        <input type="text" class="form-control font-monospace bg-white text-dark fw-bold py-1" id="modalGlSyncToken" 
+                                               value="{{ $glExpectedToken }}" readonly style="font-size: 0.82rem;">
+                                        <button class="btn btn-outline-secondary px-3 py-1 fw-bold d-flex align-items-center gap-1" type="button" 
+                                                onclick="copyModalText('modalGlSyncToken', 'คัดลอก Token สำเร็จ!')" style="font-size: 0.76rem;">
+                                            <i class="bi bi-clipboard"></i> คัดลอก
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Single Row: Left 32-bit, Right 64-bit -->
+                            <div class="row g-2 mt-2 pt-2 border-top">
+                                <!-- Left Col: 32-bit -->
+                                <div class="col-md-6">
+                                    <div class="p-2 px-2.5 rounded-3 border d-flex align-items-center justify-content-between gap-2 shadow-xs h-100" 
+                                         style="background: #eff6ff; border-color: #bfdbfe !important;">
+                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 32px; height: 32px;">
+                                                <i class="bi bi-windows" style="font-size: 0.92rem;"></i>
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                                    <strong class="text-dark" style="font-size: 0.88rem;">รุ่น 32-bit (x86)</strong>
+                                                    <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" id="badgeGlSync32" style="font-size: 0.68rem;">แนะนำทั่วไป</span>
+                                                </div>
+                                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;" title="แนะนำ: รองรับ Office 32-bit (ใช้ได้ทุกเครื่อง)">รองรับ Windows ทุกรุ่น และ Office 32-bit</small>
+                                            </div>
                                         </div>
-                                        
-                                        <!-- API Config Box for GUI -->
-                                        <div class="p-3 rounded-3 bg-light border mt-2">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <strong class="text-dark small d-flex align-items-center gap-1.5">
-                                                    <i class="bi bi-hdd-network text-primary"></i> ข้อมูล API สำหรับนำไปกรอกในหน้าต่างโปรแกรม:
-                                                </strong>
-                                            </div>
-
-                                            <!-- API URL -->
-                                            <div class="mb-2">
-                                                <label class="form-label text-muted small mb-1 fw-bold" style="font-size: 0.76rem;">Server API URL:</label>
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text bg-white text-muted"><i class="bi bi-link-45deg"></i></span>
-                                                    <input type="text" class="form-control font-monospace bg-white text-primary fw-bold" id="modalGlSyncApiUrl" 
-                                                           value="{{ url('api/hosfin/gl/sync') }}" readonly>
-                                                    <button class="btn btn-outline-primary px-3 fw-bold d-flex align-items-center gap-1" type="button" 
-                                                            onclick="copyModalText('modalGlSyncApiUrl', 'คัดลอก API URL สำเร็จ!')">
-                                                        <i class="bi bi-clipboard"></i> คัดลอก
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <!-- API Token -->
-                                            <div>
-                                                <label class="form-label text-muted small mb-1 fw-bold" style="font-size: 0.76rem;">API Token (Secret Key):</label>
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text bg-white text-muted"><i class="bi bi-key-fill text-warning"></i></span>
-                                                    <input type="text" class="form-control font-monospace bg-white text-dark" id="modalGlSyncToken" 
-                                                           value="{{ config('services.gl_sync.token', env('GL_SYNC_TOKEN', 'rims-gl-token-2569-secret')) }}" readonly>
-                                                    <button class="btn btn-outline-secondary px-3 fw-bold d-flex align-items-center gap-1" type="button" 
-                                                            onclick="copyModalText('modalGlSyncToken', 'คัดลอก Token สำเร็จ!')">
-                                                        <i class="bi bi-clipboard"></i> คัดลอก
-                                                    </button>
-                                                </div>
-                                            </div>
+                                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                                            <a href="{{ url('downloads/Rims-GL-Sync-x86.exe') }}" id="btnGlSync32" 
+                                               class="btn btn-primary btn-sm rounded-pill px-2.5 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" 
+                                               download="Rims-GL-Sync-x86.exe" style="font-size: 0.80rem;">
+                                                <i class="bi bi-download"></i> .exe
+                                            </a>
+                                            <a href="{{ url('downloads/Rims-GL-Sync-x86.zip') }}" 
+                                               class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-1 small" 
+                                               download style="font-size: 0.74rem;" title="ดาวน์โหลดไฟล์สำรอง .zip">
+                                                .zip
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="ms-auto flex-shrink-0 align-self-center text-center d-flex flex-column gap-2">
-                                    <a href="{{ url('downloads/Rims-GL-Sync.exe') }}" class="btn btn-success rounded-pill px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2" download="Rims-GL-Sync.exe">
-                                        <i class="bi bi-download fs-5"></i> ดาวน์โหลด Rims GL Sync (.exe)
-                                    </a>
-                                    <a href="{{ url('downloads/Rims-GL-Sync.zip') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 text-muted" download="Rims-GL-Sync.zip">
-                                        <i class="bi bi-file-earmark-zip me-1"></i> ดาวน์โหลดแบบ (.zip)
-                                    </a>
+
+                                <!-- Right Col: 64-bit -->
+                                <div class="col-md-6">
+                                    <div class="p-2 px-2.5 rounded-3 border d-flex align-items-center justify-content-between gap-2 shadow-xs h-100" 
+                                         style="background: #f8fafc; border-color: #cbd5e1 !important;">
+                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                            <div class="rounded-circle bg-light border text-secondary d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 32px; height: 32px;">
+                                                <i class="bi bi-windows" style="font-size: 0.92rem;"></i>
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                                    <strong class="text-dark" style="font-size: 0.88rem;">รุ่น 64-bit (x64)</strong>
+                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-0.5" id="badgeGlSync64" style="font-size: 0.68rem;">Office 64-bit</span>
+                                                </div>
+                                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;" title="สำหรับเครื่องที่ติดตั้ง MS Office 64-bit">สำหรับเครื่องที่ติดตั้ง Office 64-bit</small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                                            <a href="{{ url('downloads/Rims-GL-Sync-x64.exe') }}" id="btnGlSync64" 
+                                               class="btn btn-outline-primary btn-sm rounded-pill px-2.5 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" 
+                                               download="Rims-GL-Sync-x64.exe" style="font-size: 0.80rem;">
+                                                <i class="bi bi-download"></i> .exe
+                                            </a>
+                                            <a href="{{ url('downloads/Rims-GL-Sync-x64.zip') }}" 
+                                               class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-1 small" 
+                                               download style="font-size: 0.74rem;" title="ดาวน์โหลดไฟล์สำรอง .zip">
+                                                .zip
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -99,42 +160,45 @@
 
                     <!-- Tool 2: Chrome Extension e-Claim Sync -->
                     <div class="col-12">
-                        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 border-start border-4 border-success">
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                                <div class="d-flex gap-3">
-                                    <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;">
-                                        <i class="bi bi-browser-chrome fs-2"></i>
+                        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-4 border-success">
+                            <!-- Top: Header + Badges -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="rounded-3 p-2 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                                        <i class="bi bi-browser-chrome fs-4"></i>
                                     </div>
                                     <div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <h6 class="fw-bold text-dark mb-0 fs-5">Extension e-Claim Sync</h6>
-                                            <span class="badge bg-success text-white rounded-pill px-2.5 py-1">ส่วนขยายเบราว์เซอร์ (Chrome)</span>
-                                            <span class="badge bg-light text-secondary border rounded-pill">Manifest V3</span>
+                                            <h6 class="fw-bold text-dark mb-0 fs-6">Extension e-Claim Sync</h6>
+                                            <span class="badge bg-success text-white rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;"><i class="bi bi-puzzle me-1"></i>ส่วนขยายเบราว์เซอร์ (Extension)</span>
+                                            <span class="badge bg-light text-secondary border rounded-pill" style="font-size: 0.70rem;">Chrome / Edge</span>
                                         </div>
-                                        <p class="text-muted small mt-1 mb-2" style="line-height: 1.5;">
-                                            ส่วนขยาย Google Chrome ช่วยอำนวยความสะดวกในการดึงผลการ Claim, สรุปยอด และ Statement จากระบบ e-Claim สปสช. เข้าสู่ระบบ RIMS โดยตรงอย่างรวดเร็วและปลอดภัย
-                                        </p>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-                                            <span class="badge bg-light text-dark border"><i class="bi bi-google me-1 text-danger"></i> Google Chrome / Edge</span>
-                                            <span class="badge bg-light text-dark border"><i class="bi bi-shield-check me-1 text-success"></i> ปลอดภัย 100%</span>
-                                            <span class="badge bg-light text-muted border">ขนาด 10 KB</span>
-                                        </div>
-
-                                        <!-- Quick Instructions Accordion/Box -->
-                                        <div class="p-2.5 rounded-3 bg-light border small text-secondary" style="font-size: 0.8rem;">
-                                            <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle-fill text-success me-1"></i> วิธีติดตั้งบน Google Chrome:</strong>
-                                            1. แตกไฟล์ <code>eclaim_sync.zip</code> ออกเป็นโฟลเดอร์<br>
-                                            2. เปิด Google Chrome พิมพ์ที่ช่อง URL ว่า <code>chrome://extensions</code><br>
-                                            3. เปิดสวิตช์ <strong>Developer mode (โหมดนักพัฒนา)</strong> ที่มุมขวาบน<br>
-                                            4. คลิกปุ่ม <strong>Load unpacked (โหลดส่วนขยายที่คลายแล้ว)</strong> แล้วเลือกโฟลเดอร์ที่แตกไว้
-                                        </div>
+                                        <small class="text-muted d-block" style="font-size: 0.74rem;">ดึงผล Claim และ Statement จาก e-Claim สปสช. เข้าสู่ระบบ RiMS อัตโนมัติ</small>
                                     </div>
                                 </div>
-                                <div class="ms-auto flex-shrink-0 align-self-center text-center">
-                                    <a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
-                                        <i class="bi bi-cloud-arrow-down-fill fs-5"></i> ดาวน์โหลด Extension (.zip)
-                                    </a>
+                            </div>
+
+                            <!-- Middle: Compact Installation Instructions Strip -->
+                            <div class="p-2 px-2.5 rounded-3 bg-light border d-flex align-items-center flex-wrap gap-2 small text-secondary mb-2" style="font-size: 0.74rem;">
+                                <span class="fw-bold text-dark"><i class="bi bi-info-circle-fill text-success me-1"></i>วิธีติดตั้ง:</span>
+                                <span>1. แตกไฟล์ .zip</span>
+                                <span class="text-muted">›</span>
+                                <span>2. ไปที่ <code>chrome://extensions</code></span>
+                                <span class="text-muted">›</span>
+                                <span>3. เปิด <strong>Developer mode</strong></span>
+                                <span class="text-muted">›</span>
+                                <span>4. กด <strong>Load unpacked</strong> เลือกโฟลเดอร์</span>
+                            </div>
+
+                            <!-- Bottom: Download Action Row (Swapped to bottom) -->
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <span class="badge bg-light text-muted border" style="font-size: 0.70rem;">ขนาดไฟล์ ~10 KB</span>
+                                    <span class="badge bg-light text-secondary border" style="font-size: 0.70rem;"><i class="bi bi-shield-check text-success me-1"></i> ปลอดภัย รับรองโดยระบบ RiMS</span>
                                 </div>
+                                <a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-xs d-inline-flex align-items-center gap-1.5 ms-auto" style="font-size: 0.82rem;">
+                                    <i class="bi bi-cloud-arrow-down-fill"></i> ดาวน์โหลด Extension (.zip)
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -171,4 +235,43 @@
             }
         });
     }
+
+    // Auto-detect Client Architecture (32-bit vs 64-bit)
+    (function detectClientArch() {
+        function applyArch(is64) {
+            var badge32 = document.getElementById('badgeGlSync32');
+            var badge64 = document.getElementById('badgeGlSync64');
+
+            if (is64) {
+                if (badge64) {
+                    badge64.innerHTML = '⭐ เครื่องนี้ 64-bit';
+                    badge64.className = 'badge bg-primary text-white rounded-pill px-2 py-0.5 fw-bold';
+                }
+            } else {
+                if (badge32) {
+                    badge32.innerHTML = '⭐ เครื่องนี้ 32-bit';
+                    badge32.className = 'badge bg-primary text-white rounded-pill px-2 py-0.5 fw-bold';
+                }
+            }
+        }
+
+        // Try modern userAgentData first
+        if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+            navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness']).then(function(ua) {
+                var is64 = (ua.bitness === '64' || ua.architecture === 'x86_64');
+                applyArch(is64);
+            }).catch(function() {
+                fallbackUA();
+            });
+        } else {
+            fallbackUA();
+        }
+
+        function fallbackUA() {
+            var ua = navigator.userAgent || '';
+            var plat = navigator.platform || '';
+            var is64 = /WOW64|Win64|x86_64|x64|amd64/i.test(ua) || /Win64|x64/i.test(plat);
+            applyArch(is64);
+        }
+    })();
 </script>

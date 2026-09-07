@@ -308,9 +308,16 @@ class ClaimValidator
         }
 
         // If already compensated / paid, skip validation errors
-        $has_compensation = (!empty($visit->repno) || (!empty($visit->receive_total) && floatval($visit->receive_total) > 0) || (!empty($visit->rep_nhso) && floatval($visit->rep_nhso) > 0));
+        // ต้องได้รับเงินชดเชยจริง (> 0) และไม่มีรหัสข้อผิดพลาด (ไม่ติด C) เท่านั้น
+        $has_err_code = !empty($visit->rep_error_code) || !empty($visit->error_code);
+        $has_paid = ((!empty($visit->receive_total) && floatval($visit->receive_total) > 0) || (!empty($visit->rep_nhso) && floatval($visit->rep_nhso) > 0));
+        $has_compensation = $has_paid && !$has_err_code;
         if ($has_compensation) {
             return ['errors' => [], 'warnings' => []];
+        }
+
+        if (!empty($visit->rep_error_code)) {
+            $errors[] = "ผลการประมวลผล สปสช. (REP): ติดข้อผิดพลาดรหัส {$visit->rep_error_code}";
         }
 
         // check DRDX (Doctor License) & DROPID (Procedure Operator License) - Only for Social Security (SSS)

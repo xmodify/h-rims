@@ -348,11 +348,29 @@ class ClaimOpController extends Controller
                 $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
                 $itemsByVn[$item->vn][] = $item;
             }
+
+            // Batch load procedures from doctor_operation
+            $docOpers = DB::connection('hosxp')
+                ->table('doctor_operation')
+                ->whereIn('vn', $allVns)
+                ->whereNotNull('icd9')
+                ->where('icd9', '!=', '')
+                ->select('vn', 'icd9')
+                ->get()
+                ->groupBy('vn');
+            $procByVn = [];
+            foreach ($docOpers as $vn => $procs) {
+                $procByVn[$vn] = $procs->pluck('icd9')->toArray();
+            }
         }
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
+            if (!empty($procByVn[$row->seq])) {
+                $existing = !empty($row->icd9) ? explode(',', $row->icd9) : [];
+                $row->icd9 = implode(',', array_unique(array_merge($existing, $procByVn[$row->seq])));
+            }
             $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -360,6 +378,10 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
+            if (!empty($procByVn[$row->seq])) {
+                $existing = !empty($row->icd9) ? explode(',', $row->icd9) : [];
+                $row->icd9 = implode(',', array_unique(array_merge($existing, $procByVn[$row->seq])));
+            }
             $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -442,13 +464,21 @@ class ClaimOpController extends Controller
             ->toArray();
         $visit->sdx = implode(',', $secDiags);
 
-        // รหัสหัตถการ (ICD-9/Procedure)
+        // รหัสหัตถการ (ICD-9/Procedure) จากทั้ง ovstdiag และ doctor_operation
         $procedures = DB::connection('hosxp')
             ->table('ovstdiag')
             ->where('vn', $vn)
             ->where('diagtype', '2')
             ->pluck('icd10')
             ->toArray();
+        $docProcs = DB::connection('hosxp')
+            ->table('doctor_operation')
+            ->where('vn', $vn)
+            ->whereNotNull('icd9')
+            ->where('icd9', '!=', '')
+            ->pluck('icd9')
+            ->toArray();
+        $procedures = array_values(array_unique(array_merge($procedures, $docProcs)));
         $visit->icd9 = implode(',', $procedures);
 
         // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บ
@@ -484,6 +514,19 @@ class ClaimOpController extends Controller
         }
         foreach ($items as $item) {
             $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+        }
+
+        // ดึงผลการตอบรับ REP / STM หากมี
+        $rep = DB::table('hrims.rep_ucs')
+            ->where('hn', $visit->hn)
+            ->where('vstdate', $visit->vstdate)
+            ->where('rep_type', 'OP')
+            ->orderByRaw('CASE WHEN error_code IS NOT NULL AND error_code != "" THEN 0 ELSE 1 END')
+            ->select('error_code', 'repno')
+            ->first();
+        if ($rep) {
+            $visit->rep_error_code = $rep->error_code;
+            $visit->rep_repno = $rep->repno;
         }
 
         // Validate

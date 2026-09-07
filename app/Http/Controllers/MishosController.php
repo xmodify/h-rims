@@ -4445,6 +4445,14 @@ class MishosController extends Controller
             ->where('diagtype', '2')
             ->pluck('icd10')
             ->toArray();
+        $docProcs = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('doctor_operation')
+            ->where('vn', $vn)
+            ->whereNotNull('icd9')
+            ->where('icd9', '!=', '')
+            ->pluck('icd9')
+            ->toArray();
+        $procedures = array_values(array_unique(array_merge($procedures, $docProcs)));
         $visit->icd9 = implode(',', $procedures);
 
         $items = \Illuminate\Support\Facades\DB::connection('hosxp')->select('
@@ -4474,6 +4482,19 @@ class MishosController extends Controller
         }
         foreach ($items as $item) {
             $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+        }
+
+        // ดึงผลการตอบรับ REP / STM หากมี
+        $rep = \Illuminate\Support\Facades\DB::table('hrims.rep_ucs')
+            ->where('hn', $visit->hn)
+            ->where('vstdate', $visit->vstdate)
+            ->where('rep_type', 'OP')
+            ->orderByRaw('CASE WHEN error_code IS NOT NULL AND error_code != "" THEN 0 ELSE 1 END')
+            ->select('error_code', 'repno')
+            ->first();
+        if ($rep) {
+            $visit->rep_error_code = $rep->error_code;
+            $visit->rep_repno = $rep->repno;
         }
 
         $hasPpfs = false;
@@ -4572,12 +4593,25 @@ class MishosController extends Controller
             ->get()
             ->groupBy('vn');
 
+        $rawDocProc = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('doctor_operation')
+            ->whereIn('vn', $allVns)
+            ->whereNotNull('icd9')
+            ->where('icd9', '!=', '')
+            ->select('vn', 'icd9')
+            ->get()
+            ->groupBy('vn');
+
         // 3. Run ClaimValidator
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
             // Populate fields for validator
             $row->sdx = isset($rawSdx[$row->seq]) ? implode(',', $rawSdx[$row->seq]->pluck('icd10')->toArray()) : '';
-            $row->icd9 = isset($rawIcd9[$row->seq]) ? implode(',', $rawIcd9[$row->seq]->pluck('icd10')->toArray()) : '';
+            $procs = isset($rawIcd9[$row->seq]) ? $rawIcd9[$row->seq]->pluck('icd10')->toArray() : [];
+            if (isset($rawDocProc[$row->seq])) {
+                $procs = array_merge($procs, $rawDocProc[$row->seq]->pluck('icd9')->toArray());
+            }
+            $row->icd9 = implode(',', array_unique($procs));
             $row->fdh_status = $fdhStatuses[$row->seq] ?? null;
 
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);

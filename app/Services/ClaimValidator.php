@@ -309,15 +309,17 @@ class ClaimValidator
 
         // If already compensated / paid, skip validation errors
         // ต้องได้รับเงินชดเชยจริง (> 0) และไม่มีรหัสข้อผิดพลาด (ไม่ติด C) เท่านั้น
-        $has_err_code = !empty($visit->rep_error_code) || !empty($visit->error_code);
+        $errCode = !empty($visit->rep_error_code) ? $visit->rep_error_code : (!empty($visit->error_code) ? $visit->error_code : null);
+        $has_err_code = !empty($errCode);
         $has_paid = ((!empty($visit->receive_total) && floatval($visit->receive_total) > 0) || (!empty($visit->rep_nhso) && floatval($visit->rep_nhso) > 0));
         $has_compensation = $has_paid && !$has_err_code;
         if ($has_compensation) {
             return ['errors' => [], 'warnings' => []];
         }
 
-        if (!empty($visit->rep_error_code)) {
-            $errors[] = "ผลการประมวลผล สปสช. (REP): ติดข้อผิดพลาดรหัส {$visit->rep_error_code}";
+        if ($has_err_code) {
+            $repErrors = $this->formatRepError((string)$errCode, $visit, $billedItems);
+            $errors = array_merge($errors, $repErrors);
         }
 
         // check DRDX (Doctor License) & DROPID (Procedure Operator License) - Only for Social Security (SSS)
@@ -352,11 +354,11 @@ class ClaimValidator
             }
         }
 
-        [$sex, $age, $diagnoses, $procedures] = $this->extractPatientContext($visit);
+        [$sex, $age, $diagnoses, $procedures, $pdx, $sdx] = $this->extractPatientContext($visit);
 
         foreach ($billedItems as $item) {
             if (($item->ppfs ?? '') === 'Y') {
-                $itemErrors = $this->runPpfsRules($item, $sex, $age, $diagnoses, $procedures);
+                $itemErrors = $this->runPpfsRules($item, $sex, $age, $diagnoses, $procedures, $pdx, $sdx);
                 $errors = array_merge($errors, $itemErrors);
             }
         }
@@ -400,11 +402,11 @@ class ClaimValidator
     // =========================================================================
 
     /**
-     * สกัด sex / age / diagnoses / procedures จาก $visit
+     * สกัด sex / age / diagnoses / procedures / pdx / sdx จาก $visit
      */
     private function extractPatientContext($visit): array
     {
-        $rawSex = strtoupper(trim($visit->sex ?? ''));
+        $rawSex = strtoupper(trim((string)(is_object($visit) ? ($visit->sex ?? '') : ($visit['sex'] ?? ''))));
         $sex = '';
         if ($rawSex === '1' || $rawSex === 'M' || $rawSex === 'ชาย') {
             $sex = 'M';
@@ -412,36 +414,127 @@ class ClaimValidator
             $sex = 'F';
         }
 
-        $age = isset($visit->age_y) ? (int) $visit->age_y : null;
+        $age = is_object($visit)
+            ? (isset($visit->age_y) ? (int) $visit->age_y : null)
+            : (isset($visit['age_y']) ? (int) $visit['age_y'] : null);
+
+        $pdx = trim((string)(is_object($visit) ? ($visit->pdx ?? '') : ($visit['pdx'] ?? '')));
+        $sdx = trim((string)(is_object($visit) ? ($visit->sdx ?? '') : ($visit['sdx'] ?? '')));
 
         $diagnoses = [];
-        if (!empty($visit->pdx)) {
-            $diagnoses[] = $this->normalizeCode($visit->pdx);
+        if (!empty($pdx)) {
+            $diagnoses[] = $this->normalizeCode($pdx);
         }
-        if (!empty($visit->sdx)) {
-            foreach (explode(',', $visit->sdx) as $code) {
+        if (!empty($sdx)) {
+            foreach (explode(',', $sdx) as $code) {
                 $t = $this->normalizeCode($code);
                 if ($t !== '') $diagnoses[] = $t;
             }
         }
         $diagnoses = array_unique($diagnoses);
 
+        $rawIcd9 = (string)(is_object($visit) ? ($visit->icd9 ?? '') : ($visit['icd9'] ?? ''));
         $procedures = [];
-        if (!empty($visit->icd9)) {
-            foreach (explode(',', $visit->icd9) as $code) {
+        if (!empty($rawIcd9)) {
+            foreach (explode(',', $rawIcd9) as $code) {
                 $t = $this->normalizeCode($code);
                 if ($t !== '') $procedures[] = $t;
             }
         }
         $procedures = array_unique($procedures);
 
-        return [$sex, $age, $diagnoses, $procedures];
+        return [$sex, $age, $diagnoses, $procedures, $pdx, $sdx];
+    }
+
+    /**
+     * สรุป "สิ่งที่ขาดใน HOSxP" สำหรับรหัสข้อผิดพลาด REP (เช่น C-240, C-217 ฯลฯ)
+     *
+     * @param  string $rawErrorCode
+     * @param  object|array $visit
+     * @param  array  $billedItems
+     * @return array  errors
+     */
+    public function formatRepError(string $rawErrorCode, $visit, array $billedItems = []): array
+    {
+        $errors = [];
+        $cleanCodes = array_filter(array_map(function($c) {
+            return preg_replace('/[^0-9A-Z]/', '', strtoupper(trim($c)));
+        }, preg_split('/[,;\/\s]+/', $rawErrorCode)));
+
+        if (empty($cleanCodes)) {
+            $cleanCodes = [trim($rawErrorCode)];
+        }
+
+        $pdx = trim((string)(is_object($visit) ? ($visit->pdx ?? '') : ($visit['pdx'] ?? '')));
+        $sdx = trim((string)(is_object($visit) ? ($visit->sdx ?? '') : ($visit['sdx'] ?? '')));
+        $icd9 = trim((string)(is_object($visit) ? ($visit->icd9 ?? '') : ($visit['icd9'] ?? '')));
+        $age = is_object($visit) ? ($visit->age_y ?? null) : ($visit['age_y'] ?? null);
+        $rawSex = strtoupper(trim((string)(is_object($visit) ? ($visit->sex ?? '') : ($visit['sex'] ?? ''))));
+        $gender = ($rawSex === '1' || $rawSex === 'M' || $rawSex === 'ชาย') ? 'ชาย' : (($rawSex === '2' || $rawSex === 'F' || $rawSex === 'หญิง') ? 'หญิง' : $rawSex);
+        $cid = trim((string)(is_object($visit) ? ($visit->cid ?? '') : ($visit['cid'] ?? '')));
+
+        // รวบรวมข้อมูลรายการ PPFS ที่เรียกเก็บ
+        $ppfsItemNames = [];
+        $ppfsAdpCodes = [];
+        foreach ($billedItems as $it) {
+            $adp = trim((string)(is_object($it) ? ($it->nhso_adp_code ?? '') : ($it['nhso_adp_code'] ?? '')));
+            $name = trim((string)(is_object($it) ? ($it->name ?? $it->icode ?? '') : ($it['name'] ?? $it['icode'] ?? '')));
+            $isPpfs = (is_object($it) ? ($it->ppfs ?? '') : ($it['ppfs'] ?? '')) === 'Y';
+            if ($isPpfs || isset($this->ppfsRules[$adp])) {
+                if ($adp) $ppfsAdpCodes[] = $adp;
+                $ppfsItemNames[] = $adp ? "{$adp}-{$name}" : $name;
+            }
+        }
+        $itemsDesc = !empty($ppfsItemNames) ? implode(', ', array_unique($ppfsItemNames)) : 'รายการ PPFS';
+
+        $hosxpDiagSummary = "ปัจจุบัน HOSxP มี " . ($pdx ? "PDX: {$pdx}" : "ไม่พบ PDX") . ($sdx ? ", SDX: {$sdx}" : "");
+        $hosxpProcSummary = "ปัจจุบัน HOSxP " . ($icd9 ? "มี ICD-9: {$icd9}" : "ไม่พบรหัสหัตถการ");
+
+        foreach ($cleanCodes as $code) {
+            $numCode = ltrim($code, 'C');
+
+            if ($numCode === '240' || $code === 'C240') {
+                // C-240: รหัสโรคไม่เข้าเกณฑ์กลุ่มเสี่ยง
+                if (in_array('15001', $ppfsAdpCodes)) {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 240 (รายการ 15001-เคลือบฟลูออไรด์): สิ่งที่ขาดใน HOSxP — ขาดรหัสโรคกลุ่มเสี่ยงทางทันตกรรม (เช่น K020, K021 ฟันผุ, K060 เหงือกร่น, K1170 ปากแห้ง, C00-C14 มะเร็งศีรษะ/คอ) ({$hosxpDiagSummary})";
+                } else {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 240: สิ่งที่ขาดใน HOSxP — ขาดรหัสโรคกลุ่มเสี่ยง PPFS ตามเกณฑ์ที่ สปสช. กำหนดสำหรับ {$itemsDesc} ({$hosxpDiagSummary})";
+                }
+            } elseif ($numCode === '217' || $code === 'C217') {
+                // C-217: ขาดรหัสหัตถการ ICD-9
+                if (in_array('FP002_2', $ppfsAdpCodes)) {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 217 (รายการ FP002_2-ถอดยาฝังคุมกำเนิด): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 8605 ใน doctor_operation ({$hosxpProcSummary})";
+                } elseif (in_array('FP002_1', $ppfsAdpCodes)) {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 217 (รายการ FP002_1-ฝังยาคุมกำเนิด): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 9923 ใน doctor_operation ({$hosxpProcSummary})";
+                } elseif (in_array('FP001', $ppfsAdpCodes)) {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 217 (รายการ FP001-ใส่/ถอดห่วงอนามัย): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 697 หรือ 9771 ใน doctor_operation ({$hosxpProcSummary})";
+                } else {
+                    $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 217: สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 ใน doctor_operation หรือรหัสไม่ตรงเงื่อนไขสำหรับ {$itemsDesc} ({$hosxpProcSummary})";
+                }
+            } elseif ($numCode === '201' || $code === 'C201') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 201: สิ่งที่ขาดใน HOSxP — เพศผู้ป่วยไม่ตรงเงื่อนไขของ {$itemsDesc} (ปัจจุบัน HOSxP ระบุเพศ: {$gender})";
+            } elseif ($numCode === '202' || $code === 'C202') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 202: สิ่งที่ขาดใน HOSxP — อายุผู้ป่วยไม่อยู่ในเกณฑ์สิทธิประโยชน์ของ {$itemsDesc} (ปัจจุบัน HOSxP ระบุอายุ: {$age} ปี)";
+            } elseif ($numCode === '204' || $code === 'C204') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 204: สิ่งที่ขาดใน HOSxP — ยอดเรียกเก็บของรายการใน HOSxP ไม่ตรงกับเกณฑ์ราคาชดเชยเหมาจ่ายของ สปสช.";
+            } elseif ($numCode === '010' || $numCode === '10' || $code === 'C010') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 010: สิ่งที่ขาดใน HOSxP — เลขประจำตัวประชาชน (CID: [{$cid}]) ไม่ถูกต้องหรือไม่ครบ 13 หลักในทะเบียนประวัติ (patient)";
+            } elseif ($numCode === '300' || $numCode === '301' || $code === 'C300') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส {$code}: สิ่งที่ขาด — ขาดรหัสยืนยันตัวตน (Authen Code) ของ สปสช. หรือรหัสไม่ตรงกับวันที่รับบริการ";
+            } elseif ($numCode === '401' || $code === 'C401') {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส 401: สิ่งที่ขาดใน HOSxP — ขาดเลขที่ใบอนุญาตประกอบวิชาชีพ (ว... หรือ ท...) ของแพทย์ผู้ตรวจ หรือผู้ทำหัตถการในตาราง doctor";
+            } else {
+                $errors[] = "ติดข้อผิดพลาด สปสช. รหัส {$code}: สิ่งที่ขาดใน HOSxP — ข้อมูลไม่ผ่านเกณฑ์การประมวลผลของ สปสช. ({$hosxpDiagSummary}, {$hosxpProcSummary})";
+            }
+        }
+
+        return $errors;
     }
 
     /**
      * ตรวจ PPFS rules ของ item รายการเดียว — คืน errors[]
      */
-    private function runPpfsRules($item, $sex, $age, $diagnoses, $procedures): array
+    private function runPpfsRules($item, $sex, $age, $diagnoses, $procedures, string $pdx = '', string $sdx = ''): array
     {
         $errors    = [];
         $adpCode   = trim($item->nhso_adp_code ?? '');
@@ -453,13 +546,16 @@ class ClaimValidator
         }
 
         $rule = $this->ppfsRules[$adpCode];
+        $hosxpDiags = "ปัจจุบัน HOSxP มี " . ($pdx ? "PDX: {$pdx}" : "ไม่พบ PDX") . ($sdx ? ", SDX: {$sdx}" : "");
+        $hosxpProc = "ปัจจุบัน HOSxP " . (!empty($procedures) ? "มี ICD-9: " . implode(',', $procedures) : "ไม่พบรหัสหัตถการ");
 
         // Sex
         if (!empty($rule['sex'])) {
             $expectedSex = strtoupper($rule['sex']);
             if ($sex && $sex !== $expectedSex) {
                 $genderName = $expectedSex === 'F' ? 'หญิง' : 'ชาย';
-                $errors[] = "รหัส {$adpCode} ({$itemName}): จำกัดเฉพาะเพศ {$genderName} เท่านั้น";
+                $currGender = $sex === 'F' ? 'หญิง' : ($sex === 'M' ? 'ชาย' : ($sex ?: 'ไม่ระบุ'));
+                $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — จำกัดเฉพาะเพศ {$genderName} (ปัจจุบันเพศ {$currGender}) อาจทำให้ติด C-201";
             }
         }
 
@@ -469,10 +565,10 @@ class ClaimValidator
             $maxAge = $rule['age']['max'] ?? null;
             if ($age !== null) {
                 if ($minAge !== null && $age < $minAge) {
-                    $errors[] = "รหัส {$adpCode} ({$itemName}): จำกัดอายุผู้ป่วยตั้งแต่ {$minAge} ปีขึ้นไป (ปัจจุบันอายุ {$age} ปี)";
+                    $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — จำกัดอายุตั้งแต่ {$minAge} ปีขึ้นไป (ปัจจุบันอายุ {$age} ปี) อาจทำให้ติด C-202";
                 }
                 if ($maxAge !== null && $age > $maxAge) {
-                    $errors[] = "รหัส {$adpCode} ({$itemName}): จำกัดอายุผู้ป่วยไม่เกิน {$maxAge} ปี (ปัจจุบันอายุ {$age} ปี)";
+                    $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — จำกัดอายุไม่เกิน {$maxAge} ปี (ปัจจุบันอายุ {$age} ปี) อาจทำให้ติด C-202";
                 }
             }
         }
@@ -485,7 +581,12 @@ class ClaimValidator
                 if (in_array($d, $expected)) { $matched = true; break; }
             }
             if (!$matched) {
-                $errors[] = "รหัส {$adpCode} ({$itemName}): ขาดรหัสโรคหลัก/โรคร่วมที่กำหนด (ต้องการรหัสใดรหัสหนึ่งในกลุ่ม: " . implode(', ', $rule['icd10']) . ")";
+                if ($adpCode === '15001') {
+                    $errors[] = "รหัส 15001 ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสโรคกลุ่มเสี่ยงทางทันตกรรม (เช่น K020, K021 ฟันผุ, K060 เหงือกร่น, K1170 ปากแห้ง, C00-C14) อาจทำให้ติด C-240 ({$hosxpDiags})";
+                } else {
+                    $sampleCodes = implode(', ', array_slice($rule['icd10'], 0, 6));
+                    $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสโรคที่กำหนด (ต้องการรหัสในกลุ่ม: {$sampleCodes}) อาจทำให้ติด C-240 ({$hosxpDiags})";
+                }
             }
         }
 
@@ -497,7 +598,16 @@ class ClaimValidator
                 if (in_array($p, $expected)) { $matched = true; break; }
             }
             if (!$matched) {
-                $errors[] = "รหัส {$adpCode} ({$itemName}): ขาดรหัสหัตถการที่กำหนด (ต้องการรหัสใดรหัสหนึ่งในกลุ่ม: " . implode(', ', $rule['icd9']) . ")";
+                if ($adpCode === 'FP002_2') {
+                    $errors[] = "รหัส FP002_2 ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 8605 ใน doctor_operation อาจทำให้ติด C-217 ({$hosxpProc})";
+                } elseif ($adpCode === 'FP002_1') {
+                    $errors[] = "รหัส FP002_1 ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 9923 ใน doctor_operation อาจทำให้ติด C-217 ({$hosxpProc})";
+                } elseif ($adpCode === 'FP001') {
+                    $errors[] = "รหัส FP001 ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 697 หรือ 9771 ใน doctor_operation อาจทำให้ติด C-217 ({$hosxpProc})";
+                } else {
+                    $procList = implode(', ', $rule['icd9']);
+                    $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการ ICD-9 ที่กำหนด ({$procList}) ใน doctor_operation อาจทำให้ติด C-217 ({$hosxpProc})";
+                }
             }
         }
 
@@ -520,11 +630,11 @@ class ClaimValidator
                 }
                 if (!empty($rule['rules']['both_dental_groups_required'])) {
                     if (!empty($missingGroups)) {
-                        $errors[] = "รหัส {$adpCode} ({$itemName}): ขาดรหัสหัตถการทันตกรรมในกลุ่ม " . implode(' และ ', $missingGroups);
+                        $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการทันตกรรมในกลุ่ม " . implode(' และ ', $missingGroups);
                     }
                 } else {
                     if (count($missingGroups) === count($rule['dental_icd10_tm'])) {
-                        $errors[] = "รหัส {$adpCode} ({$itemName}): ขาดรหัสหัตถการทันตกรรมที่กำหนด";
+                        $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการทันตกรรมที่กำหนด";
                     }
                 }
             } else {
@@ -534,7 +644,8 @@ class ClaimValidator
                     if (in_array($p, $expected)) { $matched = true; break; }
                 }
                 if (!$matched) {
-                    $errors[] = "รหัส {$adpCode} ({$itemName}): ขาดรหัสหัตถการทันตกรรมที่กำหนด (ต้องการรหัสใดรหัสหนึ่งในกลุ่ม: " . implode(', ', $rule['dental_icd10_tm']) . ")";
+                    $sampleDental = implode(', ', array_slice($rule['dental_icd10_tm'], 0, 6));
+                    $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ขาดรหัสหัตถการทันตกรรมที่กำหนด (ต้องการรหัสในกลุ่ม: {$sampleDental})";
                 }
             }
         }
@@ -544,7 +655,7 @@ class ClaimValidator
             $qty = isset($item->qty) ? floatval($item->qty) : 1;
             $expectedPrice = floatval($rule['amount']) * $qty;
             if (abs($itemPrice - $expectedPrice) > 0.01) {
-                $errors[] = "รหัส {$adpCode} ({$itemName}): ยอดเรียกเก็บ (" . number_format($itemPrice, 2) . " บาท) ไม่ตรงกับเกณฑ์ชดเชย (" . number_format($expectedPrice, 2) . " บาท)";
+                $errors[] = "รหัส {$adpCode} ({$itemName}): สิ่งที่ขาดใน HOSxP — ยอดเรียกเก็บ (" . number_format($itemPrice, 2) . " บาท) ไม่ตรงกับเกณฑ์ (" . number_format($expectedPrice, 2) . " บาท) อาจทำให้ติด C-204";
             }
         }
 

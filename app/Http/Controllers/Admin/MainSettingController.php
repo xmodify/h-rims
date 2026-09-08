@@ -26,7 +26,6 @@ class MainSettingController extends Controller
             'aopod_death_pct_person', 'aopod_death_details_person',
             'aopod_death_pct_clinicmember', 'aopod_death_details_clinicmember',
             'aopod_death_pct_death', 'aopod_death_details_death',
-            'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time',
             'aopod_token', 'aopod_url_api_death',
         ];
 
@@ -963,9 +962,6 @@ class MainSettingController extends Controller
                         ['name' => 'moph_alert_active', 'name_th' => 'เปิดใช้งานยืนยันตัวตน 2FA Moph Alert (Y/N)', 'value' => 'N'],
                         ['name' => 'moph_alert_client_id', 'name_th' => 'Moph Alert Client ID', 'value' => ''],
                         ['name' => 'moph_alert_client_secret', 'name_th' => 'Moph Alert Client Secret', 'value' => ''],
-                        ['name' => 'eclaim_session_token', 'name_th' => 'e-Claim Session Token', 'value' => ''],
-                        ['name' => 'eclaim_session_user', 'name_th' => 'e-Claim Session User ล่าสุด', 'value' => ''],
-                        ['name' => 'eclaim_session_time', 'name_th' => 'e-Claim Session เวลาเชื่อมต่อล่าสุด', 'value' => ''],
                         ['name' => 'ktb_company_id', 'name_th' => 'KTB Corporate Company ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_user_id', 'name_th' => 'KTB Corporate User ID (EDC)', 'value' => ''],
                         ['name' => 'ktb_password', 'name_th' => 'KTB Corporate Password (EDC)', 'value' => ''],

@@ -32,21 +32,31 @@
                 <div id="thaidQrReadyState" style="display: none;">
                     
                     <!-- QR Box -->
-                    <div class="d-inline-block p-3 bg-white rounded-4 shadow-sm border mb-3 position-relative">
-                        <img id="thaidQrImage" src="" alt="ThaiD QR Code" style="width: 240px; height: 240px; object-fit: contain;" class="rounded-3">
+                    <div class="d-inline-block p-3 bg-white rounded-4 shadow-sm border mb-3 position-relative" style="overflow: hidden;">
+                        <div class="position-relative d-inline-block" style="width: 240px; height: 240px;">
+                            <img id="thaidQrImage" src="" alt="ThaiD QR Code" style="width: 240px; height: 240px; object-fit: contain; transition: all 0.35s ease;" class="rounded-3">
+                            <!-- Scanned Blur Overlay (Mimics DOPA / ThaiD Official Experience) -->
+                            <div id="thaidQrScannedOverlay" class="position-absolute top-0 start-0 w-100 h-100 rounded-3 d-flex flex-column align-items-center justify-content-center" style="display: none !important; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(4px); z-index: 10;">
+                                <div class="spinner-border text-success mb-2" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fw-bold text-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> ยืนยันในมือถือแล้ว</div>
+                                <div class="text-secondary small fw-medium" style="font-size: 0.78rem;">กำลังเข้าสู่ระบบ e-Claim...</div>
+                            </div>
+                        </div>
                         <div id="thaidQrRefBadge" class="mt-2 small fw-bold text-secondary font-monospace"></div>
                     </div>
 
                     <!-- Instructions & Status -->
                     <div class="mb-3">
-                        <div class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-2 d-inline-flex align-items-center gap-1 shadow-sm">
+                        <div id="thaidQrStatusBadge" class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-2 d-inline-flex align-items-center gap-1 shadow-sm">
                             <span class="spinner-grow spinner-grow-sm text-primary" role="status"></span>
-                            <span class="fw-bold" style="font-size: 0.82rem;">กำลังรอการสแกนจากแอปพลิเคชัน ThaiD</span>
+                            <span class="fw-bold" id="thaidQrStatusText" style="font-size: 0.82rem;">กำลังรอการสแกนจากแอปพลิเคชัน ThaiD</span>
                         </div>
-                        <p class="text-muted small mb-1">
+                        <p id="thaidQrInstructionText" class="text-muted small mb-1">
                             <i class="bi bi-phone me-1 text-primary"></i> เปิดแอป <b>ThaiD</b> บนมือถือ ➔ กดปุ่มสแกนที่หน้าจอนี้
                         </p>
-                        <div class="small fw-semibold text-danger">
+                        <div id="thaidCountdownWrapper" class="small fw-semibold text-danger">
                             <i class="bi bi-clock-history me-1"></i> QR Code จะหมดอายุใน: <span id="thaidCountdownText" class="font-monospace">02:00</span>
                         </div>
                     </div>
@@ -62,7 +72,7 @@
                     </div>
                     <h5 class="fw-bold text-success mb-1">เข้าสู่ระบบ e-Claim สำเร็จ!</h5>
                     <p class="text-dark small mb-0" id="thaidSuccessUserText">ยินดีต้อนรับ</p>
-                    <small class="text-muted">บันทึก Session เข้าส่วนกลางเรียบร้อยแล้ว</small>
+                    <small class="text-muted">บันทึก Session ประจำตัวผู้ใช้งานเรียบร้อยแล้ว</small>
                 </div>
 
                 <!-- 4. FAILED / EXPIRED STATE -->
@@ -212,7 +222,28 @@ function showThaidQrReady(qrBase64, refCode, expiresIn) {
     document.getElementById('thaidFooterActions').style.display = 'block';
 
     const qrImg = document.getElementById('thaidQrImage');
-    qrImg.src = qrBase64;
+    if (qrImg) {
+        qrImg.src = qrBase64;
+        qrImg.style.filter = 'none';
+        qrImg.style.opacity = '1';
+    }
+
+    const overlay = document.getElementById('thaidQrScannedOverlay');
+    if (overlay) {
+        overlay.style.setProperty('display', 'none', 'important');
+    }
+
+    const statusBadge = document.getElementById('thaidQrStatusBadge');
+    if (statusBadge) {
+        statusBadge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-2 d-inline-flex align-items-center gap-1 shadow-sm';
+        statusBadge.innerHTML = '<span class="spinner-grow spinner-grow-sm text-primary" role="status"></span> <span class="fw-bold" id="thaidQrStatusText" style="font-size: 0.82rem;">กำลังรอการสแกนจากแอปพลิเคชัน ThaiD</span>';
+    }
+
+    const instructionText = document.getElementById('thaidQrInstructionText');
+    if (instructionText) instructionText.style.display = 'block';
+
+    const countdownWrapper = document.getElementById('thaidCountdownWrapper');
+    if (countdownWrapper) countdownWrapper.style.display = 'block';
 
     const refBadge = document.getElementById('thaidQrRefBadge');
     if (refCode) {
@@ -238,6 +269,34 @@ function showThaidQrReady(qrBase64, refCode, expiresIn) {
 
     // Start Status Polling
     startThaidPolling(currentThaidSessionId);
+}
+
+// Show Scanned State (User confirmed on mobile ThaiD app, QR blurred & loading)
+function showThaidScanned() {
+    clearInterval(thaidCountdownInterval);
+
+    const qrImg = document.getElementById('thaidQrImage');
+    if (qrImg) {
+        qrImg.style.filter = 'blur(6px)';
+        qrImg.style.opacity = '0.35';
+    }
+
+    const overlay = document.getElementById('thaidQrScannedOverlay');
+    if (overlay) {
+        overlay.style.setProperty('display', 'flex', 'important');
+    }
+
+    const statusBadge = document.getElementById('thaidQrStatusBadge');
+    if (statusBadge) {
+        statusBadge.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 mb-2 d-inline-flex align-items-center gap-2 shadow-sm';
+        statusBadge.innerHTML = '<span class="spinner-border spinner-border-sm text-success" role="status"></span> <span class="fw-bold" style="font-size: 0.85rem;">สแกนสำเร็จแล้ว! กำลังเข้าสู่ระบบ e-Claim...</span>';
+    }
+
+    const instructionText = document.getElementById('thaidQrInstructionText');
+    if (instructionText) instructionText.style.display = 'none';
+
+    const countdownWrapper = document.getElementById('thaidCountdownWrapper');
+    if (countdownWrapper) countdownWrapper.style.display = 'none';
 }
 
 // Update Countdown Display MM:SS
@@ -267,6 +326,8 @@ function startThaidPolling(sessionId) {
                 clearInterval(thaidPollingInterval);
                 clearInterval(thaidCountdownInterval);
                 showThaidSuccess(data.user || 'เจ้าหน้าที่ e-Claim');
+            } else if (data.status === 'success' && data.state === 'SCANNED') {
+                showThaidScanned();
             } else if (data.status === 'success' && data.state === 'QR_READY' && data.qr_image) {
                 if (document.getElementById('thaidQrReadyState').style.display === 'none') {
                     showThaidQrReady(data.qr_image, data.ref_code, data.expires_in || 120);
@@ -284,7 +345,7 @@ function startThaidPolling(sessionId) {
         } catch (e) {
             console.error('Polling error:', e);
         }
-    }, 1500);
+    }, 1200);
 }
 
 // Success State

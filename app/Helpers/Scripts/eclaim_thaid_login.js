@@ -206,6 +206,7 @@ async function run() {
         // Check session file periodically if user cancelled
         const scanStartTime = Date.now();
         const maxWaitMs = 180000; // 3 minutes
+        let hasMarkedScanned = false;
 
         while (Date.now() - scanStartTime < maxWaitMs) {
             // Check if cancelled by user
@@ -221,18 +222,49 @@ async function run() {
             }
 
             const url = page.url();
+
+            // Detect if mobile scan has occurred:
+            // 1) URL changed from imauth.bora.dopa.go.th to iam.nhso.go.th or eclaim
+            // 2) Or DOPA page indicates scanned / blurred / redirecting
+            if (!hasMarkedScanned) {
+                let isScanned = false;
+                if (!url.includes('imauth.bora.dopa.go.th') && !url.includes('dopa')) {
+                    isScanned = true;
+                } else {
+                    // Check DOM of DOPA page for blur / success / hidden qr
+                    isScanned = await page.evaluate(() => {
+                        const qr = document.querySelector('img[src^="data:image"]');
+                        if (!qr) return true;
+                        const style = window.getComputedStyle(qr);
+                        const isBlurred = (style.filter && style.filter.includes('blur')) || qr.classList.contains('blur') || (qr.style && qr.style.filter && qr.style.filter.includes('blur'));
+                        const hasOverlay = !!document.querySelector('.overlay, .loading, .success, [class*="success"], [class*="loading"], .swal2-container');
+                        return isBlurred || hasOverlay;
+                    }).catch(() => false);
+                }
+
+                if (isScanned) {
+                    hasMarkedScanned = true;
+                    console.log(`[Session ${sessionId}] Mobile scan detected! Updating state to SCANNED.`);
+                    updateSessionState(sessionFile, {
+                        status: 'SCANNED',
+                        message: 'ยืนยันตัวตนในมือถือแล้ว กำลังเข้าสู่ระบบ e-Claim...'
+                    });
+                }
+            }
+
             // Check if redirect has reached eclaim main page
             if (url.includes('eclaim.nhso.go.th') && !url.includes('iam.nhso.go.th') && !url.includes('imauth.bora.dopa.go.th')) {
                 break;
             }
 
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(500);
         }
 
-        // Wait an extra moment and navigate to Client/home to initialize Vue SPA and fresh ACCESS_TOKEN
+        // Navigate to Client/home with domcontentloaded to initialize Vue SPA and fresh ACCESS_TOKEN
         try {
-            await page.goto('https://eclaim.nhso.go.th/Client/home', { waitUntil: 'networkidle', timeout: 25000 });
-            await page.waitForTimeout(3000);
+            await page.goto('https://eclaim.nhso.go.th/Client/home', { waitUntil: 'domcontentloaded', timeout: 15000 });
+            await page.waitForSelector('.ant-radio-group, button:has-text("ค้นหา"), .ant-btn', { timeout: 8000 }).catch(() => {});
+            await page.waitForTimeout(1000);
         } catch(e) {
             console.log('Client/home init note:', e.message);
         }

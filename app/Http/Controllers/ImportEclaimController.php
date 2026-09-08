@@ -546,13 +546,11 @@ class ImportEclaimController extends Controller
     }
 
     /**
-     * ดึง Session Token ที่ใช้งานได้ของระบบ
+     * ดึง Session Token ประจำตัวผู้ใช้งาน (Strict User Isolation)
      */
     protected function getActiveEclaimToken()
     {
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-
-        // 1. Token ประจำตัว User
+        // ตรวจสอบ Token ประจำตัว User เท่านั้น (ไม่แชร์ข้ามผู้ใช้งาน และไม่ดึงจาก main_setting)
         if (auth()->check()) {
             if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
                 $token = DB::table('users')->where('id', auth()->id())->value('eclaim_session_token');
@@ -563,22 +561,7 @@ class ImportEclaimController extends Controller
             }
         }
 
-        // 2. Token จาก User อื่นที่มีการล็อกอินล่าสุด
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
-            $latestUserToken = DB::table('users')
-                ->whereNotNull('eclaim_session_token')
-                ->where('eclaim_session_token', '<>', '')
-                ->orderBy('eclaim_session_time', 'desc')
-                ->value('eclaim_session_token');
-            if ($latestUserToken) return $this->cleanToken($latestUserToken);
-        }
-
-        // 3. Token จากส่วนกลาง
-        $globalToken = DB::table('main_setting')->where('name', 'eclaim_session_token')->value('value')
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_' . $hospcode)
-            ?: (\Illuminate\Support\Facades\Cache::get('eclaim_session_token_global')));
-
-        return $globalToken ? $this->cleanToken($globalToken) : null;
+        return null;
     }
 
     /**

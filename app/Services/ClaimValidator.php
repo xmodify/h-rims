@@ -317,12 +317,6 @@ class ClaimValidator
             return ['errors' => [], 'warnings' => []];
         }
 
-        $repReportedAdpCodes = [];
-        if ($has_err_code) {
-            $repErrors = $this->formatRepError((string)$errCode, $visit, $billedItems, $repReportedAdpCodes);
-            $errors = array_merge($errors, $repErrors);
-        }
-
         // check DRDX (Doctor License) & DROPID (Procedure Operator License) - Only for Social Security (SSS)
         $is_sss = is_object($visit) ? !empty($visit->is_sss) : (!empty($visit['is_sss']));
         if ($is_sss) {
@@ -359,11 +353,6 @@ class ClaimValidator
 
         foreach ($billedItems as $item) {
             if (($item->ppfs ?? '') === 'Y') {
-                $adp = trim((string)(is_object($item) ? ($item->nhso_adp_code ?? '') : ($item['nhso_adp_code'] ?? '')));
-                // ถ้ามีแจ้งเตือนข้อผิดพลาดจาก REP สำหรับรหัส ADP นี้ไปแล้ว ไม่ต้องแจ้งเตือน pre-audit ซ้ำซ้อน
-                if ($has_err_code && in_array($adp, $repReportedAdpCodes)) {
-                    continue;
-                }
                 $itemErrors = $this->runPpfsRules($item, $sex, $age, $diagnoses, $procedures, $pdx, $sdx);
                 $errors = array_merge($errors, $itemErrors);
             }
@@ -495,47 +484,136 @@ class ClaimValidator
         $hosxpDiagSummary = "ปัจจุบัน PDX: " . ($pdx ?: '-') . ($sdx ? ", SDX: {$sdx}" : "");
         $hosxpProcSummary = "ปัจจุบัน: " . ($icd9 ?: 'ไม่พบหัตถการ');
 
+        // แยกและ normalize หัตถการจาก HOSxP
+        $procedures = [];
+        if (!empty($icd9)) {
+            foreach (explode(',', $icd9) as $c) {
+                $norm = $this->normalizeCode($c);
+                if ($norm !== '') $procedures[] = $norm;
+            }
+        }
+        $procedures = array_unique($procedures);
+
+        // แยกและ normalize การวินิจฉัยจาก HOSxP
+        $diagnoses = [];
+        if (!empty($pdx)) $diagnoses[] = $this->normalizeCode($pdx);
+        if (!empty($sdx)) {
+            foreach (explode(',', $sdx) as $c) {
+                $norm = $this->normalizeCode($c);
+                if ($norm !== '') $diagnoses[] = $norm;
+            }
+        }
+        $diagnoses = array_unique($diagnoses);
+
         foreach ($cleanCodes as $code) {
             $numCode = ltrim($code, 'C');
 
             if ($numCode === '240' || $code === 'C240') {
-                if (in_array('15001', $ppfsAdpCodes)) {
-                    $reportedAdpCodes[] = '15001';
-                    $errors[] = "ติด C: 240 (15001): ขาดรหัสโรคกลุ่มเสี่ยงทันตกรรม (เช่น K020, K060) [{$hosxpDiagSummary}]";
-                } else {
+                if (!empty($ppfsAdpCodes)) {
                     foreach ($ppfsAdpCodes as $adp) {
                         $reportedAdpCodes[] = $adp;
+                        if ($adp === '15001') {
+                            $expected = !empty($this->ppfsRules['15001']['icd10'])
+                                ? array_map([$this, 'normalizeCode'], $this->ppfsRules['15001']['icd10'])
+                                : ['K020', 'K021', 'K022', 'K023', 'K024', 'K025', 'K026', 'K027', 'K028', 'K029', 'K060'];
+                            $matched = false;
+                            foreach ($diagnoses as $d) {
+                                if (in_array($d, $expected)) { $matched = true; break; }
+                            }
+                            if (!$matched) {
+                                $errors[] = "ติด C: 240 (15001): ขาดรหัสโรคกลุ่มเสี่ยงทันตกรรม (เช่น K020, K060) [{$hosxpDiagSummary}]";
+                            }
+                        } elseif (!empty($this->ppfsRules[$adp]['icd10'])) {
+                            $expected = array_map([$this, 'normalizeCode'], $this->ppfsRules[$adp]['icd10']);
+                            $matched = false;
+                            foreach ($diagnoses as $d) {
+                                if (in_array($d, $expected)) { $matched = true; break; }
+                            }
+                            if (!$matched) {
+                                $sampleCodes = implode(', ', array_slice($this->ppfsRules[$adp]['icd10'], 0, 4));
+                                $errors[] = "ติด C: 240 ({$adp}): ขาดรหัสโรคกลุ่มเสี่ยง PPFS ({$sampleCodes}) [{$hosxpDiagSummary}]";
+                            }
+                        }
                     }
+                } elseif (empty($diagnoses)) {
                     $errors[] = "ติด C: 240 ({$itemsDesc}): ขาดรหัสโรคกลุ่มเสี่ยง PPFS [{$hosxpDiagSummary}]";
                 }
             } elseif ($numCode === '217' || $code === 'C217') {
-                if (in_array('FP002_2', $ppfsAdpCodes)) {
-                    $reportedAdpCodes[] = 'FP002_2';
-                    $errors[] = "ติด C: 217 (FP002_2): ขาดรหัสหัตถการ ICD-9 8605 ใน doctor_operation [{$hosxpProcSummary}]";
-                } elseif (in_array('FP002_1', $ppfsAdpCodes)) {
-                    $reportedAdpCodes[] = 'FP002_1';
-                    $errors[] = "ติด C: 217 (FP002_1): ขาดรหัสหัตถการ ICD-9 9923 ใน doctor_operation [{$hosxpProcSummary}]";
-                } elseif (in_array('FP001', $ppfsAdpCodes)) {
-                    $reportedAdpCodes[] = 'FP001';
-                    $errors[] = "ติด C: 217 (FP001): ขาดรหัสหัตถการ ICD-9 697 หรือ 9771 ใน doctor_operation [{$hosxpProcSummary}]";
-                } else {
+                if (!empty($ppfsAdpCodes)) {
                     foreach ($ppfsAdpCodes as $adp) {
                         $reportedAdpCodes[] = $adp;
+                        if ($adp === 'FP002_2') {
+                            if (!in_array('8605', $procedures)) {
+                                $errors[] = "ติด C: 217 (FP002_2): ขาดรหัสหัตถการ ICD-9 8605 ใน doctor_operation [{$hosxpProcSummary}]";
+                            }
+                        } elseif ($adp === 'FP002_1') {
+                            if (!in_array('9923', $procedures)) {
+                                $errors[] = "ติด C: 217 (FP002_1): ขาดรหัสหัตถการ ICD-9 9923 ใน doctor_operation [{$hosxpProcSummary}]";
+                            }
+                        } elseif ($adp === 'FP001') {
+                            if (!in_array('697', $procedures) && !in_array('9771', $procedures)) {
+                                $errors[] = "ติด C: 217 (FP001): ขาดรหัสหัตถการ ICD-9 697 หรือ 9771 ใน doctor_operation [{$hosxpProcSummary}]";
+                            }
+                        } elseif (!empty($this->ppfsRules[$adp]['icd9'])) {
+                            $expected = array_map([$this, 'normalizeCode'], $this->ppfsRules[$adp]['icd9']);
+                            $matched = false;
+                            foreach ($procedures as $p) {
+                                if (in_array($p, $expected)) { $matched = true; break; }
+                            }
+                            if (!$matched) {
+                                $procList = implode(', ', $this->ppfsRules[$adp]['icd9']);
+                                $errors[] = "ติด C: 217 ({$adp}): ขาดรหัสหัตถการ ICD-9 ({$procList}) ใน doctor_operation [{$hosxpProcSummary}]";
+                            }
+                        }
                     }
+                } elseif (empty($procedures)) {
                     $errors[] = "ติด C: 217 ({$itemsDesc}): ขาดรหัสหัตถการ ICD-9 ใน doctor_operation [{$hosxpProcSummary}]";
                 }
             } elseif ($numCode === '201' || $code === 'C201') {
-                $errors[] = "ติด C: 201 ({$itemsDesc}): เพศไม่ตรงเกณฑ์ [ปัจจุบันเพศ: {$gender}]";
+                $hasSexError = false;
+                foreach ($ppfsAdpCodes as $adp) {
+                    if (!empty($this->ppfsRules[$adp]['sex'])) {
+                        $expectedSex = strtoupper($this->ppfsRules[$adp]['sex']);
+                        if ($rawSex && $rawSex !== $expectedSex && $gender !== ($expectedSex === 'F' ? 'หญิง' : 'ชาย')) {
+                            $hasSexError = true;
+                            break;
+                        }
+                    }
+                }
+                if ($hasSexError || empty($ppfsAdpCodes)) {
+                    $errors[] = "ติด C: 201 ({$itemsDesc}): เพศไม่ตรงเกณฑ์ [ปัจจุบันเพศ: {$gender}]";
+                }
             } elseif ($numCode === '202' || $code === 'C202') {
-                $errors[] = "ติด C: 202 ({$itemsDesc}): อายุไม่อยู่ในเกณฑ์ [ปัจจุบันอายุ: {$age} ปี]";
+                $hasAgeError = false;
+                foreach ($ppfsAdpCodes as $adp) {
+                    if (isset($this->ppfsRules[$adp]['age'])) {
+                        $minAge = $this->ppfsRules[$adp]['age']['min'] ?? null;
+                        $maxAge = $this->ppfsRules[$adp]['age']['max'] ?? null;
+                        if ($age !== null) {
+                            if (($minAge !== null && $age < $minAge) || ($maxAge !== null && $age > $maxAge)) {
+                                $hasAgeError = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if ($hasAgeError || empty($ppfsAdpCodes)) {
+                    $errors[] = "ติด C: 202 ({$itemsDesc}): อายุไม่อยู่ในเกณฑ์ [ปัจจุบันอายุ: {$age} ปี]";
+                }
             } elseif ($numCode === '204' || $code === 'C204') {
                 $errors[] = "ติด C: 204 ({$itemsDesc}): ยอดเรียกเก็บไม่ตรงเกณฑ์ชดเชย สปสช.";
             } elseif ($numCode === '010' || $numCode === '10' || $code === 'C010') {
-                $errors[] = "ติด C: 010: เลขบัตรประชาชน [{$cid}] ไม่ถูกต้อง";
+                if (empty($cid) || strlen($cid) !== 13) {
+                    $errors[] = "ติด C: 010: เลขบัตรประชาชน [{$cid}] ไม่ถูกต้อง";
+                }
             } elseif ($numCode === '300' || $numCode === '301' || $code === 'C300') {
                 $errors[] = "ติด C: {$code}: ขาดรหัส Authen Code หรือไม่ตรงวันรับบริการ";
             } elseif ($numCode === '401' || $code === 'C401') {
-                $errors[] = "ติด C: 401: ขาดเลขใบประกอบวิชาชีพแพทย์ (ว/ท)";
+                $doc_lic = trim((string)(is_object($visit) ? ($visit->doctor_license ?? '') : ($visit['doctor_license'] ?? '')));
+                $hasValidDocLic = (!empty($doc_lic) && (str_starts_with($doc_lic, 'ว') || str_starts_with($doc_lic, 'ท') || str_starts_with($doc_lic, 'พท')));
+                if (!$hasValidDocLic) {
+                    $errors[] = "ติด C: 401: ขาดเลขใบประกอบวิชาชีพแพทย์ (ว/ท) [ปัจจุบัน: " . ($doc_lic ?: 'ไม่พบ') . "]";
+                }
             } else {
                 $errors[] = "ติด C: {$code}: ข้อมูลไม่ผ่านเกณฑ์ สปสช. [{$hosxpDiagSummary}]";
             }

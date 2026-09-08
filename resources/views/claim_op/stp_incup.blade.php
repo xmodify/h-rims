@@ -719,7 +719,18 @@
 
             if (hasPpfsInServices && !hasPpfsInDrugs) {
                 const sTab = document.getElementById('modal-services-tab');
-                if (sTab) bootstrap.Tab.getOrCreateInstance(sTab).show();
+                if (sTab) {
+                    try {
+                        const bs = window.bootstrap || (typeof bootstrap !== 'undefined' ? bootstrap : null);
+                        if (bs && bs.Tab) {
+                            bs.Tab.getOrCreateInstance(sTab).show();
+                        } else if (typeof $ !== 'undefined' && $.fn.tab) {
+                            $(sTab).tab('show');
+                        }
+                    } catch (e) {
+                        console.warn('Could not switch to services tab:', e);
+                    }
+                }
             }
 
             renderModalTables(defaultOnlyPpfs);

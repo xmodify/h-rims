@@ -985,8 +985,8 @@ class F16EclaimExportService
             $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
             $dateexp = self::formatDate($v->dateexp ?? '');
-            $hospmain = $v->hospmain ?: $hcode;
-            $hospsub = $v->hospsub ?: '';
+            $hospmain = self::formatHospcode($v->hospmain) ?: $hcode;
+            $hospsub = self::formatHospcode($v->hospsub);
             $govcode = trim((string)($v->gov_code ?? ''));
             $govname = trim((string)($v->gov_name ?? ''));
             $permitno = $v->permitno ?: '';
@@ -1890,8 +1890,8 @@ class F16EclaimExportService
             $subtype = trim((string)$v->pttype_nhso_code) ?: '10';
             $cid = trim((string)$v->cid);
             $dateexp = self::formatDate($v->dateexp ?? '');
-            $hospmain = $v->hospmain ?: $hcode;
-            $hospsub = $v->hospsub ?: '';
+            $hospmain = self::formatHospcode($v->hospmain) ?: $hcode;
+            $hospsub = self::formatHospcode($v->hospsub);
             $govcode = trim((string)($v->gov_code ?? ''));
             $govname = trim((string)($v->gov_name ?? ''));
             $permitno = $v->permitno ?: '';

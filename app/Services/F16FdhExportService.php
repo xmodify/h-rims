@@ -822,8 +822,8 @@ class F16FdhExportService
             $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = $v->pttype_nhso_code ?: '10';
             $dateexp = self::formatDate($v->dateexp ?? '');
-            $hospmain = trim((string)$v->hospmain) ?: $hcode;
-            $hospsub = trim((string)$v->hospsub);
+            $hospmain = self::formatHospcode($v->hospmain) ?: $hcode;
+            $hospsub = self::formatHospcode($v->hospsub);
             $govcode = trim((string)($v->gov_code ?? ''));
             $govname = trim((string)($v->gov_name ?? ''));
             $docno = trim((string)($v->docno ?? ''));
@@ -982,13 +982,38 @@ class F16FdhExportService
         // 10. IOP.txt (8 คอลัมน์ - ว่างสำหรับ OPD)
         $iopLines = ["AN|OPER|OPTYPE|DROPID|DATEIN|TIMEIN|DATEOUT|TIMEOUT"];
 
+        $claimCode = strtoupper(trim((string)($options['claim_code'] ?? '')));
+        $isUcsIncupOrInprov = in_array($claimCode, ['UCS_INCUP', 'UCS_INPROV', 'UCS_INPROVINCE', 'INCUP', 'INPROV', 'INPROVINCE'])
+            || str_contains($claimCode, 'INCUP')
+            || str_contains($claimCode, 'INPROV');
+
+        $itemsByVn = $items->groupBy('vn');
+
         // 11. CHT.txt (11 คอลัมน์ตาม 16แฟ้มFDH.xlsx)
         // HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT
         $chtLines = ["HN|AN|DATE|TOTAL|PAID|PTTYPE|PERSON_ID|SEQ|OPD_MEMO|INVOICE_NO|INVOICE_LT"];
         foreach ($visits as $v) {
+            $vnItems = $itemsByVn->get($v->vn, collect());
             $date = self::formatDate($v->vstdate);
-            $total = number_format((float)$v->income, 2, '.', '');
-            $paid = number_format((float)($v->rcpt_money ?: 0.0), 2, '.', '');
+
+            // หักยอดเงินของรายการที่ถูกข้าม (S1801, S1802) ออกจาก TOTAL เพื่อให้ CHT.TOTAL เท่ากับ SUM(CHA.AMOUNT)
+            $excludedAmt = 0.0;
+            $excludedPaidAmt = 0.0;
+            if ($isUcsIncupOrInprov) {
+                foreach ($vnItems as $it) {
+                    $rawCode = strtoupper(trim((string)$it->nhso_adp_code));
+                    if (in_array($rawCode, ['S1801', 'S1802'])) {
+                        $excludedAmt += (float)$it->sum_price;
+                        $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+                        if ($isPaidSelf) {
+                            $excludedPaidAmt += (float)$it->sum_price;
+                        }
+                    }
+                }
+            }
+
+            $total = number_format(max(0, (float)$v->income - $excludedAmt), 2, '.', '');
+            $paid = number_format(max(0, (float)($v->rcpt_money ?: 0.0) - $excludedPaidAmt), 2, '.', '');
             $pttype = self::mapChtPttype($v->hipdata_code, $v->pttype, $v->pttype_nhso_code);
             $cid = trim((string)$v->cid);
             $an = '';
@@ -1010,7 +1035,6 @@ class F16FdhExportService
         // 12. CHA.txt (7 คอลัมน์)
         // HN|AN|DATE|CHRGITEM|AMOUNT|PERSON_ID|SEQ
         $chaLines = ["HN|AN|DATE|CHRGITEM|AMOUNT|PERSON_ID|SEQ"];
-        $itemsByVn = $items->groupBy('vn');
         foreach ($visits as $v) {
             $vnItems = $itemsByVn->get($v->vn, collect());
             $date = self::formatDate($v->vstdate);
@@ -1019,6 +1043,13 @@ class F16FdhExportService
 
             $chaGroups = [];
             foreach ($vnItems as $it) {
+                $rawCode = strtoupper(trim((string)$it->nhso_adp_code));
+
+                // ข้ามรหัส S1801, S1802 (ค่ารถ Refer) เฉพาะ 2 หน้า: ucs_incup และ ucs_inprovince
+                if ($isUcsIncupOrInprov && in_array($rawCode, ['S1801', 'S1802'])) {
+                    continue;
+                }
+
                 $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
                 $chrg = $isPaidSelf 
                     ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
@@ -1062,11 +1093,6 @@ class F16FdhExportService
         // 14. ADP.txt (27 คอลัมน์ตามมาตรฐาน 16แฟ้ม FDH)
         // HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM
         $adpLines = ["HN|AN|DATEOPD|TYPE|CODE|QTY|RATE|SEQ|CAGCODE|DOSE|CA_TYPE|SERIALNO|TOTCOPAY|USE_STATUS|TOTAL|QTYDAY|TMLTCODE|STATUS1|BI|CLINIC|ITEMSRC|PROVIDER|GRAVIDA|GA_WEEK|DCIP/E_SCREEN|LMP|SP_ITEM"];
-        
-        $claimCode = strtoupper(trim((string)($options['claim_code'] ?? '')));
-        $isUcsIncupOrInprov = in_array($claimCode, ['UCS_INCUP', 'UCS_INPROV', 'UCS_INPROVINCE', 'INCUP', 'INPROV', 'INPROVINCE'])
-            || str_contains($claimCode, 'INCUP')
-            || str_contains($claimCode, 'INPROV');
 
         $adpItems = $items->filter(function($it) use ($isUcsIncupOrInprov) {
             $rawCode = strtoupper(trim((string)$it->nhso_adp_code));
@@ -1628,8 +1654,8 @@ class F16FdhExportService
             $inscl = self::mapInscl($v->hipdata_code, $v->pttype);
             $subtype = $v->pttype_nhso_code ?: '10';
             $dateexp = '';
-            $hospmain = trim((string)$v->hospmain) ?: $hcode;
-            $hospsub = trim((string)$v->hospsub);
+            $hospmain = self::formatHospcode($v->hospmain) ?: $hcode;
+            $hospsub = self::formatHospcode($v->hospsub);
             $govcode = '';
             $govname = '';
             $docno = '';

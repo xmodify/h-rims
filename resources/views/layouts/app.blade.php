@@ -1187,7 +1187,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-08 02.30
+                                V.69-09-08 10.30
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1829,8 +1829,14 @@
             $(document).ready(function () {
                 // Re-open modal if there are errors
                 @if ($errors->has('current_password') || $errors->has('new_password'))
-                    var myModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
-                    myModal.show();
+                    var modalEl = document.getElementById('changePasswordModal');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    } else if (window.bootstrap && window.bootstrap.Modal) {
+                        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    } else if (typeof $ !== 'undefined') {
+                        $('#changePasswordModal').modal('show');
+                    }
                 @endif
 
                 @if (session('success') && !session('migrate_output'))
@@ -2230,6 +2236,19 @@
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
             document.activeElement.blur();
         }
+    });
+
+    // Dropdown submenus (dropend): allow click to toggle without closing parent menu
+    $(document).on('click', '.dropdown-menu .dropend > a.dropdown-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $submenu = $(this).next('.dropdown-menu');
+        $(this).closest('.dropdown-menu').find('.dropdown-menu.show').not($submenu).removeClass('show');
+        $submenu.toggleClass('show');
+    });
+
+    $(document).on('hidden.bs.dropdown', '.dropdown', function() {
+        $(this).find('.dropdown-menu.show').removeClass('show');
     });
     </script>
 

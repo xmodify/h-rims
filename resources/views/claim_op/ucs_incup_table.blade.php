@@ -253,9 +253,15 @@
                                     <td class="text-center small">
                                         <div class="d-flex flex-column gap-1 align-items-center">
                                             @if(!empty($row->rep_error_code))
-                                                <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error_code }}">
-                                                    C: {{ $row->rep_error_code }}
-                                                </span>
+                                                @if(!empty($row->is_valid))
+                                                    <span class="badge bg-success fw-bold" style="font-size: 0.72rem;" title="เคยติด C: {{ $row->rep_error_code }} (แก้ไขข้อมูลใน HOSxP แล้ว พร้อมส่งซ้ำ)">
+                                                        C: {{ $row->rep_error_code }} <i class="bi bi-check-circle-fill"></i>
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-danger fw-bold" style="font-size: 0.72rem;" title="ติด C (ข้อผิดพลาด REP): {{ $row->rep_error_code }}">
+                                                        C: {{ $row->rep_error_code }}
+                                                    </span>
+                                                @endif
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif

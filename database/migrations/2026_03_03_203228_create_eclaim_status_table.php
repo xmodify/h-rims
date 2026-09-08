@@ -15,7 +15,7 @@ return new class extends Migration
             Schema::create('eclaim_status', function (Blueprint $table) {
                 $table->id();
                 $table->string('hospcode', 5)->nullable()->index('idx_hospcode')->comment('รหัสสถานพยาบาล 5 หลัก');
-                $table->string('eclaim_no', 100)->nullable()->comment('เลขที่เคลม (E-Claim)');
+                $table->string('eclaim_no', 100)->nullable()->index('idx_eclaim_no')->comment('เลขที่เคลม (E-Claim)');
                 $table->string('patient_type', 10)->nullable()->comment('ประเภทผู้ป่วย (OPD/IPD)');
                 $table->string('hipdata', 255)->nullable()->comment('สิทธิการรักษา');
                 $table->string('cid', 13)->nullable()->index('idx_cid')->comment('เลขบัตรประชาชน');

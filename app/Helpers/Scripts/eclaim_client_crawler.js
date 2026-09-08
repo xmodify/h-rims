@@ -145,8 +145,9 @@ async function run() {
     });
 
     console.log('Navigating to https://eclaim.nhso.go.th/Client/home...');
-    await page.goto('https://eclaim.nhso.go.th/Client/home', { waitUntil: 'networkidle', timeout: 45000 });
-    await page.waitForTimeout(3000);
+    await page.goto('https://eclaim.nhso.go.th/Client/home', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForSelector('.ant-radio-group, button:has-text("ค้นหา"), a[href*="iam.nhso.go.th"], .ant-btn:has-text("เข้าสู่ระบบ")', { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(1000);
 
     let currentUrl = page.url();
     if (currentUrl.includes('/login') || currentUrl.includes('iam.nhso.go.th')) {
@@ -160,7 +161,7 @@ async function run() {
         const ssoLink = page.locator('a[href*="iam.nhso.go.th"], .ant-btn:has-text("เข้าสู่ระบบ")').first();
         if (await ssoLink.count() > 0) {
             await ssoLink.click();
-            await page.waitForTimeout(6000);
+            await page.waitForTimeout(5000);
         }
         currentUrl = page.url();
     }
@@ -174,7 +175,7 @@ async function run() {
 
     // Wait for Client/home to render
     await page.waitForSelector('.ant-radio-group, button:has-text("ค้นหา")', { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // On Client/home, select "ทุกรายการ" and enter date range
     try {
@@ -187,7 +188,7 @@ async function run() {
                 r.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(400);
 
         // 2. Format Dates to Thai DD/MM/YYYY
         const formatToTh = (dStr) => {
@@ -218,7 +219,7 @@ async function run() {
                     inputs[1].dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }, { s: thStart, e: thEnd });
-            await page.waitForTimeout(500);
+            await page.waitForTimeout(400);
         }
 
         // 3. Click Search Button
@@ -226,13 +227,13 @@ async function run() {
         if (await searchBtn.count() > 0) {
             console.log('Clicking search button...');
             await searchBtn.click();
-            await page.waitForTimeout(6000);
+            await page.waitForTimeout(4000);
         }
 
-        // 4. Scrape all pages
+        // 4. Scrape all pages with dynamic wait
         const allRows = [];
         let pageNum = 1;
-        while (pageNum <= 25) {
+        while (pageNum <= 150) {
             const rows = await page.evaluate(() => {
                 const list = [];
                 document.querySelectorAll('table tbody tr').forEach(tr => {
@@ -247,8 +248,27 @@ async function run() {
 
             const nextBtn = page.locator('.ant-pagination-next:not(.ant-pagination-disabled)').first();
             if (await nextBtn.count() > 0) {
+                const firstRowId = (rows.length > 0 && rows[0][1]) ? rows[0][1] : '';
                 await nextBtn.click();
-                await page.waitForTimeout(3000);
+
+                // Dynamic wait for table to re-render
+                let updated = false;
+                for (let step = 0; step < 12; step++) {
+                    await page.waitForTimeout(150);
+                    const currentFirstId = await page.evaluate(() => {
+                        const tr = document.querySelector('table tbody tr');
+                        if (!tr) return '';
+                        const td = tr.querySelectorAll('td')[1];
+                        return td ? td.innerText.trim() : '';
+                    });
+                    if (currentFirstId && currentFirstId !== firstRowId) {
+                        updated = true;
+                        break;
+                    }
+                }
+                if (!updated) {
+                    await page.waitForTimeout(500);
+                }
                 pageNum++;
             } else {
                 break;

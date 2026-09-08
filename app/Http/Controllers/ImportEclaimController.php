@@ -654,6 +654,13 @@ class ImportEclaimController extends Controller
      */
     public function autoPullEclaimStatus(Request $request)
     {
+        @set_time_limit(0);
+        @ini_set('max_execution_time', 0);
+        @ini_set('memory_limit', '1024M');
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+
         $token = $this->getActiveEclaimToken();
         if (!$token) {
             return response()->json([
@@ -694,94 +701,117 @@ class ImportEclaimController extends Controller
             ]);
 
             if (!empty($crawlerRes['success']) && !empty($crawlerRes['dom_rows'])) {
+                // Collect all valid eclaim_no to batch query in a single DB round-trip
+                $allEclaimNos = [];
                 foreach ($crawlerRes['dom_rows'] as $cols) {
                     if (count($cols) < 6) continue;
-
-                    $eclaimNo = $cols[1] ?? null;
-                    if (!$eclaimNo || strlen($eclaimNo) < 4) continue;
-
-                    $personTypeRaw = strtoupper($cols[2] ?? '');
-                    $ptType = ($personTypeRaw === 'IP' || $personTypeRaw === 'IPD') ? 'IP' : 'OP';
-                    $hip = $cols[3] ?? null;
-                    $cid = $cols[4] ?? null;
-                    $ptname = $cols[5] ?? null;
-                    $hn = $cols[6] ?? null;
-                    $an = $cols[7] ?? null;
-                    $vstdate = $this->formatDateThaiToSql($cols[8] ?? null);
-                    $vsttime = $cols[9] ?? null;
-                    $dchdate = $this->formatDateThaiToSql($cols[10] ?? null);
-                    $dchtime = $cols[11] ?? null;
-                    $statusRaw = $cols[12] ?? null;
-                    $recorder = $cols[13] ?? null;
-                    $tran_id = $cols[14] ?? null;
-                    $net_charge = isset($cols[15]) && $cols[15] !== '' ? (float)str_replace(',', '', $cols[15]) : null;
-                    $claim_amount = isset($cols[16]) && $cols[16] !== '' ? (float)str_replace(',', '', $cols[16]) : null;
-                    $rep = $cols[17] ?? null;
-                    $stm = $cols[18] ?? null;
-                    $seq = $cols[19] ?? null;
-                    $check_detail = $cols[20] ?? null;
-                    $deny_warning = $cols[21] ?? null;
-
-                    // Filter scheme/patient_type if requested
-                    if ($schemeFilter && $hip && stripos($hip, $schemeFilter) === false) continue;
-                    if ($patientTypeFilter === 'OPD' && $ptType !== 'OP') continue;
-                    if ($patientTypeFilter === 'IPD' && $ptType !== 'IP') continue;
-
-                    $mappedStatus = $statusRaw ?: '1=ส่งไปยังสปสช.';
-                    if (stripos($statusRaw, 'ติด C') !== false || stripos($statusRaw, '(C)') !== false) {
-                        $mappedStatus = '3=ไม่ผ่านการตรวจสอบจากสปสช.(C)';
-                    } elseif (stripos($statusRaw, 'ออก Statement') !== false || stripos($statusRaw, 'ผ่านการตรวจสอบ') !== false || stripos($statusRaw, 'ผ่าน A') !== false || stripos($statusRaw, '(A)') !== false) {
-                        $mappedStatus = '4=ผ่านการตรวจสอบจากสปสช.(A)';
-                    } elseif (stripos($statusRaw, 'ไม่ผ่านการตรวจสอบขั้นต้น') !== false) {
-                        $mappedStatus = '2=ไม่ผ่านการตรวจสอบขั้นต้น';
-                    } elseif (stripos($statusRaw, 'รอส่ง') !== false) {
-                        $mappedStatus = '0=ผ่านการตรวจสอบขั้นต้น รอส่ง';
+                    $en = $cols[1] ?? null;
+                    if ($en && strlen($en) >= 4) {
+                        $allEclaimNos[] = $en;
                     }
-
-                    $existing = DB::table('eclaim_status')->where('eclaim_no', $eclaimNo)->first();
-                    $saveData = [
-                        'eclaim_no' => $eclaimNo,
-                        'hospcode' => $hcode,
-                        'patient_type' => $ptType,
-                        'hipdata' => $hip,
-                        'cid' => $cid,
-                        'ptname' => $ptname,
-                        'hn' => $hn,
-                        'an' => $an,
-                        'vstdate' => $vstdate,
-                        'vsttime' => $vsttime,
-                        'dchdate' => $dchdate,
-                        'dchtime' => $dchtime,
-                        'status' => $mappedStatus,
-                        'recorder' => $recorder,
-                        'tran_id' => $tran_id,
-                        'net_charge' => $net_charge,
-                        'claim_amount' => $claim_amount,
-                        'rep' => $rep,
-                        'stm' => $stm,
-                        'seq' => $seq,
-                        'check_detail' => $check_detail,
-                        'deny_warning' => $deny_warning,
-                        'channel' => 'ThaiD Auto',
-                        'updated_at' => now(),
-                    ];
-
-                    if ($existing) {
-                        DB::table('eclaim_status')->where('eclaim_no', $eclaimNo)->update($saveData);
-                        $updatedCount++;
-                    } else {
-                        $saveData['created_at'] = now();
-                        DB::table('eclaim_status')->insert($saveData);
-                        $insertedCount++;
-                    }
-
-                    $totalFound++;
-                    if ($ptType === 'IP') $stats['ipd']++; else $stats['opd']++;
-                    $scKey = $hip ?: 'ไม่ระบุสิทธิ';
-                    $stats['by_scheme'][$scKey] = ($stats['by_scheme'][$scKey] ?? 0) + 1;
-                    $stKey = mb_substr($mappedStatus, 0, 30);
-                    $stats['by_status'][$stKey] = ($stats['by_status'][$stKey] ?? 0) + 1;
                 }
+
+                $existingMap = [];
+                if (!empty($allEclaimNos)) {
+                    $existingMap = DB::table('eclaim_status')
+                        ->whereIn('eclaim_no', array_unique($allEclaimNos))
+                        ->pluck('id', 'eclaim_no')
+                        ->toArray();
+                }
+
+                DB::transaction(function () use (
+                    $crawlerRes, &$existingMap, &$totalFound, &$insertedCount, &$updatedCount,
+                    &$stats, $schemeFilter, $patientTypeFilter, $hcode
+                ) {
+                    foreach ($crawlerRes['dom_rows'] as $cols) {
+                        if (count($cols) < 6) continue;
+
+                        $eclaimNo = $cols[1] ?? null;
+                        if (!$eclaimNo || strlen($eclaimNo) < 4) continue;
+
+                        $personTypeRaw = strtoupper($cols[2] ?? '');
+                        $ptType = ($personTypeRaw === 'IP' || $personTypeRaw === 'IPD') ? 'IP' : 'OP';
+                        $hip = $cols[3] ?? null;
+                        $cid = $cols[4] ?? null;
+                        $ptname = $cols[5] ?? null;
+                        $hn = $cols[6] ?? null;
+                        $an = $cols[7] ?? null;
+                        $vstdate = $this->formatDateThaiToSql($cols[8] ?? null);
+                        $vsttime = $cols[9] ?? null;
+                        $dchdate = $this->formatDateThaiToSql($cols[10] ?? null);
+                        $dchtime = $cols[11] ?? null;
+                        $statusRaw = $cols[12] ?? null;
+                        $recorder = $cols[13] ?? null;
+                        $tran_id = $cols[14] ?? null;
+                        $net_charge = isset($cols[15]) && $cols[15] !== '' ? (float)str_replace(',', '', $cols[15]) : null;
+                        $claim_amount = isset($cols[16]) && $cols[16] !== '' ? (float)str_replace(',', '', $cols[16]) : null;
+                        $rep = $cols[17] ?? null;
+                        $stm = $cols[18] ?? null;
+                        $seq = $cols[19] ?? null;
+                        $check_detail = $cols[20] ?? null;
+                        $deny_warning = $cols[21] ?? null;
+
+                        // Filter scheme/patient_type if requested
+                        if ($schemeFilter && $hip && stripos($hip, $schemeFilter) === false) continue;
+                        if ($patientTypeFilter === 'OPD' && $ptType !== 'OP') continue;
+                        if ($patientTypeFilter === 'IPD' && $ptType !== 'IP') continue;
+
+                        $mappedStatus = $statusRaw ?: '1=ส่งไปยังสปสช.';
+                        if (stripos($statusRaw, 'ติด C') !== false || stripos($statusRaw, '(C)') !== false) {
+                            $mappedStatus = '3=ไม่ผ่านการตรวจสอบจากสปสช.(C)';
+                        } elseif (stripos($statusRaw, 'ออก Statement') !== false || stripos($statusRaw, 'ผ่านการตรวจสอบ') !== false || stripos($statusRaw, 'ผ่าน A') !== false || stripos($statusRaw, '(A)') !== false) {
+                            $mappedStatus = '4=ผ่านการตรวจสอบจากสปสช.(A)';
+                        } elseif (stripos($statusRaw, 'ไม่ผ่านการตรวจสอบขั้นต้น') !== false) {
+                            $mappedStatus = '2=ไม่ผ่านการตรวจสอบขั้นต้น';
+                        } elseif (stripos($statusRaw, 'รอส่ง') !== false) {
+                            $mappedStatus = '0=ผ่านการตรวจสอบขั้นต้น รอส่ง';
+                        }
+
+                        $saveData = [
+                            'eclaim_no' => $eclaimNo,
+                            'hospcode' => $hcode,
+                            'patient_type' => $ptType,
+                            'hipdata' => $hip,
+                            'cid' => $cid,
+                            'ptname' => $ptname,
+                            'hn' => $hn,
+                            'an' => $an,
+                            'vstdate' => $vstdate,
+                            'vsttime' => $vsttime,
+                            'dchdate' => $dchdate,
+                            'dchtime' => $dchtime,
+                            'status' => $mappedStatus,
+                            'recorder' => $recorder,
+                            'tran_id' => $tran_id,
+                            'net_charge' => $net_charge,
+                            'claim_amount' => $claim_amount,
+                            'rep' => $rep,
+                            'stm' => $stm,
+                            'seq' => $seq,
+                            'check_detail' => $check_detail,
+                            'deny_warning' => $deny_warning,
+                            'channel' => 'ThaiD Auto',
+                            'updated_at' => now(),
+                        ];
+
+                        if (isset($existingMap[$eclaimNo])) {
+                            DB::table('eclaim_status')->where('id', $existingMap[$eclaimNo])->update($saveData);
+                            $updatedCount++;
+                        } else {
+                            $saveData['created_at'] = now();
+                            $newId = DB::table('eclaim_status')->insertGetId($saveData);
+                            $existingMap[$eclaimNo] = $newId;
+                            $insertedCount++;
+                        }
+
+                        $totalFound++;
+                        if ($ptType === 'IP') $stats['ipd']++; else $stats['opd']++;
+                        $scKey = $hip ?: 'ไม่ระบุสิทธิ';
+                        $stats['by_scheme'][$scKey] = ($stats['by_scheme'][$scKey] ?? 0) + 1;
+                        $stKey = mb_substr($mappedStatus, 0, 30);
+                        $stats['by_status'][$stKey] = ($stats['by_status'][$stKey] ?? 0) + 1;
+                    }
+                });
 
                 if ($totalFound > 0) {
                     $stats['total'] = $totalFound;
@@ -820,6 +850,7 @@ class ImportEclaimController extends Controller
         $headers = $this->getEclaimBrowserHeaders($token);
 
         foreach ($dates as $sqlDate => $thDateStr) {
+            @set_time_limit(0);
             $page = 1;
             $maxPages = 20; // safety limit
 

@@ -610,7 +610,7 @@ class EclaimBotController extends Controller
             return response()->json([
                 'status' => 'success',
                 'state' => 'SCANNED',
-                'message' => $data['message'] ?? 'ยืนยันตัวตนในมือถือสำเร็จ กำลังเข้าสู่ระบบ e-Claim...'
+                'message' => $data['message'] ?? 'กำลังยืนยันตัวตน เข้าสู่ระบบ e-Claim...'
             ]);
         }
 

@@ -10,9 +10,9 @@ function parseArgs() {
     const args = process.argv.slice(2);
     let sessionId = null;
     for (let i = 0; i < args.length; i++) {
-        if (args[i].startsWith('--sessionId=')) {
+        if (args[i].startsWith('--sessionId=') || args[i].startsWith('--session-id=')) {
             sessionId = args[i].split('=')[1];
-        } else if (args[i] === '--sessionId' && args[i + 1]) {
+        } else if ((args[i] === '--sessionId' || args[i] === '--session-id') && args[i + 1]) {
             sessionId = args[i + 1];
         }
     }
@@ -134,6 +134,9 @@ async function run() {
 
         await context.addInitScript(() => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            window.navigator.chrome = { runtime: {} };
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['th-TH', 'th', 'en-US', 'en'] });
         });
 
         const page = await context.newPage();
@@ -151,34 +154,41 @@ async function run() {
         });
 
         // 2. Click "เข้าสู่ระบบผ่าน OSS สปสช"
-        const ossBtn = page.locator('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช")').first();
-        if (await ossBtn.count() > 0) {
+        if (page.url().includes('MainWebAction.do')) {
             updateSessionState(sessionFile, {
                 status: 'CONNECTING_IAM',
                 message: 'กำลังเข้าสู่ระบบยืนยันตัวตนกลาง (NHSO SSO)...'
             });
 
+            const ossBtn = page.locator('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช"), .btn-sso').first();
+            await ossBtn.waitFor({ state: 'visible', timeout: 20000 });
             await ossBtn.click();
-            await page.waitForURL(url => !url.href.includes('MainWebAction.do') || url.href.includes('iam.nhso.go.th'), { timeout: 15000 }).catch(() => {});
+            await page.waitForURL(url => url.href.includes('iam.nhso.go.th') || url.href.includes('bora.dopa.go.th'), { timeout: 20000 });
         }
 
         // 3. Click "ThaiD" Button on IAM page
-        const thaidBtn = page.locator(':text("ThaiD"), button:has-text("ThaiD"), a:has-text("ThaiD")').first();
-        await thaidBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-        if (await thaidBtn.count() > 0) {
+        if (page.url().includes('iam.nhso.go.th')) {
             updateSessionState(sessionFile, {
                 status: 'REQUESTING_THAID_QR',
                 message: 'กำลังร้องขอ QR Code จากระบบ ThaiD (กรมการปกครอง)...'
             });
 
+            // Check if blocked by GDCC security center
+            const iamText = await page.evaluate(() => document.body ? document.body.innerText : '');
+            if (iamText.includes('suspended') && iamText.includes('GDCC')) {
+                throw new Error('ระบบ IAM ของ สปสช. ติดหน้า GDCC Security Center กรุณารอสักครู่แล้วลองใหม่อีกครั้ง');
+            }
+
+            const thaidBtn = page.locator('a:has-text("ThaiD"), button:has-text("ThaiD"), :text("ThaiD"), a[href*="thaid"]').first();
+            await thaidBtn.waitFor({ state: 'visible', timeout: 20000 });
             await thaidBtn.click();
-            await page.waitForURL(url => url.href.includes('imauth.bora.dopa.go.th') || url.href.includes('dopa'), { timeout: 20000 }).catch(() => {});
+            await page.waitForURL(url => url.href.includes('imauth.bora.dopa.go.th') || url.href.includes('dopa'), { timeout: 25000 });
         }
 
         // 4. On DOPA ThaiD QR Code Page (imauth.bora.dopa.go.th)
         // Find QR Code image
-        const qrImg = page.locator('img[src^="data:image"]').first();
-        await qrImg.waitFor({ state: 'visible', timeout: 20000 });
+        const qrImg = page.locator('img[src^="data:image"], img[src*="qr"], img[src*="QR"]').first();
+        await qrImg.waitFor({ state: 'visible', timeout: 25000 });
 
         const qrSrc = await qrImg.getAttribute('src');
         const currentUrl = page.url();
@@ -202,6 +212,79 @@ async function run() {
 
         console.log(`[Session ${sessionId}] QR Code is ready. Waiting for user to scan...`);
 
+        // Helper to mark scanned state immediately
+        const markScanned = () => {
+            if (!hasMarkedScanned) {
+                hasMarkedScanned = true;
+                console.log(`[Session ${sessionId}] Mobile scan detected! Updating state to SCANNED.`);
+                updateSessionState(sessionFile, {
+                    status: 'SCANNED',
+                    message: 'กำลังยืนยันตัวตน เข้าสู่ระบบ e-Claim...'
+                });
+            }
+        };
+
+        // 1. Instant Network-level detection:
+        // When user confirms on mobile, browser requests redirect to IAM or callback URL
+        page.on('request', req => {
+            const u = req.url();
+            if (u.includes('iam.nhso.go.th') || u.includes('eclaim.nhso.go.th') || u.includes('callback') || u.includes('code=')) {
+                markScanned();
+            }
+        });
+
+        // 2. Navigation-level detection:
+        page.on('framenavigated', frame => {
+            if (frame === page.mainFrame()) {
+                const u = frame.url();
+                if (!u.includes('imauth.bora.dopa.go.th') && !u.includes('dopa')) {
+                    markScanned();
+                }
+            }
+        });
+
+        // 3. Response-level detection:
+        // DOPA polling API responses (XHR/Fetch) return status 200 with SUCCESS/CONFIRMED or 302 redirect
+        page.on('response', async res => {
+            if (hasMarkedScanned) return;
+            const u = res.url();
+            if (u.includes('bora.dopa.go.th')) {
+                if (res.status() >= 300 && res.status() < 400) {
+                    markScanned();
+                } else if (res.request().resourceType() === 'xhr' || res.request().resourceType() === 'fetch') {
+                    try {
+                        const text = await res.text();
+                        if (text && (text.includes('SUCCESS') || text.includes('CONFIRM') || text.includes('APPROVED') || text.includes('SCANNED') || text.includes('redirect'))) {
+                            markScanned();
+                        }
+                    } catch (e) {}
+                }
+            }
+        });
+
+        // 4. Inject real-time DOM MutationObserver directly inside the DOPA page
+        await page.evaluate(() => {
+            window.__dopaScanDetected = false;
+            try {
+                const qr = document.querySelector('img[src^="data:image"]');
+                const observer = new MutationObserver(() => {
+                    if (window.__dopaScanDetected) return;
+                    if (qr) {
+                        const style = window.getComputedStyle(qr);
+                        if ((style.filter && style.filter.includes('blur')) || style.opacity < 0.85 || style.display === 'none' || style.visibility === 'hidden') {
+                            window.__dopaScanDetected = true;
+                            return;
+                        }
+                    }
+                    const blurredOrOverlay = document.querySelector('[style*="blur"], .blur, [class*="blur"], [class*="overlay"], [class*="loading"], [class*="spinner"], [class*="mask"], .ant-spin, .loader, [class*="success"], .swal2-container');
+                    if (blurredOrOverlay) {
+                        window.__dopaScanDetected = true;
+                    }
+                });
+                observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'src'] });
+            } catch(e) {}
+        }).catch(() => {});
+
         // 5. Wait for mobile scan authentication (Redirect back to eclaim.nhso.go.th)
         // Check session file periodically if user cancelled
         const scanStartTime = Date.now();
@@ -224,31 +307,23 @@ async function run() {
             const url = page.url();
 
             // Detect if mobile scan has occurred:
-            // 1) URL changed from imauth.bora.dopa.go.th to iam.nhso.go.th or eclaim
-            // 2) Or DOPA page indicates scanned / blurred / redirecting
             if (!hasMarkedScanned) {
                 let isScanned = false;
                 if (!url.includes('imauth.bora.dopa.go.th') && !url.includes('dopa')) {
                     isScanned = true;
                 } else {
-                    // Check DOM of DOPA page for blur / success / hidden qr
                     isScanned = await page.evaluate(() => {
+                        if (window.__dopaScanDetected) return true;
                         const qr = document.querySelector('img[src^="data:image"]');
                         if (!qr) return true;
                         const style = window.getComputedStyle(qr);
-                        const isBlurred = (style.filter && style.filter.includes('blur')) || qr.classList.contains('blur') || (qr.style && qr.style.filter && qr.style.filter.includes('blur'));
-                        const hasOverlay = !!document.querySelector('.overlay, .loading, .success, [class*="success"], [class*="loading"], .swal2-container');
-                        return isBlurred || hasOverlay;
+                        if ((style.filter && style.filter.includes('blur')) || style.opacity < 0.85 || style.display === 'none' || style.visibility === 'hidden') return true;
+                        return !!document.querySelector('[style*="blur"], .blur, [class*="blur"], [class*="overlay"], [class*="loading"], [class*="spinner"], [class*="mask"], .ant-spin, .loader, [class*="success"], .swal2-container');
                     }).catch(() => false);
                 }
 
                 if (isScanned) {
-                    hasMarkedScanned = true;
-                    console.log(`[Session ${sessionId}] Mobile scan detected! Updating state to SCANNED.`);
-                    updateSessionState(sessionFile, {
-                        status: 'SCANNED',
-                        message: 'ยืนยันตัวตนในมือถือแล้ว กำลังเข้าสู่ระบบ e-Claim...'
-                    });
+                    markScanned();
                 }
             }
 
@@ -257,7 +332,7 @@ async function run() {
                 break;
             }
 
-            await page.waitForTimeout(500);
+            await page.waitForTimeout(150);
         }
 
         // Navigate to Client/home with domcontentloaded to initialize Vue SPA and fresh ACCESS_TOKEN

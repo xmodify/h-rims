@@ -40,7 +40,7 @@
                                 <div class="spinner-border text-success mb-2" style="width: 3rem; height: 3rem;" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                <div class="fw-bold text-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> ยืนยันในมือถือแล้ว</div>
+                                <div class="fw-bold text-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> กำลังยืนยันตัวตน</div>
                                 <div class="text-secondary small fw-medium" style="font-size: 0.78rem;">กำลังเข้าสู่ระบบ e-Claim...</div>
                             </div>
                         </div>
@@ -289,7 +289,7 @@ function showThaidScanned() {
     const statusBadge = document.getElementById('thaidQrStatusBadge');
     if (statusBadge) {
         statusBadge.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 mb-2 d-inline-flex align-items-center gap-2 shadow-sm';
-        statusBadge.innerHTML = '<span class="spinner-border spinner-border-sm text-success" role="status"></span> <span class="fw-bold" style="font-size: 0.85rem;">สแกนสำเร็จแล้ว! กำลังเข้าสู่ระบบ e-Claim...</span>';
+        statusBadge.innerHTML = '<span class="spinner-border spinner-border-sm text-success" role="status"></span> <span class="fw-bold" style="font-size: 0.85rem;">กำลังยืนยันตัวตน เข้าสู่ระบบ e-Claim...</span>';
     }
 
     const instructionText = document.getElementById('thaidQrInstructionText');
@@ -345,7 +345,7 @@ function startThaidPolling(sessionId) {
         } catch (e) {
             console.error('Polling error:', e);
         }
-    }, 1200);
+    }, 350);
 }
 
 // Success State

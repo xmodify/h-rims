@@ -832,12 +832,23 @@ class HosFinController extends Controller
 
             // Cash Live balance (running balance up to present in GL)
             $cashLiveBalance = 0.0;
+            $operatingCashLive = 0.0;
             $hasGlJournals = DB::table('hosfin_gl_journal_items')->exists();
             if ($hasGlJournals) {
+                // All cash accounts (1101%)
                 $cashLiveBalance = (float)DB::table('hosfin_gl_journal_items as i')
                     ->where(function($q) use ($cashMappings) {
                         $q->where('i.account_code', 'like', '1003%')
                           ->orWhere('i.account_code', 'like', '1101%');
+                        foreach ($cashMappings as $c) {
+                            $q->orWhere('i.account_code', 'like', $c . '%');
+                        }
+                    })
+                    ->sum(DB::raw('i.debit - i.credit'));
+
+                // 1003X Operating cash only (เงินสดและรายการเทียบเท่าเงินสด)
+                $operatingCashLive = (float)DB::table('hosfin_gl_journal_items as i')
+                    ->where(function($q) use ($cashMappings) {
                         foreach ($cashMappings as $c) {
                             $q->orWhere('i.account_code', 'like', $c . '%');
                         }
@@ -848,17 +859,33 @@ class HosFinController extends Controller
                 $cashLiveBalance = $cashBalance;
             }
 
-            // Classify cash into Operating Cash (usable for AP) vs Restricted Cash (donations/specific grants)
+            // Classify cash strictly according to MOPH Standards:
+            // 1. Operating Cash (เงินบำรุงพร้อมใช้ตามเกณฑ์ สธ. กลุ่ม 1003X ที่ใช้คำนวณ Cash Ratio และดัชนี 105)
+            // 2. Restricted Cash (เงินงบลงทุน UC, เงินบริจาค หรือเงินที่มีวัตถุประสงค์เฉพาะนอกกลุ่ม 1003X)
             $operatingCash = 0.0;
             $restrictedCash = 0.0;
             foreach ($cashBankAccounts as $ca) {
-                if (str_contains($ca->account_name, 'วัตถุประสงค์เฉพาะ') || str_contains($ca->account_name, 'บริจาค')) {
-                    $restrictedCash += (float)$ca->net_balance;
-                    $ca->is_restricted = true;
-                } else {
+                $isMoph1003x = in_array($ca->account_code, $cashMappings);
+                if (!$isMoph1003x) {
+                    foreach ($cashMappings as $cm) {
+                        if (str_starts_with($ca->account_code, $cm)) {
+                            $isMoph1003x = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($isMoph1003x) {
                     $operatingCash += (float)$ca->net_balance;
                     $ca->is_restricted = false;
+                } else {
+                    $restrictedCash += (float)$ca->net_balance;
+                    $ca->is_restricted = true;
                 }
+            }
+
+            if ($operatingCashLive == 0 && $operatingCash > 0) {
+                $operatingCashLive = $operatingCash;
             }
         } catch (\Throwable $e) {}
 
@@ -892,6 +919,7 @@ class HosFinController extends Controller
             'cashBalance' => $cashBalance,
             'cashLiveBalance' => $cashLiveBalance,
             'operatingCash' => $operatingCash ?? 0,
+            'operatingCashLive' => $operatingCashLive ?? $operatingCash ?? 0,
             'restrictedCash' => $restrictedCash ?? 0,
             'cashAccountsCount' => $cashAccountsCount,
             'cashBankAccounts' => $cashBankAccounts,
@@ -3178,11 +3206,14 @@ class HosFinController extends Controller
         $inventoryDays = $latestMetrics['264']['val'] ?? 0;
         $netMargin = $latestMetrics['307']['val'] ?? 0;
 
+        $operatingCash = $indexData['operatingCash'] ?? 0;
+        $restrictedCash = $indexData['restrictedCash'] ?? 0;
+
         $glData = compact(
             'totalUnpaidAp', 'totalUnpaidApCount', 'totalPaidAp', 'topCreditors',
             'totalArOutstanding', 'totalArBilled', 'totalArCollected', 'totalArCount', 'arTypeSummaries', 'topArDebtors',
             'totalCost', 'totalLc', 'totalMc', 'totalCc', 'lcPercent', 'mcPercent', 'ccPercent',
-            'totalCash', 'cashAccountsCount', 'cashBankAccounts',
+            'totalCash', 'operatingCash', 'restrictedCash', 'cashAccountsCount', 'cashBankAccounts',
             'riskScore', 'riskScoreLabel', 'latestPeriodLabel', 'budgetYear',
             'netOperatingFund', 'currentRatio', 'cashRatio', 'quickRatio', 'nwc',
             'drugPayDays', 'ofcCollectDays', 'ucCollectDays', 'inventoryDays', 'netMargin'
@@ -3239,7 +3270,7 @@ class HosFinController extends Controller
                 . "- ระดับความเสี่ยงทางการเงิน (Risk Score): ระดับ {$riskScore} / 7 ({$riskScoreLabel})\n"
                 . "- เงินบำรุงคงเหลือสุทธิ (105): " . number_format($netOperatingFund, 2) . " บาท\n"
                 . "- สภาพคล่อง: Current Ratio = {$currentRatio} เท่า, Cash Ratio = {$cashRatio} เท่า, Quick Ratio = {$quickRatio} เท่า, ทุนหมุนเวียน NWC = " . number_format($nwc, 2) . " บาท\n"
-                . "- เงินสดและเงินฝากธนาคารจริง: " . number_format($totalCash, 2) . " บาท จาก {$cashAccountsCount} บัญชี\n"
+                . "- เงินสดและเงินฝากธนาคารจริงใน GL: " . number_format($totalCash, 2) . " บาท จาก {$cashAccountsCount} บัญชี (เป็นเงินสดพร้อมใช้ตามเกณฑ์ สธ. 1003X: " . number_format($operatingCash, 2) . " บาท ที่นำมาคำนวณใน Cash Ratio & ดัชนี 105, และเป็นเงินเฉพาะกิจ/งบลงทุน UC/บริจาค: " . number_format($restrictedCash, 2) . " บาท ที่กันไว้ตามเกณฑ์ สธ.)\n"
                 . "- เจ้าหนี้การค้า (AP Bills): หนี้ค้างชำระรวม " . number_format($totalUnpaidAp, 2) . " บาท จากทั้งหมด " . number_format($totalUnpaidApCount) . " บิล\n"
                 . "  เจ้าหนี้ค้างจ่ายสูงสุด: " . $topCreditors->map(fn($v) => "{$v->vendor_name} (" . number_format($v->remaining_debt, 2) . " บ.)")->implode(', ') . "\n"
                 . "  ระยะเวลาชำระหนี้ค่ายา (260): {$drugPayDays} วัน (เกณฑ์ปกติ <= 60 วัน)\n"

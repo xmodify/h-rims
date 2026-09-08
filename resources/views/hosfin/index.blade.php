@@ -32,6 +32,101 @@
   .fw-black {
     font-weight: 900 !important;
   }
+  /* DataTable in Modal Styling */
+  #cashAccountsTable_wrapper .row:first-child {
+    align-items: center !important;
+    margin-bottom: 0.85rem !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_length {
+    text-align: left !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_length label {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 0 !important;
+    font-size: 0.82rem !important;
+    color: #475569 !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_length select {
+    border-radius: 20px !important;
+    padding: 0.25rem 1.75rem 0.25rem 0.75rem !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 0.82rem !important;
+    outline: none !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_filter {
+    text-align: right !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_filter label {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_filter input {
+    border-radius: 20px !important;
+    padding: 0.38rem 1rem !important;
+    border: 1px solid #cbd5e1 !important;
+    outline: none !important;
+    font-size: 0.82rem !important;
+    width: 280px !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
+  }
+  #cashAccountsTable_wrapper .dataTables_filter input:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.18) !important;
+  }
+  #cashAccountsTable_wrapper .pagination {
+    margin-bottom: 0 !important;
+    justify-content: flex-end !important;
+  }
+  #cashAccountsTable_wrapper .pagination .page-item.active .page-link {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+  }
+  #cashAccountsTable thead th {
+    user-select: none;
+    white-space: nowrap;
+  }
+  .cash-filter-card {
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+  }
+  .cash-filter-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  }
+  .cash-filter-card.active-operating {
+    border: 2px solid #10b981 !important;
+    background-color: #f0fdf4 !important;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18) !important;
+  }
+  .cash-filter-card.active-restricted {
+    border: 2px solid #f59e0b !important;
+    background-color: #fffbeb !important;
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.18) !important;
+  }
+  .cash-filter-card.active-all {
+    border: 2px solid #3b82f6 !important;
+    background-color: #eff6ff !important;
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18) !important;
+  }
+  .hover-highlight:hover {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+  }
   .metric-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08) !important;
@@ -341,39 +436,63 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="card border-0 shadow-sm rounded-4 h-100 executive-kpi-card bg-white" 
                              style="border: 1.5px solid #a7f3d0 !important; background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); cursor: pointer;"
-                             data-bs-toggle="modal" data-bs-target="#cashBankModal" onclick="openCashModal()">
+                             data-bs-toggle="modal" data-bs-target="#cashBankModal" onclick="openCashModal('all')">
                             <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
-                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
-                                            เงินสดและเงินฝากธนาคาร (CASH)
-                                        </span>
-                                        <div class="fw-black mt-1 text-success" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
-                                            {{ number_format($cashBalance ?? 0, 2) }}
-                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
+                                                เงินสดและเงินฝากจริง (GL)
+                                            </span>
+                                            <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
+                                                {{ number_format($cashAccountsCount ?? 0) }} เล่ม
+                                            </span>
                                         </div>
-                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
-                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
-                                                ณ ปิดงวด {{ $latestPeriodLabel }}
-                                            </span>
-                                            <span class="badge bg-success text-white shadow-sm rounded-pill px-2.5 py-1 d-inline-flex align-items-center" style="font-size: 0.76rem; font-weight: 700;" title="ยอดเงินสดและเงินฝากธนาคารรวมล่าสุดในระบบ GL ณ ปัจจุบัน">
-                                                <span class="spinner-grow spinner-grow-sm text-light me-1.5" style="width: 6px; height: 6px;" role="status"></span>
-                                                <span>ปัจจุบัน:&nbsp;</span>
-                                                <span class="font-monospace fw-black" style="font-size: 0.82rem;">{{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }}</span>
-                                                <span style="font-size: 0.70rem; opacity: 0.95;">&nbsp;บ.</span>
-                                            </span>
+                                        <div class="fw-black mt-1 text-success" style="font-size: 1.40rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($cashBalance ?? 0, 2) }}
+                                            <span style="font-size: 0.75rem; font-weight: 600;">บาท</span>
                                         </div>
                                     </div>
-                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success shadow-xs" style="width: 42px; height: 42px;">
-                                        <i class="bi bi-cash-stack fs-4"></i>
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success shadow-xs" style="width: 40px; height: 40px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#059669" class="bi bi-cash-stack" viewBox="0 0 16 16">
+                                            <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/>
+                                            <path d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2z"/>
+                                        </svg>
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้ ({{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี)">
-                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
-                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+
+                                <!-- Breakdown Pill Box: เงินสดและรายการเทียบเท่าเงินสด vs เฉพาะกิจ/บริจาค -->
+                                <div class="p-2 rounded-3 my-1.5" style="background: rgba(255, 255, 255, 0.9); border: 1px dashed #6ee7b7;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openCashModal('operating');" 
+                                         title="คลิกเพื่อเปิดตารางกรองเฉพาะเงินสดและรายการเทียบเท่าเงินสด">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-check-circle-fill text-success me-1 flex-shrink-0"></i> <span class="text-truncate">เงินสดและรายการเทียบเท่าเงินสด:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-success text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($operatingCash ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openCashModal('restricted');" 
+                                         title="คลิกเพื่อเปิดตารางกรองเฉพาะงบลงทุน UC และเงินบริจาค">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-lock-fill text-warning me-1 flex-shrink-0"></i> <span class="text-truncate">งบลงทุน/บริจาค:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-secondary text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($restrictedCash ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-1.5 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    <span class="badge bg-success text-white shadow-xs rounded-pill px-2 py-0.5 d-inline-flex align-items-center" style="font-size: 0.68rem; font-weight: 600;" title="ยอดเงินสดและรายการเทียบเท่าเงินสดใน GL ณ ปัจจุบัน">
+                                        <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
+                                        Live เงินสด: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
                                     </span>
-                                    <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสมุดบัญชี <i class="bi bi-arrow-up-right"></i></small>
+                                    <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.72rem;">คลิกดูแยกเล่ม <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
                             </div>
                         </div>
@@ -899,8 +1018,11 @@
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%);">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle bg-white bg-opacity-20 p-2 d-flex align-items-center justify-content-center text-white" style="width: 44px; height: 44px;">
-                        <i class="bi bi-cash-stack fs-4"></i>
+                    <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm bg-white" style="width: 44px; height: 44px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#059669" class="bi bi-cash-stack" viewBox="0 0 16 16">
+                            <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/>
+                            <path d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2z"/>
+                        </svg>
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold text-white mb-0" id="cashBankModalLabel">
@@ -912,43 +1034,73 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 bg-light">
-                <!-- KPI Highlight Banner inside Modal with Classification -->
+                <!-- KPI Highlight Banner inside Modal with Classification (Clickable Filters) -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-success h-100">
-                            <span class="text-muted small fw-bold text-uppercase">1. เงินบำรุงหมุนเวียนทั่วไป</span>
-                            <div class="fs-5 fw-black text-success font-monospace mt-0.5">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-success h-100 cash-filter-card"
+                             id="filterCardOperating"
+                             onclick="filterCashTable('operating')"
+                             title="คลิกเพื่อกรองตารางแสดงเฉพาะเงินสดและรายการเทียบเท่าเงินสด (1003X)">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.74rem;">1. เงินสดและรายการเทียบเท่าเงินสด</span>
+                                <span id="badgeFilterOperating" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+                                    <i class="bi bi-funnel me-1"></i>คลิกกรอง
+                                </span>
+                            </div>
+                            <div class="fs-5 fw-black text-success font-monospace mt-1">
                                 {{ number_format($operatingCash ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
                             </div>
-                            <small class="text-success fw-bold d-block mt-1" style="font-size: 0.72rem;">
-                                <i class="bi bi-check-circle-fill me-1"></i> ใช้จ่ายหนี้ค่ายา/เวชภัณฑ์ได้จริง
-                            </small>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mt-1">
+                                <small class="text-success fw-bold" style="font-size: 0.72rem;">
+                                    <i class="bi bi-check-circle-fill me-1"></i> สภาพคล่องพร้อมใช้ (คิด Cash Ratio & 105)
+                                </small>
+                                <span class="badge bg-success text-white rounded-pill px-2 py-0.5 shadow-xs fw-bold" style="font-size: 0.68rem;">
+                                    <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 4px; height: 4px;" role="status"></span>
+                                    Live เงินสด: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-warning h-100">
-                            <span class="text-muted small fw-bold text-uppercase">2. เงินเฉพาะกิจ / บริจาค</span>
-                            <div class="fs-5 fw-black text-dark font-monospace mt-0.5">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-warning h-100 cash-filter-card"
+                             id="filterCardRestricted"
+                             onclick="filterCashTable('restricted')"
+                             title="คลิกเพื่อกรองตารางแสดงเฉพาะเงินเฉพาะกิจ / งบลงทุน UC / บริจาค">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.74rem;">2. เฉพาะกิจ / งบลงทุน UC / บริจาค</span>
+                                <span id="badgeFilterRestricted" class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+                                    <i class="bi bi-funnel me-1"></i>คลิกกรอง
+                                </span>
+                            </div>
+                            <div class="fs-5 fw-black text-dark font-monospace mt-1">
                                 {{ number_format($restrictedCash ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
                             </div>
-                            <small class="text-danger fw-bold d-block mt-1" style="font-size: 0.72rem;">
-                                <i class="bi bi-lock-fill me-1"></i> ห้ามนำมาจ่ายหนี้ค่ารักษาทั่วไป
+                            <small class="text-warning-emphasis fw-bold d-block mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-lock-fill me-1"></i> มีข้อผูกพันเฉพาะ กันออกตามเกณฑ์ สธ.
                             </small>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-primary h-100">
-                            <span class="text-muted small fw-bold text-uppercase">รวมเงินสดและเงินฝากทุกเล่ม</span>
-                            <div class="fs-5 fw-black text-primary font-monospace mt-0.5">
+                        <div class="card border-0 rounded-4 shadow-xs p-3 bg-white border-start border-4 border-primary h-100 cash-filter-card"
+                             id="filterCardAll"
+                             onclick="filterCashTable('all')"
+                             title="คลิกเพื่อแสดงบัญชีเงินสดและเงินฝากทั้งหมด">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.74rem;">3. รวมเงินสด & เงินฝากทุกเล่มใน GL</span>
+                                <span id="badgeFilterAll" class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>แสดงทั้งหมด
+                                </span>
+                            </div>
+                            <div class="fs-5 fw-black text-primary font-monospace mt-1">
                                 {{ number_format($cashBalance ?? 0, 2) }} <span class="fs-6 fw-normal text-muted">บาท</span>
                             </div>
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mt-1">
                                 <small class="text-muted" style="font-size: 0.72rem;">
-                                    รวม {{ number_format($cashAccountsCount ?? 0) }} เล่ม (ณ ปิดงวด {{ $latestPeriodLabel }})
+                                    ตรวจนับจริง {{ number_format($cashAccountsCount ?? 0) }} เล่ม (ณ ปิดงวด {{ $latestPeriodLabel }})
                                 </small>
-                                <span class="badge bg-success text-white rounded-pill px-2.5 py-0.5 shadow-xs fw-bold" style="font-size: 0.72rem;">
+                                <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5 shadow-xs fw-bold" style="font-size: 0.70rem;">
                                     <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
-                                    ปัจจุบัน:&nbsp;{{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }}&nbsp;บ.
+                                    Live รวม: {{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }} บ.
                                 </span>
                             </div>
                         </div>
@@ -956,12 +1108,12 @@
                 </div>
 
                 <!-- Table of Accounts -->
-                <div class="card border-0 rounded-4 shadow-xs overflow-hidden bg-white mb-3">
+                <div class="card border-0 rounded-4 shadow-xs overflow-hidden bg-white mb-3 p-3">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 small">
+                        <table class="table table-hover align-middle mb-0 small w-100" id="cashAccountsTable">
                             <thead class="table-light text-secondary">
                                 <tr>
-                                    <th class="ps-3" style="width: 40px;">#</th>
+                                    <th class="ps-3 text-center" style="width: 45px;">#</th>
                                     <th>รหัสบัญชี</th>
                                     <th>ชื่อบัญชี / เลขที่บัญชีธนาคาร</th>
                                     <th class="text-center">ประเภทเงิน</th>
@@ -972,23 +1124,26 @@
                                 @php $cIdx = 1; @endphp
                                 @forelse($cashBankAccounts as $ca)
                                     <tr>
-                                        <td class="ps-3 text-muted fw-bold">{{ $cIdx++ }}</td>
+                                        <td class="ps-3 text-muted fw-bold text-center" data-order="{{ $cIdx }}">{{ $cIdx++ }}</td>
                                         <td class="font-monospace fw-bold text-primary">{{ $ca->account_code }}</td>
                                         <td>
                                             <div class="fw-bold text-dark">{{ $ca->account_name }}</div>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" 
+                                            data-order="{{ !empty($ca->is_restricted) ? '2_restricted' : '1_operating' }}"
+                                            data-filter="{{ !empty($ca->is_restricted) ? 'restricted เฉพาะกิจ งบลงทุน บริจาค' : 'operating 1003X พร้อมใช้ เงินสด' }}"
+                                            data-search="{{ !empty($ca->is_restricted) ? 'restricted เฉพาะกิจ งบลงทุน บริจาค' : 'operating 1003X พร้อมใช้ เงินสด' }}">
                                             @if(!empty($ca->is_restricted))
-                                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
-                                                    <i class="bi bi-lock-fill me-1"></i> เฉพาะกิจ/บริจาค
+                                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="เงินงบลงทุน UC หรือเงินบริจาคที่มีวัตถุประสงค์เฉพาะ">
+                                                    <i class="bi bi-lock-fill me-1"></i> เฉพาะกิจ/งบลงทุน/บริจาค
                                                 </span>
                                             @else
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
-                                                    <i class="bi bi-check-circle-fill me-1"></i> เงินบำรุงทั่วไป
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="เงินสดและรายการเทียบเท่าเงินสดตามเกณฑ์ สธ. 1003X">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> สธ. 1003X (พร้อมใช้)
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="text-end pe-3 font-monospace fw-bold {{ $ca->net_balance > 0 ? 'text-success' : ($ca->net_balance < 0 ? 'text-danger' : 'text-muted') }}">
+                                        <td class="text-end pe-3 font-monospace fw-bold {{ $ca->net_balance > 0 ? 'text-success' : ($ca->net_balance < 0 ? 'text-danger' : 'text-muted') }}" data-order="{{ $ca->net_balance }}">
                                             {{ number_format($ca->net_balance, 2) }}
                                         </td>
                                     </tr>
@@ -1000,10 +1155,10 @@
                             </tbody>
                             <tfoot class="table-light border-top border-2">
                                 <tr class="fw-bold align-middle">
-                                    <th colspan="4" class="ps-3 py-2.5 text-secondary">
-                                        <i class="bi bi-calculator me-1"></i> รวมเงินสดและเงินฝากธนาคารทั้งหมด:
+                                    <th colspan="4" class="ps-3 py-2.5 text-secondary" id="cashTableFooterLabel">
+                                        <i class="bi bi-calculator me-1"></i> รวมยอดเงินสดและเงินฝากธนาคาร:
                                     </th>
-                                    <th class="text-end pe-3 py-2.5 font-monospace text-success fs-6">
+                                    <th class="text-end pe-3 py-2.5 font-monospace text-success fs-6" id="cashTableFilteredTotal">
                                         {{ number_format($cashBalance ?? 0, 2) }}
                                     </th>
                                 </tr>
@@ -1013,8 +1168,8 @@
                 </div>
 
                 <div class="p-3 rounded-3 bg-white border small text-muted" style="border-left: 4px solid #10b981 !important; line-height: 1.6;">
-                    <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle-fill text-success me-1"></i> หมายเหตุการเงิน:</strong>
-                    ยอดเงินสดและเงินฝากธนาคารรวม <strong>{{ number_format($cashBalance ?? 0, 2) }} บาท</strong> คือสภาพคล่องที่เป็นเงินสดจริงทั้งหมดที่โรงพยาบาลมีอยู่ (กลุ่มบัญชี 1003X) อ้างอิงตามงบทดลองโปรแกรม GL งวด {{ $latestPeriodLabel }}
+                    <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle-fill text-success me-1"></i> หมายเหตุการเงินตามเกณฑ์ สธ.:</strong>
+                    ยอดเงินสดและเงินฝากธนาคารจริงใน GL รวม <strong>{{ number_format($cashBalance ?? 0, 2) }} บาท</strong> ({{ number_format($cashAccountsCount ?? 0) }} เล่มบัญชี) แบ่งเป็น <strong>เงินสดพร้อมใช้ตามเกณฑ์กระทรวง (กลุ่ม 1003X) {{ number_format($operatingCash ?? 0, 2) }} บาท</strong> ซึ่งนำไปคำนวณในสูตร Cash Ratio (102) และเงินบำรุงคงเหลือสุทธิ (105) และ <strong>เงินเฉพาะกิจ/งบลงทุน UC/บริจาค {{ number_format($restrictedCash ?? 0, 2) }} บาท</strong> ซึ่งกันไว้ไม่นำมารวมเป็นสภาพคล่องทั่วไปตามระเบียบเงินบำรุงของกระทรวงสาธารณสุข
                 </div>
             </div>
             <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
@@ -1032,7 +1187,125 @@
 <script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>
 <script>
 
-    function openCashModal() {
+    let cashTableInstance = null;
+    let currentCashFilter = 'all';
+
+    function initCashDataTable() {
+        if (typeof $ === 'undefined' || !$.fn.DataTable) return;
+        const tableEl = $('#cashAccountsTable');
+        if (!tableEl.length) return;
+
+        if ($.fn.DataTable.isDataTable('#cashAccountsTable')) {
+            cashTableInstance = tableEl.DataTable();
+            cashTableInstance.columns.adjust();
+            return;
+        }
+
+        cashTableInstance = tableEl.DataTable({
+            language: {
+                search: "",
+                searchPlaceholder: "🔍 ค้นหารหัส, ชื่อบัญชี, ธนาคาร, ประเภท...",
+                lengthMenu: "แสดง _MENU_ เล่ม",
+                info: "แสดง _START_ - _END_ จากทั้งหมด _TOTAL_ เล่มบัญชี",
+                infoEmpty: "ไม่พบข้อมูลเล่มบัญชี",
+                infoFiltered: "(กรองจากทั้งหมด _MAX_ เล่ม)",
+                zeroRecords: "ไม่พบบัญชีเงินสดที่ตรงกับคำค้นหา",
+                paginate: {
+                    first: "«",
+                    previous: "‹",
+                    next: "›",
+                    last: "»"
+                }
+            },
+            order: [], // Preserve original balance descending order
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "ทั้งหมด"]],
+            autoWidth: false,
+            dom: "<'row mb-3 align-items-center'<'col-6'l><'col-6 d-flex justify-content-end'f>>" +
+                 "<'row'<'col-12'tr>>" +
+                 "<'row mt-3 align-items-center g-2'<'col-md-5'i><'col-md-7 d-flex justify-content-end'p>>",
+            columnDefs: [
+                { targets: 0, orderable: false, width: '45px' },
+                { targets: 1, width: '140px' },
+                { targets: 3, width: '165px' },
+                { targets: 4, width: '150px' }
+            ],
+            footerCallback: function (row, data, start, end, display) {
+                const api = this.api();
+                const intVal = function (i) {
+                    if (typeof i === 'number') return i;
+                    if (typeof i === 'string') {
+                        return parseFloat(i.replace(/[\$,]/g, '')) || 0;
+                    }
+                    return 0;
+                };
+
+                let total = 0;
+                api.column(4, { search: 'applied' }).nodes().each(function (cell) {
+                    const raw = $(cell).attr('data-order') !== undefined ? $(cell).attr('data-order') : $(cell).text();
+                    total += intVal(raw);
+                });
+
+                $('#cashTableFilteredTotal').text(
+                    new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)
+                );
+            }
+        });
+    }
+
+    function filterCashTable(group) {
+        currentCashFilter = group || 'all';
+
+        const cardOperating = $('#filterCardOperating');
+        const cardRestricted = $('#filterCardRestricted');
+        const cardAll = $('#filterCardAll');
+
+        cardOperating.removeClass('active-operating');
+        cardRestricted.removeClass('active-restricted');
+        cardAll.removeClass('active-all');
+
+        $('#badgeFilterOperating').html('<i class="bi bi-funnel me-1"></i>คลิกกรอง')
+            .attr('class', 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5');
+        $('#badgeFilterRestricted').html('<i class="bi bi-funnel me-1"></i>คลิกกรอง')
+            .attr('class', 'badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5');
+        $('#badgeFilterAll').html('<i class="bi bi-arrow-repeat me-1"></i>แสดงทั้งหมด')
+            .attr('class', 'badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5');
+
+        if (currentCashFilter === 'operating') {
+            cardOperating.addClass('active-operating');
+            $('#badgeFilterOperating').html('<i class="bi bi-check-circle-fill me-1"></i>กำลังแสดงกลุ่มนี้')
+                .attr('class', 'badge bg-success text-white rounded-pill px-2 py-0.5 shadow-xs');
+            $('#cashTableFooterLabel').html('<i class="bi bi-calculator me-1"></i> รวมยอดเงินสดและรายการเทียบเท่าเงินสด (1003X):');
+        } else if (currentCashFilter === 'restricted') {
+            cardRestricted.addClass('active-restricted');
+            $('#badgeFilterRestricted').html('<i class="bi bi-check-circle-fill me-1"></i>กำลังแสดงกลุ่มนี้')
+                .attr('class', 'badge bg-warning text-dark rounded-pill px-2 py-0.5 shadow-xs');
+            $('#cashTableFooterLabel').html('<i class="bi bi-calculator me-1"></i> รวมยอดเงินเฉพาะกิจ / งบลงทุน UC / บริจาค:');
+        } else {
+            cardAll.addClass('active-all');
+            $('#badgeFilterAll').html('<i class="bi bi-check-circle-fill me-1"></i>กำลังแสดงทั้งหมด')
+                .attr('class', 'badge bg-primary text-white rounded-pill px-2 py-0.5 shadow-xs');
+            $('#cashTableFooterLabel').html('<i class="bi bi-calculator me-1"></i> รวมยอดเงินสดและเงินฝากธนาคารทั้งหมด:');
+        }
+
+        if (!cashTableInstance) {
+            initCashDataTable();
+        }
+
+        if (cashTableInstance) {
+            if (currentCashFilter === 'operating') {
+                cashTableInstance.column(3).search('operating').draw();
+            } else if (currentCashFilter === 'restricted') {
+                cashTableInstance.column(3).search('restricted').draw();
+            } else {
+                cashTableInstance.column(3).search('').draw();
+            }
+            cashTableInstance.columns.adjust();
+        }
+    }
+
+    function openCashModal(group = 'all') {
+        currentCashFilter = group || 'all';
         const el = document.getElementById('cashBankModal');
         if (el) {
             if (typeof $ !== 'undefined' && typeof $(el).modal === 'function') {
@@ -1040,8 +1313,26 @@
             } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(el).show();
             }
+            setTimeout(function() {
+                filterCashTable(currentCashFilter);
+            }, 100);
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const cashModalEl = document.getElementById('cashBankModal');
+        if (cashModalEl) {
+            cashModalEl.addEventListener('shown.bs.modal', function () {
+                if (!cashTableInstance) {
+                    initCashDataTable();
+                }
+                filterCashTable(currentCashFilter);
+                if (cashTableInstance) {
+                    cashTableInstance.columns.adjust();
+                }
+            });
+        }
+    });
     function openApModal() {
         const el = document.getElementById('hosfinApModal');
         if (el) {
@@ -1984,7 +2275,7 @@
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-safe text-success me-1"></i> เงินสด & เงินฝากธนาคาร GL</span>
                             <h6 class="fw-bold text-success mb-0 mt-1">{{ number_format($cashBalance ?? 0, 2) }} บาท</h6>
-                            <small class="text-muted">{{ $cashAccountsCount ?? 0 }} บัญชีเงินฝาก</small>
+                            <small class="text-muted">{{ $cashAccountsCount ?? 0 }} บัญชี (สธ. 1003X: {{ number_format($operatingCash ?? 0, 2) }} บ.)</small>
                         </div>
                         <div class="col-md-3">
                             <span class="text-muted small fw-bold"><i class="bi bi-pie-chart text-info me-1"></i> แหล่งข้อมูลบัญชี</span>

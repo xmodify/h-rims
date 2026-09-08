@@ -984,7 +984,8 @@ class MainSettingController extends Controller
                     MainSetting::whereIn('name', [
                         'token_authen_kiosk_nhso',
                         'opoh_token', 'opoh_url_api_death',
-                        'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_model_hosfin', 'ai_embed_model'
+                        'ai_active', 'ai_provider', 'ai_api_key', 'ai_api_url', 'ai_model_name', 'ai_model_hosfin', 'ai_embed_model',
+                        'eclaim_session_token', 'eclaim_session_user', 'eclaim_session_time'
                     ])->delete();
 
                     foreach ($main_setting as $row) {

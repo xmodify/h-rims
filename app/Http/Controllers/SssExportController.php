@@ -164,8 +164,8 @@ class SssExportController extends Controller
                     WHERE nd.hospdrugcode = nd1.hospdrugcode 
                     AND nd1.updateflag IN ('A','U','E')
                 )
-            LEFT JOIN lab_items li ON li.icode = op.icode
-            LEFT JOIN lab_items_sub_group lsg ON lsg.group_icode = op.icode
+            LEFT JOIN (SELECT icode, MAX(tmlt_code) AS tmlt_code FROM lab_items WHERE tmlt_code IS NOT NULL AND tmlt_code != '' GROUP BY icode) li ON li.icode = op.icode
+            LEFT JOIN (SELECT group_icode, MAX(tmlt_code) AS tmlt_code FROM lab_items_sub_group WHERE tmlt_code IS NOT NULL AND tmlt_code != '' GROUP BY group_icode) lsg ON lsg.group_icode = op.icode
             WHERE op.vn IN ($visits_placeholders)
         ", $vns);
 

@@ -7082,6 +7082,9 @@ public function sss_ppfs(Request $request)
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->whereIn('rd.vn', $vns)
+                ->where(function($q) {
+                    $q->whereNull('rd.status')->orWhere('rd.status', '<>', 'ABORT');
+                })
                 ->select('rd.vn', 'rd.debt_id', 'rd.pttype')
                 ->get();
             foreach ($debt_records as $r) {
@@ -7531,6 +7534,30 @@ public function sss_ppfs(Request $request)
             return response()->json(['error' => 'Visit not found'], 404);
         }
 
+        // Resolve invoice from rcpt_debt if not found in ovst_sss_billtran or vn_stat
+        if (empty($visit->sss_invno) && empty($visit->debt_id_list)) {
+            $debt_id = DB::connection('hosxp')
+                ->table('rcpt_debt')
+                ->where('vn', $vn)
+                ->where(function($q) {
+                    $q->whereNull('status')->orWhere('status', '<>', 'ABORT');
+                })
+                ->where('pttype', $visit->pttype ?? '')
+                ->value('debt_id');
+            if (!$debt_id) {
+                $debt_id = DB::connection('hosxp')
+                    ->table('rcpt_debt')
+                    ->where('vn', $vn)
+                    ->where(function($q) {
+                        $q->whereNull('status')->orWhere('status', '<>', 'ABORT');
+                    })
+                    ->value('debt_id');
+            }
+            if ($debt_id) {
+                $visit->sss_invno = (string)$debt_id;
+            }
+        }
+
         $diagnoses = DB::connection('hosxp')->select('
             SELECT icd10, diagtype 
             FROM ovstdiag 
@@ -7933,6 +7960,30 @@ public function sss_ppfs(Request $request)
 
         if (!$visit) {
             return response()->json(['error' => 'Visit not found'], 404);
+        }
+
+        // Resolve invoice from rcpt_debt if not found in ovst_sss_billtran or vn_stat
+        if (empty($visit->csop_invno) && empty($visit->debt_id_list)) {
+            $debt_id = DB::connection('hosxp')
+                ->table('rcpt_debt')
+                ->where('vn', $vn)
+                ->where(function($q) {
+                    $q->whereNull('status')->orWhere('status', '<>', 'ABORT');
+                })
+                ->where('pttype', $visit->pttype ?? '')
+                ->value('debt_id');
+            if (!$debt_id) {
+                $debt_id = DB::connection('hosxp')
+                    ->table('rcpt_debt')
+                    ->where('vn', $vn)
+                    ->where(function($q) {
+                        $q->whereNull('status')->orWhere('status', '<>', 'ABORT');
+                    })
+                    ->value('debt_id');
+            }
+            if ($debt_id) {
+                $visit->csop_invno = (string)$debt_id;
+            }
         }
 
         $diagnoses = DB::connection('hosxp')->select('

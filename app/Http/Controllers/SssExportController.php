@@ -126,6 +126,9 @@ class SssExportController extends Controller
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->whereIn('rd.vn', $vns_list)
+                ->where(function($q) {
+                    $q->whereNull('rd.status')->orWhere('rd.status', '<>', 'ABORT');
+                })
                 ->select('rd.vn', 'rd.debt_id', 'rd.pttype')
                 ->get();
             foreach ($debt_records as $r) {

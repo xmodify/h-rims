@@ -91,68 +91,54 @@
                                 </div>
                             </div>
 
-                            <!-- Single Row: Left 32-bit, Right 64-bit -->
-                            <div class="row g-2 mt-2 pt-2 border-top">
-                                <!-- Left Col: 32-bit -->
-                                <div class="col-md-6">
-                                    <div class="p-2 px-2.5 rounded-3 border d-flex align-items-center justify-content-between gap-2 shadow-xs h-100" 
-                                         style="background: #eff6ff; border-color: #bfdbfe !important;">
-                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 32px; height: 32px;">
-                                                <i class="bi bi-windows" style="font-size: 0.92rem;"></i>
-                                            </div>
-                                            <div class="text-truncate">
-                                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                                    <strong class="text-dark" style="font-size: 0.88rem;">รุ่น 32-bit (x86)</strong>
-                                                    <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" id="badgeGlSync32" style="font-size: 0.68rem;">แนะนำทั่วไป</span>
-                                                </div>
-                                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;" title="แนะนำ: รองรับ Office 32-bit (ใช้ได้ทุกเครื่อง)">รองรับ Windows ทุกรุ่น และ Office 32-bit</small>
-                                            </div>
+                            <!-- Single Primary Download Box -->
+                            <div class="mt-2 pt-2 border-top">
+                                <div class="p-3 rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-3 shadow-xs" 
+                                     style="background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%); border-color: #bae6fd !important;">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-windows fs-4"></i>
                                         </div>
-                                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
-                                            <a href="{{ url('downloads/Rims-GL-Sync-x86.exe') }}" id="btnGlSync32" 
-                                               class="btn btn-primary btn-sm rounded-pill px-2.5 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" 
-                                               download="Rims-GL-Sync-x86.exe" style="font-size: 0.80rem;">
-                                                <i class="bi bi-download"></i> .exe
-                                            </a>
-                                            <a href="{{ url('downloads/Rims-GL-Sync-x86.zip') }}" 
-                                               class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-1 small" 
-                                               download style="font-size: 0.74rem;" title="ดาวน์โหลดไฟล์สำรอง .zip">
-                                                .zip
-                                            </a>
+                                        <div>
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <strong class="text-dark fs-6">ดาวน์โหลดโปรแกรม Rims GL Sync</strong>
+                                                <span class="badge bg-success text-white rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>แนะนำสำหรับทุกเครื่อง
+                                                </span>
+                                            </div>
+                                            <small class="text-muted d-block mt-0.5" style="font-size: 0.76rem;">
+                                                รองรับ Windows ทุกรุ่น (ทั้ง 32-bit และ 64-bit) ใช้งานได้ทันที ไม่ต้องติดตั้ง
+                                            </small>
                                         </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                                        <a href="{{ url('downloads/Rims-GL-Sync.exe') }}" id="btnGlSyncMain" 
+                                           class="btn btn-primary rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" 
+                                           download="Rims-GL-Sync.exe" style="font-size: 0.85rem;">
+                                            <i class="bi bi-download"></i> ดาวน์โหลด (.exe)
+                                        </a>
+                                        <a href="{{ url('downloads/Rims-GL-Sync.zip') }}" 
+                                           class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 small" 
+                                           download style="font-size: 0.78rem;" title="ดาวน์โหลดไฟล์สำรอง .zip">
+                                            <i class="bi bi-file-earmark-zip me-0.5"></i> .zip
+                                        </a>
                                     </div>
                                 </div>
-
-                                <!-- Right Col: 64-bit -->
-                                <div class="col-md-6">
-                                    <div class="p-2 px-2.5 rounded-3 border d-flex align-items-center justify-content-between gap-2 shadow-xs h-100" 
-                                         style="background: #f8fafc; border-color: #cbd5e1 !important;">
-                                        <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                            <div class="rounded-circle bg-light border text-secondary d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 32px; height: 32px;">
-                                                <i class="bi bi-windows" style="font-size: 0.92rem;"></i>
-                                            </div>
-                                            <div class="text-truncate">
-                                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                                    <strong class="text-dark" style="font-size: 0.88rem;">รุ่น 64-bit (x64)</strong>
-                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-0.5" id="badgeGlSync64" style="font-size: 0.68rem;">Office 64-bit</span>
-                                                </div>
-                                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;" title="สำหรับเครื่องที่ติดตั้ง MS Office 64-bit">สำหรับเครื่องที่ติดตั้ง Office 64-bit</small>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
-                                            <a href="{{ url('downloads/Rims-GL-Sync-x64.exe') }}" id="btnGlSync64" 
-                                               class="btn btn-outline-primary btn-sm rounded-pill px-2.5 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" 
-                                               download="Rims-GL-Sync-x64.exe" style="font-size: 0.80rem;">
-                                                <i class="bi bi-download"></i> .exe
-                                            </a>
-                                            <a href="{{ url('downloads/Rims-GL-Sync-x64.zip') }}" 
-                                               class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-1 small" 
-                                               download style="font-size: 0.74rem;" title="ดาวน์โหลดไฟล์สำรอง .zip">
-                                                .zip
-                                            </a>
-                                        </div>
-                                    </div>
+                                
+                                <!-- Subtle fallback for Office 64-bit -->
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-1 pt-2 text-muted" style="font-size: 0.73rem;">
+                                    <span>
+                                        <i class="bi bi-info-circle text-primary me-1"></i>กรณีเครื่องที่ติดตั้ง <strong>Microsoft Office 64-bit</strong> แล้วเปิดฐานข้อมูลไม่ได้:
+                                    </span>
+                                    <span class="ms-auto d-inline-flex align-items-center gap-2">
+                                        <a href="{{ url('downloads/Rims-GL-Sync-x64.exe') }}" download="Rims-GL-Sync-x64.exe" class="text-decoration-none fw-semibold text-secondary">
+                                            <i class="bi bi-box-arrow-down me-0.5"></i>ดาวน์โหลดรุ่น Office 64-bit (.exe)
+                                        </a>
+                                        <span class="text-black-50">|</span>
+                                        <a href="{{ url('downloads/Rims-GL-Sync-x64.zip') }}" download class="text-decoration-none text-muted">
+                                            .zip
+                                        </a>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -235,43 +221,4 @@
             }
         });
     }
-
-    // Auto-detect Client Architecture (32-bit vs 64-bit)
-    (function detectClientArch() {
-        function applyArch(is64) {
-            var badge32 = document.getElementById('badgeGlSync32');
-            var badge64 = document.getElementById('badgeGlSync64');
-
-            if (is64) {
-                if (badge64) {
-                    badge64.innerHTML = '⭐ เครื่องนี้ 64-bit';
-                    badge64.className = 'badge bg-primary text-white rounded-pill px-2 py-0.5 fw-bold';
-                }
-            } else {
-                if (badge32) {
-                    badge32.innerHTML = '⭐ เครื่องนี้ 32-bit';
-                    badge32.className = 'badge bg-primary text-white rounded-pill px-2 py-0.5 fw-bold';
-                }
-            }
-        }
-
-        // Try modern userAgentData first
-        if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-            navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness']).then(function(ua) {
-                var is64 = (ua.bitness === '64' || ua.architecture === 'x86_64');
-                applyArch(is64);
-            }).catch(function() {
-                fallbackUA();
-            });
-        } else {
-            fallbackUA();
-        }
-
-        function fallbackUA() {
-            var ua = navigator.userAgent || '';
-            var plat = navigator.platform || '';
-            var is64 = /WOW64|Win64|x86_64|x64|amd64/i.test(ua) || /Win64|x64/i.test(plat);
-            applyArch(is64);
-        }
-    })();
 </script>

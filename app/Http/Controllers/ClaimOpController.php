@@ -7097,7 +7097,7 @@ public function sss_ppfs(Request $request)
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                        gt.gpu_code, gg.gp_code, COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
-                       op.drugusage, op.qty, op.income
+                       op.drugusage, op.qty, op.sum_price, op.income
                 FROM opitemrece op
                 INNER JOIN s_drugitems sd ON sd.icode = op.icode
                 LEFT JOIN drugitems di ON di.icode = op.icode
@@ -7399,18 +7399,21 @@ public function sss_ppfs(Request $request)
                 $has_valid_doc_license = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
             }
 
-            // Check Pharmacist license presence (if drugs exist)
+            // Check Pharmacist license presence (if dispensed drugs exist)
+            $dispensed_visit_drugs = array_filter($visit_drugs, function($d) {
+                return (float)$d->qty > 0 && (float)$d->sum_price > 0;
+            });
             $has_valid_pharmacist = true;
-            if (!empty($visit_drugs)) {
+            if (!empty($dispensed_visit_drugs)) {
                 $lic = !empty($row->doctor_license) ? trim($row->doctor_license) : '';
                 if (empty($lic) || $lic === '-') {
                     $has_valid_pharmacist = false;
                 }
             }
 
-            // Check TMT ID for modern medicines
+            // Check TMT ID for modern medicines (only for dispensed drugs)
             $has_tmt_error = false;
-            foreach ($visit_drugs as $drug) {
+            foreach ($dispensed_visit_drugs as $drug) {
                 $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
                 if (str_starts_with($drug->icode, '3')) {
                     if (isset($drug->income) && $drug->income === '05') {
@@ -7798,7 +7801,10 @@ public function sss_ppfs(Request $request)
         }
 
         // 5. Audit BILLDISP: Pharmacist/Prescriber License and TMT ID for SSOP
-        $has_dispense = !empty($drugs);
+        $dispensed_drugs = array_filter($drugs, function($d) {
+            return (float)$d->qty > 0 && (float)$d->sum_price > 0;
+        });
+        $has_dispense = !empty($dispensed_drugs);
         if ($has_dispense) {
             $license = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
             if (empty($license) || $license === '-') {
@@ -7809,7 +7815,7 @@ public function sss_ppfs(Request $request)
                     'status' => 'danger'
                 ];
             }
-            foreach ($drugs as $drug) {
+            foreach ($dispensed_drugs as $drug) {
                 $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
                 if (str_starts_with($drug->icode, '3')) {
                     if ($drug->income === '05') {
@@ -8188,7 +8194,10 @@ public function sss_ppfs(Request $request)
         }
 
         // CSOP Pharmacist License and TMT ID checks
-        $has_dispense = !empty($drugs);
+        $dispensed_drugs = array_filter($drugs, function($d) {
+            return (float)$d->qty > 0 && (float)$d->sum_price > 0;
+        });
+        $has_dispense = !empty($dispensed_drugs);
         if ($has_dispense) {
             $license = !empty($visit->doctor_license) ? trim($visit->doctor_license) : '';
             if (empty($license) || $license === '-') {
@@ -8199,7 +8208,7 @@ public function sss_ppfs(Request $request)
                     'status' => 'danger'
                 ];
             }
-            foreach ($drugs as $drug) {
+            foreach ($dispensed_drugs as $drug) {
                 $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
                 if (str_starts_with($drug->icode, '3')) {
                     if ($drug->income === '05') {
@@ -8834,7 +8843,7 @@ public function sss_ppfs(Request $request)
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, COALESCE(sd.name, ni.name) AS name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                        gt.gpu_code, gg.gp_code, COALESCE(di.sks_product_category_id, sd.sks_product_category_id) AS sks_product_category_id, di.capacity_name, di.capacity_qty,
-                       op.drugusage, op.qty, op.income, ni.nhso_adp_code, inc.income_csmbs_code
+                       op.drugusage, op.qty, op.sum_price, op.income, ni.nhso_adp_code, inc.income_csmbs_code
                 FROM opitemrece op
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 LEFT JOIN drugitems di ON di.icode = op.icode
@@ -8916,10 +8925,13 @@ public function sss_ppfs(Request $request)
             }
 
             $visit_drugs = $drugs_by_vn[$row->vn] ?? [];
+            $dispensed_visit_drugs = array_filter($visit_drugs, function($d) {
+                return (float)$d->qty > 0 && (float)$d->sum_price > 0;
+            });
 
-            // Check Pharmacist license presence (if drugs exist) for CSOP
+            // Check Pharmacist license presence (if dispensed drugs exist) for CSOP
             $has_valid_pharmacist = true;
-            if (!empty($visit_drugs)) {
+            if (!empty($dispensed_visit_drugs)) {
                 $lic = !empty($row->doctor_license) ? trim($row->doctor_license) : '';
                 if (empty($lic) || $lic === '-') {
                     $has_valid_pharmacist = false;
@@ -8928,7 +8940,7 @@ public function sss_ppfs(Request $request)
 
             // Check TMT ID for modern medicines for CSOP
             $has_tmt_error = false;
-            foreach ($visit_drugs as $drug) {
+            foreach ($dispensed_visit_drugs as $drug) {
                 $item_prdcat = !empty($drug->sks_product_category_id) ? (string)$drug->sks_product_category_id : '';
                 if (str_starts_with($drug->icode, '3')) {
                     if (isset($drug->income) && $drug->income === '05') {

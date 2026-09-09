@@ -170,14 +170,6 @@
                        style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309;">
                         <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
                     </a>
-                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb;">
-                        <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
-                    </a>
-                    <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669;">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
-                    </a>
                 </div>
             </div>
         </div>

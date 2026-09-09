@@ -43,6 +43,10 @@ var (
 	setForegroundWindow  = user32.NewProc("SetForegroundWindow")
 	destroyWindow        = user32.NewProc("DestroyWindow")
 	findWindowW          = user32.NewProc("FindWindowW")
+	openInputDesktop     = user32.NewProc("OpenInputDesktop")
+	setThreadDesktop     = user32.NewProc("SetThreadDesktop")
+	closeDesktop         = user32.NewProc("CloseDesktop")
+	registerWindowMessageW = user32.NewProc("RegisterWindowMessageW")
 
 	getModuleHandleW     = kernel32.NewProc("GetModuleHandleW")
 	createMutexW         = kernel32.NewProc("CreateMutexW")
@@ -51,6 +55,8 @@ var (
 	getOpenFileNameW     = comdlg32.NewProc("GetOpenFileNameW")
 	shell_NotifyIconW    = shell32.NewProc("Shell_NotifyIconW")
 )
+
+var wmTaskbarCreated uint32
 
 const (
 	ID_BTN_BROWSE   = 1001
@@ -67,6 +73,7 @@ const (
 	WM_COMMAND        = 0x0111
 	WM_USER_LOG       = 0x0400 + 101
 	WM_USER_SYNC_DONE = 0x0400 + 102
+	WM_USER_SHOW      = 0x0400 + 103
 	WM_TRAYICON       = 0x0400 + 201
 
 	NIM_ADD    = 0x00000000
@@ -95,12 +102,10 @@ const (
 
 type NOTIFYICONDATAW struct {
 	CbSize           uint32
-	_                uint32
 	HWnd             uintptr
 	UID              uint32
 	UFlags           uint32
 	UCallbackMessage uint32
-	_                uint32
 	HIcon            uintptr
 	SzTip            [128]uint16
 	DwState          uint32
@@ -282,7 +287,7 @@ func showMsg(title, msg string, isError bool) {
 	messageBoxW.Call(globalApp.hMainWnd, uintptr(unsafe.Pointer(uMsg)), uintptr(unsafe.Pointer(uTitle)), flags)
 }
 
-func (app *GUIApp) addTrayIcon(hIcon uintptr) {
+func (app *GUIApp) addTrayIcon(hIcon uintptr) bool {
 	app.nid = NOTIFYICONDATAW{
 		CbSize:           uint32(unsafe.Sizeof(NOTIFYICONDATAW{})),
 		HWnd:             app.hMainWnd,
@@ -292,8 +297,20 @@ func (app *GUIApp) addTrayIcon(hIcon uintptr) {
 		HIcon:            hIcon,
 	}
 	copy(app.nid.SzTip[:], syscall.StringToUTF16("Rims GL Sync - ระบบซิงค์ข้อมูลบัญชีโรงพยาบาล"))
-	shell_NotifyIconW.Call(NIM_ADD, uintptr(unsafe.Pointer(&app.nid)))
-	app.trayAdded = true
+	r, _, _ := shell_NotifyIconW.Call(NIM_ADD, uintptr(unsafe.Pointer(&app.nid)))
+	if r != 0 {
+		app.trayAdded = true
+		return true
+	}
+	// In case of stale icon from a crashed instance, delete and re-add
+	shell_NotifyIconW.Call(NIM_DELETE, uintptr(unsafe.Pointer(&app.nid)))
+	r2, _, _ := shell_NotifyIconW.Call(NIM_ADD, uintptr(unsafe.Pointer(&app.nid)))
+	if r2 != 0 {
+		app.trayAdded = true
+		return true
+	}
+	app.trayAdded = false
+	return false
 }
 
 func (app *GUIApp) removeTrayIcon() {
@@ -540,8 +557,9 @@ func guiWndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 
 	case WM_TRAYICON:
 		switch lParam {
-		case 0x0202, 0x0203: // WM_LBUTTONUP, WM_LBUTTONDBLCLK
+		case 0x0201, 0x0202, 0x0203: // WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK
 			showWindow.Call(hwnd, 9 /* SW_RESTORE */)
+			showWindow.Call(hwnd, 5 /* SW_SHOW */)
 			setForegroundWindow.Call(hwnd)
 		case 0x0205: // WM_RBUTTONUP
 			hMenu, _, _ := createPopupMenu.Call()
@@ -564,6 +582,12 @@ func guiWndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		}
 		return 0
 
+	case WM_USER_SHOW:
+		showWindow.Call(hwnd, 9 /* SW_RESTORE */)
+		showWindow.Call(hwnd, 5 /* SW_SHOW */)
+		setForegroundWindow.Call(hwnd)
+		return 0
+
 	case WM_USER_LOG:
 		globalApp.flushLogsToUI()
 		return 0
@@ -576,13 +600,35 @@ func guiWndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		return 0
 
 	case 0x0010: // WM_CLOSE (กดปุ่มกากบาท X ที่หน้าต่าง)
-		showWindow.Call(hwnd, 0 /* SW_HIDE */)
-		globalApp.showTrayBalloon("Rims GL Sync", "โปรแกรมยังคงทำงานอยู่เบื้องหลังแถบนาฬิกา\n(ดับเบิ้ลคลิกที่ไอคอนเพื่อเปิดหน้าต่างอีกครั้ง)")
+		if !globalApp.trayAdded {
+			hIcon, _, _ := loadIconW.Call(globalApp.hInstance, 1)
+			if hIcon == 0 {
+				hIcon, _, _ = loadIconW.Call(0, 32512)
+			}
+			globalApp.addTrayIcon(hIcon)
+		}
+
+		if globalApp.trayAdded {
+			showWindow.Call(hwnd, 0 /* SW_HIDE */)
+			globalApp.showTrayBalloon("Rims GL Sync", "โปรแกรมยังคงทำงานอยู่เบื้องหลังแถบนาฬิกา\n(คลิกที่ไอคอนเพื่อเปิดหน้าต่างอีกครั้ง)")
+		} else {
+			// If tray icon is not available, minimize instead of hiding into background
+			showWindow.Call(hwnd, 6 /* SW_MINIMIZE */)
+		}
 		return 0
 
 	case 0x0002: // WM_DESTROY
 		globalApp.removeTrayIcon()
 		postQuitMessage.Call(0)
+		return 0
+	}
+
+	if wmTaskbarCreated != 0 && msg == wmTaskbarCreated {
+		hIcon, _, _ := loadIconW.Call(globalApp.hInstance, 1)
+		if hIcon == 0 {
+			hIcon, _, _ = loadIconW.Call(0, 32512)
+		}
+		globalApp.addTrayIcon(hIcon)
 		return 0
 	}
 
@@ -603,14 +649,19 @@ func runGUI(cfgPath string) {
 	hMutex, _, errMutex := createMutexW.Call(0, 0, uintptr(unsafe.Pointer(mutexName)))
 	if errMutex == syscall.Errno(ERROR_ALREADY_EXISTS) || hMutex == 0 {
 		// An existing instance is already running!
-		// Restore and bring existing window to the front
+		// Connect to desktop to ensure window can be located across sessions
+		hDesk, _, _ := openInputDesktop.Call(0, 0, 0x01FF)
+		if hDesk != 0 {
+			setThreadDesktop.Call(hDesk)
+			defer closeDesktop.Call(hDesk)
+		}
 		className, _ := syscall.UTF16PtrFromString("RimsGLSyncWinClass")
-		windowTitle, _ := syscall.UTF16PtrFromString("Rims GL Sync - ระบบเชื่อมต่อฐานข้อมูลบัญชีโรงพยาบาล")
-		existingHwnd, _, _ := findWindowW.Call(uintptr(unsafe.Pointer(className)), uintptr(unsafe.Pointer(windowTitle)))
+		existingHwnd, _, _ := findWindowW.Call(uintptr(unsafe.Pointer(className)), 0)
 		if existingHwnd != 0 {
 			showWindow.Call(existingHwnd, 9 /* SW_RESTORE */)
 			showWindow.Call(existingHwnd, 5 /* SW_SHOW */)
 			setForegroundWindow.Call(existingHwnd)
+			postMessageW.Call(existingHwnd, WM_USER_SHOW, 0, 0)
 		}
 		if hMutex != 0 {
 			closeHandle.Call(hMutex)
@@ -618,6 +669,10 @@ func runGUI(cfgPath string) {
 		return
 	}
 	defer closeHandle.Call(hMutex)
+
+	taskbarCreatedStr, _ := syscall.UTF16PtrFromString("TaskbarCreated")
+	rMsg, _, _ := registerWindowMessageW.Call(uintptr(unsafe.Pointer(taskbarCreatedStr)))
+	wmTaskbarCreated = uint32(rMsg)
 
 	cfg, err := loadConfig(cfgPath)
 	if err != nil {

@@ -86,7 +86,7 @@
     <div class="row">
         <!-- Back Button -->
         <div class="col-12 px-3 mb-1">
-            <a href="{{ url('hosfin') }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;">
+            <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}&period={{ $selectedPeriod ?? 'all' }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;" title="ย้อนกลับไปหน้างบทดลอง">
                 <i class="bi bi-arrow-left"></i> ย้อนกลับ
             </a>
         </div>
@@ -117,30 +117,6 @@
                         </select>
                     </div>
 
-                    <a href="{{ url('hosfin/cash_register') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669;">
-                        <i class="bi bi-cash-stack"></i> รับ-จ่าย (Cash)
-                    </a>
-                    <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626;">
-                        <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
-                    </a>
-                    <a href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1;">
-                        <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
-                    </a>
-                    <a href="{{ url('hosfin/cost_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309;">
-                        <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
-                    </a>
-                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #3b82f6; border: 1.5px solid #3b82f6; color: #ffffff;">
-                        <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
-                    </a>
-                    <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669;">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
-                    </a>
 
                     <!-- Settings button -->
                     <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm text-nowrap rounded-pill px-3" style="height: 40px; font-size: 0.85rem; background: #fff;" onclick="openMappingsModal()" title="ตรวจสอบการจับคู่ผังบัญชี">

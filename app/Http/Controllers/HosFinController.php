@@ -110,6 +110,7 @@ class HosFinController extends Controller
                 'latestPeriodLabel' => 'รอซิงค์ข้อมูล GL (ปีงบประมาณ ' . $budgetYear . ')',
                 'budgetYear' => $budgetYear,
                 'latestMetrics' => $latestMetrics,
+                'periodHistory' => [],
                 'chartLabels' => $chartLabels,
                 'chartData' => $chartData,
                 'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend,
@@ -548,11 +549,18 @@ class HosFinController extends Controller
         }
 
         $chartData = [];
+        $periodHistory = [];
         foreach ($targetCodes as $code) {
             $chartData[$code] = [];
+            $periodHistory[$code] = [];
             foreach ($periods as $p) {
                 if (in_array($p['period'], $importedPeriods)) {
                     $chartData[$code][] = $history[$code][$p['period']]['val'] ?? 0;
+                    $periodHistory[$code][$p['label']] = [
+                        'val' => $history[$code][$p['period']]['val'] ?? 0,
+                        'num' => $history[$code][$p['period']]['num'] ?? 0,
+                        'den' => $history[$code][$p['period']]['den'] ?? 0,
+                    ];
                 }
             }
         }
@@ -894,6 +902,7 @@ class HosFinController extends Controller
             'latestPeriodLabel' => $latestPeriodLabel,
             'budgetYear' => $budgetYear,
             'latestMetrics' => $latestMetrics,
+            'periodHistory' => $periodHistory,
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
             'statusMap' => $statusMap,

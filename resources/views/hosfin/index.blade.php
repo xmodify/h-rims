@@ -300,12 +300,6 @@
                             <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
                         </a>
 
-                        <a href="{{ url('hosfin/ratio_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-rr-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.25s ease;"
-                           title="รายงานอัตราส่วนทางการเงิน">
-                            <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
-                        </a>
-
                         <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-tb-custom" 
                            style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;"
                            title="รายงานและนำเข้างบทดลอง (Trial Balance)">
@@ -771,7 +765,10 @@
 
                 <!-- Detailed Breakdown Display -->
                 <div class="bg-white p-3 rounded-3 shadow-sm border mb-3">
-                    <h7 class="fw-bold text-dark d-block border-bottom pb-2 mb-2"><i class="bi bi-calculator-fill text-primary me-1"></i> รายละเอียดที่มาของตัวเลขประจำงวดล่าสุด</h7>
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                        <h7 class="fw-bold text-dark mb-0"><i class="bi bi-calculator-fill text-primary me-1"></i> <span id="modalBreakdownPeriodTitle">รายละเอียดที่มาของตัวเลขประจำงวด {{ $latestPeriodLabel }}</span></h7>
+                        <small class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-hand-index-thumb me-1"></i>คลิกที่จุดบนกราฟเพื่อดูงวดอื่น</small>
+                    </div>
                     <div class="row text-center">
                         <div class="col-4">
                             <small class="text-muted d-block" id="modalNumLabel"></small>
@@ -812,7 +809,7 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="hosfinApModalLabel">สรุปสถานะหนี้สินเจ้าหนี้การค้า (Accounts Payable Overview)</h5>
-                        <small class="text-white-50">ข้อมูลจากสมุดรายวัน GL และแฟ้มตั้งหนี้-จ่ายชำระล่าสุด</small>
+                        <small class="text-white-50">ข้อมูลจากสมุดรายวัน GL ณ สิ้นงวด {{ $latestPeriodLabel }} และแฟ้มตั้งหนี้-จ่ายชำระ</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -913,7 +910,7 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold mb-0" id="hosfinArModalLabel">สรุปสถานะลูกหนี้ค่ารักษาพยาบาล (Accounts Receivable Overview)</h5>
-                        <small class="text-white-50">ข้อมูลการตั้งเบิก ชดเชย และลูกหนี้ค้างท่อแยกตามสิทธิกองทุนหลัก</small>
+                        <small class="text-white-50">ข้อมูลการตั้งเบิก ชดเชย และลูกหนี้ค้างท่อ ณ สิ้นงวด {{ $latestPeriodLabel }} แยกตามสิทธิกองทุนหลัก</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -923,9 +920,9 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-info">
-                            <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับสุทธิรวมทั้งหมด</small>
-                            <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($arOutstandingSum, 2) }}</span>
-                            <small class="text-muted d-block">บาท (ยกมา {{ number_format(($arTotalOb ?? 0) / 1000000, 2) }}M + ปีนี้ {{ number_format((($arOutstandingSum ?? 0) - ($arTotalOb ?? 0)) / 1000000, 2) }}M)</small>
+                            <small class="text-muted fw-bold d-block">ลูกหนี้ค้างรับสุทธิ ณ สิ้นงวด ({{ $latestPeriodLabel }})</small>
+                            <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($arEndingBalance ?? $arOutstandingSum, 2) }}</span>
+                            <small class="text-muted d-block">บาท (ตรงงบทดลอง)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -1360,6 +1357,8 @@
     const ratioDefs = @json($ratioDefs);
     const statusMap = @json($statusMap);
     const latestMetrics = @json($latestMetrics);
+    const periodHistory = @json($periodHistory ?? []);
+    const selectedPeriodLabel = @json($latestPeriodLabel ?? '');
 
     // Revenue/Expense trend chart setup
     @if(isset($monthlyRevenueExpenseTrend) && count($monthlyRevenueExpenseTrend) > 0)
@@ -1566,6 +1565,10 @@
 
             // Set modal labels and values
             document.getElementById('trendModalLabel').innerHTML = `<i class="bi bi-graph-up me-2 text-warning"></i> แนวโน้มรายงวดบัญชี: ${name}`;
+            const breakdownTitleEl = document.getElementById('modalBreakdownPeriodTitle');
+            if (breakdownTitleEl) {
+                breakdownTitleEl.textContent = `รายละเอียดที่มาของตัวเลขประจำงวด ${selectedPeriodLabel}`;
+            }
             
             // Populate Numerator / Denominator info
             document.getElementById('modalNumLabel').textContent = definition.numerator_name;
@@ -1652,6 +1655,34 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        onClick: (event, elements) => {
+                            if (elements && elements.length > 0) {
+                                const index = elements[0].index;
+                                const clickedMonth = chartLabels[index];
+                                if (clickedMonth && periodHistory[code] && periodHistory[code][clickedMonth]) {
+                                    const mData = periodHistory[code][clickedMonth];
+                                    const mNum = mData.num !== undefined ? mData.num : 0;
+                                    const mDen = mData.den !== undefined ? mData.den : 0;
+                                    const mVal = mData.val !== undefined ? mData.val : 0;
+
+                                    if (breakdownTitleEl) {
+                                        breakdownTitleEl.textContent = `รายละเอียดที่มาของตัวเลขประจำงวด ${clickedMonth}`;
+                                    }
+                                    document.getElementById('modalNumValue').textContent = mNum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    document.getElementById('modalDenValue').textContent = mDen.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    resultValEl.textContent = mVal.toLocaleString(undefined, {
+                                        minimumFractionDigits: definition.precision, 
+                                        maximumFractionDigits: definition.precision
+                                    }) + ' ' + definition.unit;
+                                }
+                            }
+                        },
+                        onHover: (event, chartElement) => {
+                            const target = event.native ? event.native.target : (event.chart ? event.chart.canvas : null);
+                            if (target) {
+                                target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                            }
+                        },
                         plugins: {
                             legend: {
                                 display: false

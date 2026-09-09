@@ -78,9 +78,9 @@
                     <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
                 </div>
                 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <!-- Budget Year Dropdown -->
-                    <div class="input-group">
+                    <div class="input-group" style="width: auto;">
                         <span class="input-group-text bg-white text-muted" style="font-size: 0.9rem;">ปีงบประมาณ</span>
                         <select id="select_budget_year" class="form-select" style="min-width: 100px; font-size: 0.9rem;">
                             @foreach($yearChoices as $yr)
@@ -91,6 +91,14 @@
 
                     <!-- Hidden input for category selection to keep JS functionality working -->
                     <input type="hidden" id="select_category" value="all">
+
+                    <!-- Link to Ratio Report -->
+                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}&period={{ $selectedPeriod ?? 'all' }}" 
+                       class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm text-nowrap" 
+                       style="font-size: 0.88rem; height: 38px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.2s ease;"
+                       title="รายงานอัตราส่วนทางการเงินที่คำนวณจากงบทดลอง">
+                        <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
+                    </a>
                     
                     @php
                         $is_hosfin_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('hosfin');

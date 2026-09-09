@@ -181,6 +181,10 @@ class CsopExportController extends Controller
         $billitems_rows = [];
         $billitems_by_vn = [];
         foreach ($billitems_raw as $item) {
+            // Skip zero quantity or zero total price items (e.g. home medications or uncharged items)
+            if ((float)$item->qty <= 0 || (float)$item->sum_price <= 0) {
+                continue;
+            }
             $billitems_by_vn[$item->vn][] = $item;
         }
 
@@ -305,7 +309,17 @@ class CsopExportController extends Controller
             AND op.income IN ('03', '04', '05', '17')
         ", $vns);
 
+        // Filter out zero quantity or zero total price items (e.g. home medications or uncharged items)
+        $disp_items = array_values(array_filter($disp_items, function($item) {
+            return (float)$item->qty > 0 && (float)$item->sum_price > 0;
+        }));
+
         foreach ($disp_items as $item) {
+            // Skip zero quantity or zero total price items (e.g. home medications or uncharged items)
+            if ((float)$item->qty <= 0 || (float)$item->sum_price <= 0) {
+                continue;
+            }
+
             $v = $visits_map->get($item->vn);
             if (!$v) continue;
 
@@ -324,7 +338,7 @@ class CsopExportController extends Controller
                 
                 $session_items = array_filter($disp_items, function($x) use ($item, $rx_no) {
                     $x_rx_no = !empty($x->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $x->hos_guid), 0, 9) : $x->vn;
-                    return $x->vn === $item->vn && $x_rx_no === $rx_no;
+                    return $x->vn === $item->vn && $x_rx_no === $rx_no && (float)$x->qty > 0 && (float)$x->sum_price > 0;
                 });
                 $session_count = count($session_items);
                 
@@ -646,7 +660,7 @@ class CsopExportController extends Controller
 
                     // TMT ID check for CSOP (modern medicines)
                     $vn_disp_items = array_filter($data['disp_items'] ?? [], function($item) use ($row) {
-                        return $item->vn == $row->vn;
+                        return $item->vn == $row->vn && (float)$item->qty > 0 && (float)$item->sum_price > 0;
                     });
                     foreach ($vn_disp_items as $item) {
                         $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';

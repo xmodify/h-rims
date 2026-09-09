@@ -36,11 +36,31 @@ class HosfinGlApBill extends Model
      */
     public function getParsedBillDateAttribute()
     {
-        // 1. Check if bill_no has dd/mm/yy or dd/mm/yyyy
-        if (preg_match('/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/', $this->bill_no ?? '', $m)) {
-            $d = (int)$m[1];
-            $mo = (int)$m[2];
-            $y = (int)$m[3];
+        // 1. Check if bill_no has date pattern dd/mm/yy or dd/mm/yyyy
+        // Accounting staff typically enters "[Voucher/Doc No]-[dd/mm/yy]"
+        $candidate = null;
+        $billNo = $this->bill_no ?? '';
+
+        if (strpos($billNo, '-') !== false) {
+            $parts = explode('-', $billNo);
+            for ($i = count($parts) - 1; $i >= 0; $i--) {
+                if (preg_match('/(?<!\d)(\d{1,2})\/+([01]?\d)\/+((?:25)?\d{2})(?!\d)/', $parts[$i], $m)) {
+                    $candidate = $m;
+                    break;
+                }
+            }
+        }
+
+        if (!$candidate) {
+            if (preg_match_all('/(?<!\d)(\d{1,2})\/+([01]?\d)\/+((?:25)?\d{2})(?!\d)/', $billNo, $allMatches, PREG_SET_ORDER)) {
+                $candidate = end($allMatches);
+            }
+        }
+
+        if ($candidate) {
+            $d = (int)$candidate[1];
+            $mo = (int)$candidate[2];
+            $y = (int)$candidate[3];
             $beYear = ($y < 100) ? (2500 + $y) : (($y > 2400) ? $y : ($y + 543));
             $adYear = $beYear - 543;
             if (checkdate($mo, $d, $adYear)) {

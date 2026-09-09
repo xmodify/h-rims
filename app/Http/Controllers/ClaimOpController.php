@@ -6925,7 +6925,7 @@ public function sss_ppfs(Request $request)
         $receive_total = [];
 
         if (!$request->input('skip_chart')) {
-            $chartCacheKey = 'chart_sss_main_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
+            $chartCacheKey = 'chart_sss_main_v2_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
             $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b, $exclude_pttypes_str) {
                 $sum_month = DB::connection('hosxp')->select('
                 SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -6974,7 +6974,8 @@ public function sss_ppfs(Request $request)
                         LEFT JOIN nondrugitems n ON n.icode = kidney.icode 
                         WHERE kidney.vn = o.vn AND n.billcode = "71641"
                     )
-                    GROUP BY o.vn ) AS a
+                    GROUP BY o.vn
+                    HAVING claim_price > 0 ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
                 ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b]);
 
@@ -7002,6 +7003,7 @@ public function sss_ppfs(Request $request)
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) AS income, v.uc_money, 
             IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
+            (COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0)) AS claim_price,
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
@@ -7036,7 +7038,9 @@ public function sss_ppfs(Request $request)
             AND (o.an = "" OR o.an IS NULL)
             AND o.vstdate BETWEEN ? AND ?
             AND COALESCE(op_data.is_kidney, 0) = 0
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn
+            HAVING claim_price > 0
+            ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 
         $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
         if (!file_exists($ncd_json_path)) {
@@ -7228,7 +7232,7 @@ public function sss_ppfs(Request $request)
 
         $validator = new \App\Services\ClaimValidator();
         foreach ($claim as $row) {
-            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
+            $row->claim_price = floatval($row->claim_price ?? (floatval($row->income) - floatval($row->rcpt_money)));
             $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             if (isset($sss_debt_map[$row->vn])) {
                 $row->sss_invno = (string)$sss_debt_map[$row->vn];
@@ -7323,10 +7327,10 @@ public function sss_ppfs(Request $request)
                 $row->chronic_status = 'grey';
             }
 
-            // Calculate general readiness claim_status based on: InvoiceNo, PDX, uc_money > 0, CID, Hmain, and Drug Audits
+            // Calculate general readiness claim_status based on: InvoiceNo, PDX, claim_price > 0, CID, Hmain, and Drug Audits
             $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $has_pdx = !empty($row->pdx);
-            $has_claim_money = floatval($row->uc_money) > 0;
+            $has_claim_money = floatval($row->claim_price) > 0 || floatval($row->uc_money) > 0;
             $has_valid_cid = !empty($row->cid) && strlen(trim($row->cid)) === 13;
             
             // Check C07: Hospital Main in network

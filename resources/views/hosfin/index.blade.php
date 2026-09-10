@@ -2648,15 +2648,10 @@
             </div>
 
             <div class="modal-footer bg-light py-2 d-flex justify-content-between">
-                <div class="d-flex gap-2">
+                <div>
                     <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="printHosFinAiReport()">
                         <i class="bi bi-printer me-1"></i> พิมพ์รายงานสรุป
                     </button>
-                    @if(Auth::check() && Auth::user()->status === 'admin')
-                    <button type="button" class="btn btn-outline-dark btn-sm px-3 rounded-pill shadow-sm" onclick="openAiSettingsModal('hosfin')" title="ตั้งค่า AI & LLM สำหรับ HosFin">
-                        <i class="bi bi-gear-fill me-1 text-warning"></i> ตั้งค่า AI (HosFin)
-                    </button>
-                    @endif
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">

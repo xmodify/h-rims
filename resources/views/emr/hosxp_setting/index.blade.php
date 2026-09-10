@@ -1053,7 +1053,7 @@
             docTableIds.forEach(function (id) {
                 if ($(id).length && !$.fn.DataTable.isDataTable(id)) {
                     $(id).DataTable({
-                        pageLength: 25,
+                        pageLength: 10,
                         lengthMenu: [10, 25, 50, 100],
                         order: [[0, 'asc']], 
                         language: {

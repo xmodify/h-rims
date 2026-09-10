@@ -428,7 +428,7 @@ class CopilotController extends Controller
      */
     protected function isCapabilityQuestion(string $question, string $scope = 'auto'): bool
     {
-        // Never intercept HosFin questions: user expects live querying and financial analysis across hosfin_* tables
+        // Never intercept HosFin questions: user expects live querying across hosfin_* tables
         if ($scope === 'hosfin') {
             return false;
         }
@@ -436,8 +436,14 @@ class CopilotController extends Controller
         $q = mb_strtolower(trim($question), 'UTF-8');
         $q = preg_replace('/[?!.,\s]+$/u', '', $q);
 
-        // Only pure greeting words
-        return in_array($q, ['สวัสดี', 'สวัสดีครับ', 'สวัสดีค่ะ', 'หวัดดี', 'hello', 'hi', 'start', 'เริ่มต้น'], true);
+        // Greetings and capability inquiry phrases
+        $capabilityPhrases = [
+            'สวัสดี', 'สวัสดีครับ', 'สวัสดีค่ะ', 'หวัดดี', 'hello', 'hi', 'start', 'เริ่มต้น',
+            'ทำอะไรได้บ้าง', 'ช่วยอะไรได้บ้าง', 'ตรวจสอบอะไรได้บ้าง', 'ตอนนี้ตรวจสอบอะไรได้บ้าง',
+            'สืบค้นอะไรได้บ้าง', 'ค้นหาอะไรได้บ้าง', 'มีข้อมูลอะไรบ้าง', 'มีอะไรบ้าง', 'ความสามารถ'
+        ];
+
+        return in_array($q, $capabilityPhrases, true);
     }
 
     /**

@@ -40,6 +40,36 @@ class SchemaCatalogService
     }
 
     /**
+     * Get Schema string for HOSxP Master Data (Strictly: nondrugitems, pttype, doctor)
+     */
+    public function getHosxpSchema(string $userQuery): string
+    {
+        $allTables = $this->getCuratedHosxpTables();
+        $tables = $this->selectRelevantHosxpTables($userQuery, $allTables);
+
+        $out = "=== ฐานข้อมูล HOSxP Master Data (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน) ===\n";
+        $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: hosxp)\n";
+        $out .= "กฎเหล็ก: อนุญาตให้เขียนคำสั่ง SELECT เฉพาะตาราง nondrugitems, pttype, doctor, pttype_items_price, opitemrece และตาราง lookup ที่กำหนดเท่านั้น\n";
+        $out .= "ข้อแนะนำสำคัญในการตรวจสอบ Master Data:\n";
+        $out .= "- ฟิลด์สถานะใช้งานของ nondrugitems คือ `istatus = 'Y'` (ใช้งาน) หรือ 'N' (ยกเลิก)\n";
+        $out .= "- ตรวจสอบค่าบริการที่ยังไม่ผูกรหัส ADP สปสช.: `SELECT icode, name, price, nhso_adp_code FROM nondrugitems WHERE (nhso_adp_code IS NULL OR nhso_adp_code = '') AND istatus = 'Y'`\n";
+        $out .= "- ตรวจสอบสิทธิการรักษาที่ยังไม่ผูกรหัสส่งออก 16 แฟ้ม: `SELECT pttype, name, pcode, hipdata_code FROM pttype WHERE (hipdata_code IS NULL OR hipdata_code = '') AND isuse = 'Y'`\n";
+        $out .= "- ตรวจสอบแพทย์ที่ไม่มีเลขที่ใบประกอบวิชาชีพ: `SELECT code, name, licenseno, council_code FROM doctor WHERE (licenseno IS NULL OR licenseno = '' OR licenseno = '-') AND active = 'Y'`\n";
+        $out .= "- ตรวจสอบราคาตามสิทธิ: `pttype_items_price` เชื่อมกับ `nondrugitems` ด้วย `items_table_code = icode` และ `items_table_name = 'nondrugitems'`\n";
+        $out .= "- หมวดค่ารักษา: `nondrugitems.income` เชื่อมกับ `income.income`\n\n";
+
+        foreach ($tables as $table => $info) {
+            $out .= "TABLE: `{$table}` -- {$info['description']}\nCOLUMNS:\n";
+            foreach ($info['columns'] as $col => $desc) {
+                $out .= "  - `{$col}`: {$desc}\n";
+            }
+            $out .= "\n";
+        }
+
+        return $out;
+    }
+
+    /**
      * Curated dictionary of all 12 HosFin tables and accurate columns
      */
     public function getCuratedHosfinTables(): array
@@ -219,55 +249,115 @@ class SchemaCatalogService
     }
 
     /**
-     * Curated dictionary of HOSxP Master Data tables (Strictly: nondrugitems, pttype, doctor)
+     * Curated dictionary of HOSxP Master Data & Lookup tables
      */
-    protected function getCuratedHosxpTables(): array
+    public function getCuratedHosxpTables(): array
     {
         return [
             'nondrugitems' => [
                 'description' => 'ตารางตั้งค่ารายการค่าบริการและหัตถการที่ไม่ใช่ยา (Services & Non-drug Master)',
                 'columns' => [
-                    'icode' => 'varchar(7) รหัสรายการค่ารักษาพยาบาล (Primary Key)',
-                    'name' => 'varchar(100) ชื่อรายการค่าบริการ/หัตถการ',
-                    'price' => 'double ราคาค่าบริการปกติ',
+                    'icode' => 'varchar(7) รหัสรายการค่ารักษาพยาบาล (Primary Key ขึ้นต้นด้วย 3)',
+                    'name' => 'varchar(200) ชื่อรายการค่าบริการ/หัตถการ',
+                    'price' => 'double ราคาค่าบริการปกติ (ราคา 1)',
                     'price2' => 'double ราคาค่าบริการราคา 2',
                     'price3' => 'double ราคาค่าบริการราคา 3',
-                    'income' => 'varchar(2) หมวดค่ารักษาพยาบาล (เชื่อมตาราง income)',
-                    'nhso_adp_code' => 'varchar(20) รหัสมาตรฐานค่าบริการ ADP สปสช. (ใช้ตรวจสอบว่าผูกรหัสถูกต้องหรือไม่)',
-                    'billcode' => 'varchar(20) รหัสเบิกจ่ายตามระเบียบกรมบัญชีกลาง',
-                    'unit' => 'varchar(20) หน่วยนับค่าบริการ',
-                    'istat' => 'varchar(1) สถานะการใช้งาน (Y=ใช้งานปกติ, N=ยกเลิก)',
+                    'income' => 'char(2) รหัสหมวดค่ารักษาพยาบาล (Foreign Key -> income.income)',
+                    'nhso_adp_type_id' => 'int ประเภทค่าบริการ ADP สปสช. (Foreign Key -> nhso_adp_type.nhso_adp_type_id)',
+                    'nhso_adp_code' => 'varchar(15) รหัสมาตรฐานค่าบริการ ADP สปสช. สำหรับส่งเบิก e-Claim',
+                    'billcode' => 'varchar(10) รหัสเบิกจ่ายตามระเบียบกรมบัญชีกลาง (CSMBS)',
+                    'unit' => 'varchar(100) หน่วยนับค่าบริการ',
+                    'istatus' => 'char(1) สถานะการใช้งาน (Y=ใช้งานปกติ, N=ยกเลิก)',
+                    'paidst' => 'char(2) สถานะการชำระเงินเริ่มต้น (Foreign Key -> paidst.paidst)',
+                    'sks_claim_category_type_id' => 'int หมวดการเคลม e-Claim สกส.',
+                    'sks_tmlt_code' => 'varchar(15) รหัสตรวจแล็บมาตรฐาน TMLT',
+                    'moph_price_item_code' => 'varchar(10) รหัสค่าบริการสาธารณสุข MOPH',
                 ]
             ],
             'pttype' => [
                 'description' => 'ตารางตั้งค่าสิทธิการรักษาพยาบาล (Health Insurance Rights Master)',
                 'columns' => [
-                    'pttype' => 'varchar(2) รหัสสิทธิการรักษาพยาบาล (Primary Key เช่น 10, 20, 30, UCS, OFC, SSS)',
-                    'name' => 'varchar(100) ชื่อสิทธิการรักษาพยาบาล',
-                    'pcode' => 'varchar(2) กลุ่มสิทธิมาตรฐานตามโครงสร้าง สปสช./กระทรวง',
-                    'hipdata_code' => 'varchar(20) รหัสส่งออก 16 แฟ้ม (ใช้ตรวจสอบว่าผูกรหัสส่งออกถูกต้องตรงตามมาตรฐานหรือไม่)',
+                    'pttype' => 'char(2) รหัสสิทธิการรักษาพยาบาล (Primary Key เช่น 10, 20, 30, UCS, OFC, SSS, O1, O3)',
+                    'name' => 'varchar(250) ชื่อสิทธิการรักษาพยาบาล',
+                    'pcode' => 'char(2) กลุ่มสิทธิมาตรฐานระดับประเทศ (Foreign Key -> pcode.code เช่น A1=จ่ายเอง, UC=บัตรทอง, OF=ข้าราชการ, SS=ประกันสังคม)',
+                    'hipdata_code' => 'varchar(6) รหัสส่งออก 16 แฟ้ม (มาตรฐาน e-Claim / 16 แฟ้ม)',
+                    'paidst' => 'char(2) สถานะการชำระเงินเริ่มต้น (Foreign Key -> paidst.paidst เช่น 00=ค้างชำระ, 01=ชำระเองเบิกได้, 02=ลูกหนี้สิทธิ)',
+                    'price_type' => 'int ลำดับราคาที่เลือกใช้จาก Master (1=price, 2=price2, 3=price3)',
+                    'pttype_price_group_id' => 'int รหัสกลุ่มราคาตามสิทธิ (เชื่อมกับ pttype_items_price)',
                     'max_debt_money' => 'double เพดานหนี้สูงสุดที่อนุญาต',
-                    'paidst' => 'varchar(2) สถานะการชำระเงิน (01=ไม่ต้องจ่าย/สิทธิยกเว้น, 02=ชำระเงินสด, 03=ลูกหนี้เบิกได้)',
-                    'isuse' => 'varchar(1) สถานะเปิดใช้งาน (Y/N)',
+                    'isuse' => 'char(1) สถานะเปิดใช้งาน (Y=ใช้งาน, N=ไม่ใช้งาน)',
                 ]
             ],
             'doctor' => [
                 'description' => 'ตารางตั้งค่ารายชื่อแพทย์และบุคลากรทางการแพทย์ (Doctor & Staff Master)',
                 'columns' => [
-                    'code' => 'varchar(6) รหัสแพทย์ในระบบ HOSxP (Primary Key)',
-                    'name' => 'varchar(100) ชื่อ-นามสกุลแพทย์หรือผู้ตรวจรักษา',
-                    'licenseno' => 'varchar(20) เลขที่ใบอนุญาตประกอบวิชาชีพเวชกรรม (ว. หรือ ท. หรือ พ.)',
-                    'council_code' => 'varchar(20) รหัสสภาวิชาชีพ (เช่น 01 แพทยสภา, 02 ทันตแพทยสภา, 03 สภาการพยาบาล)',
-                    'position_id' => 'int รหัสตำแหน่งสายงาน',
-                    'cid' => 'varchar(13) เลขประจำตัวประชาชน 13 หลัก',
-                    'active' => 'varchar(1) สถานะการปฏิบัติงาน (Y=ปฏิบัติงานอยู่, N=ลาออก/ย้าย)',
+                    'code' => 'varchar(15) รหัสแพทย์ในระบบ HOSxP (Primary Key)',
+                    'name' => 'varchar(150) ชื่อ-นามสกุลแพทย์หรือผู้ตรวจรักษา',
+                    'licenseno' => 'varchar(50) เลขที่ใบอนุญาตประกอบวิชาชีพเวชกรรม (เลข ว., ท., พ. ฯลฯ)',
+                    'council_code' => 'varchar(2) รหัสสภาวิชาชีพ (01=แพทยสภา, 02=ทันตแพทยสภา, 03=สภาการพยาบาล, 04=สภาเภสัชกรรม)',
+                    'position_id' => 'int รหัสตำแหน่งสายงาน (Foreign Key -> doctor_position.id)',
+                    'spclty' => 'char(2) รหัสสาขาความเชี่ยวชาญทางการแพทย์ (Foreign Key -> spclty.spclty)',
+                    'clinic' => 'char(3) รหัสคลินิกประจำ (Foreign Key -> clinic.clinic)',
+                    'cid' => 'varchar(17) เลขประจำตัวประชาชน 13 หลัก',
+                    'active' => 'char(1) สถานะการปฏิบัติงาน (Y=ปฏิบัติงานอยู่, N=ลาออก/ย้าย)',
+                ]
+            ],
+            'pttype_items_price' => [
+                'description' => 'ตารางกำหนดราคาแยกตามสิทธิการรักษาพยาบาล (Price by Insurance Right Master): HOSxP จะตรวจสอบราคาสิทธิตรงนี้ก่อนบันทึกรายการลง opitemrece',
+                'columns' => [
+                    'pttype_items_price_id' => 'int รหัสรายการราคาตามสิทธิ (Primary Key)',
+                    'items_table_name' => 'varchar(50) ชื่อตารางรายการ (nondrugitems หรือ drugitems)',
+                    'items_table_code' => 'varchar(100) รหัสรายการ icode (เชื่อมกับ nondrugitems.icode)',
+                    'pttype' => 'char(2) รหัสสิทธิการรักษา (เชื่อมกับ pttype.pttype)',
+                    'pttype_price_group_id' => 'int รหัสกลุ่มราคาตามสิทธิ',
+                    'price' => 'double ราคาที่ต้องคิดสำหรับสิทธินี้',
+                    'discount_percent' => 'double เปอร์เซ็นต์ส่วนลดตามสิทธิ',
+                    'paidst' => 'char(2) สถานะการชำระเงินสำหรับสิทธินี้',
+                ]
+            ],
+            'income' => [
+                'description' => 'ตารางหมวดค่ารักษาพยาบาล 16 หมวดมาตรฐาน (Income Master: ค่าห้อง, ค่ายา, ค่าแล็บ, ค่าผ่าตัด ฯลฯ)',
+                'columns' => [
+                    'income' => 'char(2) รหัสหมวดค่ารักษา (Primary Key เช่น 01=ค่าห้อง/อาหาร, 02=ค่าอวัยวะเทียม, 03=ค่ายา, 07=ค่าตรวจวินิจฉัย/แล็บ, 11=ค่าผ่าตัด/หัตถการ)',
+                    'name' => 'varchar(200) ชื่อหมวดค่ารักษาพยาบาล',
+                    'income_group' => 'char(2) กลุ่มหมวดค่ารักษา',
+                    'drg_group' => 'char(2) หมวดตามเกณฑ์ DRGs',
+                    'std_group' => 'char(2) หมวดมาตรฐาน สปสช.',
+                ]
+            ],
+            'paidst' => [
+                'description' => 'ตารางสถานะการชำระเงินค่ารักษาพยาบาล (Payment Status Master)',
+                'columns' => [
+                    'paidst' => 'char(2) รหัสสถานะ (Primary Key เช่น 00=ค้างชำระ, 01=ชำระเองเบิกได้, 02=ลูกหนี้สิทธิ)',
+                    'name' => 'varchar(100) ชื่อสถานะการชำระเงิน',
+                ]
+            ],
+            'pcode' => [
+                'description' => 'ตารางกลุ่มสิทธิมาตรฐานระดับประเทศ (National Rights Group Master)',
+                'columns' => [
+                    'code' => 'char(2) รหัสกลุ่มสิทธิ (Primary Key เช่น A1=จ่ายเงินเอง, A2=เบิกต้นสังกัด, UC=บัตรทอง, OF=ข้าราชการ, SS=ประกันสังคม)',
+                    'name' => 'varchar(150) ชื่อกลุ่มสิทธิมาตรฐาน',
+                ]
+            ],
+            'spclty' => [
+                'description' => 'ตารางสาขาความเชี่ยวชาญทางการแพทย์ (Medical Specialties Master)',
+                'columns' => [
+                    'spclty' => 'char(2) รหัสสาขา (Primary Key เช่น 01=อายุรกรรม, 02=ศัลยกรรม, 03=สูติกรรม, 04=กุมารเวชกรรม)',
+                    'name' => 'varchar(100) ชื่อสาขาความเชี่ยวชาญ',
+                ]
+            ],
+            'doctor_position' => [
+                'description' => 'ตารางตำแหน่งวิชาชีพทางการแพทย์ (Doctor Positions Master)',
+                'columns' => [
+                    'id' => 'int รหัสตำแหน่ง (Primary Key เช่น 1=แพทย์, 2=ทันตแพทย์, 3=เภสัชกร, 4=พยาบาล)',
+                    'name' => 'varchar(100) ชื่อตำแหน่งวิชาชีพ',
                 ]
             ]
         ];
     }
 
     /**
-     * Select relevant HOSxP tables among the 3 master tables
+     * Select relevant HOSxP tables among master and lookup tables
      */
     protected function selectRelevantHosxpTables(string $query, array $tables): array
     {
@@ -275,22 +365,34 @@ class SchemaCatalogService
         $selected = [];
 
         $isNondrug = preg_match('/(ค่าบริการ|หัตถการ|nondrug|adp|หมวด|income|ราคา|icode|billcode|ค่ารักษา)/iu', $q);
-        $isPttype = preg_match('/(สิทธิ|pttype|บัตรทอง|ประกันสังคม|ข้าราชการ|hipdata|16\s*แฟ้ม|เบิกได้|จ่ายเอง|pcode)/iu', $q);
-        $isDoctor = preg_match('/(หมอ|แพทย์|doctor|ผู้ตรวจ|licenseno|ใบประกอบ|สภาวิชาชีพ|council)/iu', $q);
+        $isPttype = preg_match('/(สิทธิ|pttype|บัตรทอง|ประกันสังคม|ข้าราชการ|hipdata|16\s*แฟ้ม|เบิกได้|จ่ายเอง|pcode|สิทธิการรักษา)/iu', $q);
+        $isDoctor = preg_match('/(หมอ|แพทย์|doctor|ผู้ตรวจ|licenseno|ใบประกอบ|สภาวิชาชีพ|council|ตำแหน่ง|เชี่ยวชาญ|spclty)/iu', $q);
+        $isPriceByRight = preg_match('/(pttype_items_price|ราคาแยกตามสิทธิ|ราคาตามสิทธิ|ส่วนลด|ราคาพิเศษ|กลุ่มราคา)/iu', $q);
 
         if ($isNondrug) {
             $selected['nondrugitems'] = $tables['nondrugitems'];
+            $selected['income'] = $tables['income'];
         }
 
         if ($isPttype) {
             $selected['pttype'] = $tables['pttype'];
+            $selected['pcode'] = $tables['pcode'];
+            $selected['paidst'] = $tables['paidst'];
         }
 
         if ($isDoctor) {
             $selected['doctor'] = $tables['doctor'];
+            $selected['spclty'] = $tables['spclty'];
+            $selected['doctor_position'] = $tables['doctor_position'];
         }
 
-        // If no specific keyword, provide all 3 for general config checks
+        if ($isPriceByRight) {
+            $selected['pttype_items_price'] = $tables['pttype_items_price'];
+            $selected['pttype'] = $tables['pttype'];
+            $selected['nondrugitems'] = $tables['nondrugitems'];
+        }
+
+        // If general or no specific match, include the 3 core masters + pttype_items_price + lookups
         if (empty($selected)) {
             return $tables;
         }

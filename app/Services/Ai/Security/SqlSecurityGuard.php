@@ -167,18 +167,22 @@ class SqlSecurityGuard
                 }
             }
         } elseif ($targetDb === 'hosxp') {
-            $allowedHosxp = ['nondrugitems', 'pttype', 'doctor'];
+            $allowedHosxp = [
+                'nondrugitems', 'pttype', 'doctor', 'pttype_items_price', 'opitemrece',
+                'income', 'paidst', 'pcode', 'spclty', 'doctor_position', 'nhso_adp_type',
+                'pttype_price_group', 'pttype_price_policy_type', 'sks_claim_category_type'
+            ];
             foreach ($tables as $tbl) {
                 if (!in_array($tbl, $allowedHosxp, true)) {
                     if ($tbl === 'information_schema' || str_contains($tbl, 'schema')) {
                         return [
                             'is_valid' => false,
-                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยครับ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจสิทธิ pttype', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยระบบจะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีครับ"
+                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยครับ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจราคาตามสิทธิใน pttype_items_price', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยระบบจะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีครับ"
                         ];
                     }
                     return [
                         'is_valid' => false,
-                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลพื้นฐาน nondrugitems, pttype, doctor เท่านั้น (พบการเรียกดู '{$tbl}')"
+                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลตั้งค่า nondrugitems, pttype, doctor, pttype_items_price, opitemrece และตาราง lookup ที่เกี่ยวข้องเท่านั้น (พบการเรียกดู '{$tbl}')"
                     ];
                 }
             }

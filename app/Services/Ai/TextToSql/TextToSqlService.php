@@ -596,6 +596,7 @@ EOT;
             'billcode' => 'รหัสเบิกกรมบัญชีกลาง',
             'unit' => 'หน่วยนับ',
             'istat' => 'สถานะการใช้งาน',
+            'istatus' => 'สถานะการใช้งาน',
             'pttype' => 'รหัสสิทธิการรักษา',
             'pcode' => 'กลุ่มสิทธิมาตรฐาน',
             'hipdata_code' => 'รหัสส่งออก 16 แฟ้ม',
@@ -606,8 +607,23 @@ EOT;
             'licenseno' => 'เลขที่ใบประกอบวิชาชีพ',
             'council_code' => 'รหัสสภาวิชาชีพ',
             'position_id' => 'รหัสตำแหน่ง',
+            'spclty' => 'รหัสสาขาความเชี่ยวชาญ',
+            'clinic' => 'รหัสคลินิก',
             'cid' => 'เลขประจำตัวประชาชน',
             'active' => 'สถานะปฏิบัติงาน',
+
+            // HOSxP Pricing by Rights (pttype_items_price) & Opitemrece
+            'pttype_items_price_id' => 'รหัสราคาตามสิทธิ',
+            'items_table_name' => 'ประเภทตารางรายการ',
+            'items_table_code' => 'รหัสรายการ (icode)',
+            'pttype_price_group_id' => 'รหัสกลุ่มราคาตามสิทธิ',
+            'discount_percent' => 'ส่วนลดตามสิทธิ (%)',
+            'unitprice' => 'ราคาต่อหน่วย (บาท)',
+            'sum_price' => 'ยอดเงินรวม (บาท)',
+            'qty' => 'จำนวน',
+            'vn' => 'เลขที่รับบริการ (VN)',
+            'an' => 'เลขที่ผู้ป่วยใน (AN)',
+            'hn' => 'เลขประจำตัวผู้ป่วย (HN)',
 
             // General aggregations
             'count' => 'จำนวนรายการ',

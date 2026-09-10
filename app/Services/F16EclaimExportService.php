@@ -104,6 +104,56 @@ class F16EclaimExportService
     }
 
     /**
+     * กำหนดรหัสหมวดค่าบริการ CHA (31/32 หรือ 41/42) และสถานะการใช้ยา USE_STATUS (1 หรือ 2) ให้สอดคล้องกัน 100% ตามมาตรฐาน สปสช./FDH
+     * หมวด 3 (ยาและสารอาหารทางเส้นเลือดที่ใช้ใน รพ.): CHA = 31 (เบิกได้) / 32 (ส่วนเกิน) <-> DRU.USE_STATUS = 1
+     * หมวด 4 (ยาที่นำไปใช้ต่อที่บ้าน): CHA = 41 (เบิกได้) / 42 (ส่วนเกิน) <-> DRU.USE_STATUS = 2
+     */
+    public static function resolveDrugChrgAndUseStatus(object $it, bool $isIpd = false): array
+    {
+        $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+        $income = str_pad(trim((string)($it->income ?? '')), 2, '0', STR_PAD_LEFT);
+        $chrg1 = trim((string)($it->chrgitem_code1 ?? ''));
+        $itemType = strtoupper(trim((string)($it->item_type ?? '')));
+
+        // กรณีคนไข้ OPD (ผู้ป่วยนอก: ไม่ได้นอน รพ.):
+        // ตามมาตรฐาน e-Claim และ FDH สำหรับคนไข้ OPD รายการยาที่แพทย์สั่งจ่าย
+        // จะจัดเป็น "ยาที่นำไปใช้ต่อที่บ้าน" (หมวด 4: CHA = 41/42, DRU.USE_STATUS = '2')
+        if (!$isIpd) {
+            // หากมีการระบุชัดเจนว่าเป็นยาใช้ใน รพ. (เช่น item_type = 'I' หรือ 'HOSP')
+            $isHospitalUse = ($itemType === 'I' || $itemType === 'HOSP');
+            if ($isHospitalUse) {
+                return [
+                    'chrg' => $isPaidSelf ? '32' : '31',
+                    'use_status' => '1'
+                ];
+            }
+
+            return [
+                'chrg' => $isPaidSelf ? '42' : '41',
+                'use_status' => '2'
+            ];
+        }
+
+        // กรณีคนไข้ IPD (ผู้ป่วยใน):
+        // 1) หากเป็นยากลับบ้าน (Home medication / Discharge med):
+        //    item_type = 'H' หรือ income = '04' หรือ chrgitem_code1 ขึ้นต้นด้วย 4
+        $isTakeHome = ($income === '04' || $itemType === 'H' || str_starts_with($chrg1, '4'));
+        if ($isTakeHome) {
+            return [
+                'chrg' => $isPaidSelf ? '42' : '41',
+                'use_status' => '2'
+            ];
+        }
+
+        // 2) ยาและสารอาหารที่ใช้ระหว่างนอนรักษาตัวในโรงพยาบาล (In-hospital medication):
+        //    หมวด 3: CHA = 31 (เบิกได้) / 32 (ส่วนเกิน) <-> DRU.USE_STATUS = 1
+        return [
+            'chrg' => $isPaidSelf ? '32' : '31',
+            'use_status' => '1'
+        ];
+    }
+
+    /**
      * แปลงหมวดรายได้ของ HOSxP (income) ให้เป็นรหัสหมวดค่ารักษาพยาบาลสำหรับ ADP.txt (TYPE: 1-20 ตาม 16แฟ้มFDH.xlsx)
      */
     public static function mapIncomeToAdpType($income, $nhsoAdpType = null): string
@@ -641,7 +691,7 @@ class F16EclaimExportService
         if (!empty($vnsList)) {
             try {
                 $itemRows = DB::connection('hosxp')->select("
-                    SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
+                    SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost, op.item_type,
                            COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income) as income, op.paidst, op.pttype, op.hos_guid,
                            d.name as drug_name, d.strength as drug_strength, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                            d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
@@ -668,7 +718,7 @@ class F16EclaimExportService
                 // Fallback query without drugusage details
                 try {
                     $itemRows = DB::connection('hosxp')->select("
-                        SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost,
+                        SELECT op.vn, op.hn, op.an, op.vstdate, op.vsttime, op.icode, op.qty, op.unitprice, op.sum_price, op.cost, op.item_type,
                                COALESCE(NULLIF(n.income, ''), NULLIF(d.income, ''), op.income) as income, op.paidst, op.pttype, op.hos_guid,
                                d.name as drug_name, d.strength as drug_strength, d.units as drug_unit, d.packqty as drug_pack, d.did as drug_did,
                                d.tmt_tp_code, d.tmt_gp_code, d.ttmt_code, d.sks_drug_code, d.therapeutic,
@@ -1303,7 +1353,8 @@ class F16EclaimExportService
             }
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
-            $usestatus = !empty($it->an) ? '1' : '2'; // 1=In-hospital, 2=Home
+            $drugMap = self::resolveDrugChrgAndUseStatus($it, false);
+            $usestatus = $drugMap['use_status'];
             $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $sigcode = mb_substr(trim((string)($it->sigcode ?? '')), 0, 50, 'UTF-8');
             $sigtextParts = array_filter([trim((string)($it->sigtext1 ?? '')), trim((string)($it->sigtext2 ?? '')), trim((string)($it->sigtext3 ?? ''))]);
@@ -1332,9 +1383,16 @@ class F16EclaimExportService
             $chaGroups = [];
             foreach ($vnItems as $it) {
                 $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
-                $chrg = $isPaidSelf 
-                    ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
-                    : (trim((string)($it->chrgitem_code1 ?? '')) ?: self::mapIncomeToChaItem($it->income, '02'));
+                $isDrug = str_starts_with((string)$it->icode, '1') || !empty($it->drug_name);
+
+                if ($isDrug) {
+                    $drugMap = self::resolveDrugChrgAndUseStatus($it, false);
+                    $chrg = $drugMap['chrg'];
+                } else {
+                    $chrg = $isPaidSelf 
+                        ? (trim((string)($it->chrgitem_code2 ?? '')) ?: self::mapIncomeToChaItem($it->income, '03'))
+                        : (trim((string)($it->chrgitem_code1 ?? '')) ?: self::mapIncomeToChaItem($it->income, '02'));
+                }
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }
@@ -1757,7 +1815,7 @@ class F16EclaimExportService
         try {
             $itemRows = DB::connection('hosxp')->select("
                 SELECT o.an, o.vn, o.hn, o.icode, o.qty, o.unitprice, o.sum_price, o.vstdate, o.rxdate, o.rxtime,
-                       o.income, o.paidst,
+                       o.income, o.paidst, o.item_type,
                        d.did, d.name as drug_name, d.units, d.packqty, d.usage_code,
                        COALESCE(NULLIF(d.sks_drug_code,''), NULLIF(d.tmt_tp_code,''), NULLIF(d.tmt_gp_code,''), NULLIF(d.ttmt_code,''), NULLIF(d.did,'')) as didstd,
                        d.unitcost, d.unitprice as drug_price,
@@ -2098,7 +2156,8 @@ class F16EclaimExportService
             }
             $isNonReimbursable = (!empty($it->paidst) && $it->paidst !== '02');
             $totcopay = $isNonReimbursable ? number_format((float)$it->sum_price, 2, '.', '') : '0';
-            $usestatus = '1';
+            $drugMap = self::resolveDrugChrgAndUseStatus($it, true);
+            $usestatus = $drugMap['use_status'];
             $total = $isNonReimbursable ? '0.00' : number_format((float)$it->sum_price, 2, '.', '');
             $provider = $it->doctor_license ?: 'ว00000';
 
@@ -2120,7 +2179,15 @@ class F16EclaimExportService
             // Group by CHA CHRGITEM
             $chaGroups = [];
             foreach ($anItems as $it) {
-                $chrg = self::mapIncomeToChaItem($it->income);
+                $isPaidSelf = in_array(trim((string)($it->paidst ?? '')), ['01', '03']);
+                $isDrug = str_starts_with((string)$it->icode, '1') || !empty($it->drug_name);
+
+                if ($isDrug) {
+                    $drugMap = self::resolveDrugChrgAndUseStatus($it, true);
+                    $chrg = $drugMap['chrg'];
+                } else {
+                    $chrg = self::mapIncomeToChaItem($it->income, $it->paidst ?? '02');
+                }
                 if (!isset($chaGroups[$chrg])) {
                     $chaGroups[$chrg] = 0.0;
                 }

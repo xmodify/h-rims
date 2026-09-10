@@ -2598,13 +2598,13 @@
                                 </span>
                                 <div>
                                     <h6 class="fw-bold mb-0 text-dark">
-                                        ถามเจาะลึกต่อยอดด้วย AI & Text-to-SQL (Interactive Drill-Down)
+                                        ถามเจาะลึกต่อยอดด้วย AI Interactive Drill-Down
                                     </h6>
                                     <small class="text-muted">คลิกคำถามแนะนำ หรือพิมพ์คำถามเจาะลึกจากฐานข้อมูลบัญชี GL จริงของงวดนี้</small>
                                 </div>
                             </div>
                             <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-3 py-1 small">
-                                <i class="bi bi-database-check me-1"></i> เชื่อมต่อ Text-to-SQL ฐานข้อมูล GL
+                                <i class="bi bi-database-check me-1"></i> เชื่อมต่อ ฐานข้อมูล GL
                             </span>
                         </div>
 
@@ -2661,12 +2661,6 @@
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">
                         <i class="bi bi-arrow-clockwise me-1"></i> วิเคราะห์ใหม่อีกครั้ง
-                    </button>
-                    <button type="button" class="btn btn-success btn-sm px-3 rounded-pill fw-bold" onclick="focusDrillDownInput()" title="เลื่อนลงไปพิมพ์คำถามเจาะลึก Text-to-SQL ในหน้านี้">
-                        <i class="bi bi-search me-1"></i> ถามเจาะลึกในหน้านี้ (Text-to-SQL) 🤖
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="continueInChatbot()" title="เปิด RiMS Copilot แชทบอทเต็มรูปแบบ">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> เปิด Copilot แชทบอท
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
                 </div>

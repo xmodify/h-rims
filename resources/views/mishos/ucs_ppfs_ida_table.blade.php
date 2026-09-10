@@ -71,6 +71,7 @@
                                     
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                     <th class="text-center">HN</th>
                                     <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
@@ -95,25 +96,21 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
+                                        @if(!$row->claim_valid)
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif(!empty($row->validation_warnings))
-                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
-                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
-                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @endif
@@ -124,6 +121,11 @@
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
                                     </td>
                                     <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
                                     <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
                                     <td class="text-start small text-muted">
@@ -154,7 +156,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
@@ -182,6 +184,7 @@
                                     
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                     <th class="text-center">HN</th>
                                     <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
@@ -207,25 +210,21 @@
                                 @foreach($claim as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
+                                        @if(!$row->claim_valid)
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif(!empty($row->validation_warnings))
-                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
-                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
-                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @endif
@@ -237,6 +236,11 @@
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
                                     </td>
                                     <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
                                     <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
                                     <td class="text-start small text-muted">
@@ -276,7 +280,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>

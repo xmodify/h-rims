@@ -88,6 +88,7 @@
                                     <th class="text-center">ตรวจสอบ</th>
                                     <th class="text-center" width="8%">InvoiceNo</th>
                                     <th class="text-center" width="10%">วัน-เวลา | Q</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                     <th class="text-center">HN</th>
                                     <th class="text-center">CID</th>
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
@@ -144,6 +145,11 @@
                                         <div class="small fw-bold text-nowrap">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted text-nowrap" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                     </td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
                                     <td class="text-center small text-muted text-nowrap">{{$row->cid}}</td>
                                     <td class="text-start">
@@ -196,7 +202,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="{{ $is_ssop_licensed && $tab['show_checkbox'] ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_ssop_licensed && $tab['show_checkbox'] ? 11 : 10 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>

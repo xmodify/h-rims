@@ -185,8 +185,10 @@ class ClaimOpController extends Controller
             claim_items.project,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -258,8 +260,10 @@ class ClaimOpController extends Controller
             claim_items.project,
             stm.receive_total,stm.repno,rep.error_code AS rep_error_code,rep.repno AS rep_repno,fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -701,8 +705,10 @@ class ClaimOpController extends Controller
             claim_items.project,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -774,8 +780,10 @@ class ClaimOpController extends Controller
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -1004,8 +1012,10 @@ class ClaimOpController extends Controller
                     IF((COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
                 ELSE ' . $default_normal_price . '
             END AS cfo_price,
-            claim_items.other_list
+            claim_items.other_list,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
 			LEFT JOIN er_regist er ON er.vn=o.vn
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1209,8 +1219,10 @@ class ClaimOpController extends Controller
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN er_regist e ON e.vn=o.vn 
@@ -1279,8 +1291,10 @@ class ClaimOpController extends Controller
             rep.error_code AS rep_error_code,rep.repno AS rep_repno,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN er_regist e ON e.vn=o.vn 
@@ -1670,8 +1684,10 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -1709,8 +1725,10 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -1885,6 +1903,7 @@ class ClaimOpController extends Controller
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
+            CASE WHEN (rep.vn IS NOT NULL OR oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL) THEN "CLAIMED" ELSE "WAITING" END AS claim_status,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
@@ -1896,8 +1915,10 @@ class ClaimOpController extends Controller
             stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y, pt.cid,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -2133,6 +2154,7 @@ class ClaimOpController extends Controller
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
+            CASE WHEN (rep.vn IS NOT NULL OR oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL) THEN "CLAIMED" ELSE "WAITING" END AS claim_status,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
@@ -2144,8 +2166,10 @@ class ClaimOpController extends Controller
             stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,
             pt.sex, v.age_y, pt.cid,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -2411,8 +2435,10 @@ class ClaimOpController extends Controller
             0 AS debtor,
             ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -2501,8 +2527,10 @@ class ClaimOpController extends Controller
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
             rep_eclaim.error_code AS rep_error_code, rep_eclaim.repno AS rep_repno,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
-            doc.licenseno AS doctor_license, doc.name AS doctor_name
+            doc.licenseno AS doctor_license, doc.name AS doctor_name,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -2986,8 +3014,10 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -3027,8 +3057,10 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -3249,8 +3281,10 @@ class ClaimOpController extends Controller
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3353,8 +3387,10 @@ class ClaimOpController extends Controller
             COALESCE(rep.error_code, rep_uc.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3612,8 +3648,10 @@ public function lgo_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -3652,8 +3690,10 @@ public function lgo_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -3856,8 +3896,10 @@ public function lgo_kidney(Request $request)
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3939,8 +3981,10 @@ public function lgo_kidney(Request $request)
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4178,8 +4222,10 @@ public function bkk_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -4219,8 +4265,10 @@ public function bkk_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -4428,8 +4476,10 @@ public function bkk_kidney(Request $request)
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4511,8 +4561,10 @@ public function bkk_kidney(Request $request)
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4751,8 +4803,10 @@ public function bmt_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -4790,8 +4844,10 @@ public function bmt_kidney(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -4998,8 +5054,10 @@ public function bmt_kidney(Request $request)
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -5081,8 +5139,10 @@ public function bmt_kidney(Request $request)
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -5373,8 +5433,10 @@ public function bmt_kidney(Request $request)
             0 AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -5456,8 +5518,10 @@ public function bmt_kidney(Request $request)
             COALESCE(rep.error_code, ec.check_detail) AS check_detail, ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             doc.licenseno AS doctor_license, doc.name AS doctor_name,
-            0 AS ems_price
+            0 AS ems_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -5723,8 +5787,10 @@ public function sss_ppfs(Request $request)
             op_data.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
-            pt.sex, v.age_y, doc.licenseno AS doctor_license
+            pt.sex, v.age_y, doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -5790,8 +5856,10 @@ public function sss_ppfs(Request $request)
             rep.net_compensate_nhso AS rep_nhso,
             rep.error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
-            pt.sex, v.age_y, doc.licenseno AS doctor_license
+            pt.sex, v.age_y, doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -6136,8 +6204,10 @@ public function sss_ppfs(Request $request)
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -6278,8 +6348,10 @@ public function sss_ppfs(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -6317,8 +6389,10 @@ public function sss_ppfs(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -6476,8 +6550,10 @@ public function sss_ppfs(Request $request)
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             hc_items.claim_list,
-            COALESCE(hc_items.claim_price, 0) AS claim_price,d.receive AS receive_total,d.repno
+            COALESCE(hc_items.claim_price, 0) AS claim_price,d.receive AS receive_total,d.repno,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -6645,8 +6721,10 @@ public function sss_ppfs(Request $request)
             SELECT o.vn AS seq, o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,os.cc,p.hipdata_code,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income, v.paid_money,
                 IFNULL(rc.rcpt_money,0) AS rcpt_money,v.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,rc.rcpno,
-                p2.arrear_date,p2.amount AS arrear_amount,fd.deposit_amount,fd1.debit_amount,"รอยืนยันลูกหนี้" AS status
+                p2.arrear_date,p2.amount AS arrear_amount,fd.deposit_amount,fd1.debit_amount,"รอยืนยันลูกหนี้" AS status,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
@@ -6675,8 +6753,10 @@ public function sss_ppfs(Request $request)
             SELECT o.vn AS seq, o.vstdate, o.vsttime, o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
                 os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.paid_money,
                 v.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount,r1.total_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount
+                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount,r1.total_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -6826,8 +6906,10 @@ public function sss_ppfs(Request $request)
         $claim = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
-            d.receive AS receive_total
+            d.receive AS receive_total,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=o.pttype
@@ -7006,8 +7088,10 @@ public function sss_ppfs(Request $request)
             (COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0)) AS claim_price,
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
-            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -8793,8 +8877,10 @@ public function sss_ppfs(Request $request)
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            doc.licenseno AS doctor_license
+            doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype

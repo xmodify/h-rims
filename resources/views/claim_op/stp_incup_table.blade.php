@@ -69,6 +69,7 @@
                         <th class="text-center">สถานะส่งเคลม</th>
                         <th class="text-center">เบิก/ส่ง</th>
                         <th class="text-center">วัน-เวลา | Q</th>     
+                                    <th class="text-center">ห้องตรวจ</th>
                         <th class="text-center">HN</th>    
                         <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                         <th class="text-center">รายการ</th>  
@@ -114,7 +115,7 @@
                         </td>
                         <td class="text-center small">
                             <div class="d-flex flex-column gap-1 align-items-center">
-                                @if($row->claim_status === 'CLAIMED')
+                                @if(($row->claim_status ?? '') === 'CLAIMED' || ($row->is_sent ?? '') == 'Y')
                                     <span class="badge bg-success-soft text-success"><i class="bi bi-check-circle-fill me-1"></i>ส่งเคลมแล้ว</span>
                                 @else
                                     <span class="badge bg-warning-soft text-warning"><i class="bi bi-clock me-1"></i>รอส่งเคลม</span>
@@ -156,6 +157,11 @@
                             <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                             <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                         </td>            
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                         <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
                         <td class="text-start">
                             <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
@@ -181,7 +187,7 @@
                 </tbody>
                 <tfoot class="bg-light-soft">
                     <tr>
-                        <th colspan="9" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
+                        <th colspan="10" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
                         <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                         <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                         <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>

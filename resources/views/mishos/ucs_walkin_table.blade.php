@@ -71,6 +71,7 @@
                                     
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                     <th class="text-center">HN</th>
                                     <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
@@ -110,6 +111,11 @@
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
                                     </td>
                                     <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
                                     <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
                                     <td class="text-start small text-muted">
@@ -138,7 +144,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="7" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="8" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
@@ -166,6 +172,7 @@
                                     
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                     <th class="text-center">HN</th>
                                     <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
@@ -207,6 +214,11 @@
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
                                     </td>
                                     <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
                                     <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
                                     <td class="text-start small text-muted">
@@ -244,7 +256,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="7" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="8" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>

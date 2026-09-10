@@ -128,8 +128,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             0 AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-            stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+            stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -325,8 +329,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             0 AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-            stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+            stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -471,8 +479,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
                 FROM (SELECT o.vstdate,o.vsttime,o.vn,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    LEAST(IF(stm.receive_hc_drug=0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price,0)) AS receive_total
-                    FROM ovst o
+                    LEAST(IF(stm.receive_hc_drug=0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price,0)) AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -527,8 +539,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price, 0)) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -749,8 +765,12 @@ class MishosController extends Controller
             LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug), COALESCE(herb.claim_price, 0)) AS receive_total,
             ttm.claim_list,
             ttm.has_postpartum, ttm.has_poultice, ttm.has_steam, ttm.has_massage, ttm.has_compress, ttm.has_herbs,
-            IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+            IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -922,8 +942,12 @@ class MishosController extends Controller
             COALESCE(herb.claim_price, 0) AS claim_billing_price,
             COALESCE(herb.claim_price, 0) AS claim_price,
             ttm.claim_list,
-            ttm.has_postpartum, ttm.has_poultice, ttm.has_steam, ttm.has_massage, ttm.has_compress, ttm.has_herbs
-            FROM ovst o
+            ttm.has_postpartum, ttm.has_poultice, ttm.has_steam, ttm.has_massage, ttm.has_compress, ttm.has_herbs,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1134,8 +1158,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
                 FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    LEAST(stm.receive_op, tele.claim_price) AS receive_total
-                    FROM ovst o
+                    LEAST(stm.receive_op, tele.claim_price) AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1188,8 +1216,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, tele.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
-				IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+				IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1336,8 +1368,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
                 FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    LEAST(stm.receive_op, rider.claim_price) AS receive_total
-                    FROM ovst o
+                    LEAST(stm.receive_op, rider.claim_price) AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1390,8 +1426,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, rider.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
-				IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+				IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1538,8 +1578,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
                 FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    stm.receive_dmis_compensate_pay AS receive_total
-                    FROM ovst o
+                    stm.receive_dmis_compensate_pay AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1592,8 +1636,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_compensate_pay AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1743,8 +1791,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total
-                    FROM ovst o
+                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1795,8 +1847,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
-                IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+                IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1943,8 +1999,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_drug AS receive_total
-                    FROM ovst o
+                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_drug AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -1997,8 +2057,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_dmis_drug AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
-                IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+                IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2144,8 +2208,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_inst AS receive_total
-                    FROM ovst o
+                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_inst AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2206,8 +2274,12 @@ class MishosController extends Controller
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
                 pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-                IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+                IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2358,8 +2430,12 @@ class MishosController extends Controller
                     WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                     WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                     END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
-                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
-                    FROM ovst o
+                FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2410,8 +2486,12 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_palliative AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
-                IF(fdh.seq IS NOT NULL,"Y","") AS claim
-            FROM ovst o
+                IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2546,8 +2626,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2620,8 +2704,12 @@ class MishosController extends Controller
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2761,8 +2849,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2833,8 +2925,12 @@ class MishosController extends Controller
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -2971,8 +3067,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3043,8 +3143,12 @@ class MishosController extends Controller
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3179,8 +3283,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3251,8 +3359,12 @@ class MishosController extends Controller
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3387,8 +3499,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3456,8 +3572,12 @@ class MishosController extends Controller
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3592,8 +3712,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3665,8 +3789,12 @@ class MishosController extends Controller
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+            doc.name AS doctor_name, doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN person_anc_service a ON a.vn=o.vn
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -3804,8 +3932,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -3877,8 +4009,12 @@ class MishosController extends Controller
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -4015,8 +4151,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -4088,8 +4228,12 @@ class MishosController extends Controller
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
-            FROM ovst o
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+                        doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                        FROM ovst o
+                        LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -4226,8 +4370,12 @@ class MishosController extends Controller
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
-                    0.00 AS receive_total
-                    FROM ovst o
+                    0.00 AS receive_total,
+                                doc.name AS doctor_name, doc.licenseno AS doctor_license,
+                        k.department AS main_dep_name
+                                FROM ovst o
+                                LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -4299,8 +4447,12 @@ class MishosController extends Controller
             COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+            doc.name AS doctor_name, doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
@@ -4414,8 +4566,10 @@ class MishosController extends Controller
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
                    vp.request_funds,
-                   doc.name AS doctor_name, doc.licenseno AS doctor_license
+                   doc.name AS doctor_name, doc.licenseno AS doctor_license,
+            k.department AS main_dep_name
             FROM ovst o
+            LEFT JOIN kskdepartment k ON k.depcode = o.main_dep
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
@@ -4616,10 +4770,11 @@ class MishosController extends Controller
 
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
             $row->endpoint = $hasEp ? 'Y' : null;
+            $row->endpoint_valid = $hasEp;
 
             // Run validation
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
+            $row->claim_valid        = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
@@ -4696,10 +4851,11 @@ class MishosController extends Controller
 
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
             $row->endpoint = $hasEp ? 'Y' : null;
+            $row->endpoint_valid = $hasEp;
 
             // Run validation
             $result = $validator->validateInsUcsOnly($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
+            $row->claim_valid        = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
@@ -4731,16 +4887,8 @@ class MishosController extends Controller
             }
         }
 
-        // Get auth_code status from visit_pttype
-        $authCodes = \Illuminate\Support\Facades\DB::connection('hosxp')
-            ->table('visit_pttype')
-            ->whereIn('vn', $allVns)
-            ->pluck('auth_code', 'vn')
-            ->toArray();
-
         foreach ($search as $row) {
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
-            $authCode = $authCodes[$row->seq] ?? null;
             $row->endpoint_valid = $hasEp;
         }
     }

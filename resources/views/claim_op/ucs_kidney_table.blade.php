@@ -69,6 +69,7 @@
                             <tr>
                                 <th class="text-center">#</th>
                                 <th class="text-center">วัน-เวลา | Q</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                 <th class="text-center">HN</th>
                                 <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                                 <th class="text-center" width="10%">อาการสำคัญ</th>
@@ -97,6 +98,11 @@
                                     <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                     <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                 </td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                 <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
                                 <td class="text-start">
                                     <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
@@ -132,7 +138,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                 <th></th>
@@ -158,6 +164,7 @@
                             <tr>
                                 <th class="text-center">#</th>
                                 <th class="text-center">วัน-เวลา | Q</th>
+                                    <th class="text-center">ห้องตรวจ</th>
                                 <th class="text-center">HN</th>
                                 <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                                 <th class="text-center" width="10%">อาการสำคัญ</th>
@@ -186,6 +193,11 @@
                                     <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                     <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                 </td>
+                                    <td class="text-start small">
+                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                            {{ $row->main_dep_name ?? '-' }}
+                                        </span>
+                                    </td>
                                 <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
                                 <td class="text-start">
                                     <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
@@ -221,7 +233,7 @@
                         </tbody>
                         <tfoot class="bg-light-soft">
                             <tr>
-                                <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ชดเชยแล้ว:</th>
+                                <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ชดเชยแล้ว:</th>
                                 <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                 <th></th>

@@ -754,7 +754,7 @@ class CsopExportController extends Controller
                         continue;
                     }
                     
-                    if ($muad === '2') {
+                    if ($muad === '1') {
                         $has_room_fee = true;
                     }
                     $other_groups[$muad] = true;

@@ -8096,6 +8096,10 @@ public function sss_ppfs(Request $request)
                     $has_pdx = true;
                 }
                 if (!empty($icd10)) {
+                    // ข้ามรหัสหัตถการ ICD-9 (ขึ้นต้นด้วยตัวเลข เช่น 9309, 9312) เพราะ CSOP ส่งเฉพาะ ICD-10 ใน OPDx
+                    if (preg_match('/^[0-9]/', $icd10)) {
+                        continue;
+                    }
                     $res = $validator->validateIcd10Chi($icd10, $diagtype);
                     if (!$res['is_valid']) {
                         $pre_audits[] = [
@@ -8191,7 +8195,7 @@ public function sss_ppfs(Request $request)
             }
 
             $g = $map_income_to_csop_group($item->income_csmbs_code, $item->income);
-            if ($g === '2') {
+            if ($g === '1') {
                 $has_room_fee = true;
             }
             $other_groups[$g] = true;
@@ -8203,7 +8207,7 @@ public function sss_ppfs(Request $request)
                 $pre_audits[] = [
                     'code' => 'T72',
                     'title' => 'เบิกค่าบริการผู้ป่วยนอกร่วมกับค่าเตียงสังเกตอาการ',
-                    'desc' => 'มีการเบิกค่าบริการผู้ป่วยนอก (55020/55021) ร่วมกับค่าเตียงสังเกตอาการ (หมวด 2) สกส. จะตรวจติด C รหัส T72',
+                    'desc' => 'มีการเบิกค่าบริการผู้ป่วยนอก (55020/55021) ร่วมกับค่าเตียงสังเกตอาการ (หมวด 1) สกส. จะตรวจติด C รหัส T72',
                     'status' => 'danger'
                 ];
             }
@@ -8950,7 +8954,11 @@ public function sss_ppfs(Request $request)
             if (!$has_icd10_chi_error && !empty($row->sdx)) {
                 $sdxs = explode(',', $row->sdx);
                 foreach ($sdxs as $s) {
-                    $res = $validator->validateIcd10Chi(trim($s), '3');
+                    $trim_s = trim($s);
+                    if (empty($trim_s) || preg_match('/^[0-9]/', $trim_s)) {
+                        continue;
+                    }
+                    $res = $validator->validateIcd10Chi($trim_s, '3');
                     if (!$res['is_valid']) {
                         $has_icd10_chi_error = true;
                         break;
@@ -8960,7 +8968,11 @@ public function sss_ppfs(Request $request)
             if (!$has_icd10_chi_error && !empty($row->icd9)) {
                 $icd9s = explode(',', $row->icd9);
                 foreach ($icd9s as $i) {
-                    $res = $validator->validateIcd10Chi(trim($i), '2');
+                    $trim_i = trim($i);
+                    if (empty($trim_i) || preg_match('/^[0-9]/', $trim_i)) {
+                        continue; // ข้ามรหัสหัตถการ ICD-9
+                    }
+                    $res = $validator->validateIcd10Chi($trim_i, '2');
                     if (!$res['is_valid']) {
                         $has_icd10_chi_error = true;
                         break;
@@ -9072,7 +9084,7 @@ public function sss_ppfs(Request $request)
                 }
 
                 $g = $map_income_to_csop_group($item->income_csmbs_code, $item->income);
-                if ($g === '2') {
+                if ($g === '1') {
                     $has_room_fee = true;
                 }
                 $other_groups[$g] = true;

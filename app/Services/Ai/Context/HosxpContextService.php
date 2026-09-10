@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 class HosxpContextService
 {
     /**
-     * Get HOSxP Master Data & 16-Files Lookup Context based on user query
+     * Get HOSxP ข้อมูลพื้นฐาน & 16-Files Lookup Context based on user query
      *
      * @param string $query User's question
      * @return array|null ['text' => string, 'sources' => array]

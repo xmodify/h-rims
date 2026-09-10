@@ -482,7 +482,7 @@ Route::get('import/labcat_tmt_loinc_missing_hosxp', [ImportLabcatController::cla
 
 // EMR (งานเวชระเบียน) -------------------------------------------------------------
 Route::prefix('emr')->name('emr.')->group(function () {
-    // ข้อมูลพื้นฐาน HOSxP (Master Data & Setting)
+    // ข้อมูลพื้นฐาน HOSxP
     Route::get('hosxp-setting', [HosxpSettingController::class, 'index'])->name('hosxp_setting');
     Route::post('hosxp-setting/copilot_ask', [HosxpSettingController::class, 'copilotAsk'])->name('hosxp_setting.copilot_ask');
 

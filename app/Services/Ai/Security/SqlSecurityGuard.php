@@ -169,8 +169,9 @@ class SqlSecurityGuard
         } elseif ($targetDb === 'hosxp') {
             $allowedHosxp = [
                 'nondrugitems', 'pttype', 'doctor', 'pttype_items_price', 'opitemrece',
-                'income', 'paidst', 'pcode', 'spclty', 'doctor_position', 'nhso_adp_type',
-                'pttype_price_group', 'pttype_price_policy_type', 'sks_claim_category_type'
+                'income', 'paidst', 'pcode', 'spclty', 'doctor_position', 'clinic',
+                'nhso_adp_type', 'provis_instype', 'pttype_price_group',
+                'pttype_price_policy_type', 'pttype_nhso_subinscl', 'sks_claim_category_type'
             ];
             foreach ($tables as $tbl) {
                 if (!in_array($tbl, $allowedHosxp, true)) {

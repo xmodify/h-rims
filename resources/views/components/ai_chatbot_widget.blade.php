@@ -437,6 +437,7 @@
 
 <script>
     const AI_STORAGE_KEY = 'hrims_ai_chat_history';
+    const isUserAdmin = {{ (auth()->check() && auth()->user()->status === 'admin') ? 'true' : 'false' }};
     let aiConversationHistory = [];
     let widgetSessionId = null;
 
@@ -636,12 +637,23 @@
                     });
                 }
             } else {
-                appendMessage('incoming', 'ขออภัยครับ เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถประมวลผลคำตอบได้'));
+                const friendlyMsg = data.message || 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
+                aiConversationHistory.push({ role: 'assistant', content: friendlyMsg });
+                appendMessage('incoming', friendlyMsg, [], {
+                    mode: 'error',
+                    sql: data.sql,
+                    error_detail: data.error_detail || data.admin_message,
+                    db_target: data.db_target
+                });
             }
         })
         .catch(err => {
             indicator.classList.add('d-none');
-            appendMessage('incoming', 'ไม่สามารถเชื่อมต่อกับระบบ AI ได้: ' + err);
+            const fallbackMsg = 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบ AI กรุณาลองใหม่อีกครั้งครับ';
+            appendMessage('incoming', fallbackMsg, [], {
+                mode: 'error',
+                error_detail: isUserAdmin ? String(err) : null
+            });
         });
     }
 
@@ -723,7 +735,7 @@
 
             // Query Result Summary (Friendly business display, no backend SQL exposed)
             let sqlDetailsHtml = '';
-            if (extra && (extra.total_rows !== undefined || extra.sql)) {
+            if (extra && extra.total_rows !== undefined) {
                 const totalCount = extra.total_rows ?? 0;
                 sqlDetailsHtml = `
                     <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center small text-muted">
@@ -731,6 +743,43 @@
                         <a href="javascript:void(0)" onclick="openFullScreenCopilot()" class="text-primary text-decoration-none fw-semibold">
                             <i class="bi bi-arrows-fullscreen me-1"></i>เปิดดูตารางเต็มจอ
                         </a>
+                    </div>
+                `;
+            }
+
+            // Admin-Only Inspection: Button to toggle and inspect SQL SELECT & Error Details
+            let adminSqlHtml = '';
+            if (isUserAdmin && extra && (extra.sql || extra.error_detail)) {
+                const adminId = 'admin-sql-' + Math.random().toString(36).substring(2, 9);
+                const targetName = extra.db_target ? extra.db_target.toUpperCase() : 'DATABASE';
+                const isError = extra.mode === 'error' || Boolean(extra.error_detail);
+
+                adminSqlHtml = `
+                    <div class="mt-2 pt-2 border-top">
+                        <button type="button" class="btn btn-sm ${isError ? 'btn-outline-danger' : 'btn-outline-secondary'} py-0 px-2 d-inline-flex align-items-center gap-1 rounded-pill shadow-none" style="font-size: 0.72rem;" onclick="toggleAdminSql('${adminId}')">
+                            <i class="bi ${isError ? 'bi-shield-exclamation' : 'bi-shield-lock'}"></i>
+                            <span>${isError ? 'ดู SQL / ตรวจสอบ Error (เฉพาะ Admin)' : 'ดูคำสั่ง SQL (เฉพาะ Admin)'}</span>
+                            <i class="bi bi-chevron-down ms-1" id="${adminId}-icon"></i>
+                        </button>
+                        <div id="${adminId}" class="d-none mt-2 p-2 bg-dark text-light rounded font-monospace" style="font-size: 0.72rem; word-break: break-all;">
+                            ${extra.sql ? `
+                                <div class="d-flex justify-content-between align-items-center mb-1 text-white-50 pb-1 border-bottom border-secondary">
+                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                        <i class="bi bi-database me-1"></i>${escapeHtml(targetName)}
+                                    </span>
+                                    <button type="button" class="btn btn-xs btn-outline-light py-0 px-1 border-0" style="font-size: 0.68rem;" onclick="copyCopilotSql('${escapeHtml(extra.sql)}', this)">
+                                        <i class="bi bi-clipboard me-1"></i>คัดลอก SQL
+                                    </button>
+                                </div>
+                                <div style="white-space: pre-wrap; color: #a5f3fc; font-family: Consolas, Monaco, monospace; max-height: 140px; overflow-y: auto;">${escapeHtml(extra.sql)}</div>
+                            ` : ''}
+                            ${extra.error_detail ? `
+                                <div class="${extra.sql ? 'mt-2 pt-2 border-top border-secondary' : ''} text-danger">
+                                    <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>สาเหตุข้อผิดพลาด (Database/System Error):</div>
+                                    <div class="text-warning small font-monospace" style="white-space: pre-wrap; font-size: 0.7rem; max-height: 120px; overflow-y: auto;">${escapeHtml(extra.error_detail)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             }
@@ -744,7 +793,6 @@
             }
 
             let actionBtnHtml = '';
-            const isUserAdmin = {{ (auth()->check() && auth()->user()->status === 'admin') ? 'true' : 'false' }};
             if (isUserAdmin && text.includes('ตั้งค่า AI & LLM Connection') && typeof openAiSettingsModal === 'function') {
                 actionBtnHtml = '<div class="mt-2 pt-2 border-top"><button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm" onclick="openAiSettingsModal()"><i class="bi bi-gear-fill me-1"></i> ตั้งค่า AI & LLM Connection ทันที</button></div>';
             }
@@ -754,6 +802,7 @@
                 <div class="ai-msg-bubble">
                     <div>${formattedText}</div>
                     ${sqlDetailsHtml}
+                    ${adminSqlHtml}
                     ${actionBtnHtml}
                     ${sourcesHtml}
                     ${sugHtml}
@@ -794,6 +843,41 @@
         pre.appendChild(text);
         return pre.innerHTML;
     }
+
+    // Toggle Admin SQL Accordion
+    function toggleAdminSql(id) {
+        const el = document.getElementById(id);
+        const icon = document.getElementById(id + '-icon');
+        if (el) {
+            el.classList.toggle('d-none');
+            if (icon) {
+                icon.classList.toggle('bi-chevron-down');
+                icon.classList.toggle('bi-chevron-up');
+            }
+            scrollChatToBottom();
+        }
+    }
+    window.toggleAdminSql = toggleAdminSql;
+
+    // Copy SQL to Clipboard helper
+    function copyCopilotSql(text, btn) {
+        if (!navigator.clipboard) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        } else {
+            navigator.clipboard.writeText(text);
+        }
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i>คัดลอกแล้ว!';
+            setTimeout(() => { btn.innerHTML = orig; }, 1800);
+        }
+    }
+    window.copyCopilotSql = copyCopilotSql;
 
     // Dynamic UI Adaptation based on Current Page Scope
     function initAiChatbotContext() {

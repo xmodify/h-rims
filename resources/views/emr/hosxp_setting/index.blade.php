@@ -158,7 +158,7 @@
             </span>
             <div>
                 <h5 class="mb-1 text-dark fw-bold">
-                    ข้อมูลพื้นฐาน HOSxP (Master Data & Setting)
+                    ข้อมูลพื้นฐาน HOSxP
                 </h5>
                 <small class="text-muted">ตรวจสอบความถูกต้องและครบถ้วนของข้อมูลแพทย์, ค่ารักษาพยาบาล (nondrugitems) และสิทธิการรักษา (pttype, สิทธิ สปสช)</small>
             </div>
@@ -400,6 +400,8 @@
                                                                 'เลขใบอนุญาต' => $lic ?: 'ไม่ได้ระบุ',
                                                                 'เลขบัตรประชาชน' => $cid ?: 'ไม่ได้ระบุ',
                                                                 'ตำแหน่ง' => $row->position_name ?? ($row->position ?? '-'),
+                                                                'สาขาความเชี่ยวชาญ' => $row->spclty_name ?? '-',
+                                                                'คลินิกประจำ' => $row->clinic_name ?? '-',
                                                                 'สภาวิชาชีพ' => $councilName ?: ($row->council_code ?? '-'),
                                                                 'สถานะ' => (($row->active ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
                                                             ];

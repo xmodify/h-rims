@@ -40,23 +40,49 @@ class SchemaCatalogService
     }
 
     /**
-     * Get Schema string for HOSxP Master Data (Strictly: nondrugitems, pttype, doctor)
+     * Get Schema string for HOSxP ข้อมูลพื้นฐาน (Strictly: nondrugitems, pttype, doctor)
      */
     public function getHosxpSchema(string $userQuery): string
     {
         $allTables = $this->getCuratedHosxpTables();
         $tables = $this->selectRelevantHosxpTables($userQuery, $allTables);
 
-        $out = "=== ฐานข้อมูล HOSxP Master Data (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน) ===\n";
-        $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: hosxp)\n";
-        $out .= "กฎเหล็ก: อนุญาตให้เขียนคำสั่ง SELECT เฉพาะตาราง nondrugitems, pttype, doctor, pttype_items_price, opitemrece และตาราง lookup ที่กำหนดเท่านั้น\n";
-        $out .= "ข้อแนะนำสำคัญในการตรวจสอบ Master Data:\n";
-        $out .= "- ฟิลด์สถานะใช้งานของ nondrugitems คือ `istatus = 'Y'` (ใช้งาน) หรือ 'N' (ยกเลิก)\n";
-        $out .= "- ตรวจสอบค่าบริการที่ยังไม่ผูกรหัส ADP สปสช.: `SELECT icode, name, price, nhso_adp_code FROM nondrugitems WHERE (nhso_adp_code IS NULL OR nhso_adp_code = '') AND istatus = 'Y'`\n";
-        $out .= "- ตรวจสอบสิทธิการรักษาที่ยังไม่ผูกรหัสส่งออก 16 แฟ้ม: `SELECT pttype, name, pcode, hipdata_code FROM pttype WHERE (hipdata_code IS NULL OR hipdata_code = '') AND isuse = 'Y'`\n";
-        $out .= "- ตรวจสอบแพทย์ที่ไม่มีเลขที่ใบประกอบวิชาชีพ: `SELECT code, name, licenseno, council_code FROM doctor WHERE (licenseno IS NULL OR licenseno = '' OR licenseno = '-') AND active = 'Y'`\n";
-        $out .= "- ตรวจสอบราคาตามสิทธิ: `pttype_items_price` เชื่อมกับ `nondrugitems` ด้วย `items_table_code = icode` และ `items_table_name = 'nondrugitems'`\n";
-        $out .= "- หมวดค่ารักษา: `nondrugitems.income` เชื่อมกับ `income.income`\n\n";
+        $out = "=== ฐานข้อมูล HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน) ===\n";
+        $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: hosxp)\n\n";
+        $out .= "=== โครงสร้างหลักและตารางตั้งต้น (Core Anchor Architecture) ===\n";
+        $out .= "ระบบข้อมูลพื้นฐานในหน้านี้จะตั้งต้นด้วย 3 ตารางหลักเสมอ แล้วค่อยเชื่อมไปยังตาราง lookup อื่นตามคอลัมน์:\n\n";
+        $out .= "1. [บุคลากรทางการแพทย์]: ตั้งต้นด้วยตาราง `doctor` เสมอ (เช่น `FROM doctor d`)\n";
+        $out .= "   - เชื่อมตำแหน่ง: `LEFT JOIN doctor_position dp ON dp.id = d.position_id`\n";
+        $out .= "   - เชื่อมสาขาความเชี่ยวชาญ: `LEFT JOIN spclty s ON s.spclty = d.spclty`\n";
+        $out .= "   - เชื่อมคลินิก: `LEFT JOIN clinic c ON c.clinic = d.clinic`\n";
+        $out .= "   - ฟิลด์สำคัญ: `code` (รหัสแพทย์), `name` (ชื่อแพทย์), `licenseno` (เลขใบประกอบฯ), `cid` (เลขบัตรประชาชน 13 หลัก), `council_code` (สภาวิชาชีพ), `active` (สถานะปฏิบัติงาน 'Y'/'N')\n\n";
+        $out .= "2. [ค่ารักษาพยาบาล]: ตั้งต้นด้วยตาราง `nondrugitems` เสมอ (เช่น `FROM nondrugitems n`)\n";
+        $out .= "   - เชื่อมหมวดค่ารักษา: `LEFT JOIN income i ON i.income = n.income`\n";
+        $out .= "   - เชื่อมสถานะการชำระ: `LEFT JOIN paidst p ON p.paidst = n.paidst`\n";
+        $out .= "   - เชื่อมราคาตามสิทธิ (HOSxP v4): `LEFT JOIN pttype_items_price pip ON pip.items_table_code = n.icode` (เชื่อมผ่าน items_table_code = icode โดยตรง ห้ามกรอง WHERE items_table_name)\n";
+        $out .= "   - ฟิลด์สำคัญ: `icode` (รหัสค่าบริการ), `name` (ชื่อรายการ), `price` (ราคามาตรฐาน 1), `price2`, `price3`, `nhso_adp_code` (รหัส ADP สปสช.), `billcode` (รหัสเบิกกรมบัญชีกลาง), `istatus` (สถานะ 'Y'/'N')\n\n";
+        $out .= "3. [สิทธิการรักษา]: ตั้งต้นด้วยตาราง `pttype` เสมอ (เช่น `FROM pttype p`)\n";
+        $out .= "   - เชื่อมสถานะชำระเงิน: `LEFT JOIN paidst p1 ON p1.paidst = p.paidst`\n";
+        $out .= "   - เชื่อมกลุ่มสิทธิมาตรฐานประเทศ: `LEFT JOIN pcode pc ON pc.code = p.pcode`\n";
+        $out .= "   - เชื่อมสิทธิมาตรฐาน PROVIS/สปสช.: `LEFT JOIN provis_instype pi ON pi.code = p.nhso_code`\n";
+        $out .= "   - เชื่อมกลุ่มราคาตามสิทธิ: `LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id = p.pttype_price_group_id`\n";
+        $out .= "   - เชื่อมสิทธิย่อย สปสช.: `LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype = p.pttype`\n";
+        $out .= "   - เชื่อมรายการราคาตามสิทธินี้: `LEFT JOIN pttype_items_price pip ON pip.pttype = p.pttype`\n";
+        $out .= "   - ฟิลด์สำคัญ: `pttype` (รหัสสิทธิ), `name` (ชื่อสิทธิ), `hipdata_code` (รหัสส่งออก 16 แฟ้ม), `pttype_std_code` (รหัสส่งออก HOSxP), `isuse` (สถานะ 'Y'/'N')\n\n";
+        $out .= "=== ความสำคัญของการดูตารางที่เชื่อมโยง (Lookup Tables) ===\n";
+        $out .= "- การตั้งค่าจะถูกต้องได้ จำเป็นต้องดูตารางที่เชื่อมโยงควบคู่กันเสมอ เช่น:\n";
+        $out .= "  * ดู `doctor_position`: เพื่อแยกว่าบุคลากรเป็นแพทย์จริง หรือเป็นเจ้าหน้าที่สายสนับสนุน (เช่น พนักงานบริการ, เวชสถิติ) ซึ่งถ้าเป็นสายสนับสนุนเลขใบประกอบฯ มักขึ้นต้นด้วยขีด '-' ตามด้วยเลขบัตร\n";
+        $out .= "  * ดู `spclty` และ `clinic`: เพื่อดูว่าสังกัดคลินิกและสาขาความเชี่ยวชาญใด เพื่อให้ส่งออกแฟ้ม PROVIDER (43 แฟ้ม) ได้สมบูรณ์\n";
+        $out .= "  * ดู `income`: เพื่อตรวจว่าค่าบริการ nondrugitems ผูกหมวดรายได้ 16 หมวดตรงตามประเภทหรือไม่\n";
+        $out .= "  * ดู `provis_instype`: เพื่อตรวจว่าสิทธิ pttype ผูกรหัสมาตรฐาน PROVIS และรหัสส่งออก 16 แฟ้ม (UCS=0100) ตรงกันหรือไม่\n\n";
+        $out .= "*** ตัวอย่างคำสั่ง SELECT ที่ถูกต้องและปลอดภัย ***:\n";
+        $out .= "- แพทย์ไม่มีเลขใบประกอบฯ: `SELECT d.code, d.name, d.licenseno, d.council_code, d.cid, dp.name AS position_name, s.name AS spclty_name, c.name AS clinic_name, d.active FROM doctor d LEFT JOIN doctor_position dp ON dp.id = d.position_id LEFT JOIN spclty s ON s.spclty = d.spclty LEFT JOIN clinic c ON c.clinic = d.clinic WHERE (d.licenseno IS NULL OR d.licenseno = '' OR d.licenseno LIKE '-%') AND d.active = 'Y'`\n";
+        $out .= "- ค่าบริการที่ยังไม่ผูกรหัส ADP: `SELECT n.icode, n.name, n.price, i.name AS income_name, n.nhso_adp_code FROM nondrugitems n LEFT JOIN income i ON i.income = n.income WHERE (n.nhso_adp_code IS NULL OR n.nhso_adp_code = '') AND n.istatus = 'Y' AND n.price > 0`\n";
+        $out .= "- สิทธิที่รหัสส่งออกไม่ตรงกับ PROVIS: `SELECT p.pttype, p.name, p.hipdata_code, p.pttype_std_code, pi.code AS provis_code, pi.name AS provis_name, pi.pttype_std_code AS provis_std_code FROM pttype p LEFT JOIN provis_instype pi ON pi.code = p.nhso_code WHERE p.isuse = 'Y' AND (p.pttype_std_code != pi.pttype_std_code OR p.pttype_std_code IS NULL)`\n\n";
+        $out .= "*** กฎเหล็กและขอบเขตข้อมูล ***:\n";
+        $out .= "- ให้มุ่งเน้นดึงข้อมูลของ 3 กลุ่มตารางตั้งต้นนี้ให้ถูกต้องตรงเป๊ะก่อน (doctor, nondrugitems, pttype) ร่วมกับตาราง lookup ข้างต้น\n";
+        $out .= "- ในหน้านี้ยังไม่ต้องเชื่อมหรืออ้างอิงตารางยา (drugitems) หรือแล็บ (lab_items) จนกว่าจะมีการเพิ่มข้อมูลพื้นฐานดังกล่าวในระบบต่อไป\n";
+        $out .= "- คำสั่ง SELECT ทุกคำสั่งต้องปลอดภัย (Read-Only) และห้าม INSERT/UPDATE/DELETE เด็ดขาด\n\n";
 
         foreach ($tables as $table => $info) {
             $out .= "TABLE: `{$table}` -- {$info['description']}\nCOLUMNS:\n";
@@ -249,13 +275,13 @@ class SchemaCatalogService
     }
 
     /**
-     * Curated dictionary of HOSxP Master Data & Lookup tables
+     * Curated dictionary of HOSxP ข้อมูลพื้นฐาน & Lookup tables
      */
     public function getCuratedHosxpTables(): array
     {
         return [
             'nondrugitems' => [
-                'description' => 'ตารางตั้งค่ารายการค่าบริการและหัตถการที่ไม่ใช่ยา (Services & Non-drug Master)',
+                'description' => 'ตารางตั้งค่ารายการค่าบริการและหัตถการที่ไม่ใช่ยา (ข้อมูลพื้นฐานค่าบริการ)',
                 'columns' => [
                     'icode' => 'varchar(7) รหัสรายการค่ารักษาพยาบาล (Primary Key ขึ้นต้นด้วย 3)',
                     'name' => 'varchar(200) ชื่อรายการค่าบริการ/หัตถการ',
@@ -303,15 +329,15 @@ class SchemaCatalogService
                 ]
             ],
             'pttype_items_price' => [
-                'description' => 'ตารางกำหนดราคาแยกตามสิทธิการรักษาพยาบาล (Price by Insurance Right Master): HOSxP จะตรวจสอบราคาสิทธิตรงนี้ก่อนบันทึกรายการลง opitemrece',
+                'description' => 'ตารางกำหนดราคาแยกตามสิทธิการรักษาพยาบาล (Price by Insurance Right Master): HOSxP v4 แยกเก็บราคาตามสิทธิต่างๆ ไว้ที่นี่ โดยราคาหลักจะอยู่ที่ nondrugitems.price ส่วนราคาแยกสิทธิต่างๆ อยู่ที่ pttype_items_price.price เชื่อมด้วย items_table_code = nondrugitems.icode (ห้ามกรอง WHERE items_table_name)',
                 'columns' => [
                     'pttype_items_price_id' => 'int รหัสรายการราคาตามสิทธิ (Primary Key)',
-                    'items_table_name' => 'varchar(50) ชื่อตารางรายการ (nondrugitems หรือ drugitems)',
-                    'items_table_code' => 'varchar(100) รหัสรายการ icode (เชื่อมกับ nondrugitems.icode)',
+                    'items_table_name' => 'varchar(50) ชื่อตารางรายการ (ใน HOSxP v4 เก็บเป็น drugitems ทั้งหมด ห้ามกรองฟิลด์นี้)',
+                    'items_table_code' => 'varchar(100) รหัสรายการ (เก็บรหัส icode เชื่อมกับ nondrugitems.icode ห้ามใช้ชื่อคอลัมน์ icode ในตารางนี้)',
                     'pttype' => 'char(2) รหัสสิทธิการรักษา (เชื่อมกับ pttype.pttype)',
                     'pttype_price_group_id' => 'int รหัสกลุ่มราคาตามสิทธิ',
-                    'price' => 'double ราคาที่ต้องคิดสำหรับสิทธินี้',
-                    'discount_percent' => 'double เปอร์เซ็นต์ส่วนลดตามสิทธิ',
+                    'price' => 'double ราคาที่กำหนดสำหรับสิทธินี้ (เปรียบเทียบกับราคาหลักใน nondrugitems.price)',
+                    'discount_percent' => 'double เปอร์เซ็นต์ส่วนลดตามสิทธิ (%)',
                     'paidst' => 'char(2) สถานะการชำระเงินสำหรับสิทธินี้',
                 ]
             ],
@@ -352,6 +378,36 @@ class SchemaCatalogService
                     'id' => 'int รหัสตำแหน่ง (Primary Key เช่น 1=แพทย์, 2=ทันตแพทย์, 3=เภสัชกร, 4=พยาบาล)',
                     'name' => 'varchar(100) ชื่อตำแหน่งวิชาชีพ',
                 ]
+            ],
+            'clinic' => [
+                'description' => 'ตารางคลินิกบริการในโรงพยาบาล (Hospital Clinic Master)',
+                'columns' => [
+                    'clinic' => 'char(3) รหัสคลินิก (Primary Key เช่น 001=อายุรกรรม, 002=ศัลยกรรม)',
+                    'name' => 'varchar(150) ชื่อคลินิก',
+                    'depcode' => 'varchar(3) รหัสแผนก',
+                ]
+            ],
+            'provis_instype' => [
+                'description' => 'ตารางมาตรฐานสิทธิการรักษาพยาบาล PROVIS / สนย. (PROVIS Insurance Types Master)',
+                'columns' => [
+                    'code' => 'char(2) รหัสสิทธิมาตรฐาน PROVIS (Primary Key เชื่อมกับ pttype.nhso_code)',
+                    'name' => 'varchar(150) ชื่อสิทธิมาตรฐาน PROVIS / สปสช.',
+                    'pttype_std_code' => 'char(5) รหัสส่งออกตามมาตรฐาน PROVIS (เปรียบเทียบกับ pttype.pttype_std_code)',
+                ]
+            ],
+            'pttype_price_group' => [
+                'description' => 'ตารางกลุ่มราคาตามสิทธิการรักษาพยาบาล (Price Groups Master)',
+                'columns' => [
+                    'pttype_price_group_id' => 'int รหัสกลุ่มราคาตามสิทธิ (Primary Key เชื่อมกับ pttype.pttype_price_group_id)',
+                    'pttype_price_group_name' => 'varchar(200) ชื่อกลุ่มราคาตามสิทธิ',
+                ]
+            ],
+            'pttype_nhso_subinscl' => [
+                'description' => 'ตารางจับคู่สิทธิการรักษากับรหัสสิทธิย่อย สปสช. (NHSO Sub-Insurance Classification Mapping)',
+                'columns' => [
+                    'pttype' => 'char(2) รหัสสิทธิการรักษา (เชื่อมกับ pttype.pttype)',
+                    'nhso_subinscl' => 'varchar(3) รหัสสิทธิย่อย สปสช. (เช่น 01, 02, 03)',
+                ]
             ]
         ];
     }
@@ -365,25 +421,30 @@ class SchemaCatalogService
         $selected = [];
 
         $isNondrug = preg_match('/(ค่าบริการ|หัตถการ|nondrug|adp|หมวด|income|ราคา|icode|billcode|ค่ารักษา)/iu', $q);
-        $isPttype = preg_match('/(สิทธิ|pttype|บัตรทอง|ประกันสังคม|ข้าราชการ|hipdata|16\s*แฟ้ม|เบิกได้|จ่ายเอง|pcode|สิทธิการรักษา)/iu', $q);
-        $isDoctor = preg_match('/(หมอ|แพทย์|doctor|ผู้ตรวจ|licenseno|ใบประกอบ|สภาวิชาชีพ|council|ตำแหน่ง|เชี่ยวชาญ|spclty)/iu', $q);
-        $isPriceByRight = preg_match('/(pttype_items_price|ราคาแยกตามสิทธิ|ราคาตามสิทธิ|ส่วนลด|ราคาพิเศษ|กลุ่มราคา)/iu', $q);
+        $isPttype = preg_match('/(สิทธิ|pttype|บัตรทอง|ประกันสังคม|ข้าราชการ|hipdata|16\s*แฟ้ม|เบิกได้|จ่ายเอง|pcode|สิทธิการรักษา|subinscl|provis)/iu', $q);
+        $isDoctor = preg_match('/(หมอ|แพทย์|doctor|ผู้ตรวจ|licenseno|ใบประกอบ|สภาวิชาชีพ|council|ตำแหน่ง|เชี่ยวชาญ|spclty|คลินิก|clinic)/iu', $q);
+        $isPriceByRight = preg_match('/(pttype_items_price|ราคาแยกตามสิทธิ|ราคาตามสิทธิ|แยกสิทธ|แยกสิทธิ์|หลายสิทธิ|หลายสิทธิ์|หลายราคา|ราคาต่างกัน|ส่วนลด|ราคาพิเศษ|กลุ่มราคา)/iu', $q);
+
+        if ($isDoctor) {
+            $selected['doctor'] = $tables['doctor'];
+            $selected['doctor_position'] = $tables['doctor_position'];
+            $selected['spclty'] = $tables['spclty'];
+            if (isset($tables['clinic'])) $selected['clinic'] = $tables['clinic'];
+        }
 
         if ($isNondrug) {
             $selected['nondrugitems'] = $tables['nondrugitems'];
             $selected['income'] = $tables['income'];
+            $selected['paidst'] = $tables['paidst'];
         }
 
         if ($isPttype) {
             $selected['pttype'] = $tables['pttype'];
             $selected['pcode'] = $tables['pcode'];
             $selected['paidst'] = $tables['paidst'];
-        }
-
-        if ($isDoctor) {
-            $selected['doctor'] = $tables['doctor'];
-            $selected['spclty'] = $tables['spclty'];
-            $selected['doctor_position'] = $tables['doctor_position'];
+            if (isset($tables['provis_instype'])) $selected['provis_instype'] = $tables['provis_instype'];
+            if (isset($tables['pttype_price_group'])) $selected['pttype_price_group'] = $tables['pttype_price_group'];
+            if (isset($tables['pttype_nhso_subinscl'])) $selected['pttype_nhso_subinscl'] = $tables['pttype_nhso_subinscl'];
         }
 
         if ($isPriceByRight) {

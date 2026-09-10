@@ -95,7 +95,9 @@ class TextToSqlService
             Log::error("TextToSql LLM Generation Error: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อกับโมเดล AI: ' . $e->getMessage(),
+                'message' => 'ขออภัยครับ ระบบ AI ไม่สามารถประมวลผลคำถามได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ',
+                'admin_message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อกับโมเดล AI: ' . $e->getMessage(),
+                'error_detail' => $e->getMessage(),
                 'db_target' => $target
             ];
         }
@@ -124,7 +126,9 @@ class TextToSqlService
 
             return [
                 'success' => false,
-                'message' => $explanation ?: 'AI ไม่สามารถแปลงคำถามเป็นคำสั่ง SQL ที่ถูกต้องได้ กรุณาลองปรับคำถามให้เฉพาะเจาะจงขึ้น',
+                'message' => 'ขออภัยครับ AI ไม่สามารถสืบค้นข้อมูลตามคำถามนี้ได้ กรุณาลองปรับเปลี่ยนคำถามหรือระบุเงื่อนไขให้เฉพาะเจาะจงขึ้นครับ',
+                'admin_message' => $explanation ?: 'AI ไม่สามารถแปลงคำถามเป็นคำสั่ง SQL ที่ถูกต้องได้',
+                'error_detail' => $explanation ?: 'AI ไม่สามารถแปลงคำถามเป็นคำสั่ง SQL ที่ถูกต้องได้',
                 'raw_response' => $rawResponse,
                 'db_target' => $target
             ];
@@ -135,7 +139,9 @@ class TextToSqlService
         if (!$securityResult['is_valid']) {
             return [
                 'success' => false,
-                'message' => $securityResult['error'],
+                'message' => 'คำถามนี้ไม่สามารถประมวลผลได้เนื่องจากติดเงื่อนไขความปลอดภัย กรุณาสอบถามเฉพาะข้อมูลที่เกี่ยวข้องกับระบบครับ',
+                'admin_message' => 'ความปลอดภัยคำสั่ง SQL: ' . $securityResult['error'],
+                'error_detail' => $securityResult['error'],
                 'sql' => $generatedSql,
                 'db_target' => $target
             ];
@@ -159,7 +165,9 @@ class TextToSqlService
             if (str_contains(strtolower($err), 'access denied') || str_contains(strtolower($err), 'connection refused') || str_contains(strtolower($err), 'unknown host')) {
                 return [
                     'success' => false,
-                    'message' => "ไม่สามารถเชื่อมต่อฐานข้อมูล [{$target}] ได้ (กรุณาตรวจสอบการตั้งค่า Host/Credentials หรือเครือข่าย รพ.)",
+                    'message' => 'ขออภัยครับ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบครับ',
+                    'admin_message' => "ไม่สามารถเชื่อมต่อฐานข้อมูล [{$target}] ได้ (กรุณาตรวจสอบการตั้งค่า Host/Credentials หรือเครือข่าย รพ.)",
+                    'error_detail' => $err,
                     'sql' => $sanitizedSql,
                     'db_target' => $target
                 ];
@@ -167,7 +175,9 @@ class TextToSqlService
 
             return [
                 'success' => false,
-                'message' => 'คำสั่ง SQL ขัดข้อง: ' . $err,
+                'message' => 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ',
+                'admin_message' => 'คำสั่ง SQL ขัดข้อง: ' . $err,
+                'error_detail' => $err,
                 'sql' => $sanitizedSql,
                 'db_target' => $target
             ];
@@ -245,7 +255,7 @@ class TextToSqlService
     protected function buildSystemPrompt(string $targetDb, string $schema, string $ragContext = ''): string
     {
         $dbTitle = ($targetDb === 'hosxp')
-            ? 'HOSxP Master Data (ตรวจสอบการตั้งค่า: nondrugitems, pttype, doctor)'
+            ? 'HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน: nondrugitems, pttype, doctor)'
             : 'HRiMS HosFin (ระบบการเงินการคลัง HosFin: สืบค้นและวิเคราะห์ข้อมูลจากตาราง hosfin_* ทั้งหมด 12 ตาราง)';
 
         return <<<EOT
@@ -360,7 +370,7 @@ EOT;
         string $contextScope = 'hosfin'
     ): string {
         $count = count($rows);
-        $dbName = ($dbTarget === 'hosxp') ? 'HOSxP (การตั้งค่าข้อมูลพื้นฐาน Master Data)' : 'HRiMS (ระบบการเงินการคลัง HosFin)';
+        $dbName = ($dbTarget === 'hosxp') ? 'HOSxP (การตั้งค่าข้อมูลพื้นฐาน)' : 'HRiMS (ระบบการเงินการคลัง HosFin)';
 
         if ($count === 0) {
             return "ผลลัพธ์จากฐานข้อมูล {$dbName}: ไม่พบข้อมูลที่ตรงกับเงื่อนไข \"{$question}\"";
@@ -380,7 +390,7 @@ EOT;
 {$sampleJson}
 {$ragContext}
 
-หน้าที่ของคุณ: ตรวจสอบความถูกต้องสมบูรณ์ของการตั้งค่า Master Data ของโรงพยาบาล
+หน้าที่ของคุณ: ตรวจสอบความถูกต้องสมบูรณ์ของการตั้งค่าข้อมูลพื้นฐานของโรงพยาบาล (กฎสำคัญ: ให้ใช้คำว่า "ข้อมูลพื้นฐาน" เสมอ และห้ามใช้คำว่า "Master Data" ในคำตอบ)
 1. **สรุปผลการตรวจสอบข้อมูล**:
    - สรุปจำนวนรายการที่พบ และลักษณะของข้อมูล
 2. **วิเคราะห์ความถูกต้องเทียบกับมาตรฐาน**:
@@ -389,7 +399,7 @@ EOT;
 3. **ข้อเสนอแนะเพื่อแก้ไขปรับปรุง**:
    - ระบุสิ่งที่ต้องแก้ไขในระบบ HOSxP เพื่อป้องกัน Error ในการส่งเบิก e-Claim หรือการรายงานข้อมูล
 
-ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน
+ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน (ย้ำ: ใช้คำว่า "ข้อมูลพื้นฐาน" แทนคำว่า "Master Data")
 EOT;
             } else {
                 $analysisPrompt = <<<EOT
@@ -611,11 +621,26 @@ EOT;
             'clinic' => 'รหัสคลินิก',
             'cid' => 'เลขประจำตัวประชาชน',
             'active' => 'สถานะปฏิบัติงาน',
+            'position_name' => 'ชื่อตำแหน่งวิชาชีพ',
+            'spclty_name' => 'ชื่อสาขาความเชี่ยวชาญ',
+            'clinic_name' => 'ชื่อคลินิก',
+            'income_name' => 'ชื่อหมวดค่ารักษา',
+            'pi_name' => 'ชื่อสิทธิมาตรฐาน (PROVIS)',
+            'pttype_std_code' => 'รหัสส่งออกใน HOSxP',
+            'pi_pttype_std_code' => 'รหัสส่งออก PROVIS',
+            'pttype_price_group_name' => 'ชื่อกลุ่มราคาตามสิทธิ',
+            'nhso_subinscl' => 'รหัสสิทธิย่อย สปสช.',
+            'export_eclaim' => 'สถานะส่งออก e-Claim',
 
             // HOSxP Pricing by Rights (pttype_items_price) & Opitemrece
             'pttype_items_price_id' => 'รหัสราคาตามสิทธิ',
             'items_table_name' => 'ประเภทตารางรายการ',
             'items_table_code' => 'รหัสรายการ (icode)',
+            'standard_price' => 'ราคามาตรฐาน (บาท)',
+            'pttype_price' => 'ราคาตามสิทธิ (บาท)',
+            'pttype_name' => 'ชื่อสิทธิการรักษา',
+            'item_name' => 'ชื่อรายการค่าบริการ',
+            'diff_amount' => 'ส่วนต่างราคา (บาท)',
             'pttype_price_group_id' => 'รหัสกลุ่มราคาตามสิทธิ',
             'discount_percent' => 'ส่วนลดตามสิทธิ (%)',
             'unitprice' => 'ราคาต่อหน่วย (บาท)',

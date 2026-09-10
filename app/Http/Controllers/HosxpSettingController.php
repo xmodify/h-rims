@@ -17,7 +17,7 @@ class HosxpSettingController extends Controller
     }
 
     /**
-     * Check if user has permission to access HOSxP Setting / Master Data
+     * Check if user has permission to access HOSxP Setting / ข้อมูลพื้นฐาน
      */
     protected function checkPermission()
     {
@@ -75,9 +75,11 @@ class HosxpSettingController extends Controller
         if ($activeTab === 'doctor') {
             $doctors = $hosxp->select('
                 SELECT d.code, d.name, d.licenseno, d.cid, d.active, d.council_code, d.provider_type_code, d.sex, d.birth_date,
-                       dp.name AS position_name
+                       dp.name AS position_name, s.name AS spclty_name, c.name AS clinic_name
                 FROM doctor d
                 LEFT JOIN doctor_position dp ON dp.id = d.position_id
+                LEFT JOIN spclty s ON s.spclty = d.spclty
+                LEFT JOIN clinic c ON c.clinic = d.clinic
                 ORDER BY d.active DESC, d.name ASC
             ');
 
@@ -288,11 +290,13 @@ class HosxpSettingController extends Controller
         } elseif ($activeTab === 'nondrugitems') {
             $query = $hosxp->table('nondrugitems as n')
                 ->leftJoin('income as i', 'n.income', '=', 'i.income')
+                ->leftJoin('paidst as p', 'n.paidst', '=', 'p.paidst')
                 ->select([
                     'n.icode', 'n.name', 'n.price', 'n.nhso_adp_code',
                     'n.nhso_adp_type_id', 'n.istatus', 'n.unit',
-                    'n.income', 'n.billcode',
-                    'i.name as income_name'
+                    'n.income', 'n.billcode', 'n.paidst',
+                    'i.name as income_name',
+                    'p.name as paidst_name'
                 ])
                 ->where('n.price', '>', 0);
 
@@ -477,7 +481,7 @@ class HosxpSettingController extends Controller
     }
 
     /**
-     * Dedicated AI Copilot Query for HOSxP Master Data
+     * Dedicated AI Copilot Query for HOSxP ข้อมูลพื้นฐาน
      */
     public function copilotAsk(Request $request)
     {
@@ -528,7 +532,8 @@ class HosxpSettingController extends Controller
    - ข้อมูลค่ารักษาพยาบาล: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการค่ารักษาพยาบาล (Non-Drug Items)' เพื่อตรวจสอบการผูกรหัส ADP และหมวดรายได้
    - ข้อมูลสิทธิการรักษา: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดสิทธิการรักษา (Pttype)' เพื่อตรวจสอบรหัสสิทธิมาตรฐานและรหัสส่งออกเคลม
 4. อธิบายอย่างเป็นมืออาชีพ สุภาพ ชัดเจน เข้าใจง่าย ชี้ให้เห็นว่าข้อมูลขาดอะไรและจะส่งผลกระทบต่อการส่งออก 43 แฟ้ม หรือการส่งเบิกเคลมอย่างไร พร้อมบอกวิธีบันทึกแก้ไขใน HOSxP
-5. จัดรูปแบบด้วย Markdown ใช้หัวข้อ, bullet points, และตัวหนาให้อ่านง่าย สบายตา";
+5. จัดรูปแบบด้วย Markdown ใช้หัวข้อ, bullet points, และตัวหนาให้อ่านง่าย สบายตา
+6. กฎสำคัญเรื่องการใช้คำ: ให้ใช้คำว่า 'ข้อมูลพื้นฐาน' เสมอ และห้ามใช้คำว่า 'Master Data' ในคำตอบเด็ดขาด";
 
             $userPrompt = "คำถามจากเจ้าหน้าที่ (หมวด {$tab}):\n\"{$query}\"\n\n";
 

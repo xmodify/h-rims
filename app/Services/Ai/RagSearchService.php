@@ -87,14 +87,14 @@ class RagSearchService
         }
 
         // Query intent detection across 3 domains:
-        // Domain A: HOSxP Master Data & 16-Files Lookups (nondrugitems, income, adp, 16 แฟ้ม, e-claim, fdh)
+        // Domain A: HOSxP ข้อมูลพื้นฐาน & 16-Files Lookups (nondrugitems, income, adp, 16 แฟ้ม, e-claim, fdh)
         // If on RAG page, only lookup HOSxP if user explicitly mentions HOSxP configuration check
         $isHosxpQuery = $isRagPage
             ? (bool) preg_match('/(ตรวจการตั้งค่า|ตั้งค่าถูกไหม|ใน\s*hosxp|เทียบกับ\s*hosxp|ตาราง.*hosxp)/iu', $augmentedQuery)
             : ($isHosxpPage || (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม|แพทย์|หมอ|doctor|licenseno|council|pttype|สิทธิ|สิทธิการรักษา)/iu', $augmentedQuery));
 
         // Domain B: HosFin Financials (งบทดลอง, การเงิน, หนี้สิน, สภาพคล่อง, risk score, ผังบัญชี, AP, AR, GL)
-        // If on RAG or HOSxP page, strictly DISABLE HosFin financial data injection (focus on HOSxP Master Data / RAG documents)
+        // If on RAG or HOSxP page, strictly DISABLE HosFin financial data injection (focus on HOSxP ข้อมูลพื้นฐาน / RAG documents)
         $isFinancialQuery = !$isRagPage && !$isHosxpPage && ($isHosfinPage || (bool) preg_match('/(hosfin|การเงิน|เงินบำรุง|สภาพคล่อง|วิกฤต|risk\s*score|ลูกหนี้|เจ้าหนี้|ค่ายา|งบ|งบทดลอง|รายได้|รายจ่าย|แนวโน้ม|วิเคราะห์|เงินเดือน|ค่าจ้าง|ค่าตอบแทน|จ่าย|ยอด|บริษัท|บิล|ค้างชำระ|aging|สมุดรายวัน|ใบสำคัญ|voucher)/iu', $augmentedQuery));
         $isPeriodQuery = !$isRagPage && !$isHosxpPage && (bool) preg_match('/(ทุกเดือน|เดือนไหน|กี่เดือน|ช่วงเวลา|ย้อนหลัง|มีข้อมูลถึงไหน|ดูได้ไหม|งวดบัญชี|งวด)/iu', $cleanQuestion);
 
@@ -122,7 +122,7 @@ class RagSearchService
         }
 
         // -------------------------------------------------------------------------------------------------
-        // Context 2: HOSxP Master Data & 16-Files Lookups (Live Hospital Configuration)
+        // Context 2: HOSxP ข้อมูลพื้นฐาน & 16-Files Lookups (Live Hospital Configuration)
         // -------------------------------------------------------------------------------------------------
         if ($isHosxpQuery) {
             $hosxpCategory = null;
@@ -254,20 +254,20 @@ class RagSearchService
                     'snippet' => "เอกสาร {$docCount} ฉบับ: " . mb_substr($docList, 0, 100) . '...'
                 ];
             } elseif ($isHosxpPage) {
-                $scopeText = "ข้อมูลขอบเขตแหล่งข้อมูลและการตรวจสอบ HOSxP Master Data (งานเวชระเบียน):\n";
-                $scopeText .= "1. ข้อมูลแพทย์และบุคลากรทางการแพทย์ (Doctor Master Data):\n";
+                $scopeText = "ข้อมูลขอบเขตแหล่งข้อมูลและการตรวจสอบข้อมูลพื้นฐาน HOSxP (งานเวชระเบียน):\n";
+                $scopeText .= "1. ข้อมูลแพทย์และบุคลากรทางการแพทย์ (ข้อมูลพื้นฐานแพทย์):\n";
                 $scopeText .= "   - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (licenseno), รหัสสภาวิชาชีพ (council_code), เลขบัตรประชาชน 13 หลัก สำหรับแฟ้ม PROVIDER 43 แฟ้ม\n\n";
                 $scopeText .= "2. รายการค่ารักษาพยาบาล (Non-Drug Items):\n";
                 $scopeText .= "   - เชื่อมต่อตาราง nondrugitems, income, nhso_adp_type, nhso_adp_code\n";
                 $scopeText .= "   - ตรวจสอบรายการที่ยังไม่ได้ผูกรหัส ADP และแนะนำการจับคู่รหัสมาตรฐานตามเกณฑ์เบิกจ่าย สปสช./FDH/e-Claim\n\n";
-                $scopeText .= "3. สิทธิการรักษาพยาบาล (Pttype Master Data):\n";
+                $scopeText .= "3. สิทธิการรักษาพยาบาล (ข้อมูลพื้นฐานสิทธิการรักษา):\n";
                 $scopeText .= "   - เชื่อมต่อตาราง pttype ตรวจสอบการกำหนดรหัสมาตรฐาน pttype_std_code, รหัส export 43 แฟ้ม และการเปิดใช้งาน\n\n";
                 $scopeText .= "4. คลังความรู้ RAG คู่มือและระเบียบการเบิกจ่าย:\n";
                 $scopeText .= "   - สืบค้นคู่มือการเบิกจ่าย สปสช. กรมบัญชีกลาง และแนวทางแก้ไขข้อผิดพลาดติด C/Deny ประกอบการตรวจสอบ";
 
-                $contextParts[] = "[ข้อมูลความสามารถและแหล่งข้อมูล HOSxP Master Data]:\n" . $scopeText;
+                $contextParts[] = "[ข้อมูลความสามารถและแหล่งข้อมูลพื้นฐาน HOSxP]:\n" . $scopeText;
                 $sources[] = [
-                    'title' => "ขอบเขตการตรวจสอบ Master Data HOSxP (งานเวชระเบียน)",
+                    'title' => "ขอบเขตการตรวจสอบข้อมูลพื้นฐาน HOSxP (งานเวชระเบียน)",
                     'filename' => 'hosxp_master_scope',
                     'page' => 1,
                     'score' => 100.0,
@@ -282,7 +282,7 @@ class RagSearchService
                 $scopeText .= "1. คลังคู่มือและระเบียบหลักเกณฑ์การเบิกจ่ายกองทุนต่าง ๆ (RAG Knowledge Base):\n";
                 $scopeText .= "   - มีเอกสารในคลังจำนวน {$docCount} ไฟล์" . ($docCount > 0 ? " ({$docList})" : " (สามารถอัปโหลดคู่มือระเบียบการเบิกจ่ายกองทุนต่าง ๆ ประกาศ สปสช. กรมบัญชีกลาง ได้)") . "\n";
                 $scopeText .= "   - ความสามารถ: ค้นหาระเบียบการเบิกจ่ายกองทุนต่าง ๆ (UC/สปสช., ประกันสังคม, ข้าราชการ, อปท.), แนวทางแก้ไขข้อผิดพลาดติด C, V, Deny\n\n";
-                $scopeText .= "2. ข้อมูลการตั้งค่าจริงใน HOSxP สำหรับการเบิกจ่าย (HOSxP Master Data Audit):\n";
+                $scopeText .= "2. ข้อมูลการตั้งค่าจริงใน HOSxP สำหรับการเบิกจ่าย (ตรวจสอบข้อมูลพื้นฐาน HOSxP):\n";
                 $scopeText .= "   - เชื่อมต่อตาราง `nondrugitems`, `income`, `nhso_adp_type` (20 หมวด), `nhso_adp_code` (6,034 รหัสมาตรฐาน)\n";
                 $scopeText .= "   - ความสามารถ: ตรวจสอบการผูกรหัสเบิกจ่าย, หมวด income, ค่าบริการที่ยังไม่ได้ผูกรหัส, เทียบการตั้งค่าจริงกับหลักเกณฑ์เบิกจ่ายกองทุนต่าง ๆ\n\n";
                 $scopeText .= "3. ข้อมูลงบทดลองและดัชนีชี้วัดสถานะการเงินการคลัง (HosFin Trial Balance):\n";
@@ -297,7 +297,7 @@ class RagSearchService
                     'filename' => 'rims_data_sources',
                     'page' => 1,
                     'score' => 100.0,
-                    'snippet' => "ระเบียบเบิกจ่ายกองทุนต่าง ๆ + Master Data HOSxP + งบทดลอง HosFin"
+                    'snippet' => "ระเบียบเบิกจ่ายกองทุนต่าง ๆ + ข้อมูลพื้นฐาน HOSxP + งบทดลอง HosFin"
                 ];
             }
         }
@@ -337,9 +337,10 @@ class RagSearchService
 PROMPT;
         } elseif ($isHosxpPage) {
             $systemPrompt = <<<PROMPT
-คุณคือ "RiMS Copilot (HOSxP Master Data & Audit Specialist)" ผู้ช่วย AI อัจฉริยะด้านการตรวจสอบความถูกต้อง ความครบถ้วนของข้อมูลพื้นฐานในระบบ HOSxP (ข้อมูลแพทย์/บุคลากร, รายการค่าบริการและค่ารักษาพยาบาล, สิทธิการรักษาพยาบาล) ประจำระบบ RiMS งานเวชระเบียน
+คุณคือ "RiMS Copilot" ผู้ช่วย AI อัจฉริยะด้านการตรวจสอบความถูกต้อง ความครบถ้วนของข้อมูลพื้นฐานในระบบ HOSxP (ข้อมูลแพทย์/บุคลากร, รายการค่าบริการและค่ารักษาพยาบาล, สิทธิการรักษาพยาบาล) ประจำระบบ RiMS งานเวชระเบียน
 
-บทบาทและหน้าที่สำคัญของคุณในหน้านี้ (ตรวจสอบข้อมูลพื้นฐาน HOSxP Master Data):
+บทบาทและหน้าที่สำคัญของคุณในหน้านี้ (ตรวจสอบข้อมูลพื้นฐาน HOSxP):
+(ข้อบังคับสำคัญ: ให้ใช้คำว่า "ข้อมูลพื้นฐาน" เสมอ และห้ามใช้คำว่า "Master Data" ในคำตอบเด็ดขาด)
 1. ให้คำแนะนำและตรวจสอบความถูกต้องของข้อมูลพื้นฐานใน HOSxP เพื่อให้พร้อมสำหรับการออก 43 แฟ้ม (แฟ้ม PROVIDER), 16 แฟ้ม, และการส่งเคลม FDH / e-Claim
 2. สำหรับข้อมูลแพทย์/บุคลากร:
    - ตรวจสอบความถูกต้องของเลขที่ใบประกอบวิชาชีพ (เช่น ว.xxxx สำหรับแพทย์ ท.xxxx สำหรับทันตแพทย์), สภาวิชาชีพ (เช่น 01=แพทยสภา, 02=สภาการพยาบาล), และเลขประจำตัวประชาชน 13 หลัก
@@ -424,7 +425,7 @@ PROMPT;
 [คำถามปัจจุบันของผู้ใช้]:
 {$cleanQuestion}
 
-กรุณาวิเคราะห์ ตรวจสอบข้อมูล และให้คำแนะนำเกี่ยวกับ HOSxP Master Data อย่างเป็นมืออาชีพ มีขั้นตอน และสามารถนำไปปฏิบัติได้จริง:
+กรุณาวิเคราะห์ ตรวจสอบข้อมูล และให้คำแนะนำเกี่ยวกับข้อมูลพื้นฐาน HOSxP อย่างเป็นมืออาชีพ มีขั้นตอน และสามารถนำไปปฏิบัติได้จริง (ย้ำ: ให้ใช้คำว่า "ข้อมูลพื้นฐาน" แทนคำว่า "Master Data" ในคำตอบเสมอ):
 PROMPT;
         } elseif ($isHosfinPage || $isFinancialQuery) {
             $userPrompt = <<<PROMPT

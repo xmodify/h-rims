@@ -871,7 +871,7 @@
             'message': 'ข้อความผลการทำงาน',
             'duration_seconds': 'เวลาที่ใช้ (วินาที)',
 
-            // HOSxP Master
+            // ข้อมูลพื้นฐาน HOSxP
             'icode': 'รหัสค่าบริการ',
             'name': 'ชื่อรายการ',
             'price': 'ราคาปกติ (บาท)',
@@ -897,11 +897,26 @@
             'clinic': 'รหัสคลินิก',
             'cid': 'เลขประจำตัวประชาชน',
             'active': 'สถานะปฏิบัติงาน',
+            'position_name': 'ชื่อตำแหน่งวิชาชีพ',
+            'spclty_name': 'ชื่อสาขาความเชี่ยวชาญ',
+            'clinic_name': 'ชื่อคลินิก',
+            'income_name': 'ชื่อหมวดค่ารักษา',
+            'pi_name': 'ชื่อสิทธิมาตรฐาน (PROVIS)',
+            'pttype_std_code': 'รหัสส่งออกใน HOSxP',
+            'pi_pttype_std_code': 'รหัสส่งออก PROVIS',
+            'pttype_price_group_name': 'ชื่อกลุ่มราคาตามสิทธิ',
+            'nhso_subinscl': 'รหัสสิทธิย่อย สปสช.',
+            'export_eclaim': 'สถานะส่งออก e-Claim',
 
             // HOSxP Pricing by Rights (pttype_items_price) & Opitemrece
             'pttype_items_price_id': 'รหัสราคาตามสิทธิ',
             'items_table_name': 'ประเภทตารางรายการ',
             'items_table_code': 'รหัสรายการ (icode)',
+            'standard_price': 'ราคามาตรฐาน (บาท)',
+            'pttype_price': 'ราคาตามสิทธิ (บาท)',
+            'pttype_name': 'ชื่อสิทธิการรักษา',
+            'item_name': 'ชื่อรายการค่าบริการ',
+            'diff_amount': 'ส่วนต่างราคา (บาท)',
             'pttype_price_group_id': 'รหัสกลุ่มราคาตามสิทธิ',
             'discount_percent': 'ส่วนลดตามสิทธิ (%)',
             'unitprice': 'ราคาต่อหน่วย (บาท)',
@@ -1411,8 +1426,10 @@
                     } else {
                         renderMessageBubble({
                             role: 'assistant',
-                            content: 'ขออภัยครับ: ' + (data.message || 'ไม่สามารถค้นหาข้อมูลได้'),
-                            sql_query: data.sql
+                            content: data.message || 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ',
+                            sql_query: data.sql,
+                            error_detail: data.error_detail,
+                            db_target: data.db_target
                         });
                     }
                 }
@@ -1425,7 +1442,8 @@
 
                 renderMessageBubble({
                     role: 'assistant',
-                    content: 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err
+                    content: 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้งครับ',
+                    error_detail: isUserAdmin ? String(err) : null
                 });
                 scrollChatToBottom();
             });
@@ -1474,15 +1492,34 @@
                 }
 
                 let sqlHtml = '';
-                if (msg.sql_query && isUserAdmin) {
+                if ((msg.sql_query || msg.error_detail) && isUserAdmin) {
                     const sqlId = 'sql-' + Math.random().toString(36).substring(2, 9);
+                    const isError = Boolean(msg.error_detail);
                     sqlHtml = `
-                        <div>
-                            <span class="sql-meta-badge" onclick="document.getElementById('${sqlId}').classList.toggle('d-none')">
-                                <i class="bi bi-shield-lock text-secondary"></i> ข้อมูลทางเทคนิค (เฉพาะ Admin) ${msg.execution_time_ms ? `(${msg.execution_time_ms} ms)` : ''}
+                        <div class="mt-2">
+                            <span class="sql-meta-badge ${isError ? 'border-danger text-danger' : ''}" onclick="document.getElementById('${sqlId}').classList.toggle('d-none')">
+                                <i class="bi ${isError ? 'bi-shield-exclamation text-danger' : 'bi-shield-lock text-secondary'}"></i> 
+                                ${isError ? 'ดู SQL / สาเหตุ Error (เฉพาะ Admin)' : 'ข้อมูลทางเทคนิค (เฉพาะ Admin)'} 
+                                ${msg.execution_time_ms ? `(${msg.execution_time_ms} ms)` : ''}
                             </span>
                             <div id="${sqlId}" class="d-none mt-2 p-2 bg-dark text-light rounded font-monospace small" style="font-size: 0.75rem; white-space: pre-wrap; word-break: break-all;">
-${escapeHtml(msg.sql_query)}
+                                ${msg.sql_query ? `
+                                    <div class="d-flex justify-content-between align-items-center mb-1 text-white-50 pb-1 border-bottom border-secondary">
+                                        <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                            <i class="bi bi-database me-1"></i>${escapeHtml((msg.db_target || 'database').toUpperCase())}
+                                        </span>
+                                        <button type="button" class="btn btn-xs btn-outline-light py-0 px-2" style="font-size: 0.68rem;" onclick="copyCopilotSql('${escapeHtml(msg.sql_query)}', this)">
+                                            <i class="bi bi-clipboard me-1"></i>คัดลอก SQL
+                                        </button>
+                                    </div>
+                                    <div style="color: #a5f3fc; max-height: 160px; overflow-y: auto;">${escapeHtml(msg.sql_query)}</div>
+                                ` : ''}
+                                ${msg.error_detail ? `
+                                    <div class="${msg.sql_query ? 'mt-2 pt-2 border-top border-secondary' : ''} text-danger">
+                                        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>สาเหตุข้อผิดพลาด (Database/System Error):</div>
+                                        <div class="text-warning font-monospace" style="white-space: pre-wrap; max-height: 120px; overflow-y: auto;">${escapeHtml(msg.error_detail)}</div>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -1551,6 +1588,26 @@ ${escapeHtml(msg.sql_query)}
             const box = document.getElementById('chatMessagesBox');
             box.scrollTop = box.scrollHeight;
         }
+
+        // Copy SQL to Clipboard helper
+        function copyCopilotSql(text, btn) {
+            if (!navigator.clipboard) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } else {
+                navigator.clipboard.writeText(text);
+            }
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2 text-success me-1"></i>คัดลอกแล้ว!';
+                setTimeout(() => { btn.innerHTML = orig; }, 1800);
+            }
+        }
+        window.copyCopilotSql = copyCopilotSql;
 
         // Escape HTML
         function escapeHtml(text) {

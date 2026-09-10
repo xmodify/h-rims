@@ -127,7 +127,7 @@ class AiService
     }
 
     /**
-     * Get HOSxP Master Data Specific Model Name
+     * Get HOSxP ข้อมูลพื้นฐาน Specific Model Name
      */
     public static function getHosxpModelName()
     {

@@ -124,10 +124,15 @@ class CopilotController extends Controller
 
         // Format message payloads
         $formatted = $messages->map(function ($msg) use ($isAdmin) {
+            $content = $msg->content;
+            if (!$isAdmin && (str_contains($content, 'SQLSTATE[') || str_contains($content, 'คำสั่ง SQL ขัดข้อง'))) {
+                $content = 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
+            }
+
             $data = [
                 'id' => $msg->id,
                 'role' => $msg->role,
-                'content' => $msg->content,
+                'content' => $content,
                 'sql_query' => $isAdmin ? $msg->sql_query : null,
                 'db_target' => $msg->db_target,
                 'execution_time_ms' => $msg->execution_time_ms,
@@ -358,7 +363,7 @@ class CopilotController extends Controller
                 }
             }
 
-            $errorMessage = $sqlResult['message'] ?? 'ไม่สามารถประมวลผลคำสั่งได้';
+            $errorMessage = $sqlResult['message'] ?? 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
 
             $botMsg = AiChatMessage::create([
                 'session_id' => $session->id,
@@ -378,6 +383,8 @@ class CopilotController extends Controller
                 'mode' => 'text_to_sql',
                 'message' => $errorMessage,
                 'sql' => $isAdmin ? ($sqlResult['sql'] ?? null) : null,
+                'error_detail' => $isAdmin ? ($sqlResult['error_detail'] ?? $sqlResult['admin_message'] ?? null) : null,
+                'admin_message' => $isAdmin ? ($sqlResult['admin_message'] ?? null) : null,
                 'db_target' => $sqlResult['db_target'] ?? 'hrims',
             ]);
         }
@@ -467,7 +474,7 @@ class CopilotController extends Controller
                 'สรุปการลงสมุดรายวันทั่วไป (Journal Voucher)'
             ];
         } elseif ($scope === 'hosxp') {
-            $summary = "ในระบบ **HOSxP Setting** ผมสามารถช่วยท่านตรวจสอบความถูกต้องของข้อมูลพื้นฐาน Master Data ของโรงพยาบาลได้ครับ เช่น:\n\n"
+            $summary = "ในระบบ **HOSxP Setting** ผมสามารถช่วยท่านตรวจสอบความถูกต้องของข้อมูลพื้นฐานของโรงพยาบาลได้ครับ เช่น:\n\n"
                 . "1. **รายการค่ารักษาพยาบาลและหัตถการ (nondrugitems)**: ตรวจสอบรายการที่ยังไม่ได้ผูกรหัสมาตรฐาน ADP หรือรหัส 16 แฟ้ม\n"
                 . "2. **สิทธิการรักษาพยาบาล (pttype)**: ตรวจสอบการตั้งค่าสิทธิการรักษาที่เปิดใช้งาน และรหัสมาตรฐาน pttype\n"
                 . "3. **ข้อมูลแพทย์และผู้ประกอบวิชาชีพ (doctor)**: รายชื่อแพทย์ที่ยังไม่มีเลขที่ใบประกอบวิชาชีพ (เลข ว.) หรือตำแหน่ง\n"

@@ -455,10 +455,10 @@ class MainSettingController extends Controller
                             return is_numeric($val) ? (float) $val : null;
                         };
 
-                        $existingCodes = DB::table('lookup_sss_equipdev_aipn')->pluck('code')->toArray();
-                        $existingCodesMap = array_flip($existingCodes);
+                        // Truncate first to have a clean import preserving historical tiers
+                        DB::table('lookup_sss_equipdev_aipn')->truncate();
 
-                        $updatedCount = 0;
+                        $batchData = [];
                         $insertedCount = 0;
 
                         DB::beginTransaction();
@@ -475,8 +475,9 @@ class MainSettingController extends Controller
                                 $dateeff = $parseDate($row['dateeff'] ?? null);
                                 $dateexp = $parseDate($row['dateexp'] ?? null);
 
-                                $recordData = [
+                                $batchData[] = [
                                     'billgroup' => $row['billgroup'] ?? null,
+                                    'code' => $code,
                                     'unit' => $row['unit'] ?? null,
                                     'rate' => $rate,
                                     'rate2' => $rate2,
@@ -484,24 +485,25 @@ class MainSettingController extends Controller
                                     'daterev' => $daterev,
                                     'dateeff' => $dateeff,
                                     'dateexp' => $dateexp,
-                                    'lastupd' => $row['lastupd'] ?? null,
-                                    'dtcond' => $row['dtcond'] ?? null,
-                                    'note' => $row['note'] ?? null,
+                                    'lastupd' => isset($row['lastupd']) ? trim($row['lastupd']) : null,
+                                    'dtcond' => isset($row['dtcond']) ? trim($row['dtcond']) : null,
+                                    'note' => isset($row['note']) ? trim($row['note']) : null,
+                                    'created_at' => now(),
                                     'updated_at' => now(),
                                 ];
+                                $insertedCount++;
 
-                                if (isset($existingCodesMap[$code])) {
-                                    $updatedCount++;
-                                    DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->update($recordData);
-                                } else {
-                                    $recordData['created_at'] = now();
-                                    $recordData['code'] = $code;
-                                    $insertedCount++;
-                                    DB::table('lookup_sss_equipdev_aipn')->insert($recordData);
+                                if (count($batchData) >= 500) {
+                                    DB::table('lookup_sss_equipdev_aipn')->insert($batchData);
+                                    $batchData = [];
                                 }
                             }
+
+                            if (!empty($batchData)) {
+                                DB::table('lookup_sss_equipdev_aipn')->insert($batchData);
+                            }
                             DB::commit();
-                            $report[] = "EquipdevAIPN (เพิ่ม: $insertedCount, อัปเดต: $updatedCount แถว)";
+                            $report[] = "EquipdevAIPN ($insertedCount รายการ)";
                         } catch (\Throwable $e) {
                             DB::rollBack();
                             throw $e;

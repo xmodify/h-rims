@@ -3196,11 +3196,12 @@ class HosFinController extends Controller
         $totalCash = (float)$cashBankAccounts->sum('balance');
         $cashAccountsCount = $cashBankAccounts->count();
 
-        // 5. Ratios & Risk Score
+        // 5. Ratios & Risk Score (Period-Aware)
         $indexData = $this->index($request)->getData();
         $riskScore = $indexData['riskScore'] ?? 0;
         $riskScoreLabel = $indexData['riskScoreLevelLabel'] ?? 'ไม่ระบุ';
         $latestMetrics = $indexData['latestMetrics'] ?? [];
+        $latestPeriod = $indexData['latestPeriod'] ?? null;
         $latestPeriodLabel = $indexData['latestPeriodLabel'] ?? 'งวดล่าสุด';
         $budgetYear = $indexData['budgetYear'] ?? self::getCurrentBudgetYear();
 
@@ -3218,12 +3219,42 @@ class HosFinController extends Controller
         $operatingCash = $indexData['operatingCash'] ?? 0;
         $restrictedCash = $indexData['restrictedCash'] ?? 0;
 
+        // Previous period comparison (Month-over-Month Trend)
+        $prevPeriodText = "";
+        if (!empty($latestPeriod)) {
+            $prevPeriod = DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', '<', $latestPeriod)
+                ->orderBy('acc_period', 'desc')
+                ->value('acc_period');
+
+            if ($prevPeriod) {
+                try {
+                    $prevReq = new Request(['period' => $prevPeriod]);
+                    $prevData = $this->index($prevReq)->getData();
+                    $prevMetrics = $prevData['latestMetrics'] ?? [];
+                    $prevNetFund = $prevMetrics['105']['val'] ?? null;
+                    $prevRisk = $prevData['riskScore'] ?? null;
+                    $prevLabel = $prevData['latestPeriodLabel'] ?? $prevPeriod;
+
+                    if ($prevNetFund !== null) {
+                        $diffFund = $netOperatingFund - $prevNetFund;
+                        $diffSign = ($diffFund >= 0 ? '+' : '');
+                        $prevPeriodText = "- แนวโน้มเปรียบเทียบกับงวดก่อนหน้า ({$prevLabel}):\n"
+                            . "  * เงินบำรุงสุทธิ (105): งวดนี้ " . number_format($netOperatingFund, 2) . " บ. | งวดก่อน " . number_format($prevNetFund, 2) . " บ. (เปลี่ยนแปลง {$diffSign}" . number_format($diffFund, 2) . " บาท)\n"
+                            . "  * ระดับความเสี่ยง (Risk Score): งวดนี้ระดับ {$riskScore} | งวดก่อนระดับ {$prevRisk}\n";
+                    }
+                } catch (\Throwable $ex) {
+                    // Ignore MoM comparison error
+                }
+            }
+        }
+
         $glData = compact(
             'totalUnpaidAp', 'totalUnpaidApCount', 'totalPaidAp', 'topCreditors',
             'totalArOutstanding', 'totalArBilled', 'totalArCollected', 'totalArCount', 'arTypeSummaries', 'topArDebtors',
             'totalCost', 'totalLc', 'totalMc', 'totalCc', 'lcPercent', 'mcPercent', 'ccPercent',
             'totalCash', 'operatingCash', 'restrictedCash', 'cashAccountsCount', 'cashBankAccounts',
-            'riskScore', 'riskScoreLabel', 'latestPeriodLabel', 'budgetYear',
+            'riskScore', 'riskScoreLabel', 'latestPeriod', 'latestPeriodLabel', 'budgetYear',
             'netOperatingFund', 'currentRatio', 'cashRatio', 'quickRatio', 'nwc',
             'drugPayDays', 'ofcCollectDays', 'ucCollectDays', 'inventoryDays', 'netMargin'
         );
@@ -3290,7 +3321,8 @@ class HosFinController extends Controller
                 . "  MC ค่าวัสดุยา: " . number_format($totalMc, 2) . " บาท ({$mcPercent}%)\n"
                 . "  LC ค่าแรงบุคลากร: " . number_format($totalLc, 2) . " บาท ({$lcPercent}%)\n"
                 . "  CC ค่าลงทุนและเสื่อมราคา: " . number_format($totalCc, 2) . " บาท ({$ccPercent}%)\n"
-                . "  อัตราสำรองคลังยา (264): {$inventoryDays} วัน, Net Margin (307): {$netMargin}%\n";
+                . "  อัตราสำรองคลังยา (264): {$inventoryDays} วัน, Net Margin (307): {$netMargin}%\n"
+                . $prevPeriodText;
 
             if ($provider === 'ollama') {
                 $aiPrompt = "คุณคือผู้เชี่ยวชาญการเงินการคลังโรงพยาบาล วิเคราะห์งบ GL สรุปรายงานผู้บริหารแบบกระชับ ตรงประเด็น (ตอบสั้นกระชับ 4 ข้อหลัก ไม่ต้องเกริ่นยาว):\n\n"
@@ -3320,6 +3352,26 @@ class HosFinController extends Controller
             \Illuminate\Support\Facades\Log::warning("HosFin pure AI analysis failed: " . $aiError);
         }
 
+        $snapshotData = [
+            'period' => $latestPeriod,
+            'periodLabel' => $latestPeriodLabel,
+            'budgetYear' => $budgetYear,
+            'riskScore' => $riskScore,
+            'riskScoreLabel' => $riskScoreLabel,
+            'netOperatingFund' => $netOperatingFund,
+            'currentRatio' => $currentRatio,
+            'cashRatio' => $cashRatio,
+            'quickRatio' => $quickRatio,
+            'drugPayDays' => $drugPayDays,
+            'ofcCollectDays' => $ofcCollectDays,
+            'totalUnpaidAp' => $totalUnpaidAp,
+            'totalUnpaidApCount' => $totalUnpaidApCount,
+            'totalArOutstanding' => $totalArOutstanding,
+            'totalArCount' => $totalArCount,
+            'totalCash' => $totalCash,
+            'operatingCash' => $operatingCash,
+        ];
+
         if (!empty($answer)) {
             return response()->json([
                 'success' => true,
@@ -3328,6 +3380,7 @@ class HosFinController extends Controller
                 'provider_label' => $providerLabel,
                 'model' => $model,
                 'sources' => $sources,
+                'snapshot' => $snapshotData,
                 'glSummary' => [
                     'totalUnpaidAp' => $totalUnpaidAp,
                     'totalArOutstanding' => $totalArOutstanding,
@@ -3349,6 +3402,7 @@ class HosFinController extends Controller
             'message' => $aiError ?: 'ไม่สามารถเชื่อมต่อระบบ AI ได้ กรุณาตรวจสอบการตั้งค่าผู้ให้บริการ AI',
             'settings_url' => route('admin.rag.index'),
             'sources' => $sources,
+            'snapshot' => $snapshotData,
             'glSummary' => [
                 'totalUnpaidAp' => $totalUnpaidAp,
                 'totalArOutstanding' => $totalArOutstanding,
@@ -3359,6 +3413,47 @@ class HosFinController extends Controller
             ]
         ]);
     }
+
+    /**
+     * In-Modal AI Drill-down using Text-to-SQL for HosFin
+     */
+    public function ai_drilldown(Request $request, \App\Services\Ai\TextToSql\TextToSqlService $textToSqlService)
+    {
+        $question = trim($request->input('question', ''));
+        $period = $request->input('period');
+        $budgetYear = $request->input('budget_year');
+
+        if (empty($question)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'กรุณาระบุคำถามที่ต้องการค้นหาเจาะลึก'
+            ]);
+        }
+
+        $contextualQuestion = $question;
+        $contextHints = [];
+        if (!empty($period) && !str_contains($question, $period)) {
+            $contextHints[] = "งวดบัญชี {$period}";
+        }
+        if (!empty($budgetYear) && !str_contains($question, (string)$budgetYear)) {
+            $contextHints[] = "ปีงบประมาณ {$budgetYear}";
+        }
+        if (!empty($contextHints)) {
+            $contextualQuestion .= " (" . implode(', ', $contextHints) . ")";
+        }
+
+        try {
+            $result = $textToSqlService->generateAndExecute($contextualQuestion, 'hrims');
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("HosFin AI Drilldown Error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการประมวลผลคำถามเจาะลึก: ' . $e->getMessage()
+            ]);
+        }
+    }
+
 
     /**
      * Cash & Bank Register (ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร)

@@ -184,6 +184,21 @@
     border-color: #2563eb !important;
     color: #1d4ed8 !important;
   }
+  .drill-chip {
+    transition: all 0.2s ease-in-out;
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
+  }
+  .drill-chip:hover {
+    background-color: #ecfdf5 !important;
+    border-color: #10b981 !important;
+    color: #047857 !important;
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.15);
+  }
 
   /* Print Styles for HosFin */
   @media print {
@@ -1713,15 +1728,79 @@
         });
     });
 
+    // Helper function to escape HTML
+    function escapeHosFinHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Helper Markdown renderer with LaTeX and Color support
+    function formatHosFinAiMarkdown(raw) {
+        if (!raw) return '';
+
+        // 1. Convert LaTeX math block $$ \text{...} $$
+        let res = raw.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+            let clean = formula
+                .replace(/\\text\{([^}]+)\}/g, '$1')
+                .replace(/\\quad/g, ' ')
+                .replace(/\\times/g, ' × ')
+                .replace(/\\div/g, ' ÷ ')
+                .replace(/\\approx/g, ' ≈ ')
+                .replace(/\\le/g, ' ≤ ')
+                .replace(/\\ge/g, ' ≥ ')
+                .trim();
+            return `<div class="p-2 my-2 bg-light border border-primary-subtle rounded-3 text-center fw-bold text-primary font-monospace small"><i class="bi bi-calculator me-1"></i> ${clean}</div>`;
+        });
+
+        // 2. Convert inline LaTeX math $ \text{...} $
+        res = res.replace(/\$([^\$\n]+)\$/g, function(match, formula) {
+            return formula.replace(/\\text\{([^}]+)\}/g, '$1').trim();
+        });
+
+        // 3. Support font colors
+        res = res
+            .replace(/<font\s+color=['"]?red['"]?>(.*?)<\/font>/gi, '<span class="text-danger fw-bold">$1</span>')
+            .replace(/<font\s+color=['"]?green['"]?>(.*?)<\/font>/gi, '<span class="text-success fw-bold">$1</span>')
+            .replace(/<font\s+color=['"]?blue['"]?>(.*?)<\/font>/gi, '<span class="text-primary fw-bold">$1</span>')
+            .replace(/<font[^>]*>/gi, '')
+            .replace(/<\/font>/gi, '');
+
+        // 4. Standard Markdown
+        return res
+            .replace(/^### (.*$)/gim, '<h6 class="fw-bold text-dark mt-3 mb-2 border-bottom pb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> $1</h6>')
+            .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
+            .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+            .replace(/`([^`]+)`/gim, '<code class="bg-light px-1 py-0.5 rounded text-dark border small">$1</code>')
+            .replace(/^\* (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
+            .replace(/^- (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
+            .replace(/\n\n/gim, '<br>')
+            .replace(/\n/gim, '<br>');
+    }
+
     // AI Financial Diagnosis Modal Logic
     function openHosFinAiModal() {
+        const periodSelect = document.querySelector('select[onchange*="period="]');
+        let currentPeriod = periodSelect ? periodSelect.value : (new URLSearchParams(window.location.search).get('period'));
+
         $('#hosFinAiModal').modal('show');
-        if (!window.hosFinAnalysisLoaded) {
-            fetchHosFinAiAnalysis();
+        if (!window.hosFinAnalysisLoaded || window.hosFinLoadedPeriod !== currentPeriod) {
+            fetchHosFinAiAnalysis(currentPeriod);
         }
     }
 
-    function fetchHosFinAiAnalysis() {
+    function fetchHosFinAiAnalysis(forcePeriod = null) {
+        let currentPeriod = forcePeriod;
+        if (!currentPeriod) {
+            const periodSelect = document.querySelector('select[onchange*="period="]');
+            currentPeriod = periodSelect ? periodSelect.value : (new URLSearchParams(window.location.search).get('period'));
+        }
+
         const isAdmin = {{ (Auth::check() && Auth::user()->status === 'admin') ? 'true' : 'false' }};
         const loading = document.getElementById('aiAnalysisLoading');
         const content = document.getElementById('aiAnalysisContent');
@@ -1737,62 +1816,57 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
-            }
+            },
+            body: JSON.stringify({ period: currentPeriod })
         })
         .then(res => res.json())
         .then(data => {
             loading.classList.add('d-none');
             if (data.success && data.answer) {
                 window.hosFinAnalysisLoaded = true;
+                window.hosFinLoadedPeriod = currentPeriod;
                 content.classList.remove('d-none');
-                
-                // Enhanced Markdown renderer with LaTeX and Color support
-                let formatted = (function(raw) {
-                    if (!raw) return '';
 
-                    // 1. Convert LaTeX math block $$ \text{...} $$
-                    let res = raw.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
-                        let clean = formula
-                            .replace(/\\text\{([^}]+)\}/g, '$1')
-                            .replace(/\\quad/g, ' ')
-                            .replace(/\\times/g, ' × ')
-                            .replace(/\\div/g, ' ÷ ')
-                            .replace(/\\approx/g, ' ≈ ')
-                            .replace(/\\le/g, ' ≤ ')
-                            .replace(/\\ge/g, ' ≥ ')
-                            .trim();
-                        return `<div class="p-2 my-2 bg-light border border-primary-subtle rounded-3 text-center fw-bold text-primary font-monospace small"><i class="bi bi-calculator me-1"></i> ${clean}</div>`;
-                    });
-
-                    // 2. Convert inline LaTeX math $ \text{...} $
-                    res = res.replace(/\$([^\$\n]+)\$/g, function(match, formula) {
-                        return formula.replace(/\\text\{([^}]+)\}/g, '$1').trim();
-                    });
-
-                    // 3. Support font colors
-                    res = res
-                        .replace(/<font\s+color=['"]?red['"]?>(.*?)<\/font>/gi, '<span class="text-danger fw-bold">$1</span>')
-                        .replace(/<font\s+color=['"]?green['"]?>(.*?)<\/font>/gi, '<span class="text-success fw-bold">$1</span>')
-                        .replace(/<font\s+color=['"]?blue['"]?>(.*?)<\/font>/gi, '<span class="text-primary fw-bold">$1</span>')
-                        .replace(/<font[^>]*>/gi, '')
-                        .replace(/<\/font>/gi, '');
-
-                    // 4. Standard Markdown
-                    return res
-                        .replace(/^### (.*$)/gim, '<h6 class="fw-bold text-dark mt-3 mb-2 border-bottom pb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> $1</h6>')
-                        .replace(/^#### (.*$)/gim, '<h6 class="fw-bold text-secondary mt-2 mb-1" style="font-size: 0.9rem;">$1</h6>')
-                        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-                        .replace(/`([^`]+)`/gim, '<code class="bg-light px-1 py-0.5 rounded text-dark border small">$1</code>')
-                        .replace(/^\* (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
-                        .replace(/^- (.*$)/gim, '<li class="mb-1 ms-3">$1</li>')
-                        .replace(/\n\n/gim, '<br>')
-                        .replace(/\n/gim, '<br>');
-                })(data.answer);
+                // Update Snapshot card dynamically if snapshot data provided
+                if (data.snapshot) {
+                    window.currentHosFinAiContext = data.snapshot;
+                    const snap = data.snapshot;
+                    if (document.getElementById('hosFinSnapPeriod')) document.getElementById('hosFinSnapPeriod').innerText = snap.periodLabel || snap.period || '-';
+                    if (document.getElementById('hosFinSnapYear')) document.getElementById('hosFinSnapYear').innerText = `ปีงบ ${snap.budgetYear || ''}`;
+                    if (document.getElementById('hosFinSnapRiskScore')) document.getElementById('hosFinSnapRiskScore').innerText = `ระดับ ${snap.riskScore || 0} / 7`;
+                    if (document.getElementById('hosFinSnapRiskBadge')) document.getElementById('hosFinSnapRiskBadge').innerText = snap.riskScoreLabel || '';
+                    if (document.getElementById('hosFinSnapFund')) {
+                        const fundEl = document.getElementById('hosFinSnapFund');
+                        const fundVal = parseFloat(snap.netOperatingFund || 0);
+                        fundEl.className = `fw-bold ${fundVal < 0 ? 'text-danger' : 'text-success'} mb-0 mt-1`;
+                        fundEl.innerHTML = `${fundVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="fs-6 fw-normal">บาท</span>`;
+                    }
+                    if (document.getElementById('hosFinSnapRatios')) {
+                        document.getElementById('hosFinSnapRatios').innerText = `Current Ratio: ${snap.currentRatio || 0} | Cash: ${snap.cashRatio || 0}`;
+                    }
+                    if (document.getElementById('hosFinSnapDrugPayDays')) {
+                        document.getElementById('hosFinSnapDrugPayDays').innerHTML = `<i class="bi bi-clock-history me-1"></i> จ่ายค่ายา: ${snap.drugPayDays || 0} วัน`;
+                    }
+                    if (document.getElementById('hosFinSnapOfcCollectDays')) {
+                        document.getElementById('hosFinSnapOfcCollectDays').innerHTML = `<i class="bi bi-receipt me-1"></i> เก็บหนี้ข้าราชการ: ${snap.ofcCollectDays || 0} วัน`;
+                    }
+                    if (document.getElementById('hosFinSnapAp')) {
+                        const apVal = parseFloat(snap.totalUnpaidAp || 0);
+                        document.getElementById('hosFinSnapAp').innerText = `${apVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+                    }
+                    if (document.getElementById('hosFinSnapAr')) {
+                        const arVal = parseFloat(snap.totalArOutstanding || 0);
+                        document.getElementById('hosFinSnapAr').innerText = `${arVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+                    }
+                    if (document.getElementById('hosFinSnapCash')) {
+                        const cashVal = parseFloat(snap.totalCash || 0);
+                        document.getElementById('hosFinSnapCash').innerText = `${cashVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+                    }
+                }
 
                 // Header badge showing provider & model
                 const providerBadge = data.provider_label ? `<div class="mb-3"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-1 px-2"><i class="bi bi-stars me-1"></i> ขับเคลื่อนด้วย ${data.provider_label} (${data.model || ''})</span></div>` : '';
-                document.getElementById('aiAnalysisText').innerHTML = providerBadge + formatted;
+                document.getElementById('aiAnalysisText').innerHTML = providerBadge + formatHosFinAiMarkdown(data.answer);
 
                 // Render sources
                 const srcContainer = document.getElementById('aiAnalysisSources');
@@ -1871,10 +1945,192 @@
         });
     }
 
+    // In-Modal Interactive Drill-Down (Text-to-SQL) Functions
+    function focusDrillDownInput() {
+        const section = document.getElementById('hosFinDrillDownSection');
+        if (section) {
+            section.classList.remove('d-none');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        const modalBody = document.querySelector('#hosFinAiModal .modal-body');
+        if (modalBody) {
+            modalBody.scrollTo({ top: modalBody.scrollHeight, behavior: 'smooth' });
+        }
+        const input = document.getElementById('hosFinDrillDownInput');
+        if (input) {
+            setTimeout(() => input.focus(), 300);
+        }
+    }
+
+    function askDrillDownQuestion(question) {
+        const input = document.getElementById('hosFinDrillDownInput');
+        if (input) {
+            input.value = question;
+            const form = document.getElementById('hosFinDrillDownForm');
+            if (form) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        }
+    }
+
+    function handleDrillDownSubmit(event) {
+        event.preventDefault();
+        const input = document.getElementById('hosFinDrillDownInput');
+        const question = input.value.trim();
+        if (!question) return;
+
+        const historyBox = document.getElementById('drillDownHistory');
+        const btn = document.getElementById('hosFinDrillDownBtn');
+        const spinner = document.getElementById('drillDownBtnSpinner');
+        const icon = document.getElementById('drillDownBtnIcon');
+
+        // Disable input & show loading state
+        input.disabled = true;
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        icon.classList.add('d-none');
+
+        const reqId = 'drilldown_' + Date.now();
+        const activeLabel = window.currentHosFinAiContext?.periodLabel || 'งวดปัจจุบัน';
+        const userCardHtml = `
+            <div class="card border border-primary-subtle shadow-xs rounded-3 bg-white overflow-hidden" id="${reqId}">
+                <div class="card-header bg-primary bg-opacity-10 py-2 px-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white rounded-pill px-2 py-1"><i class="bi bi-person-fill me-1"></i> คำถามเจาะลึก</span>
+                        <strong class="text-dark small">${escapeHosFinHtml(question)}</strong>
+                    </div>
+                    <small class="badge bg-white text-secondary border px-2 py-1">${escapeHosFinHtml(activeLabel)}</small>
+                </div>
+                <div class="card-body p-3">
+                    <div class="drilldown-loading text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                        <span class="text-muted small">AI กำลังวิเคราะห์คำสั่ง SQL และดึงตัวเลขจากฐานข้อมูล GL...</span>
+                    </div>
+                    <div class="drilldown-content d-none"></div>
+                </div>
+            </div>
+        `;
+        historyBox.insertAdjacentHTML('beforeend', userCardHtml);
+        input.value = '';
+
+        const targetCard = document.getElementById(reqId);
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        fetch(`{{ route('hosfin.ai_drilldown') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                question: question,
+                period: window.currentHosFinAiContext?.period,
+                budget_year: window.currentHosFinAiContext?.budgetYear
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            input.disabled = false;
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+            input.focus();
+
+            const card = document.getElementById(reqId);
+            if (!card) return;
+            const loadingDiv = card.querySelector('.drilldown-loading');
+            const contentDiv = card.querySelector('.drilldown-content');
+            loadingDiv.classList.add('d-none');
+            contentDiv.classList.remove('d-none');
+
+            if (res.success) {
+                let html = '';
+                if (res.summary) {
+                    html += `<div class="small mb-3 text-dark" style="line-height: 1.7;">${formatHosFinAiMarkdown(res.summary)}</div>`;
+                }
+                if (res.sql) {
+                    const sqlId = 'sql_' + Date.now();
+                    html += `
+                        <div class="mb-2">
+                            <a class="badge bg-light text-secondary border text-decoration-none small py-1 px-2" data-bs-toggle="collapse" href="#${sqlId}" role="button" aria-expanded="false">
+                                <i class="bi bi-code-square text-primary me-1"></i> ดูคำสั่ง SQL (${res.db_target || 'hrims'}) <i class="bi bi-chevron-down ms-1"></i>
+                            </a>
+                            <div class="collapse mt-1" id="${sqlId}">
+                                <div class="card card-body bg-dark text-light p-2 font-monospace small" style="font-size: 0.78rem; max-height: 120px; overflow-y: auto;">
+                                    ${escapeHosFinHtml(res.sql)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                if (res.rows && res.rows.length > 0) {
+                    html += `<div class="table-responsive my-2 border rounded-3 overflow-hidden shadow-xs" style="max-height: 250px;">
+                        <table class="table table-sm table-striped table-hover mb-0 small text-nowrap align-middle">
+                            <thead class="table-light sticky-top"><tr>`;
+                    const cols = res.columns || Object.keys(res.rows[0]);
+                    cols.forEach(c => {
+                        const label = (res.column_labels && res.column_labels[c]) ? res.column_labels[c] : c;
+                        html += `<th class="py-1.5 px-2 text-secondary fw-bold">${escapeHosFinHtml(label)}</th>`;
+                    });
+                    html += `</tr></thead><tbody>`;
+                    res.rows.forEach(r => {
+                        html += `<tr>`;
+                        cols.forEach(c => {
+                            let val = r[c] !== null && r[c] !== undefined ? r[c] : '-';
+                            const isNum = typeof val === 'number' || (!isNaN(val) && val !== '' && !isNaN(parseFloat(val)));
+                            const formattedVal = (isNum && typeof val === 'number') ? Number(val).toLocaleString(undefined, { minimumFractionDigits: (val % 1 === 0 ? 0 : 2), maximumFractionDigits: 2 }) : escapeHosFinHtml(String(val));
+                            const alignClass = isNum ? 'text-end font-monospace' : '';
+                            html += `<td class="py-1 px-2 ${alignClass}">${formattedVal}</td>`;
+                        });
+                        html += `</tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                    html += `<div class="text-end text-muted small" style="font-size: 0.72rem;">พบข้อมูล ${res.total_rows || res.rows.length} รายการ (ประมวลผล ${res.execution_time_ms || 0} ms)</div>`;
+                } else if (!res.summary) {
+                    html += `<div class="alert alert-info py-2 px-3 small mb-0"><i class="bi bi-info-circle me-1"></i> ไม่พบข้อมูลที่ตรงกับเงื่อนไขคำถามในงวดนี้</div>`;
+                }
+
+                if (res.suggestions && res.suggestions.length > 0) {
+                    html += `<div class="mt-2 pt-2 border-top d-flex align-items-center gap-1.5 flex-wrap"><span class="small text-muted fw-bold">คำถามแนะนำ:</span>`;
+                    res.suggestions.forEach(s => {
+                        html += `<button type="button" class="btn btn-xs btn-outline-primary rounded-pill py-0 px-2 small" style="font-size: 0.75rem;" onclick="askDrillDownQuestion('${escapeHosFinHtml(s)}')">${escapeHosFinHtml(s)}</button>`;
+                    });
+                    html += `</div>`;
+                }
+
+                contentDiv.innerHTML = html;
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> ${res.message || 'ไม่สามารถค้นหาข้อมูลได้ กรุณาลองปรับคำถามใหม่'}
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            input.disabled = false;
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+            const card = document.getElementById(reqId);
+            if (card) {
+                card.querySelector('.drilldown-loading').classList.add('d-none');
+                const contentDiv = card.querySelector('.drilldown-content');
+                contentDiv.classList.remove('d-none');
+                contentDiv.innerHTML = `<div class="alert alert-danger py-2 px-3 small mb-0"><i class="bi bi-x-circle me-1"></i> เกิดข้อผิดพลาดในการติดต่อเซิร์ฟเวอร์: ${err}</div>`;
+            }
+        });
+    }
+
     function continueInChatbot() {
         $('#hosFinAiModal').modal('hide');
+        const periodText = window.currentHosFinAiContext?.periodLabel || 'งวดล่าสุด';
+        const fundVal = window.currentHosFinAiContext?.netOperatingFund ? parseFloat(window.currentHosFinAiContext.netOperatingFund).toLocaleString() : '';
+        const prompt = `ขอปรึกษาเจาะลึกสถานการณ์การเงิน HosFin จากข้อมูลบัญชี GL (${periodText}` + (fundVal ? `, เงินบำรุงสุทธิ ${fundVal} บาท` : '') + `)`;
+
         if (typeof window.openAiChatWithPrompt === 'function') {
-            window.openAiChatWithPrompt('ขอปรึกษาเจาะลึกเกี่ยวกับสถานการณ์การเงินและแนวทางแก้ไขของ HosFin จากข้อมูล GL');
+            window.openAiChatWithPrompt(prompt);
         } else if (typeof toggleAiChatbot === 'function') {
             toggleAiChatbot();
         }
@@ -2268,26 +2524,26 @@
                     <div class="row g-3 text-center text-md-start align-items-center">
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold">งวดบัญชีวิเคราะห์</span>
-                            <h5 class="fw-bold text-dark mb-0 mt-1">{{ $latestPeriodLabel }}</h5>
-                            <small class="text-muted">ปีงบ {{ $budgetYear }}</small>
+                            <h5 class="fw-bold text-dark mb-0 mt-1" id="hosFinSnapPeriod">{{ $latestPeriodLabel }}</h5>
+                            <small class="text-muted" id="hosFinSnapYear">ปีงบ {{ $budgetYear }}</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold">ระดับความเสี่ยง (Risk Score)</span>
-                            <h5 class="fw-bold text-danger mb-0 mt-1">ระดับ {{ $riskScore }} / 7</h5>
-                            <small class="badge bg-danger bg-opacity-10 text-danger border border-danger small">{{ $riskScoreLevelLabel }}</small>
+                            <h5 class="fw-bold text-danger mb-0 mt-1" id="hosFinSnapRiskScore">ระดับ {{ $riskScore }} / 7</h5>
+                            <small class="badge bg-danger bg-opacity-10 text-danger border border-danger small" id="hosFinSnapRiskBadge">{{ $riskScoreLevelLabel }}</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold">เงินบำรุงคงเหลือสุทธิ (105)</span>
-                            <h5 class="fw-bold {{ $latestMetrics['105']['val'] < 0 ? 'text-danger' : 'text-success' }} mb-0 mt-1">
+                            <h5 class="fw-bold {{ $latestMetrics['105']['val'] < 0 ? 'text-danger' : 'text-success' }} mb-0 mt-1" id="hosFinSnapFund">
                                 {{ number_format($latestMetrics['105']['val'], 2) }} <span class="fs-6 fw-normal">บาท</span>
                             </h5>
-                            <small class="text-muted">Current Ratio: {{ $latestMetrics['100']['val'] }} | Cash: {{ $latestMetrics['102']['val'] }}</small>
+                            <small class="text-muted" id="hosFinSnapRatios">Current Ratio: {{ $latestMetrics['100']['val'] }} | Cash: {{ $latestMetrics['102']['val'] }}</small>
                         </div>
                         <div class="col-md-3">
                             <span class="text-muted small fw-bold">ระยะเวลาเก็บหนี้ / ค้างจ่าย</span>
                             <div class="small mt-1">
-                                <span class="d-block text-danger fw-bold"><i class="bi bi-clock-history me-1"></i> จ่ายค่ายา: {{ $latestMetrics['260']['val'] }} วัน</span>
-                                <span class="d-block text-warning-custom"><i class="bi bi-receipt me-1"></i> เก็บหนี้ข้าราชการ: {{ $latestMetrics['262']['val'] }} วัน</span>
+                                <span class="d-block text-danger fw-bold" id="hosFinSnapDrugPayDays"><i class="bi bi-clock-history me-1"></i> จ่ายค่ายา: {{ $latestMetrics['260']['val'] }} วัน</span>
+                                <span class="d-block text-warning-custom" id="hosFinSnapOfcCollectDays"><i class="bi bi-receipt me-1"></i> เก็บหนี้ข้าราชการ: {{ $latestMetrics['262']['val'] }} วัน</span>
                             </div>
                         </div>
                     </div>
@@ -2295,18 +2551,18 @@
                     <div class="row g-3 text-center text-md-start align-items-center mt-2 pt-2 border-top">
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> หนี้เจ้าหนี้การค้า (AP)</span>
-                            <h6 class="fw-bold {{ ($apUnpaidSum ?? 0) > 0 ? 'text-danger' : 'text-muted' }} mb-0 mt-1">{{ number_format($apUnpaidSum ?? 0, 2) }} บาท</h6>
-                            <small class="text-muted">{{ ($apUnpaidSum ?? 0) > 0 ? 'ค้างจ่าย ' . number_format($apUnpaidCount ?? 0) . ' บิล (' . ($apTotalVendorsCount ?? 0) . ' บริษัท)' : '0 บิล (ยังไม่นำเข้าบิล AP)' }}</small>
+                            <h6 class="fw-bold {{ ($apUnpaidSum ?? 0) > 0 ? 'text-danger' : 'text-muted' }} mb-0 mt-1" id="hosFinSnapAp">{{ number_format($apUnpaidSum ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted" id="hosFinSnapApDesc">{{ ($apUnpaidSum ?? 0) > 0 ? 'ค้างจ่าย ' . number_format($apUnpaidCount ?? 0) . ' บิล (' . ($apTotalVendorsCount ?? 0) . ' บริษัท)' : '0 บิล (ยังไม่นำเข้าบิล AP)' }}</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษา (AR)</span>
-                            <h6 class="fw-bold text-dark mb-0 mt-1">{{ number_format($arOutstandingSum ?? 0, 2) }} บาท</h6>
-                            <small class="text-muted">จาก {{ number_format($arAccountCount ?? 0) }} ผังบัญชี</small>
+                            <h6 class="fw-bold text-dark mb-0 mt-1" id="hosFinSnapAr">{{ number_format($arOutstandingSum ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted" id="hosFinSnapArDesc">จาก {{ number_format($arAccountCount ?? 0) }} ผังบัญชี</small>
                         </div>
                         <div class="col-md-3 border-end">
                             <span class="text-muted small fw-bold"><i class="bi bi-safe text-success me-1"></i> เงินสด & เงินฝากธนาคาร GL</span>
-                            <h6 class="fw-bold text-success mb-0 mt-1">{{ number_format($cashBalance ?? 0, 2) }} บาท</h6>
-                            <small class="text-muted">{{ $cashAccountsCount ?? 0 }} บัญชี (สธ. 1003X: {{ number_format($operatingCash ?? 0, 2) }} บ.)</small>
+                            <h6 class="fw-bold text-success mb-0 mt-1" id="hosFinSnapCash">{{ number_format($cashBalance ?? 0, 2) }} บาท</h6>
+                            <small class="text-muted" id="hosFinSnapCashDesc">{{ $cashAccountsCount ?? 0 }} บัญชี (สธ. 1003X: {{ number_format($operatingCash ?? 0, 2) }} บ.)</small>
                         </div>
                         <div class="col-md-3">
                             <span class="text-muted small fw-bold"><i class="bi bi-pie-chart text-info me-1"></i> แหล่งข้อมูลบัญชี</span>
@@ -2332,6 +2588,62 @@
                 <div id="aiAnalysisContent" class="card border rounded-3 p-4 bg-white shadow-sm d-none">
                     <div id="aiAnalysisText" class="fs-6" style="line-height: 1.8; color: #1e293b;"></div>
                     <div id="aiAnalysisSources"></div>
+
+                    <!-- In-Modal Interactive Drill-Down Section -->
+                    <div id="hosFinDrillDownSection" class="mt-4 pt-4 border-top">
+                        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-circle p-2 text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                                    <i class="bi bi-search fs-6"></i>
+                                </span>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">
+                                        ถามเจาะลึกต่อยอดด้วย AI & Text-to-SQL (Interactive Drill-Down)
+                                    </h6>
+                                    <small class="text-muted">คลิกคำถามแนะนำ หรือพิมพ์คำถามเจาะลึกจากฐานข้อมูลบัญชี GL จริงของงวดนี้</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-3 py-1 small">
+                                <i class="bi bi-database-check me-1"></i> เชื่อมต่อ Text-to-SQL ฐานข้อมูล GL
+                            </span>
+                        </div>
+
+                        <!-- Quick Action Chips -->
+                        <div class="d-flex flex-wrap gap-2 mb-3" id="drillDownChipsContainer">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill drill-chip shadow-xs" onclick="askDrillDownQuestion('แสดง 5 บริษัทเจ้าหนี้ค่ายาที่ค้างชำระนานที่สุดและยอดหนี้')">
+                                <i class="bi bi-receipt-cutoff text-danger me-1"></i> 5 เจ้าหนี้ค่ายาค้างนานสุด
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill drill-chip shadow-xs" onclick="askDrillDownQuestion('แสดงลูกหนี้สิทธิข้าราชการที่ยังค้างเบิกจ่ายและยอดรวม')">
+                                <i class="bi bi-wallet2 text-primary me-1"></i> ลูกหนี้สิทธิข้าราชการค้างเบิก
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill drill-chip shadow-xs" onclick="askDrillDownQuestion('สรุปโครงสร้างต้นทุนบริการ LC MC CC ในงวดนี้')">
+                                <i class="bi bi-pie-chart text-warning me-1"></i> สรุปสัดส่วนต้นทุน LC/MC/CC
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill drill-chip shadow-xs" onclick="askDrillDownQuestion('แสดงรายการบัญชีเงินสดและเงินฝากธนาคารทั้งหมดพร้อมยอดคงเหลือ')">
+                                <i class="bi bi-cash-coin text-success me-1"></i> บัญชีเงินสด & เงินฝากทั้งหมด
+                            </button>
+                        </div>
+
+                        <!-- Drill-Down Conversation & Results Container -->
+                        <div id="drillDownHistory" class="d-flex flex-column gap-3 mb-3"></div>
+
+                        <!-- Drill-Down Input Form -->
+                        <form id="hosFinDrillDownForm" onsubmit="handleDrillDownSubmit(event)" class="mt-2">
+                            <div class="input-group shadow-sm rounded-pill overflow-hidden border border-success-subtle">
+                                <span class="input-group-text bg-white border-0 ps-3 pe-2 text-success">
+                                    <i class="bi bi-chat-dots-fill"></i>
+                                </span>
+                                <input type="text" id="hosFinDrillDownInput" class="form-control border-0 py-2" 
+                                       placeholder="พิมพ์คำถามเจาะลึก เช่น 'มียอดค่าใช้จ่ายหมวดไหนสูงสุดในงวดนี้', 'บิลเจ้าหนี้ค้างเกิน 60 วันมีกี่รายการ'..." 
+                                       autocomplete="off" style="box-shadow: none;">
+                                <button class="btn btn-success px-4 fw-bold d-flex align-items-center gap-1.5" type="submit" id="hosFinDrillDownBtn">
+                                    <span id="drillDownBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                    <i class="bi bi-send-fill" id="drillDownBtnIcon"></i>
+                                    <span>ถามเจาะลึก</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -2350,8 +2662,11 @@
                     <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" onclick="fetchHosFinAiAnalysis()">
                         <i class="bi bi-arrow-clockwise me-1"></i> วิเคราะห์ใหม่อีกครั้ง
                     </button>
-                    <button type="button" class="btn btn-success btn-sm px-4 rounded-pill fw-bold" onclick="continueInChatbot()">
-                        <i class="bi bi-chat-dots-fill me-1"></i> ถามเจาะลึกต่อกับ RiMS Copilot 🤖
+                    <button type="button" class="btn btn-success btn-sm px-3 rounded-pill fw-bold" onclick="focusDrillDownInput()" title="เลื่อนลงไปพิมพ์คำถามเจาะลึก Text-to-SQL ในหน้านี้">
+                        <i class="bi bi-search me-1"></i> ถามเจาะลึกในหน้านี้ (Text-to-SQL) 🤖
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="continueInChatbot()" title="เปิด RiMS Copilot แชทบอทเต็มรูปแบบ">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> เปิด Copilot แชทบอท
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
                 </div>
@@ -2359,6 +2674,7 @@
         </div>
     </div>
 </div>
+
 @endif
 @endif
 @endsection

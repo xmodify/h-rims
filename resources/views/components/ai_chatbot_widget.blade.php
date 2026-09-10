@@ -27,14 +27,9 @@
                 <button type="button" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ล้างบทสนทนา" onclick="clearAiChatHistory()">
                     <i class="bi bi-trash3"></i>
                 </button>
-                @if(auth()->check() && auth()->user()->status === 'admin')
-                <button type="button" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ตั้งค่า AI & LLM Connection" onclick="openAiSettingsModal()">
-                    <i class="bi bi-gear-fill"></i>
+                <button type="button" class="btn btn-sm btn-link text-white p-1 text-decoration-none" title="ขยายหน้าจอเต็ม (Full Screen Modal)" onclick="openFullScreenCopilot()">
+                    <i class="bi bi-arrows-fullscreen fs-6"></i>
                 </button>
-                <a href="{{ route('admin.rag.index') }}" class="btn btn-sm btn-link text-white-50 p-1 text-decoration-none" title="ไปยังคลังความรู้">
-                    <i class="bi bi-box-arrow-up-right"></i>
-                </a>
-                @endif
                 <button type="button" class="btn btn-sm btn-link text-white p-1 text-decoration-none" title="ปิดหน้าต่าง" onclick="toggleAiChatbot()">
                     <i class="bi bi-x-lg fs-6"></i>
                 </button>
@@ -85,7 +80,64 @@
     </div>
 </div>
 
+<!-- Full-Screen RiMS Copilot Modal Overlay -->
+<div id="copilotFullScreenModal" class="copilot-modal-backdrop d-none" onclick="handleCopilotBackdropClick(event)">
+    <div class="copilot-modal-dialog">
+        <div class="copilot-modal-content">
+            <iframe id="copilotModalFrame" src="about:blank" class="copilot-iframe" frameborder="0"></iframe>
+        </div>
+    </div>
+</div>
+
 <style>
+    /* Full-Screen Copilot Modal Overlay */
+    .copilot-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+        animation: copilotModalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes copilotModalFadeIn {
+        from { opacity: 0; transform: scale(0.97); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .copilot-modal-dialog {
+        width: 100%;
+        max-width: 1600px;
+        height: 95vh;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .copilot-modal-content {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .copilot-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
     /* Floating Action Button (FAB) */
     .ai-fab-btn {
         position: fixed;
@@ -385,6 +437,8 @@
 
 <script>
     const AI_STORAGE_KEY = 'hrims_ai_chat_history';
+    let aiConversationHistory = [];
+    let widgetSessionId = null;
 
     // ป้องกัน Bootstrap modal ไม่ให้ดักจับ Focus ออกจาก RiMS Copilot ทำให้พิมพ์ได้ตลอดเวลาแม้มี Modal เปิดอยู่
     document.addEventListener('focusin', function(e) {
@@ -440,13 +494,80 @@
         box.scrollTop = box.scrollHeight;
     }
 
+    // Detect active Copilot scope based on current page URL
+    function getActiveCopilotScope() {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('hosfin')) {
+            return 'hosfin';
+        } else if (path.includes('hosxp') || path.includes('mrec/hosxp_master')) {
+            return 'hosxp';
+        } else if (path.includes('rag-knowledge') || path.includes('rag')) {
+            return 'rag';
+        }
+        return 'auto';
+    }
+
+    // Open Full Screen RiMS Copilot Workspace (Modal on current page)
+    function openFullScreenCopilot() {
+        const scope = getActiveCopilotScope();
+        let url = '{{ route("copilot.index") }}?context=' + encodeURIComponent(scope) + '&in_modal=1';
+        if (widgetSessionId) {
+            url += '&session_id=' + encodeURIComponent(widgetSessionId);
+        }
+
+        const modal = document.getElementById('copilotFullScreenModal');
+        const iframe = document.getElementById('copilotModalFrame');
+
+        // Always reload iframe to guarantee the current active scope & session are loaded accurately
+        iframe.src = url;
+
+        modal.classList.remove('d-none');
+
+        // Hide floating window while modal is open
+        const chatWin = document.getElementById('aiChatbotWindow');
+        if (chatWin && chatWin.classList.contains('active')) {
+            chatWin.classList.remove('active');
+        }
+
+        document.body.style.overflow = 'hidden';
+    }
+    window.openFullScreenCopilot = openFullScreenCopilot;
+
+    // Close Full Screen Modal
+    function closeCopilotModal(newSessionId) {
+        const modal = document.getElementById('copilotFullScreenModal');
+        if (modal) {
+            modal.classList.add('d-none');
+        }
+        document.body.style.overflow = '';
+
+        if (newSessionId) {
+            widgetSessionId = newSessionId;
+        }
+    }
+
+    // Backdrop click outside dialog to close
+    function handleCopilotBackdropClick(event) {
+        if (event.target.id === 'copilotFullScreenModal') {
+            closeCopilotModal();
+        }
+    }
+
+    // Escape key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('copilotFullScreenModal');
+            if (modal && !modal.classList.contains('d-none')) {
+                closeCopilotModal();
+            }
+        }
+    });
+
     // Quick Prompt click
     function sendQuickPrompt(text) {
         document.getElementById('aiChatInput').value = text;
         handleSendChat(new Event('submit'));
     }
-
-    let aiConversationHistory = [];
 
     // Send chat message
     function handleSendChat(event) {
@@ -469,8 +590,10 @@
         indicator.classList.remove('d-none');
         scrollChatToBottom();
 
-        // Call RAG API with history
-        fetch('{{ route("admin.rag.ask") }}', {
+        const scope = getActiveCopilotScope();
+
+        // Call RiMS Copilot API (Text-to-SQL + RAG or Pure RAG)
+        fetch('{{ route("copilot.ask") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -479,18 +602,41 @@
             },
             body: JSON.stringify({ 
                 question: text,
-                history: aiConversationHistory.slice(-6),
-                page_context: window.location.pathname + window.location.search
+                scope: scope,
+                session_id: widgetSessionId
             })
         })
         .then(res => res.json())
         .then(data => {
             indicator.classList.add('d-none');
             if (data.success) {
-                aiConversationHistory.push({ role: 'assistant', content: data.answer });
-                appendMessage('incoming', data.answer, data.sources);
+                if (data.session_id) {
+                    widgetSessionId = data.session_id;
+                }
+
+                if (data.mode === 'text_to_sql') {
+                    // Text-to-SQL + RAG result
+                    aiConversationHistory.push({ role: 'assistant', content: data.summary });
+                    appendMessage('incoming', data.summary, data.sources || [], {
+                        mode: 'text_to_sql',
+                        sql: data.sql,
+                        db_target: data.db_target,
+                        rows: data.rows,
+                        columns: data.columns,
+                        total_rows: data.total_rows,
+                        suggestions: data.suggestions,
+                        sessionId: data.session_id
+                    });
+                } else {
+                    // Pure RAG vector search result
+                    aiConversationHistory.push({ role: 'assistant', content: data.answer });
+                    appendMessage('incoming', data.answer, data.sources || [], {
+                        mode: 'rag',
+                        sessionId: data.session_id
+                    });
+                }
             } else {
-                appendMessage('incoming', 'ขออภัยครับ เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถติดต่อ AI ได้'));
+                appendMessage('incoming', 'ขออภัยครับ เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถประมวลผลคำตอบได้'));
             }
         })
         .catch(err => {
@@ -500,7 +646,7 @@
     }
 
     // Append Message to UI
-    function appendMessage(direction, text, sources = []) {
+    function appendMessage(direction, text, sources = [], extra = {}) {
         const container = document.getElementById('aiChatMessages');
         const row = document.createElement('div');
         row.className = `ai-msg-row ai-msg-${direction}`;
@@ -508,8 +654,8 @@
         if (direction === 'incoming') {
             let sourcesHtml = '';
             if (sources && sources.length > 0) {
-                sourcesHtml = '<div class="ai-msg-source mt-2 pt-2 border-top"><i class="bi bi-shield-check text-success me-1"></i><strong>แหล่งที่มาข้อมูล:</strong> ' +
-                    sources.map(s => `<span class="badge bg-light text-dark border me-1 my-1">${s.title}</span>`).join('') +
+                sourcesHtml = '<div class="ai-msg-source mt-2 pt-2 border-top"><i class="bi bi-book-half text-primary me-1"></i><strong>อ้างอิงคู่มือ/ระเบียบ RAG:</strong> ' +
+                    sources.map(s => `<span class="badge bg-light text-dark border me-1 my-1" title="${s.snippet || ''}">${s.title} ${s.page ? `(น.${s.page})` : ''}</span>`).join('') +
                     '</div>';
             }
 
@@ -575,6 +721,28 @@
                     .replace(/\n/g, '<br>');
             })(text);
 
+            // Query Result Summary (Friendly business display, no backend SQL exposed)
+            let sqlDetailsHtml = '';
+            if (extra && (extra.total_rows !== undefined || extra.sql)) {
+                const totalCount = extra.total_rows ?? 0;
+                sqlDetailsHtml = `
+                    <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center small text-muted">
+                        <span><i class="bi bi-table text-primary me-1"></i>พบข้อมูล <strong>${totalCount.toLocaleString('th-TH')}</strong> รายการ</span>
+                        <a href="javascript:void(0)" onclick="openFullScreenCopilot()" class="text-primary text-decoration-none fw-semibold">
+                            <i class="bi bi-arrows-fullscreen me-1"></i>เปิดดูตารางเต็มจอ
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Suggestions Chips
+            let sugHtml = '';
+            if (extra && extra.suggestions && extra.suggestions.length > 0) {
+                sugHtml = `<div class="mt-2 pt-2 border-top d-flex flex-wrap gap-1">` +
+                    extra.suggestions.map(s => `<button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('${escapeHtml(s)}')">${escapeHtml(s)}</button>`).join('') +
+                    `</div>`;
+            }
+
             let actionBtnHtml = '';
             const isUserAdmin = {{ (auth()->check() && auth()->user()->status === 'admin') ? 'true' : 'false' }};
             if (isUserAdmin && text.includes('ตั้งค่า AI & LLM Connection') && typeof openAiSettingsModal === 'function') {
@@ -585,8 +753,10 @@
                 <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
                 <div class="ai-msg-bubble">
                     <div>${formattedText}</div>
+                    ${sqlDetailsHtml}
                     ${actionBtnHtml}
                     ${sourcesHtml}
+                    ${sugHtml}
                 </div>
             `;
         } else {
@@ -604,6 +774,7 @@
     // Clear Chat History
     function clearAiChatHistory() {
         aiConversationHistory = [];
+        widgetSessionId = null;
         const container = document.getElementById('aiChatMessages');
         container.innerHTML = `
             <div class="ai-msg-row ai-msg-incoming">
@@ -629,15 +800,15 @@
         const path = window.location.pathname.toLowerCase();
         const isRag = path.includes('rag-knowledge') || path.includes('rag');
         const isHosfin = path.includes('hosfin');
-        const isHosxp = path.includes('hosxp-setting') || path.includes('hosxp_master');
+        const isHosxp = path.includes('hosxp') || path.includes('mrec/hosxp_master');
 
         const subTitle = document.getElementById('aiChatHeaderSubtitle');
         const welcomeDesc = document.getElementById('aiWelcomeDesc');
         const chipsContainer = document.getElementById('aiSuggestionChips');
 
         if (isRag) {
-            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: คลังเอกสาร • ระเบียบการเบิกจ่าย • คู่มือแก้ C/Deny';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะสืบค้นคลังเอกสารและระเบียบปฏิบัติ พร้อมตอบคำถามและค้นหาแนวทางแก้ไขจากคู่มือ ระเบียบการเบิกจ่าย สปสช. กรมบัญชีกลาง และข้อผิดพลาด 16 แฟ้ม สามารถพิมพ์คำถามได้เลยครับ';
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: Knowledge Base';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะสืบค้นคลังเอกสารและระเบียบปฏิบัติ Knowledge Base พร้อมตอบคำถามและค้นหาแนวทางแก้ไขจากคู่มือ ระเบียบการเบิกจ่าย สปสช. กรมบัญชีกลาง และแนวทาง CPG สามารถพิมพ์คำถามได้เลยครับ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('แนวทางแก้ไขข้อผิดพลาดติด C300')">📑 แก้ไขข้อผิดพลาดติด C300</button>
@@ -647,8 +818,8 @@
                 `;
             }
         } else if (isHosxp) {
-            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ตรวจสอบ Master Data HOSxP • แพทย์ • ค่ารักษา • สิทธิการรักษา';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะตรวจสอบความถูกต้องและความสมบูรณ์ของข้อมูล Master Data ในระบบ HOSxP พร้อมแนะนำการจับคู่รหัสสิทธิการรักษา, หมวดค่ารักษาพยาบาล/ADP และการตั้งค่าแพทย์ สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยครับ';
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ข้อมูลพื้นฐาน HOSxP Setting';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP ของโรงพยาบาลพร้อมค้นหาเทียบเคียงระเบียบและมาตรฐานจากคลังความรู้ RAG สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยครับ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปปัญหาความสมบูรณ์ของข้อมูลแพทย์ในระบบ HOSxP')">👨‍⚕️ สรุปปัญหาข้อมูลแพทย์</button>
@@ -658,8 +829,8 @@
                 `;
             }
         } else if (isHosfin) {
-            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: วิเคราะห์การเงินการคลัง HosFin • บัญชี GL • คู่มือระเบียบ สธ.';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน (Cross-reference คู่มือระเบียบ สธ.) สามารถพิมพ์สอบถามได้เลยครับ';
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ระบบการเงิน HosFin';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะด้านการเงินการคลัง HosFin พร้อมเทียบระเบียบและคู่มือจาก RAG สามารถพิมพ์สอบถามเพื่อวิเคราะห์เจ้าหนี้การค้า ลูกหนี้ค่ารักษา หรืองบทดลองได้เลยครับ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เจ้าหนี้บริษัทไหนต้องจ่ายก่อนตามอายุหนี้')">📌 เจ้าหนี้บริษัทไหนต้องจ่ายก่อน?</button>

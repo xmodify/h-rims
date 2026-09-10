@@ -111,6 +111,17 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('rag-knowledge/ask', [\App\Http\Controllers\Admin\RagKnowledgeController::class, 'ask'])->name('admin.rag.ask');
 });
 
+// RiMS Copilot (Full-screen Workspace & Text-to-SQL API)
+Route::middleware(['auth'])->group(function () {
+    Route::get('copilot', [\App\Http\Controllers\Ai\CopilotController::class, 'index'])->name('copilot.index');
+    Route::get('copilot/sessions', [\App\Http\Controllers\Ai\CopilotController::class, 'getSessions'])->name('copilot.sessions');
+    Route::post('copilot/sessions', [\App\Http\Controllers\Ai\CopilotController::class, 'createSession'])->name('copilot.sessions.create');
+    Route::get('copilot/sessions/{id}', [\App\Http\Controllers\Ai\CopilotController::class, 'getSessionMessages'])->name('copilot.sessions.messages');
+    Route::delete('copilot/sessions/clear-all', [\App\Http\Controllers\Ai\CopilotController::class, 'clearAllSessions'])->name('copilot.sessions.clear_all');
+    Route::delete('copilot/sessions/{id}', [\App\Http\Controllers\Ai\CopilotController::class, 'deleteSession'])->name('copilot.sessions.delete');
+    Route::post('copilot/ask', [\App\Http\Controllers\Ai\CopilotController::class, 'ask'])->name('copilot.ask');
+});
+
 Route::get('debtor/acc_ledger', [DebtorAccController::class, 'index'])->middleware(['auth'])->name('debtor.acc_ledger');
 Route::get('debtor/acc_ledger_data', [DebtorAccController::class, 'get_data'])->middleware(['auth']);
 Route::post('debtor/acc_ledger_save_adj', [DebtorAccController::class, 'save_adjustment'])->middleware(['auth']);

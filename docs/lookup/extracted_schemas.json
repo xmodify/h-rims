@@ -9937,6 +9937,12 @@
                     "column": "hipdata",
                     "unique": false
                 }
+            ],
+            "idx_eclaim_no": [
+                {
+                    "column": "eclaim_no",
+                    "unique": false
+                }
             ]
         }
     },
@@ -33907,7 +33913,7 @@
             ]
         }
     },
-    "eclaim_status": {
+    "ai_chat_sessions": {
         "columns": {
             "id": {
                 "type": "bigint(20) unsigned",
@@ -33915,152 +33921,32 @@
                 "default": null,
                 "extra": "auto_increment"
             },
-            "hospcode": {
-                "type": "varchar(5)",
-                "nullable": true,
+            "user_id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
                 "default": null,
                 "extra": ""
             },
-            "eclaim_no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "patient_type": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hipdata": {
+            "title": {
                 "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
+                "nullable": false,
+                "default": "การสนทนาใหม่",
                 "extra": ""
             },
-            "cid": {
-                "type": "varchar(13)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ptname": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
+            "context_scope": {
                 "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "status": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "recorder": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tran_id": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "net_charge": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "claim_amount": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "seq": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "check_detail": {
-                "type": "text",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "deny_warning": {
-                "type": "text",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "channel": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
+                "nullable": false,
+                "default": "auto",
                 "extra": ""
             },
             "created_at": {
-                "type": "timestamp",
+                "type": "datetime",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "updated_at": {
-                "type": "timestamp",
+                "type": "datetime",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -34073,79 +33959,87 @@
                     "unique": true
                 }
             ],
-            "idx_hospcode": [
+            "idx_user_id": [
                 {
-                    "column": "hospcode",
+                    "column": "user_id",
                     "unique": false
                 }
-            ],
-            "idx_cid": [
+            ]
+        }
+    },
+    "ai_chat_messages": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "session_id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "role": {
+                "type": "varchar(20)",
+                "nullable": false,
+                "default": "user",
+                "extra": ""
+            },
+            "content": {
+                "type": "mediumtext",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "sql_query": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "query_result_json": {
+                "type": "longtext",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "db_target": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "execution_time_ms": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
                 {
-                    "column": "cid",
-                    "unique": false
+                    "column": "id",
+                    "unique": true
                 }
             ],
-            "idx_hn": [
+            "idx_session_id": [
                 {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "idx_an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "idx_vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "idx_vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "idx_dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "idx_dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ],
-            "idx_hn_vstdate": [
-                {
-                    "column": "hn",
-                    "unique": false
-                },
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "idx_seq": [
-                {
-                    "column": "seq",
-                    "unique": false
-                }
-            ],
-            "idx_hipdata": [
-                {
-                    "column": "hipdata",
-                    "unique": false
-                }
-            ],
-            "idx_eclaim_no": [
-                {
-                    "column": "eclaim_no",
+                    "column": "session_id",
                     "unique": false
                 }
             ]

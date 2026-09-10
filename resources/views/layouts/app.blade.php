@@ -1266,6 +1266,12 @@
                                                 </a>
                                             @endif
                                         @endif
+                                        @if(auth()->user()->status === 'admin' || (auth()->user()->allow_ai_copilot ?? 'N') === 'Y')
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('copilot.index') }}" target="_blank">
+                                                <i class="bi bi-robot me-2 text-primary"></i> RiMS Copilot (หน้าเต็ม)
+                                            </a>
+                                        @endif
                                     @endauth
                                     <div class="dropdown-divider opacity-10"></div>
                                     <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"

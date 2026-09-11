@@ -149,11 +149,41 @@ class HosFinController extends Controller
             self::syncGlMonthlyBalances();
         }
 
+        // Available budget years from GL monthly balances and trial balance
+        $periodsGl = DB::table('hosfin_gl_monthly_balances')->distinct()->pluck('acc_period')->filter()->toArray();
+        $yearsGl = [];
+        foreach ($periodsGl as $p) {
+            $parts = explode('-', $p);
+            $py = intval($parts[0] ?? 0);
+            $pm = intval($parts[1] ?? 0);
+            if ($py > 0) {
+                $yearsGl[] = ($pm >= 10) ? ($py + 1) : $py;
+            }
+        }
+        $yearsTb = DB::table('hosfin_trial_balance')->distinct()->pluck('acc_year')->filter()->map(fn($y) => intval($y))->toArray();
+        $currentYear = self::getCurrentBudgetYear();
+        $budgetYearChoices = array_values(array_unique(array_merge([$currentYear, 2570, 2569, 2568], $yearsGl, $yearsTb)));
+        rsort($budgetYearChoices);
+
+        $requestedYear = intval($request->input('budget_year', 0));
         $requestedPeriod = $request->input('period');
 
         $latestPeriod = null;
         if ($requestedPeriod && DB::table('hosfin_gl_monthly_balances')->where('acc_period', $requestedPeriod)->exists()) {
             $latestPeriod = $requestedPeriod;
+        } elseif ($requestedYear > 0) {
+            $fiscalPeriodsForYear = [];
+            for ($m = 10; $m <= 12; $m++) {
+                $fiscalPeriodsForYear[] = sprintf('%04d-%02d', $requestedYear - 1, $m);
+            }
+            for ($m = 1; $m <= 9; $m++) {
+                $fiscalPeriodsForYear[] = sprintf('%04d-%02d', $requestedYear, $m);
+            }
+
+            $latestPeriod = DB::table('hosfin_gl_monthly_balances')
+                ->whereIn('acc_period', $fiscalPeriodsForYear)
+                ->orderBy('acc_period', 'desc')
+                ->value('acc_period');
         } else {
             $latestPeriod = DB::table('hosfin_gl_monthly_balances')
                 ->orderBy('acc_period', 'desc')
@@ -161,7 +191,8 @@ class HosFinController extends Controller
         }
 
         if (!$latestPeriod) {
-            $latestPeriod = sprintf('%04d-10', (self::getCurrentBudgetYear() - 1));
+            $fallbackYear = $requestedYear > 0 ? $requestedYear : self::getCurrentBudgetYear();
+            $latestPeriod = sprintf('%04d-10', ($fallbackYear - 1));
         }
 
         $latestImportFilename = 'GL_LIVE';
@@ -171,6 +202,7 @@ class HosFinController extends Controller
         $calYear = intval($calYear);
         $calMonth = intval($calMonth);
         $budgetYear = ($calMonth >= 10) ? ($calYear + 1) : $calYear;
+
 
         // Build fiscal periods list
         $periods = [];
@@ -901,7 +933,9 @@ class HosFinController extends Controller
             'hasData' => true,
             'latestPeriodLabel' => $latestPeriodLabel,
             'budgetYear' => $budgetYear,
+            'budgetYearChoices' => $budgetYearChoices,
             'latestMetrics' => $latestMetrics,
+
             'periodHistory' => $periodHistory,
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
@@ -3887,5 +3921,1333 @@ class HosFinController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    // =========================================================================
+    // PlanFin System Methods (ระบบบริหารและติดตามแผนเงินบำรุง)
+    // =========================================================================
+
+    /**
+     * PlanFin Dashboard (2 Tabs: Monthly Plan vs Actual & FY70 Budget Simulator)
+     */
+    public function planfin(Request $request)
+    {
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        if ($budgetYear <= 0) {
+            $budgetYear = 2569;
+        }
+
+        // Available periods in trial balance
+        $availablePeriods = DB::table('hosfin_trial_balance')
+            ->distinct()
+            ->orderBy('acc_period', 'desc')
+            ->pluck('acc_period')
+            ->toArray();
+
+        // Available budget years
+        $yearsTb = DB::table('hosfin_trial_balance')->distinct()->pluck('acc_year')->filter()->map(fn($y) => intval($y))->toArray();
+        $yearsPf = DB::table('hosfin_planfin_targets')->distinct()->pluck('budget_year')->filter()->map(fn($y) => intval($y))->toArray();
+        $currentYear = self::getCurrentBudgetYear();
+        $budgetYearChoices = array_values(array_unique(array_merge([$currentYear, 2570, 2569, 2568], $yearsTb, $yearsPf)));
+        rsort($budgetYearChoices);
+
+        $requestedPeriod = $request->input('period');
+        $requestedYear = intval($request->input('budget_year', 0));
+
+        if ($requestedPeriod) {
+            $pParts = explode('-', $requestedPeriod);
+            $py = intval($pParts[0] ?? 2569);
+            $pm = intval($pParts[1] ?? 7);
+            $budgetYear = ($pm >= 10) ? ($py + 1) : $py;
+            $selectedPeriod = $requestedPeriod;
+        } elseif ($requestedYear > 0) {
+            $budgetYear = $requestedYear;
+            $yearPeriods = array_values(array_filter($availablePeriods, function($p) use ($budgetYear) {
+                $parts = explode('-', $p);
+                $py = intval($parts[0] ?? 0);
+                $pm = intval($parts[1] ?? 0);
+                return (($pm >= 10 && $py === $budgetYear - 1) || ($pm <= 9 && $py === $budgetYear));
+            }));
+            $selectedPeriod = in_array("{$budgetYear}-07", $yearPeriods) ? "{$budgetYear}-07" : ($yearPeriods[0] ?? "{$budgetYear}-07");
+        } else {
+            $budgetYear = self::getCurrentBudgetYear() ?: 2569;
+            $selectedPeriod = in_array("{$budgetYear}-07", $availablePeriods) ? "{$budgetYear}-07" : (in_array('2569-07', $availablePeriods) ? '2569-07' : ($availablePeriods[0] ?? '2569-07'));
+        }
+
+        // Derive fiscal years dynamically from selected period
+        $pParts = explode('-', $selectedPeriod);
+        $pYear = intval($pParts[0] ?? 2569);
+        $pMonth = intval($pParts[1] ?? 7);
+        $budgetYear = ($pMonth >= 10) ? ($pYear + 1) : $pYear;
+        $priorYear = $budgetYear - 1;
+        $targetSimYear = $budgetYear + 1;
+
+        $cumMonths = ($pMonth >= 10) ? ($pMonth - 9) : ($pMonth + 3);
+        if ($cumMonths <= 0 || $cumMonths > 12) $cumMonths = 10;
+        $selectedPeriodLabel = self::getThaiMonthName($pMonth) . ' ' . substr((string)$pYear, -2);
+
+        // Available periods dropdown filtered for the selected budgetYear
+        $periodOptions = [];
+        foreach ($availablePeriods as $p) {
+            $parts = explode('-', $p);
+            $y = intval($parts[0] ?? 2569);
+            $m = intval($parts[1] ?? 1);
+            $calcYear = ($m >= 10) ? ($y + 1) : $y;
+            if ($calcYear === $budgetYear) {
+                $cMonths = ($m >= 10) ? ($m - 9) : ($m + 3);
+                $label = self::getThaiMonthName($m) . ' ' . substr((string)$y, -2);
+                $periodOptions[] = [
+                    'period' => $p,
+                    'label' => $label,
+                    'year' => $y,
+                    'month' => $m,
+                    'cum_months' => $cMonths
+                ];
+            }
+        }
+
+        // If no periods in database for this year, generate 12 standard fiscal months
+        if (empty($periodOptions)) {
+            for ($cm = 1; $cm <= 12; $cm++) {
+                $m = ($cm <= 3) ? ($cm + 9) : ($cm - 3);
+                $y = ($m >= 10) ? ($budgetYear - 1) : $budgetYear;
+                $p = sprintf('%04d-%02d', $y, $m);
+                $label = self::getThaiMonthName($m) . ' ' . substr((string)$y, -2);
+                $periodOptions[] = [
+                    'period' => $p,
+                    'label' => $label,
+                    'year' => $y,
+                    'month' => $m,
+                    'cum_months' => $cm
+                ];
+            }
+        } else {
+            usort($periodOptions, fn($a, $b) => $a['cum_months'] <=> $b['cum_months']);
+        }
+
+
+        // Fetch master categories
+        $categories = DB::table('hosfin_planfin_categories')
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
+        // Fetch target plans for active year ($budgetYear)
+        $targetsRaw = DB::table('hosfin_planfin_targets')
+            ->where('budget_year', $budgetYear)
+            ->whereIn('round_no', [$budgetYear . '02', $budgetYear . '01', '1st', '2nd'])
+            ->orderBy('round_no', 'desc')
+            ->get()
+            ->groupBy('plan_code');
+
+        $planTargets = [];
+        foreach ($targetsRaw as $pCode => $rows) {
+            $planTargets[$pCode] = floatval($rows->first()->target_amount ?? 0);
+        }
+
+        // Fetch simulation targets for $targetSimYear
+        $targetsSimRaw = DB::table('hosfin_planfin_targets')
+            ->where('budget_year', $targetSimYear)
+            ->get()
+            ->keyBy('plan_code');
+
+        // Real-time actuals from hosfin_trial_balance
+        $actualsPeriod = $this->calculatePlanfinActuals($selectedPeriod);
+        $actualsPriorYear = $this->calculatePlanfinActuals("{$priorYear}-09"); // full 12 months prior year
+        
+        // Baseline period for FY Simulator: follows the selected period from dropdown (or explicit baseline_period)
+        $baselinePeriod = $request->get('baseline_period', $selectedPeriod);
+        if (!in_array($baselinePeriod, $availablePeriods)) {
+            $matchingInYear = array_filter($availablePeriods, fn($p) => str_starts_with($p, "{$budgetYear}-"));
+            $baselinePeriod = reset($matchingInYear) ?: $selectedPeriod;
+        }
+        $actualsBaseline = $this->calculatePlanfinActuals($baselinePeriod);
+        
+        $bParts = explode('-', $baselinePeriod);
+        $bMonth = intval($bParts[1] ?? 7);
+        $baseMonths = ($bMonth >= 10) ? ($bMonth - 9) : ($bMonth + 3);
+        if ($baseMonths <= 0 || $baseMonths > 12) $baseMonths = 10;
+
+        // Build Tab 1 Data (Plan vs Actual)
+        $tab1Rows = [];
+        foreach ($categories as $cat) {
+            $code = $cat->plan_code;
+            $name = $cat->plan_name;
+            $type = $cat->category_type;
+
+            $annualTarget = $planTargets[$code] ?? 0.0;
+            // Summary rows targets sum
+            if ($code === 'P13S') {
+                $annualTarget = 0.0;
+                foreach (['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'] as $c) {
+                    $annualTarget += ($planTargets[$c] ?? 0.0);
+                }
+            } elseif ($code === 'P26S') {
+                $annualTarget = 0.0;
+                foreach (['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'] as $c) {
+                    $annualTarget += ($planTargets[$c] ?? 0.0);
+                }
+            } elseif ($code === 'P27S') {
+                $annualTarget = ($tab1Rows['P13S']['annual_target'] ?? 0.0) - ($tab1Rows['P26S']['annual_target'] ?? 0.0);
+            }
+
+            $planCum = ($annualTarget / 12.0) * $cumMonths;
+            $actualCum = $actualsPeriod[$code] ?? 0.0;
+            $diff = $actualCum - $planCum;
+            $percent = ($planCum != 0) ? ($diff / $planCum) * 100.0 : 0.0;
+
+            // Determine status OK / Not OK
+            $status = 'OK';
+            if ($type === 'revenue') {
+                $status = ($diff >= 0) ? 'OK' : 'Not OK';
+            } elseif ($type === 'expense') {
+                $status = ($diff <= 0) ? 'OK' : 'Not OK';
+            } elseif ($code === 'P27S') {
+                $status = ($diff >= 0) ? 'OK' : 'Not OK';
+            }
+
+            $tab1Rows[$code] = [
+                'code' => $code,
+                'name' => $name,
+                'type' => $type,
+                'sort_order' => $cat->sort_order,
+                'annual_target' => $annualTarget,
+                'plan_cum' => $planCum,
+                'actual_cum' => $actualCum,
+                'diff' => $diff,
+                'percent' => $percent,
+                'status' => $status
+            ];
+        }
+
+        // Build Tab 1 Monthly Data (Current Selected Month Only)
+        $actualsMonthlyPeriod = $this->calculatePlanfinMonthlyActuals($selectedPeriod);
+        $tab1MonthlyRows = [];
+        foreach ($categories as $cat) {
+            $code = $cat->plan_code;
+            $name = $cat->plan_name;
+            $type = $cat->category_type;
+
+            $annualTarget = $tab1Rows[$code]['annual_target'] ?? 0.0;
+            $planMonth = ($annualTarget / 12.0);
+            $actualMonth = $actualsMonthlyPeriod[$code] ?? 0.0;
+            $diffMonth = $actualMonth - $planMonth;
+            $percentMonth = ($planMonth != 0) ? ($diffMonth / $planMonth) * 100.0 : 0.0;
+
+            $statusMonth = 'OK';
+            if ($type === 'revenue') {
+                $statusMonth = ($diffMonth >= 0) ? 'OK' : 'Not OK';
+            } elseif ($type === 'expense') {
+                $statusMonth = ($diffMonth <= 0) ? 'OK' : 'Not OK';
+            } elseif ($code === 'P27S') {
+                $statusMonth = ($diffMonth >= 0) ? 'OK' : 'Not OK';
+            }
+
+            $tab1MonthlyRows[$code] = [
+                'code' => $code,
+                'name' => $name,
+                'type' => $type,
+                'sort_order' => $cat->sort_order,
+                'annual_target' => $annualTarget,
+                'plan_month' => $planMonth,
+                'actual_month' => $actualMonth,
+                'diff_month' => $diffMonth,
+                'percent_month' => $percentMonth,
+                'status_month' => $statusMonth
+            ];
+        }
+
+        // Monthly KPI Metrics for Selected Month
+        $kpiMonthActualRev = $tab1MonthlyRows['P13S']['actual_month'] ?? 0;
+        $kpiMonthPlanRev = $tab1MonthlyRows['P13S']['plan_month'] ?? 0;
+        $kpiMonthActualExp = $tab1MonthlyRows['P26S']['actual_month'] ?? 0;
+        $kpiMonthPlanExp = $tab1MonthlyRows['P26S']['plan_month'] ?? 0;
+        $kpiMonthActualNet = $tab1MonthlyRows['P27S']['actual_month'] ?? 0;
+        $kpiMonthActualEbitda = $tab1MonthlyRows['P29']['actual_month'] ?? 0;
+
+        // 12-Month Matrix Trends Calculation (Across all fiscal periods of active year)
+        $yearPeriodList = array_column($periodOptions, 'period');
+        $tbMatrixRaw = DB::table('hosfin_trial_balance as t')
+            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+            ->whereIn('t.acc_period', $yearPeriodList)
+            ->select(
+                't.acc_period',
+                'm.plan_code',
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
+            )
+            ->groupBy('t.acc_period', 'm.plan_code')
+            ->get();
+
+        $matrixLookup = [];
+        foreach ($tbMatrixRaw as $row) {
+            $val = (floatval($row->rev) != 0) ? floatval($row->rev) : floatval($row->exp);
+            $matrixLookup[$row->plan_code][$row->acc_period] = $val;
+        }
+
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        foreach ($yearPeriodList as $p) {
+            $pRev = 0.0;
+            foreach ($revCodes as $c) { $pRev += ($matrixLookup[$c][$p] ?? 0.0); }
+            $matrixLookup['P13S'][$p] = $pRev;
+
+            $pExp = 0.0;
+            foreach ($expCodes as $c) { $pExp += ($matrixLookup[$c][$p] ?? 0.0); }
+            $matrixLookup['P26S'][$p] = $pExp;
+
+            $matrixLookup['P27S'][$p] = $pRev - $pExp;
+            $pEbitdaR = $pRev - ($matrixLookup['P13'][$p] ?? 0.0) - ($matrixLookup['P121'][$p] ?? 0.0);
+            $pEbitdaE = $pExp - ($matrixLookup['P24'][$p] ?? 0.0) - ($matrixLookup['P251'][$p] ?? 0.0);
+            $matrixLookup['P29'][$p] = $pEbitdaR - $pEbitdaE;
+        }
+
+        // Build Tab 2 Data (Budget FY Simulator)
+        $tab2Rows = [];
+        foreach ($categories as $cat) {
+            $code = $cat->plan_code;
+            $name = $cat->plan_name;
+            $type = $cat->category_type;
+
+            $yPrior = $actualsPriorYear[$code] ?? 0.0;
+            $yBaseMonths = $actualsBaseline[$code] ?? 0.0;
+            $yBaseEst = ($baseMonths > 0) ? ($yBaseMonths / (float)$baseMonths) * 12.0 : 0.0;
+
+            // Saved target for simulation year
+            $targetSimObj = $targetsSimRaw->get($code);
+            $targetSim = $targetSimObj ? floatval($targetSimObj->target_amount) : $yBaseEst;
+            $growthRate = $targetSimObj ? floatval($targetSimObj->growth_rate) : (($yBaseEst > 0) ? (($targetSim - $yBaseEst) / $yBaseEst) * 100.0 : 0.0);
+
+            $tab2Rows[$code] = [
+                'code' => $code,
+                'name' => $name,
+                'type' => $type,
+                'sort_order' => $cat->sort_order,
+                'y_prior' => $yPrior,
+                'y_base_months' => $yBaseMonths,
+                'y_base_est' => $yBaseEst,
+                'target_sim' => $targetSim,
+                'growth_rate' => $growthRate,
+                'notes' => $targetSimObj->notes ?? ''
+            ];
+        }
+
+        // Recalculate summary items for Tab 2
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        $tab2_p13s_sim = 0; $tab2_p26s_sim = 0;
+        foreach ($revCodes as $c) { $tab2_p13s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
+        foreach ($expCodes as $c) { $tab2_p26s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
+
+        if (isset($tab2Rows['P13S'])) $tab2Rows['P13S']['target_sim'] = $tab2_p13s_sim;
+        if (isset($tab2Rows['P26S'])) $tab2Rows['P26S']['target_sim'] = $tab2_p26s_sim;
+        if (isset($tab2Rows['P27S'])) $tab2Rows['P27S']['target_sim'] = $tab2_p13s_sim - $tab2_p26s_sim;
+
+        $tab2_p29r_sim = $tab2_p13s_sim - ($tab2Rows['P13']['target_sim'] ?? 0) - ($tab2Rows['P121']['target_sim'] ?? 0);
+        $tab2_p29e_sim = $tab2_p26s_sim - ($tab2Rows['P24']['target_sim'] ?? 0) - ($tab2Rows['P251']['target_sim'] ?? 0);
+        $tab2_p29_sim = $tab2_p29r_sim - $tab2_p29e_sim;
+
+        if (isset($tab2Rows['P29-R'])) $tab2Rows['P29-R']['target_sim'] = $tab2_p29r_sim;
+        if (isset($tab2Rows['P29-E'])) $tab2Rows['P29-E']['target_sim'] = $tab2_p29e_sim;
+        if (isset($tab2Rows['P29'])) $tab2Rows['P29']['target_sim'] = $tab2_p29_sim;
+
+        // Executive KPI Metrics for Tab 1
+        $kpiActualRevenue = $tab1Rows['P13S']['actual_cum'] ?? 0;
+        $kpiActualExpense = $tab1Rows['P26S']['actual_cum'] ?? 0;
+        $kpiActualNetIncome = $tab1Rows['P27S']['actual_cum'] ?? 0;
+        $kpiActualEBITDA = $tab1Rows['P29']['actual_cum'] ?? 0;
+        $kpiPlanRevenue = $tab1Rows['P13S']['plan_cum'] ?? 0;
+        $kpiPlanExpense = $tab1Rows['P26S']['plan_cum'] ?? 0;
+        $kpiCapInvestment = max(0, $kpiActualEBITDA * 0.20);
+        $kpiTab2CapInvestment = max(0, $tab2_p29_sim * 0.20);
+
+        // Hospital Profile
+        $hospName = 'รพ. หัวตะพาน';
+        $hospCode = '10989';
+        try {
+            $hospName = DB::table('main_setting')->where('name', 'hospital_name')->value('value')
+                ?? (DB::table('main_setting')->where('name', 'hosp_name')->value('value') ?? 'รพ. หัวตะพาน');
+            $hospCode = DB::table('main_setting')->where('name', 'hospital_code')->value('value')
+                ?? (DB::table('main_setting')->where('name', 'hcode')->value('value') ?? '10989');
+        } catch (\Throwable $e) {
+            // fallback defaults
+        }
+
+        // =========================================================================
+        // Sub-Accounts Aggregation for Interactive Accordion Drill-down
+        // =========================================================================
+        $mappings = DB::table('hosfin_planfin_mappings')
+            ->orderBy('plan_code')
+            ->orderBy('account_code')
+            ->get();
+
+        $neededPeriods = array_values(array_unique([$selectedPeriod, $baselinePeriod, "{$priorYear}-09"]));
+        $tbSubRows = DB::table('hosfin_trial_balance as t')
+            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+            ->whereIn('t.acc_period', $neededPeriods)
+            ->select('t.acc_period', 't.account_code', 't.debit_net', 't.credit_net', 't.debit_month', 't.credit_month')
+            ->get();
+
+        $tbSubLookup = [];
+        $tbSubLookupMonthly = [];
+        foreach ($tbSubRows as $r) {
+            $firstDigit = substr($r->account_code, 0, 1);
+            $val = ($firstDigit === '4') ? (floatval($r->credit_net) - floatval($r->debit_net)) : (floatval($r->debit_net) - floatval($r->credit_net));
+            $valM = ($firstDigit === '4') ? (floatval($r->credit_month) - floatval($r->debit_month)) : (floatval($r->debit_month) - floatval($r->credit_month));
+            $tbSubLookup[$r->acc_period][$r->account_code] = $val;
+            $tbSubLookupMonthly[$r->acc_period][$r->account_code] = $valM;
+        }
+
+        $subTargetsSimRaw = DB::table('hosfin_planfin_targets')
+            ->where('budget_year', $targetSimYear)
+            ->where('round_no', '1st')
+            ->get()
+            ->keyBy('plan_code');
+
+        $subAccountsByPlan = [];
+        foreach ($mappings as $m) {
+            $pCode = $m->plan_code;
+            $accCode = $m->account_code;
+            $actualCum = $tbSubLookup[$selectedPeriod][$accCode] ?? 0.0;
+            $actualMonth = $tbSubLookupMonthly[$selectedPeriod][$accCode] ?? 0.0;
+            $yPrior = $tbSubLookup["{$priorYear}-09"][$accCode] ?? 0.0;
+            $yBase = $tbSubLookup[$baselinePeriod][$accCode] ?? 0.0;
+            $yEst = ($baseMonths > 0) ? ($yBase / (float)$baseMonths) * 12.0 : 0.0;
+
+            $targetSubObj = $subTargetsSimRaw->get($accCode);
+            $targetSim = $targetSubObj ? floatval($targetSubObj->target_amount) : $yEst;
+            $growthRate = $targetSubObj ? floatval($targetSubObj->growth_rate) : (($yEst > 0) ? (($targetSim - $yEst) / $yEst) * 100.0 : 0.0);
+
+            $subAccountsByPlan[$pCode][] = [
+                'account_code' => $accCode,
+                'account_name' => $m->account_name ?: $accCode,
+                'plan_code' => $pCode,
+                'actual_cum' => $actualCum,
+                'actual_month' => $actualMonth,
+                'y_prior' => $yPrior,
+                'y_base_months' => $yBase,
+                'y_base_est' => $yEst,
+                'target_sim' => $targetSim,
+                'growth_rate' => $growthRate,
+            ];
+        }
+
+        foreach ($subAccountsByPlan as $pCode => &$subs) {
+            usort($subs, function($a, $b) {
+                $valA = max(abs($a['y_base_est']), abs($a['actual_cum']));
+                $valB = max(abs($b['y_base_est']), abs($b['actual_cum']));
+                return $valB <=> $valA;
+            });
+        }
+        unset($subs);
+
+        // Guarantee parent categories in Tab 2 are exact SUM of their sub-accounts
+        foreach ($subAccountsByPlan as $pCode => $subs) {
+            if (count($subs) > 0 && isset($tab2Rows[$pCode])) {
+                $sumSubTarget = 0.0;
+                foreach ($subs as $sub) {
+                    $sumSubTarget += floatval($sub['target_sim']);
+                }
+                $tab2Rows[$pCode]['target_sim'] = $sumSubTarget;
+                $pBase = floatval($tab2Rows[$pCode]['y_base_est']);
+                if ($pBase > 0) {
+                    $tab2Rows[$pCode]['growth_rate'] = (($sumSubTarget - $pBase) / $pBase) * 100.0;
+                } else {
+                    $tab2Rows[$pCode]['growth_rate'] = 0.0;
+                }
+            }
+        }
+
+        // Recalculate summary totals from updated categories
+        $tab2_p13s_sim = 0; $tab2_p26s_sim = 0;
+        foreach ($revCodes as $c) { $tab2_p13s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
+        foreach ($expCodes as $c) { $tab2_p26s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
+
+        if (isset($tab2Rows['P13S'])) $tab2Rows['P13S']['target_sim'] = $tab2_p13s_sim;
+        if (isset($tab2Rows['P26S'])) $tab2Rows['P26S']['target_sim'] = $tab2_p26s_sim;
+        if (isset($tab2Rows['P27S'])) $tab2Rows['P27S']['target_sim'] = $tab2_p13s_sim - $tab2_p26s_sim;
+
+        $tab2_p29r_sim = $tab2_p13s_sim - ($tab2Rows['P13']['target_sim'] ?? 0) - ($tab2Rows['P121']['target_sim'] ?? 0);
+        $tab2_p29e_sim = $tab2_p26s_sim - ($tab2Rows['P24']['target_sim'] ?? 0) - ($tab2Rows['P251']['target_sim'] ?? 0);
+        $tab2_p29_sim = $tab2_p29r_sim - $tab2_p29e_sim;
+
+        if (isset($tab2Rows['P29-R'])) $tab2Rows['P29-R']['target_sim'] = $tab2_p29r_sim;
+        if (isset($tab2Rows['P29-E'])) $tab2Rows['P29-E']['target_sim'] = $tab2_p29e_sim;
+        if (isset($tab2Rows['P29'])) $tab2Rows['P29']['target_sim'] = $tab2_p29_sim;
+        $kpiTab2CapInvestment = max(0, $tab2_p29_sim * 0.20);
+
+        // =========================================================================
+        // Sub-Plans Master Definitions (Plans 2 through 7 from Ministry Template)
+        // =========================================================================
+        $subPlansDef = [
+            'plan2' => [
+                'title' => '2. แผนจัดซื้อยา เวชภัณฑ์มิใช่ยา วัสดุการแพทย์ วัสดุวิทยาศาสตร์การแพทย์',
+                'icon' => 'bi-capsule',
+                'items' => [
+                    ['code' => 'MED01', 'name' => 'ยา (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                    ['code' => 'MED02', 'name' => 'วัสดุเภสัชกรรม (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                    ['code' => 'MED03', 'name' => 'วัสดุการแพทย์ทั่วไป (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                    ['code' => 'MED04', 'name' => 'วัสดุวิทยาศาสตร์และการแพทย์ (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                    ['code' => 'MED05', 'name' => 'วัสดุเอกซเรย์ (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                    ['code' => 'MED06', 'name' => 'วัสดุทันตกรรม (รวมสนับสนุน รพ.สต.ในเครือข่าย)'],
+                ]
+            ],
+            'plan3' => [
+                'title' => '3. แผนจัดซื้อวัสดุอื่น',
+                'icon' => 'bi-box-seam',
+                'items' => [
+                    ['code' => 'MAT01', 'name' => 'วัสดุสำนักงาน'],
+                    ['code' => 'MAT02', 'name' => 'วัสดุยานพาหนะและขนส่ง'],
+                    ['code' => 'MAT03', 'name' => 'วัสดุเชื้อเพลิงและหล่อลื่น'],
+                    ['code' => 'MAT04', 'name' => 'วัสดุไฟฟ้าและวิทยุ'],
+                    ['code' => 'MAT05', 'name' => 'วัสดุโฆษณาและเผยแพร่'],
+                    ['code' => 'MAT06', 'name' => 'วัสดุคอมพิวเตอร์'],
+                    ['code' => 'MAT07', 'name' => 'วัสดุงานบ้านงานครัว'],
+                    ['code' => 'MAT08', 'name' => 'วัสดุบริโภค'],
+                    ['code' => 'MAT09', 'name' => 'วัสดุเครื่องแต่งกาย'],
+                    ['code' => 'MAT10', 'name' => 'วัสดุก่อสร้าง'],
+                    ['code' => 'MAT11', 'name' => 'วัสดุการเกษตร'],
+                    ['code' => 'MAT12', 'name' => 'ครุภัณฑ์มูลค่าต่ำกว่าเกณฑ์'],
+                ]
+            ],
+            'plan4' => [
+                'title' => '4. แผนบริหารจัดการเจ้าหนี้การค้า',
+                'icon' => 'bi-receipt',
+                'items' => [
+                    ['code' => 'AP01', 'name' => 'เจ้าหนี้การค้ายา'],
+                    ['code' => 'AP02', 'name' => 'เจ้าหนี้การค้าวัสดุเภสัชกรรม'],
+                    ['code' => 'AP03', 'name' => 'เจ้าหนี้การค้าวัสดุการแพทย์ทั่วไป'],
+                    ['code' => 'AP04', 'name' => 'เจ้าหนี้การค้าวัสดุวิทยาศาสตร์และการแพทย์'],
+                    ['code' => 'AP05', 'name' => 'เจ้าหนี้การค้าวัสดุเอกซเรย์'],
+                    ['code' => 'AP06', 'name' => 'เจ้าหนี้การค้าวัสดุทันตกรรม'],
+                    ['code' => 'AP07', 'name' => 'เจ้าหนี้ตามจ่าย'],
+                    ['code' => 'AP08', 'name' => 'ค่าจ้างชั่วคราว/พกส./ค่าจ้างเหมาบุคลากรอื่นค้างจ่าย'],
+                    ['code' => 'AP09', 'name' => 'ค่าตอบแทนค้างจ่าย'],
+                    ['code' => 'AP10', 'name' => 'ค่าใช้จ่ายบุคลากรอื่นค้างจ่าย'],
+                    ['code' => 'AP11', 'name' => 'เจ้าหนี้ค่าแรงอื่นค้างจ่าย'],
+                    ['code' => 'AP12', 'name' => 'ค่าสาธารณูปโภคค้างจ่าย'],
+                    ['code' => 'AP13', 'name' => 'เจ้าหนี้ค่าครุภัณฑ์ สิ่งก่อสร้างฯ'],
+                    ['code' => 'AP14', 'name' => 'เจ้าหนี้การค้าวัสดุอื่น'],
+                    ['code' => 'AP15', 'name' => 'เจ้าหนี้อื่น'],
+                ]
+            ],
+            'plan5' => [
+                'title' => '5. แผนบริหารจัดการลูกหนี้',
+                'icon' => 'bi-person-lines-fill',
+                'items' => [
+                    ['code' => 'AR01', 'name' => 'ลูกหนี้ UC'],
+                    ['code' => 'AR02', 'name' => 'ลูกหนี้ เบิกต้นสังกัด'],
+                    ['code' => 'AR03', 'name' => 'ลูกหนี้ อปท'],
+                    ['code' => 'AR04', 'name' => 'ลูกหนี้ กรมบัญชีกลาง'],
+                    ['code' => 'AR05', 'name' => 'ลูกหนี้ ประกันสังคม'],
+                    ['code' => 'AR06', 'name' => 'ลูกหนี้ แรงงานต่างด้าว'],
+                    ['code' => 'AR07', 'name' => 'ลูกหนี้ อื่น ๆ'],
+                ]
+            ],
+            'plan6' => [
+                'title' => '6. แผนการลงทุนเพิ่ม',
+                'icon' => 'bi-building-gear',
+                'items' => [
+                    ['code' => 'INV01', 'name' => 'จัดซื้อ จัดหาด้วยเงินบำรุงของ รพ. ปี 2570'],
+                    ['code' => 'INV02', 'name' => 'จัดซื้อ ด้วยงบค่าบริการฯเบิกจ่ายลักษณะงบลงทุน ปี 2570'],
+                    ['code' => 'INV03', 'name' => 'จัดซื้อ จัดหาด้วยเงินงบประมาณ ของ รพ. ปี 2570'],
+                    ['code' => 'INV04', 'name' => 'จัดซื้อ จัดหาด้วยเงินบริจาค ของ รพ. ปี งปม.2564 - ปัจจุบัน'],
+                    ['code' => 'INV05', 'name' => 'จัดซื้อ จัดหาด้วยเงินบริจาค ของ รพ.  ก่อน  1 ต.ค. 63'],
+                ]
+            ],
+            'plan7' => [
+                'title' => '7. แผนสนับสนุน รพ.สต.',
+                'icon' => 'bi-hospital',
+                'items' => [
+                    ['code' => 'SUB01', 'name' => 'Fixed Cost (ว5313)'],
+                    ['code' => 'SUB02', 'name' => 'รายการอื่น'],
+                    ['code' => 'SUB03', 'name' => 'ยา'],
+                    ['code' => 'SUB04', 'name' => 'วัสดุเภสัชกรรม'],
+                    ['code' => 'SUB05', 'name' => 'วัสดุการแพทย์ทั่วไป'],
+                    ['code' => 'SUB06', 'name' => 'วัสดุวิทยาศาสตร์และการแพทย์'],
+                    ['code' => 'SUB07', 'name' => 'วัสดุเอกซเรย์'],
+                    ['code' => 'SUB08', 'name' => 'วัสดุทันตกรรม'],
+                    ['code' => 'SUB09', 'name' => 'วัสดุอื่น'],
+                    ['code' => 'SUB10', 'name' => 'งบค่าเสื่อม UC'],
+                ]
+            ]
+        ];
+
+        $subPlansData = [];
+        foreach ($subPlansDef as $pKey => $pDef) {
+            $items = [];
+            foreach ($pDef['items'] as $it) {
+                $savedObj = $targetsSimRaw->get($it['code']);
+                $valBg = $savedObj ? floatval($savedObj->baseline_amount) : 0.0;
+                $valNonBg = $savedObj ? floatval($savedObj->target_amount) : 0.0;
+                $items[] = [
+                    'code' => $it['code'],
+                    'name' => $it['name'],
+                    'budget_amt' => $valBg,
+                    'non_budget_amt' => $valNonBg,
+                    'total_amt' => $valBg + $valNonBg
+                ];
+            }
+            $subPlansData[$pKey] = [
+                'title' => $pDef['title'],
+                'icon' => $pDef['icon'] ?? 'bi-file-earmark-text',
+                'items' => $items
+            ];
+        }
+
+        return view('hosfin.planfin', compact(
+            'budgetYear',
+            'budgetYearChoices',
+            'priorYear',
+            'targetSimYear',
+
+            'baseMonths',
+            'selectedPeriod',
+            'selectedPeriodLabel',
+            'cumMonths',
+            'periodOptions',
+            'categories',
+            'tab1Rows',
+            'tab1MonthlyRows',
+            'tab2Rows',
+            'subAccountsByPlan',
+            'subPlansData',
+            'kpiActualRevenue',
+            'kpiActualExpense',
+            'kpiActualNetIncome',
+            'kpiActualEBITDA',
+            'kpiPlanRevenue',
+            'kpiPlanExpense',
+            'kpiMonthActualRev',
+            'kpiMonthPlanRev',
+            'kpiMonthActualExp',
+            'kpiMonthPlanExp',
+            'kpiMonthActualNet',
+            'kpiMonthActualEbitda',
+            'matrixLookup',
+            'kpiCapInvestment',
+            'kpiTab2CapInvestment',
+            'tab2_p29_sim',
+            'hospName',
+            'hospCode'
+        ));
+
+    }
+
+    /**
+     * Helper to compute PlanFin actual figures from hosfin_trial_balance
+     */
+    private function calculatePlanfinActuals($period)
+    {
+        $raw = DB::table('hosfin_trial_balance as t')
+            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+            ->where('t.acc_period', $period)
+            ->select(
+                'm.plan_code',
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_net, 0) - COALESCE(t.debit_net, 0)) ELSE 0 END) as rev"),
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_net, 0) - COALESCE(t.credit_net, 0)) ELSE 0 END) as exp")
+            )
+            ->groupBy('m.plan_code')
+            ->get();
+
+        $res = [];
+        foreach ($raw as $r) {
+            $val = (floatval($r->rev) != 0) ? floatval($r->rev) : floatval($r->exp);
+            $res[$r->plan_code] = $val;
+        }
+
+        // Summary Calculations
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        $res['P13S'] = 0.0;
+        foreach ($revCodes as $c) { $res['P13S'] += ($res[$c] ?? 0.0); }
+
+        $res['P26S'] = 0.0;
+        foreach ($expCodes as $c) { $res['P26S'] += ($res[$c] ?? 0.0); }
+
+        $res['P27S'] = $res['P13S'] - $res['P26S']; // Net Income
+        $res['P29-R'] = $res['P13S'] - ($res['P13'] ?? 0.0) - ($res['P121'] ?? 0.0);
+        $res['P29-E'] = $res['P26S'] - ($res['P24'] ?? 0.0) - ($res['P251'] ?? 0.0);
+        $res['P29'] = $res['P29-R'] - $res['P29-E']; // EBITDA
+
+        return $res;
+    }
+
+    /**
+     * Helper to compute PlanFin monthly actual figures (movement) from hosfin_trial_balance
+     */
+    private function calculatePlanfinMonthlyActuals($period)
+    {
+        $raw = DB::table('hosfin_trial_balance as t')
+            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+            ->where('t.acc_period', $period)
+            ->select(
+                'm.plan_code',
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
+            )
+            ->groupBy('m.plan_code')
+            ->get();
+
+        $res = [];
+        foreach ($raw as $r) {
+            $val = (floatval($r->rev) != 0) ? floatval($r->rev) : floatval($r->exp);
+            $res[$r->plan_code] = $val;
+        }
+
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        $res['P13S'] = 0.0;
+        foreach ($revCodes as $c) { $res['P13S'] += ($res[$c] ?? 0.0); }
+
+        $res['P26S'] = 0.0;
+        foreach ($expCodes as $c) { $res['P26S'] += ($res[$c] ?? 0.0); }
+
+        $res['P27S'] = $res['P13S'] - $res['P26S'];
+        $res['P29-R'] = $res['P13S'] - ($res['P13'] ?? 0.0) - ($res['P121'] ?? 0.0);
+        $res['P29-E'] = $res['P26S'] - ($res['P24'] ?? 0.0) - ($res['P251'] ?? 0.0);
+        $res['P29'] = $res['P29-R'] - $res['P29-E'];
+
+        return $res;
+    }
+
+    /**
+     * Analyze uploaded M1625 ZIP file for PlanFin
+     */
+    public function analyzeMdbPlanfin(Request $request)
+    {
+        $pyStatus = \App\Helpers\PythonHelper::checkStatus();
+        if (!$pyStatus['available']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ระบบไม่พบโปรแกรม Python บนเซิร์ฟเวอร์'
+            ], 400);
+        }
+
+        if (!$request->hasFile('file')) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบไฟล์ที่อัปโหลด'], 400);
+        }
+
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $ext = strtolower($file->getClientOriginalExtension());
+
+        if ($ext !== 'zip' && $ext !== 'mdb') {
+            return response()->json(['success' => false, 'message' => 'รองรับเฉพาะไฟล์ .zip หรือ .mdb เท่านั้น'], 400);
+        }
+
+        try {
+            $tempDir = storage_path('app/temp_planfin_' . uniqid());
+            mkdir($tempDir, 0777, true);
+            $targetPath = $tempDir . '/' . $originalName;
+            $file->move($tempDir, $originalName);
+
+            $pythonScript = base_path('app/Helpers/Python/analyze_mdb_planfin.py');
+            $runResult = \App\Helpers\PythonHelper::runScript($pythonScript, [$targetPath]);
+
+            if (!$runResult['success']) {
+                $this->deleteDir($tempDir);
+                return response()->json(['success' => false, 'message' => 'วิเคราะห์ไฟล์ล้มเหลว: ' . $runResult['output']], 500);
+            }
+
+            $data = json_decode($runResult['output'], true);
+            if (!is_array($data) || isset($data['error'])) {
+                $this->deleteDir($tempDir);
+                return response()->json(['success' => false, 'message' => $data['error'] ?? 'รูปแบบไฟล์ไม่ถูกต้อง'], 422);
+            }
+
+            $token = uniqid('pf_');
+            session([$token => ['dir' => $tempDir, 'path' => $targetPath]]);
+
+            return response()->json([
+                'success' => true,
+                'temp_token' => $token,
+                'hcode' => $data['hcode'] ?? '',
+                'plans' => $data['plans'] ?? [],
+                'months' => $data['months'] ?? [],
+                'latest_month' => $data['latest_month'] ?? ''
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Import PlanFin Targets & Data from MDB
+     */
+    public function importMdbPlanfin(Request $request)
+    {
+        $token = $request->input('temp_token');
+        $periodNo = $request->input('period_no');
+
+        if (!$token || !session()->has($token)) {
+            return response()->json(['success' => false, 'message' => 'Session ไฟล์หมดอายุ กรุณาอัปโหลดใหม่'], 400);
+        }
+
+        $sessionData = session($token);
+        $filePath = $sessionData['path'];
+        $tempDir = $sessionData['dir'];
+
+        try {
+            $pythonScript = base_path('app/Helpers/Python/import_mdb_planfin.py');
+            $runResult = \App\Helpers\PythonHelper::runScript($pythonScript, [$filePath, $periodNo]);
+
+            if (!$runResult['success']) {
+                return response()->json(['success' => false, 'message' => 'นำเข้าล้มเหลว: ' . $runResult['output']], 500);
+            }
+
+            $res = json_decode($runResult['output'], true);
+            if (!isset($res['success']) || !$res['success']) {
+                return response()->json(['success' => false, 'message' => $res['error'] ?? 'ข้อมูลไม่ถูกต้อง'], 422);
+            }
+
+            DB::transaction(function () use ($res, $periodNo) {
+                // 1. Insert/Update Targets
+                if (!empty($res['targets'])) {
+                    DB::table('hosfin_planfin_targets')
+                        ->where('budget_year', $res['budget_year'])
+                        ->where('round_no', $periodNo)
+                        ->delete();
+
+                    $batchTargets = [];
+                    foreach ($res['targets'] as $t) {
+                        $batchTargets[] = [
+                            'budget_year' => $t['budget_year'],
+                            'round_no' => $t['round_no'],
+                            'plan_code' => $t['plan_code'],
+                            'target_amount' => $t['target_amount'],
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                    }
+                    foreach (array_chunk($batchTargets, 100) as $chunk) {
+                        DB::table('hosfin_planfin_targets')->insert($chunk);
+                    }
+                }
+
+                // 2. Sync Mappings if new accounts found
+                if (!empty($res['mappings'])) {
+                    $existingAccs = DB::table('hosfin_planfin_mappings')->pluck('account_code')->toArray();
+                    $newMaps = [];
+                    foreach ($res['mappings'] as $m) {
+                        if (!in_array($m['account_code'], $existingAccs)) {
+                            $newMaps[] = [
+                                'account_code' => $m['account_code'],
+                                'account_name' => $m['account_name'] ?? null,
+                                'plan_code' => $m['plan_code'],
+                                'plan_name' => $m['plan_name'] ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ];
+                        }
+                    }
+                    if (!empty($newMaps)) {
+                        DB::table('hosfin_planfin_mappings')->insert($newMaps);
+                    }
+                }
+
+                // 3. Sync latest trial balance records if not in hosfin_trial_balance
+                if (!empty($res['tb_records'])) {
+                    $firstRec = $res['tb_records'][0];
+                    $recPeriod = $firstRec['acc_period'];
+                    $hasPeriod = DB::table('hosfin_trial_balance')->where('acc_period', $recPeriod)->exists();
+                    if (!$hasPeriod) {
+                        $tbBatch = [];
+                        foreach ($res['tb_records'] as $r) {
+                            $tbBatch[] = [
+                                'acc_year' => $r['acc_year'],
+                                'acc_month' => $r['acc_month'],
+                                'acc_period' => $r['acc_period'],
+                                'main_account_code' => $r['main_account_code'],
+                                'account_code' => $r['account_code'],
+                                'account_name' => $r['account_name'],
+                                'debit_bf' => 0,
+                                'credit_bf' => 0,
+                                'debit_month' => $r['debit_month'],
+                                'credit_month' => $r['credit_month'],
+                                'debit_net' => $r['debit_net'],
+                                'credit_net' => $r['credit_net'],
+                                'import_filename' => basename($filePath),
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ];
+                        }
+                        foreach (array_chunk($tbBatch, 100) as $chunk) {
+                            DB::table('hosfin_trial_balance')->insert($chunk);
+                        }
+                    }
+                }
+            });
+
+            // Clean temp
+            $this->deleteDir($tempDir);
+            session()->forget($token);
+
+            return response()->json([
+                'success' => true,
+                'message' => "นำเข้าแผนเงินบำรุงรอบ {$periodNo} สำเร็จ ทั้งหมด " . ($res['targets_count'] ?? 0) . " รายการ"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Save Budget Year 2570 Estimates
+     */
+    public function savePlanfinTarget(Request $request)
+    {
+        $budgetYear = intval($request->input('budget_year', 2570));
+        $roundNo = $request->input('round_no', '1st');
+        $items = $request->input('items', []);
+
+        if (empty($items)) {
+            return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูลที่ต้องการบันทึก'], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($budgetYear, $roundNo, $items) {
+                foreach ($items as $item) {
+                    $code = trim($item['plan_code'] ?? '');
+                    if (!$code) continue;
+
+                    DB::table('hosfin_planfin_targets')->updateOrInsert(
+                        [
+                            'budget_year' => $budgetYear,
+                            'round_no' => $roundNo,
+                            'plan_code' => $code
+                        ],
+                        [
+                            'baseline_amount' => floatval($item['baseline_amount'] ?? 0),
+                            'growth_rate' => floatval($item['growth_rate'] ?? 0),
+                            'target_amount' => floatval($item['target_amount'] ?? 0),
+                            'notes' => $item['notes'] ?? null,
+                            'created_by' => auth()->id(),
+                            'updated_at' => now()
+                        ]
+                    );
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "บันทึกแผนประมาณการเรียบร้อยแล้ว"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Export PlanFin Budget & Monitoring Report to Excel
+     */
+    public function exportPlanfinExcel(Request $request)
+    {
+        $targetYear = intval($request->input('target_year', 2570));
+        $budgetYear = intval($request->input('budget_year', $targetYear - 1));
+        $period = $request->input('period', "{$budgetYear}-07");
+
+        $baseMonths = 10;
+        $priorYear = $budgetYear - 1;
+
+        // Hospital Profile
+        $hospName = 'รพ. หัวตะพาน';
+        $hospCode = '10989';
+        try {
+            $hospName = DB::table('main_setting')->where('name', 'hospital_name')->value('value')
+                ?? (DB::table('main_setting')->where('name', 'hosp_name')->value('value') ?? 'รพ. หัวตะพาน');
+            $hospCode = DB::table('main_setting')->where('name', 'hospital_code')->value('value')
+                ?? (DB::table('main_setting')->where('name', 'hcode')->value('value') ?? '10989');
+        } catch (\Throwable $e) {}
+
+        $spreadsheet = new Spreadsheet();
+
+        // Data queries
+        $categories = DB::table('hosfin_planfin_categories')->orderBy('sort_order')->get();
+        $targetsSimRaw = DB::table('hosfin_planfin_targets')->where('budget_year', $targetYear)->get()->keyBy('plan_code');
+        $targetsBudgetRaw = DB::table('hosfin_planfin_targets')->where('budget_year', $budgetYear)->get()->keyBy('plan_code');
+        
+        $actualsPeriod = $this->calculatePlanfinActuals($period);
+        $actualsMonthlyPeriod = $this->calculatePlanfinMonthlyActuals($period);
+        $actualsPriorYear = $this->calculatePlanfinActuals("{$priorYear}-09");
+
+        // Sub-accounts mapping
+        $mappings = DB::table('hosfin_planfin_mappings')->orderBy('plan_code')->orderBy('account_code')->get();
+        $subMapsByPlan = [];
+        foreach ($mappings as $m) {
+            $subMapsByPlan[$m->plan_code][] = $m;
+        }
+
+        // -------------------------------------------------------------
+        // SHEET 1: แผนประมาณการปี 2570 (Tab 2)
+        // -------------------------------------------------------------
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle("แผนประมาณการ_{$targetYear}");
+
+        $sheet1->setCellValue('A1', "แผนประมาณการรายได้และควบคุมค่าใช้จ่าย ประจำปีงบประมาณ {$targetYear}");
+        $sheet1->setCellValue('A2', "หน่วยบริการ: {$hospName} ({$hospCode}) | ฐานอ้างอิง: ผลการดำเนินงานจริงรอบ {$baseMonths} เดือน ปีงบประมาณ {$budgetYear}");
+        $sheet1->mergeCells('A1:G1');
+        $sheet1->mergeCells('A2:G2');
+        $sheet1->getStyle('A1')->getFont()->setBold(true)->setSize(14)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
+        $sheet1->getStyle('A2')->getFont()->setSize(10)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF64748B'));
+
+        // KPI calculations
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        $p13s_sim = 0; $p26s_sim = 0;
+        foreach ($revCodes as $c) { $p13s_sim += floatval($targetsSimRaw->get($c)->target_amount ?? 0); }
+        foreach ($expCodes as $c) { $p26s_sim += floatval($targetsSimRaw->get($c)->target_amount ?? 0); }
+        $p27s_sim = $p13s_sim - $p26s_sim;
+        $p29r = $p13s_sim - floatval($targetsSimRaw->get('P13')->target_amount ?? 0) - floatval($targetsSimRaw->get('P121')->target_amount ?? 0);
+        $p29e = $p26s_sim - floatval($targetsSimRaw->get('P24')->target_amount ?? 0) - floatval($targetsSimRaw->get('P251')->target_amount ?? 0);
+        $p29_sim = $p29r - $p29e;
+        $cap20_sim = max(0, $p29_sim * 0.20);
+
+        // KPI Box
+        $sheet1->setCellValue('B4', 'ประมาณการรายได้สุทธิ (P27S)');
+        $sheet1->setCellValue('B5', $p27s_sim);
+        $sheet1->setCellValue('D4', 'EBITDA ประมาณการ (P29)');
+        $sheet1->setCellValue('D5', $p29_sim);
+        $sheet1->setCellValue('F4', 'วงเงินลงทุนด้วยเงินบำรุงได้ (20%)');
+        $sheet1->setCellValue('F5', $cap20_sim);
+
+        $sheet1->getStyle('B4:G4')->getFont()->setBold(true)->setSize(9)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF475569'));
+        $sheet1->getStyle('B5:G5')->getFont()->setBold(true)->setSize(12);
+        $sheet1->getStyle('B5')->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet1->getStyle('D5')->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet1->getStyle('F5')->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet1->getStyle('B4:C5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFECFDF5');
+        $sheet1->getStyle('D4:E5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFEFF6FF');
+        $sheet1->getStyle('F4:G5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF5F3FF');
+
+        // Headers
+        $headers1 = [
+            'A7' => 'รหัสรายการ',
+            'B7' => 'รายการ / ผังบัญชี',
+            'C7' => "ผลการดำเนินงาน ปี {$priorYear}",
+            'D7' => "ผลการดำเนินงาน ({$baseMonths} ด.)",
+            'E7' => "ประมาณการ ผลดำเนินงานทั้งปี",
+            'F7' => "% เติบโต",
+            'G7' => "แผนประมาณการ (แผนต้นปี {$targetYear})"
+        ];
+        foreach ($headers1 as $cell => $text) {
+            $sheet1->setCellValue($cell, $text);
+        }
+        $sheet1->getStyle('A7:G7')->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
+        $sheet1->getStyle('A7:G7')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
+        $sheet1->getStyle('A7:G7')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        $sheet1->getStyle('A7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet1->getStyle('C7:E7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet1->getStyle('F7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet1->getStyle('G7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+
+        $currRow = 8;
+        foreach ($categories as $cat) {
+            $code = $cat->plan_code;
+            $name = $cat->plan_name;
+            $tObj = $targetsSimRaw->get($code);
+            $targetAmt = $tObj ? floatval($tObj->target_amount) : 0;
+            $growthRate = $tObj ? floatval($tObj->growth_rate) : 0;
+            $baseMonthsAmt = $tObj ? floatval($tObj->baseline_amount) : 0;
+            $baseEstAmt = ($baseMonths > 0) ? ($baseMonthsAmt / $baseMonths) * 12 : 0;
+
+            if ($code === 'P13S') $targetAmt = $p13s_sim;
+            elseif ($code === 'P26S') $targetAmt = $p26s_sim;
+            elseif ($code === 'P27S') $targetAmt = $p27s_sim;
+            elseif ($code === 'P29') $targetAmt = $p29_sim;
+
+            $sheet1->setCellValue("A{$currRow}", $code);
+            $sheet1->setCellValue("B{$currRow}", $name);
+            $sheet1->setCellValue("C{$currRow}", floatval($actualsPriorYear[$code] ?? 0));
+            $sheet1->setCellValue("D{$currRow}", $baseMonthsAmt);
+            $sheet1->setCellValue("E{$currRow}", $baseEstAmt);
+            $sheet1->setCellValue("F{$currRow}", $growthRate / 100);
+            $sheet1->setCellValue("G{$currRow}", $targetAmt);
+
+            $sheet1->getStyle("A{$currRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet1->getStyle("C{$currRow}:E{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet1->getStyle("F{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
+            $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+
+            if (in_array($code, ['P13S', 'P26S', 'P27S', 'P29'])) {
+                $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFont()->setBold(true);
+                $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+                if ($code === 'P13S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFD1FAE5');
+                elseif ($code === 'P26S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFFEE2E2');
+                elseif ($code === 'P27S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFCCFBF1');
+                elseif ($code === 'P29') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFE0E7FF');
+            }
+            $currRow++;
+
+            // Sub-accounts drilldown
+            if (!empty($subMapsByPlan[$code])) {
+                foreach ($subMapsByPlan[$code] as $sub) {
+                    $subCode = $sub->account_code;
+                    $subName = $sub->account_name;
+                    $subTObj = $targetsSimRaw->get($subCode);
+                    if (!$subTObj) continue;
+                    
+                    $subTargetAmt = floatval($subTObj->target_amount ?? 0);
+                    $subGrowth = floatval($subTObj->growth_rate ?? 0);
+                    $subBaseAmt = floatval($subTObj->baseline_amount ?? 0);
+                    $subEstAmt = ($baseMonths > 0) ? ($subBaseAmt / $baseMonths) * 12 : 0;
+
+                    $sheet1->setCellValue("A{$currRow}", $subCode);
+                    $sheet1->setCellValue("B{$currRow}", "   - " . $subName);
+                    $sheet1->setCellValue("C{$currRow}", 0);
+                    $sheet1->setCellValue("D{$currRow}", $subBaseAmt);
+                    $sheet1->setCellValue("E{$currRow}", $subEstAmt);
+                    $sheet1->setCellValue("F{$currRow}", $subGrowth / 100);
+                    $sheet1->setCellValue("G{$currRow}", $subTargetAmt);
+
+                    $sheet1->getStyle("A{$currRow}")->getFont()->setSize(9)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF64748B'));
+                    $sheet1->getStyle("B{$currRow}")->getFont()->setSize(9)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF475569'));
+                    $sheet1->getStyle("A{$currRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    $sheet1->getStyle("C{$currRow}:E{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet1->getStyle("F{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
+                    $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet1->getStyle("C{$currRow}:G{$currRow}")->getFont()->setSize(9);
+                    $currRow++;
+                }
+            }
+        }
+
+        $sheet1->getStyle("A7:G" . ($currRow - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setARGB('FFE2E8F0');
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+            $sheet1->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // -------------------------------------------------------------
+        // SHEET 2: กลุ่มแผนปฏิบัติการย่อย 2-7
+        // -------------------------------------------------------------
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('แผนปฏิบัติการย่อย_2-7');
+
+        $sheet2->setCellValue('A1', "กลุ่มแผนปฏิบัติการย่อยประกอบแผนเงินบำรุง (แผนที่ 2–7) ประจำปีงบประมาณ {$targetYear}");
+        $sheet2->setCellValue('A2', "หน่วยบริการ: {$hospName} ({$hospCode})");
+        $sheet2->mergeCells('A1:E1');
+        $sheet2->mergeCells('A2:E2');
+        $sheet2->getStyle('A1')->getFont()->setBold(true)->setSize(14)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
+
+        $headers2 = [
+            'A4' => 'รหัสแผน',
+            'B4' => 'รายการแผนปฏิบัติการย่อย',
+            'C4' => 'เงินงบประมาณ (บาท)',
+            'D4' => 'เงินนอกงบ / เงินบำรุง (บาท)',
+            'E4' => 'รวมทั้งสิ้น (บาท)'
+        ];
+        foreach ($headers2 as $cell => $text) {
+            $sheet2->setCellValue($cell, $text);
+        }
+        $sheet2->getStyle('A4:E4')->getFont()->setBold(true);
+        $sheet2->getStyle('A4:E4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
+        $sheet2->getStyle('A4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet2->getStyle('C4:E4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+
+        $subPlansDef = [
+            '2. แผนจัดซื้อยา เวชภัณฑ์ วัสดุการแพทย์' => [
+                ['code' => 'MED01', 'name' => 'ยาในบัญชียาหลักแห่งชาติ'],
+                ['code' => 'MED02', 'name' => 'ยานอกบัญชียาหลักแห่งชาติ'],
+                ['code' => 'MED03', 'name' => 'เวชภัณฑ์มิใช่ยา'],
+                ['code' => 'MED04', 'name' => 'วัสดุการแพทย์'],
+                ['code' => 'MED05', 'name' => 'วัสดุเภสัชกรรม'],
+                ['code' => 'MED06', 'name' => 'วัสดุวิทยาศาสตร์และการแพทย์'],
+            ],
+            '3. แผนจัดซื้อวัสดุอื่น' => [
+                ['code' => 'MAT01', 'name' => 'วัสดุทันตกรรม'],
+                ['code' => 'MAT02', 'name' => 'วัสดุเอกซเรย์'],
+                ['code' => 'MAT03', 'name' => 'วัสดุเชื้อเพลิง'],
+                ['code' => 'MAT04', 'name' => 'วัสดุงานบ้านงานครัว'],
+                ['code' => 'MAT05', 'name' => 'วัสดุสำนักงาน'],
+                ['code' => 'MAT06', 'name' => 'วัสดุยานพาหนะ'],
+                ['code' => 'MAT07', 'name' => 'วัสดุไฟฟ้าและวิทยุ'],
+                ['code' => 'MAT08', 'name' => 'วัสดุคอมพิวเตอร์'],
+                ['code' => 'MAT09', 'name' => 'วัสดุโฆษณาและเผยแพร่'],
+                ['code' => 'MAT10', 'name' => 'วัสดุก่อสร้าง'],
+                ['code' => 'MAT11', 'name' => 'วัสดุเครื่องแต่งกาย'],
+                ['code' => 'MAT12', 'name' => 'วัสดุอื่น ๆ'],
+            ],
+            '4. แผนบริหารจัดการเจ้าหนี้การค้า' => [
+                ['code' => 'AP01', 'name' => 'องค์การเภสัชกรรม (ยา)'],
+                ['code' => 'AP02', 'name' => 'องค์การเภสัชกรรม (เวชภัณฑ์มิใช่ยา)'],
+                ['code' => 'AP03', 'name' => 'บริษัทเอกชน (ยา)'],
+                ['code' => 'AP04', 'name' => 'บริษัทเอกชน (เวชภัณฑ์มิใช่ยา)'],
+                ['code' => 'AP05', 'name' => 'บริษัทเอกชน (วัสดุการแพทย์)'],
+                ['code' => 'AP06', 'name' => 'บริษัทเอกชน (วัสดุวิทยาศาสตร์)'],
+                ['code' => 'AP07', 'name' => 'บริษัทเอกชน (วัสดุทันตกรรม)'],
+                ['code' => 'AP08', 'name' => 'บริษัทเอกชน (วัสดุเอกซเรย์)'],
+                ['code' => 'AP09', 'name' => 'บริษัทเอกชน (วัสดุอื่น)'],
+                ['code' => 'AP10', 'name' => 'ค่าสาธารณูปโภคค้างจ่าย'],
+                ['code' => 'AP11', 'name' => 'ค่าจ้างเหมาบริการ'],
+                ['code' => 'AP12', 'name' => 'เงินเดือน/ค่าตอบแทน'],
+                ['code' => 'AP13', 'name' => 'ค่าล่วงเวลาค้างจ่าย'],
+                ['code' => 'AP14', 'name' => 'เงิน พตส. ค้างจ่าย'],
+                ['code' => 'AP15', 'name' => 'เจ้าหนี้อื่น'],
+            ],
+            '5. แผนบริหารจัดการลูกหนี้' => [
+                ['code' => 'AR01', 'name' => 'ลูกหนี้ค่ารักษาพยาบาล (สิทธิ UC)'],
+                ['code' => 'AR02', 'name' => 'ลูกหนี้ค่ารักษาพยาบาล (สิทธิประกันสังคม)'],
+                ['code' => 'AR03', 'name' => 'ลูกหนี้ค่ารักษาพยาบาล (สิทธิข้าราชการ/อปท.)'],
+                ['code' => 'AR04', 'name' => 'ลูกหนี้ค่ารักษาพยาบาล (ต่างด้าว)'],
+                ['code' => 'AR05', 'name' => 'ลูกหนี้ค่ารักษาพยาบาล (พรบ.คุ้มครองผู้ประสบภัยจากรถ)'],
+                ['code' => 'AR06', 'name' => 'ลูกหนี้เงินยืมทดรอง'],
+                ['code' => 'AR07', 'name' => 'ลูกหนี้อื่น ๆ'],
+            ],
+            '6. แผนการลงทุนเพิ่ม' => [
+                ['code' => 'INV01', 'name' => "จัดซื้อ จัดหาด้วยเงินบำรุงของ รพ. ปี {$targetYear}"],
+                ['code' => 'INV02', 'name' => "จัดซื้อ ด้วยงบค่าบริการฯเบิกจ่ายลักษณะงบลงทุน ปี {$targetYear}"],
+                ['code' => 'INV03', 'name' => "จัดซื้อ จัดหาด้วยเงินงบประมาณ ของ รพ. ปี {$targetYear}"],
+                ['code' => 'INV04', 'name' => 'จัดซื้อ จัดหาด้วยเงินบริจาค ของ รพ. ปี งปม.2564 - ปัจจุบัน'],
+                ['code' => 'INV05', 'name' => 'จัดซื้อ จัดหาด้วยเงินบริจาค ของ รพ. ก่อน 1 ต.ค. 63'],
+            ],
+            '7. แผนสนับสนุน รพ.สต.' => [
+                ['code' => 'SUB01', 'name' => 'Fixed Cost (ว5313)'],
+                ['code' => 'SUB02', 'name' => 'รายการอื่น'],
+                ['code' => 'SUB03', 'name' => 'ยา'],
+                ['code' => 'SUB04', 'name' => 'วัสดุเภสัชกรรม'],
+                ['code' => 'SUB05', 'name' => 'วัสดุการแพทย์ทั่วไป'],
+                ['code' => 'SUB06', 'name' => 'วัสดุวิทยาศาสตร์และการแพทย์'],
+                ['code' => 'SUB07', 'name' => 'วัสดุเอกซเรย์'],
+                ['code' => 'SUB08', 'name' => 'วัสดุทันตกรรม'],
+                ['code' => 'SUB09', 'name' => 'วัสดุอื่น'],
+                ['code' => 'SUB10', 'name' => 'งบค่าเสื่อม UC'],
+            ]
+        ];
+
+        $r2 = 5;
+        foreach ($subPlansDef as $groupTitle => $items) {
+            $sheet2->setCellValue("A{$r2}", $groupTitle);
+            $sheet2->mergeCells("A{$r2}:E{$r2}");
+            $sheet2->getStyle("A{$r2}")->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF4338CA'));
+            $sheet2->getStyle("A{$r2}:E{$r2}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFEDE9FE');
+            $r2++;
+
+            foreach ($items as $item) {
+                $savedObj = $targetsSimRaw->get($item['code']);
+                $bg = $savedObj ? floatval($savedObj->baseline_amount) : 0;
+                $nonBg = $savedObj ? floatval($savedObj->target_amount) : 0;
+                $tot = $bg + $nonBg;
+
+                $sheet2->setCellValue("A{$r2}", $item['code']);
+                $sheet2->setCellValue("B{$r2}", $item['name']);
+                $sheet2->setCellValue("C{$r2}", $bg);
+                $sheet2->setCellValue("D{$r2}", $nonBg);
+                $sheet2->setCellValue("E{$r2}", $tot);
+
+                $sheet2->getStyle("A{$r2}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet2->getStyle("C{$r2}:E{$r2}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $r2++;
+            }
+        }
+
+        $sheet2->getStyle("A4:E" . ($r2 - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setARGB('FFE2E8F0');
+        foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
+            $sheet2->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // -------------------------------------------------------------
+        // SHEET 3: ติดตามแผนรายเดือน (Tab 1)
+        // -------------------------------------------------------------
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('ติดตามแผนรายเดือน');
+
+        $sheet3->setCellValue('A1', "รายงานติดตามแผนเงินบำรุง รายได้และค่าใช้จ่าย (ณ งวดเดือน {$period})");
+        $sheet3->setCellValue('A2', "หน่วยบริการ: {$hospName} ({$hospCode}) | ปีงบประมาณ {$budgetYear}");
+        $sheet3->mergeCells('A1:J1');
+        $sheet3->mergeCells('A2:J2');
+        $sheet3->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+
+        $headers3 = [
+            'A4' => 'รหัสรายการ',
+            'B4' => 'รายการ',
+            'C4' => 'แผนทั้งปี',
+            'D4' => 'แผนสะสม',
+            'E4' => 'ผลดำเนินงานจริงสะสม',
+            'F4' => 'ผลต่างสะสม',
+            'G4' => '% บรรลุสะสม',
+            'H4' => 'แผนงวดเดือนนี้',
+            'I4' => 'ผลจริงเดือนนี้',
+            'J4' => 'สถานะ'
+        ];
+        foreach ($headers3 as $cell => $text) {
+            $sheet3->setCellValue($cell, $text);
+        }
+        $sheet3->getStyle('A4:J4')->getFont()->setBold(true);
+        $sheet3->getStyle('A4:J4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
+
+        $pParts = explode('-', $period);
+        $pMonth = intval($pParts[1] ?? 7);
+        $cMonths = ($pMonth >= 10) ? ($pMonth - 9) : ($pMonth + 3);
+        if ($cMonths <= 0 || $cMonths > 12) $cMonths = 10;
+
+        $r3 = 5;
+        foreach ($categories as $cat) {
+            $code = $cat->plan_code;
+            $name = $cat->plan_name;
+
+            $annualTarget = floatval($targetsBudgetRaw->get($code)->target_amount ?? 0);
+            $planCum = ($annualTarget / 12.0) * $cMonths;
+            $actualCum = floatval($actualsPeriod[$code] ?? 0);
+            $diffCum = $actualCum - $planCum;
+            $pctCum = ($planCum != 0) ? ($diffCum / $planCum) * 100.0 : 0.0;
+
+            $planM = $annualTarget / 12.0;
+            $actualM = floatval($actualsMonthlyPeriod[$code] ?? 0);
+
+            $status = 'OK';
+            if ($cat->category_type === 'revenue' && $diffCum < 0) $status = 'Not OK';
+            elseif ($cat->category_type === 'expense' && $diffCum > 0) $status = 'Not OK';
+
+            $sheet3->setCellValue("A{$r3}", $code);
+            $sheet3->setCellValue("B{$r3}", $name);
+            $sheet3->setCellValue("C{$r3}", $annualTarget);
+            $sheet3->setCellValue("D{$r3}", $planCum);
+            $sheet3->setCellValue("E{$r3}", $actualCum);
+            $sheet3->setCellValue("F{$r3}", $diffCum);
+            $sheet3->setCellValue("G{$r3}", $pctCum / 100);
+            $sheet3->setCellValue("H{$r3}", $planM);
+            $sheet3->setCellValue("I{$r3}", $actualM);
+            $sheet3->setCellValue("J{$r3}", $status);
+
+            $sheet3->getStyle("A{$r3}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet3->getStyle("C{$r3}:F{$r3}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet3->getStyle("G{$r3}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
+            $sheet3->getStyle("H{$r3}:I{$r3}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet3->getStyle("J{$r3}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            if (in_array($code, ['P13S', 'P26S', 'P27S', 'P29'])) {
+                $sheet3->getStyle("A{$r3}:J{$r3}")->getFont()->setBold(true);
+                $sheet3->getStyle("A{$r3}:J{$r3}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+                if ($code === 'P13S') $sheet3->getStyle("A{$r3}:J{$r3}")->getFill()->getStartColor()->setARGB('FFD1FAE5');
+                elseif ($code === 'P26S') $sheet3->getStyle("A{$r3}:J{$r3}")->getFill()->getStartColor()->setARGB('FFFEE2E2');
+                elseif ($code === 'P27S') $sheet3->getStyle("A{$r3}:J{$r3}")->getFill()->getStartColor()->setARGB('FFCCFBF1');
+                elseif ($code === 'P29') $sheet3->getStyle("A{$r3}:J{$r3}")->getFill()->getStartColor()->setARGB('FFE0E7FF');
+            }
+            $r3++;
+        }
+
+        $sheet3->getStyle("A4:J" . ($r3 - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setARGB('FFE2E8F0');
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] as $col) {
+            $sheet3->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Set active sheet back to Sheet 1
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = "PlanFin_{$targetYear}_Report_" . date('Ymd_His') . ".xlsx";
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
 }
+
 

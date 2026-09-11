@@ -792,6 +792,88 @@ class MainSettingController extends Controller
                         $report[] = "hosfin_dtl_mappings (ไม่พบไฟล์)";
                     }
 
+                    // --- 2.6.1: Import/Sync HosFin PlanFin Categories (hosfin_planfin_categories.json) ---
+                    $filePathPFCats = base_path('docs/lookup/hosfin_planfin_categories.json');
+                    if (file_exists($filePathPFCats)) {
+                        $jsonData = json_decode(file_get_contents($filePathPFCats), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $insertedPFCats = 0;
+                            DB::beginTransaction();
+                            try {
+                                if (Schema::hasTable('hosfin_planfin_categories')) {
+                                    DB::table('hosfin_planfin_categories')->delete();
+                                    $batchCats = [];
+                                    foreach ($jsonData as $row) {
+                                        $batchCats[] = [
+                                            'plan_code' => trim($row['plan_code']),
+                                            'plan_name' => trim($row['plan_name'] ?? ''),
+                                            'category_type' => trim($row['category_type'] ?? 'expense'),
+                                            'sort_order' => intval($row['sort_order'] ?? 0),
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                    }
+                                    if (!empty($batchCats)) {
+                                        DB::table('hosfin_planfin_categories')->insert($batchCats);
+                                    }
+                                }
+                                DB::commit();
+                                $insertedPFCats = count($jsonData);
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
+                            }
+                            $report[] = "hosfin_planfin_categories ($insertedPFCats รายการ)";
+                        } else {
+                            $report[] = "hosfin_planfin_categories (ไฟล์ JSON รูปแบบไม่ถูกต้อง)";
+                        }
+                    } else {
+                        $report[] = "hosfin_planfin_categories (ไม่พบไฟล์)";
+                    }
+
+                    // --- 2.6.2: Import/Sync HosFin PlanFin Mappings (hosfin_planfin_mappings.json) ---
+                    $filePathPFMaps = base_path('docs/lookup/hosfin_planfin_mappings.json');
+                    if (file_exists($filePathPFMaps)) {
+                        $jsonData = json_decode(file_get_contents($filePathPFMaps), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $insertedPFMaps = 0;
+                            DB::beginTransaction();
+                            try {
+                                if (Schema::hasTable('hosfin_planfin_mappings')) {
+                                    DB::table('hosfin_planfin_mappings')->delete();
+                                    $batchMaps = [];
+                                    foreach ($jsonData as $row) {
+                                        $batchMaps[] = [
+                                            'account_code' => trim($row['account_code']),
+                                            'account_name' => isset($row['account_name']) ? trim($row['account_name']) : null,
+                                            'plan_code' => trim($row['plan_code']),
+                                            'plan_name' => isset($row['plan_name']) ? trim($row['plan_name']) : null,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                        if (count($batchMaps) >= 500) {
+                                            DB::table('hosfin_planfin_mappings')->insert($batchMaps);
+                                            $batchMaps = [];
+                                        }
+                                    }
+                                    if (!empty($batchMaps)) {
+                                        DB::table('hosfin_planfin_mappings')->insert($batchMaps);
+                                    }
+                                }
+                                DB::commit();
+                                $insertedPFMaps = count($jsonData);
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
+                            }
+                            $report[] = "hosfin_planfin_mappings ($insertedPFMaps รายการ)";
+                        } else {
+                            $report[] = "hosfin_planfin_mappings (ไฟล์ JSON รูปแบบไม่ถูกต้อง)";
+                        }
+                    } else {
+                        $report[] = "hosfin_planfin_mappings (ไม่พบไฟล์)";
+                    }
+
                     // --- 2.7: Import/Sync Lookup C Deny (lookup_nhso_c_deny.json) ---
                     $filePathCDeny = base_path('docs/lookup/lookup_nhso_c_deny.json');
                     if (file_exists($filePathCDeny)) {

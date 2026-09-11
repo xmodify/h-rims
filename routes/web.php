@@ -652,6 +652,7 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::get('hosfin/cash_register', [App\Http\Controllers\HosFinController::class, 'cash_register'])->name('hosfin.cash_register');
     Route::get('hosfin/cash_register/export', [App\Http\Controllers\HosFinController::class, 'cash_register_export'])->name('hosfin.cash_register.export');
     Route::get('hosfin/cost_report', [App\Http\Controllers\HosFinController::class, 'cost_report'])->name('hosfin.cost_report');
+    Route::get('hosfin/planfin', [App\Http\Controllers\HosFinController::class, 'planfin'])->name('hosfin.planfin');
 
     // Mutations / Imports
     Route::post('hosfin/trial_balance/import', [App\Http\Controllers\HosFinController::class, 'import'])->name('hosfin.trial_balance.import');
@@ -663,6 +664,12 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::post('hosfin/recalculate_gl', [App\Http\Controllers\HosFinController::class, 'recalculate_from_gl'])->name('hosfin.recalculate_gl');
     Route::post('hosfin/ai_analyze', [App\Http\Controllers\HosFinController::class, 'ai_analyze'])->name('hosfin.ai_analyze');
     Route::post('hosfin/ai_drilldown', [App\Http\Controllers\HosFinController::class, 'ai_drilldown'])->name('hosfin.ai_drilldown');
+
+    // PlanFin specific routes
+    Route::post('hosfin/planfin/analyze_mdb', [App\Http\Controllers\HosFinController::class, 'analyzeMdbPlanfin'])->name('hosfin.planfin.analyze_mdb');
+    Route::post('hosfin/planfin/import_mdb', [App\Http\Controllers\HosFinController::class, 'importMdbPlanfin'])->name('hosfin.planfin.import_mdb');
+    Route::post('hosfin/planfin/save_target', [App\Http\Controllers\HosFinController::class, 'savePlanfinTarget'])->name('hosfin.planfin.save_target');
+    Route::get('hosfin/planfin/export_excel', [App\Http\Controllers\HosFinController::class, 'exportPlanfinExcel'])->name('hosfin.planfin.export_excel');
 });
 
 

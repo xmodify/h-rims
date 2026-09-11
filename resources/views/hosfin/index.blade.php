@@ -320,24 +320,47 @@
                            title="รายงานและนำเข้างบทดลอง (Trial Balance)">
                             <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
                         </a>
+
+                        <a href="{{ url('hosfin/planfin') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #6366f1; color: #4f46e5; transition: all 0.25s ease;"
+                           title="ระบบบริหารและติดตามแผนเงินบำรุง (PlanFin)">
+                            <i class="bi bi-graph-up-arrow"></i> PlanFin
+                        </a>
                     </div>
                 </div>
 
                 <!-- Row 2: Status Badges (Period, Risk Score, Last Sync) -->
                 @if($hasData)
                 <div class="w-100 d-flex align-items-center gap-2 flex-wrap pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                    <!-- Budget Year Selector -->
+                    @if(isset($budgetYearChoices) && count($budgetYearChoices) > 0)
+                        <div class="d-inline-flex align-items-center gap-1.5 bg-white border border-success-subtle rounded-pill px-2.5 py-1 shadow-xs">
+                            <i class="bi bi-calendar3 text-success" style="font-size: 0.8rem;"></i>
+                            <span class="small fw-bold text-success" style="font-size: 0.76rem;">ปีงบประมาณ:</span>
+                            <select class="form-select form-select-sm border-0 py-0 ps-1 pe-4 fw-bold text-dark bg-transparent" 
+                                    style="font-size: 0.78rem; cursor: pointer; width: auto; box-shadow: none;" 
+                                    onchange="location.href='{{ url('hosfin') }}?budget_year=' + this.value">
+                                @foreach($budgetYearChoices as $by)
+                                    <option value="{{ $by }}" {{ $budgetYear == $by ? 'selected' : '' }}>
+                                        {{ $by }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
                     <!-- Period Dropdown -->
                     @if(isset($periods) && count($periods) > 0)
                         <div class="d-inline-flex align-items-center gap-1.5 bg-white border border-success-subtle rounded-pill px-2.5 py-1 shadow-xs">
-                            <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                            <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 0.45rem; height: 0.45rem;"></span>
                             <span class="small fw-bold text-success" style="font-size: 0.76rem;">งวดบัญชี:</span>
                             <select class="form-select form-select-sm border-0 py-0 ps-1 pe-4 fw-bold text-dark bg-transparent" 
                                     style="font-size: 0.78rem; cursor: pointer; width: auto; box-shadow: none;" 
-                                    onchange="location.href='{{ url('hosfin') }}?period=' + this.value">
+                                    onchange="location.href='{{ url('hosfin') }}?budget_year={{ $budgetYear }}&period=' + this.value">
                                 @foreach(array_reverse($periods) as $p)
                                     @if(in_array($p['period'], $importedPeriods ?? []))
                                         <option value="{{ $p['period'] }}" {{ $p['period'] === $latestPeriod ? 'selected' : '' }}>
-                                            {{ $p['label'] }} (ปีงบ {{ $budgetYear }})
+                                            {{ $p['label'] }}
                                         </option>
                                     @endif
                                 @endforeach
@@ -349,6 +372,7 @@
                             ข้อมูลงวดบัญชีล่าสุด: <strong>{{ $latestPeriodLabel }}</strong> (ปีงบประมาณ {{ $budgetYear }})
                         </span>
                     @endif
+
 
                     <!-- Risk Score Badge -->
                     <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border shadow-xs {{ $riskScoreBgClass }} metric-card" 

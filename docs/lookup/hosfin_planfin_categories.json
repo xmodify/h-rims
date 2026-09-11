@@ -1,0 +1,206 @@
+[
+  {
+    "plan_code": "P04",
+    "plan_name": "รายได้ UC",
+    "category_type": "revenue",
+    "sort_order": 1
+  },
+  {
+    "plan_code": "P05",
+    "plan_name": "รายได้จาก  EMS",
+    "category_type": "revenue",
+    "sort_order": 2
+  },
+  {
+    "plan_code": "P06",
+    "plan_name": "รายได้ค่ารักษาเบิกต้นสังกัด",
+    "category_type": "revenue",
+    "sort_order": 3
+  },
+  {
+    "plan_code": "P61",
+    "plan_name": "รายได้ค่ารักษา อปท.",
+    "category_type": "revenue",
+    "sort_order": 4
+  },
+  {
+    "plan_code": "P07",
+    "plan_name": "รายได้ค่ารักษาเบิกจ่ายตรงกรมบัญชีกลาง",
+    "category_type": "revenue",
+    "sort_order": 5
+  },
+  {
+    "plan_code": "P08",
+    "plan_name": "รายได้ประกันสังคม",
+    "category_type": "revenue",
+    "sort_order": 6
+  },
+  {
+    "plan_code": "P09",
+    "plan_name": "รายได้แรงงานต่างด้าว",
+    "category_type": "revenue",
+    "sort_order": 7
+  },
+  {
+    "plan_code": "P10",
+    "plan_name": "รายได้ค่ารักษาและบริการอื่น ๆ",
+    "category_type": "revenue",
+    "sort_order": 8
+  },
+  {
+    "plan_code": "P11",
+    "plan_name": "รายได้งบประมาณส่วนบุคลากร",
+    "category_type": "revenue",
+    "sort_order": 9
+  },
+  {
+    "plan_code": "P12",
+    "plan_name": "รายได้อื่น",
+    "category_type": "revenue",
+    "sort_order": 10
+  },
+  {
+    "plan_code": "P121",
+    "plan_name": "รายได้อื่น (ระบบบัญชีบันทึกอัตโนมัติ)",
+    "category_type": "revenue",
+    "sort_order": 11
+  },
+  {
+    "plan_code": "P13",
+    "plan_name": "รายได้งบลงทุน",
+    "category_type": "revenue",
+    "sort_order": 12
+  },
+  {
+    "plan_code": "P13S",
+    "plan_name": "รวมรายได้",
+    "category_type": "summary",
+    "sort_order": 13
+  },
+  {
+    "plan_code": "P14",
+    "plan_name": "ต้นทุนยา",
+    "category_type": "expense",
+    "sort_order": 14
+  },
+  {
+    "plan_code": "P15",
+    "plan_name": "ต้นทุนเวชภัณฑ์มิใช่ยาและวัสดุการแพทย์",
+    "category_type": "expense",
+    "sort_order": 15
+  },
+  {
+    "plan_code": "P151",
+    "plan_name": "ต้นทุนวัสดุทันตกรรม",
+    "category_type": "expense",
+    "sort_order": 16
+  },
+  {
+    "plan_code": "P16",
+    "plan_name": "ต้นทุนวัสดุวิทยาศาสตร์การแพทย์",
+    "category_type": "expense",
+    "sort_order": 17
+  },
+  {
+    "plan_code": "P17",
+    "plan_name": "เงินเดือนและค่าจ้างประจำ",
+    "category_type": "expense",
+    "sort_order": 18
+  },
+  {
+    "plan_code": "P18",
+    "plan_name": "ค่าจ้างชั่วคราว/พกส./ค่าจ้างเหมาบุคลากรอื่น",
+    "category_type": "expense",
+    "sort_order": 19
+  },
+  {
+    "plan_code": "P19",
+    "plan_name": "ค่าตอบแทน",
+    "category_type": "expense",
+    "sort_order": 20
+  },
+  {
+    "plan_code": "P20",
+    "plan_name": "ค่าใช้จ่ายบุคลากรอื่น",
+    "category_type": "expense",
+    "sort_order": 21
+  },
+  {
+    "plan_code": "P21",
+    "plan_name": "ค่าใช้สอย",
+    "category_type": "expense",
+    "sort_order": 22
+  },
+  {
+    "plan_code": "P22",
+    "plan_name": "ค่าสาธารณูปโภค",
+    "category_type": "expense",
+    "sort_order": 23
+  },
+  {
+    "plan_code": "P23",
+    "plan_name": "วัสดุใช้ไป",
+    "category_type": "expense",
+    "sort_order": 24
+  },
+  {
+    "plan_code": "P24",
+    "plan_name": "ค่าเสื่อมราคาและค่าตัดจำหน่าย",
+    "category_type": "expense",
+    "sort_order": 25
+  },
+  {
+    "plan_code": "P241",
+    "plan_name": "หนี้สูญและสงสัยจะสูญ",
+    "category_type": "expense",
+    "sort_order": 26
+  },
+  {
+    "plan_code": "P25",
+    "plan_name": "ค่าใช้จ่ายอื่น",
+    "category_type": "expense",
+    "sort_order": 27
+  },
+  {
+    "plan_code": "P251",
+    "plan_name": "ค่าใช้จ่ายอื่น (ระบบบัญชีบันทึกอัตโนมัติ)",
+    "category_type": "expense",
+    "sort_order": 28
+  },
+  {
+    "plan_code": "P26S",
+    "plan_name": "รวมค่าใช้จ่าย",
+    "category_type": "summary",
+    "sort_order": 29
+  },
+  {
+    "plan_code": "P27S",
+    "plan_name": "รายได้สูง (ต่ำ) กว่าค่าใช้จ่ายสุทธิ",
+    "category_type": "summary",
+    "sort_order": 30
+  },
+  {
+    "plan_code": "P29-R",
+    "plan_name": "รวมรายได้ (ไม่รวมรายได้อื่น(ระบบบัญชีอัตโนมัติ)และรายได้งบลงทุน)",
+    "category_type": "summary",
+    "sort_order": 31
+  },
+  {
+    "plan_code": "P29-E",
+    "plan_name": "รวมค่าใช้จ่าย (ไม่รวมค่าเสื่อมราคาและค่าตัดจำหน่ายและค่าใช้จ่ายอื่น (ระบบบัญชีบันทึกอัตโนมัติ)",
+    "category_type": "summary",
+    "sort_order": 32
+  },
+  {
+    "plan_code": "P29",
+    "plan_name": "EBITDA (รวมรายได้ (ไม่รวมรายได้งบลงทุน) - รวมค่าใช้จ่าย (ไม่รวมค่าเสื่อมราคาและค่าตัดจำหน่าย)",
+    "category_type": "kpi",
+    "sort_order": 33
+  },
+  {
+    "plan_code": "P28",
+    "plan_name": "สรุปแผนประมาณการ",
+    "category_type": "kpi",
+    "sort_order": 34
+  }
+]

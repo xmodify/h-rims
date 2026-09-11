@@ -883,11 +883,17 @@ class MainSettingController extends Controller
                             DB::beginTransaction();
                             try {
                                 if (Schema::hasTable('hosfin_planfin_targets')) {
+                                    // ล้างข้อมูลเป้าหมายทดสอบปี 2570 และ 2571 ออกทั้งหมด (เนื่องจากยังไม่ได้จัดทำแผนจริง)
+                                    DB::table('hosfin_planfin_targets')->where('budget_year', '>=', 2570)->delete();
+
+                                    // ล้างและนำเข้าเป้าหมายแผนปี 2569 ใหม่ให้สะอาดถูกต้อง
+                                    DB::table('hosfin_planfin_targets')->where('budget_year', 2569)->delete();
+
                                     $batchTargets = [];
                                     foreach ($jsonData as $row) {
                                         $batchTargets[] = [
                                             'budget_year' => intval($row['budget_year']),
-                                            'round_no' => trim($row['round_no'] ?? '1st'),
+                                            'round_no' => trim($row['round_no'] ?? '256902'),
                                             'plan_code' => trim($row['plan_code']),
                                             'baseline_amount' => isset($row['baseline_amount']) ? floatval($row['baseline_amount']) : 0.00,
                                             'growth_rate' => isset($row['growth_rate']) ? floatval($row['growth_rate']) : 0.0000,
@@ -896,26 +902,14 @@ class MainSettingController extends Controller
                                             'created_at' => now(),
                                             'updated_at' => now()
                                         ];
-                                        if (count($batchTargets) >= 500) {
-                                            DB::table('hosfin_planfin_targets')->upsert(
-                                                $batchTargets,
-                                                ['budget_year', 'round_no', 'plan_code'],
-                                                ['baseline_amount', 'growth_rate', 'target_amount', 'notes', 'updated_at']
-                                            );
-                                            $batchTargets = [];
-                                        }
                                     }
                                     if (!empty($batchTargets)) {
-                                        DB::table('hosfin_planfin_targets')->upsert(
-                                            $batchTargets,
-                                            ['budget_year', 'round_no', 'plan_code'],
-                                            ['baseline_amount', 'growth_rate', 'target_amount', 'notes', 'updated_at']
-                                        );
+                                        DB::table('hosfin_planfin_targets')->insert($batchTargets);
                                     }
                                 }
                                 DB::commit();
                                 $insertedPFTargets = count($jsonData);
-                                $report[] = "hosfin_planfin_targets ($insertedPFTargets รายการ)";
+                                $report[] = "hosfin_planfin_targets ($insertedPFTargets รายการ - เฉพาะปี 2569)";
                             } catch (\Throwable $e) {
                                 DB::rollBack();
                                 throw $e;

@@ -152,7 +152,51 @@ def import_planfin(mdb_or_zip_path, target_period_no):
                     for pid, pcode, ptitle in zip(t_pf['plan_id'], t_pf['plan_code'], t_pf['plan_title']):
                         p_dict[pid] = (str(pcode).strip() if pcode else '', str(ptitle).strip() if ptitle else '')
                         
-                if "org_est_current" in db.catalog:
+                acc_map = {}
+                if "AccPlan" in db.catalog:
+                    t_acc = db.parse_table("AccPlan")
+                    for acc, pid in zip(t_acc['account_code'], t_acc['plan_id']):
+                        if acc and pid in p_dict:
+                            acc_map[str(acc).strip()] = p_dict[pid][0]
+
+                targets_map = {}
+                if "hig_est_current" in db.catalog:
+                    t_hig = db.parse_table("hig_est_current")
+                    for acc, val, pno in zip(t_hig['account_code'], t_hig['hig_value'], t_hig['period_no']):
+                        if str(pno) == str(target_period_no):
+                            acc_c = str(acc).strip() if acc else ''
+                            pcode = acc_map.get(acc_c)
+                            if pcode:
+                                try:
+                                    fval = float(val or 0)
+                                except:
+                                    fval = 0.0
+                                targets_map[pcode] = targets_map.get(pcode, 0.0) + fval
+
+                if targets_map and sum(targets_map.values()) > 0:
+                    rev_codes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13']
+                    exp_codes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251']
+
+                    p13s = sum(targets_map.get(c, 0.0) for c in rev_codes)
+                    p26s = sum(targets_map.get(c, 0.0) for c in exp_codes)
+                    targets_map['P13S'] = p13s
+                    targets_map['P26S'] = p26s
+                    targets_map['P27S'] = p13s - p26s
+
+                    p29r = p13s - targets_map.get('P13', 0.0) - targets_map.get('P121', 0.0)
+                    p29e = p26s - targets_map.get('P24', 0.0) - targets_map.get('P251', 0.0)
+                    targets_map['P29-R'] = p29r
+                    targets_map['P29-E'] = p29e
+                    targets_map['P29'] = p29r - p29e
+
+                    for code, val in targets_map.items():
+                        targets.append({
+                            "budget_year": budget_year,
+                            "round_no": str(target_period_no),
+                            "plan_code": code,
+                            "target_amount": val
+                        })
+                elif "org_est_current" in db.catalog:
                     t_org = db.parse_table("org_est_current")
                     for pid, oval, pno in zip(t_org['plan_id'], t_org['org_value'], t_org['period_no']):
                         if str(pno) == str(target_period_no) and pid in p_dict and p_dict[pid][0]:

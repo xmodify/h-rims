@@ -24,6 +24,36 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
   }
+
+  /* DataTables Modern Styling in Mapping Modal */
+  #mappingModal .dataTables_wrapper .dataTables_filter input {
+    border-radius: 20px;
+    padding: 5px 14px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.84rem;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  #mappingModal .dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+  #mappingModal .dataTables_wrapper .dataTables_length select {
+    border-radius: 10px;
+    padding: 4px 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.84rem;
+  }
+  #mappingModal .dataTables_wrapper .pagination .page-item.active .page-link {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+  #mappingModal .dataTables_wrapper .pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    font-size: 0.82rem;
+  }
+
   .fw-black { font-weight: 900 !important; }
   .table-planfin thead th {
     background-color: #f8fafc;
@@ -1419,34 +1449,70 @@
 <!-- MODAL 2: ดูผังจับคู่บัญชี (Account Mapping) -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="mappingModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-            <div class="modal-header bg-secondary text-white py-2.5">
-                <h6 class="modal-title fw-bold" style="font-size: 0.95rem;">
-                    <i class="bi bi-diagram-3 me-1.5"></i> ผังจับคู่บัญชี 10 หลัก เข้ากับหมวด PlanFin (450+ รายการ)
-                </h6>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header text-white py-2.5 px-3 px-md-4" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-1.5 bg-white bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-diagram-3-fill fs-6"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0" style="font-size: 0.95rem;">
+                            ผังจับคู่บัญชี 10 หลัก เข้ากับหมวด PlanFin
+                        </h6>
+                        <div class="small text-white-50" style="font-size: 0.72rem;">
+                            ผังบัญชี GL ทั้งหมดที่เชื่อมโยงกับหมวดแผนยุทธศาสตร์ PlanFin
+                        </div>
+                    </div>
+                    <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle px-2.5 py-1 ms-2" id="mappingTotalCount" style="font-size: 0.75rem;">
+                        450+ รายการ
+                    </span>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-4">
-                <div class="mb-3">
-                    <input type="text" id="mapSearchInput" class="form-control rounded-pill px-3" placeholder="🔍 พิมพ์ค้นหารหัสบัญชี, ชื่อบัญชี, หรือรหัสหมวด P..." oninput="filterMappings()">
+            <div class="modal-body p-3 p-md-4">
+                <!-- Filter Section with List Box -->
+                <div class="row g-2 mb-3 p-3 rounded-4 bg-light border align-items-center">
+                    <div class="col-md-7 col-12">
+                        <label class="form-label small fw-bold text-secondary mb-1" for="mapFilterCategory" style="font-size: 0.82rem;">
+                            <i class="bi bi-funnel-fill text-primary me-1"></i> กรองตามหมวดแผน (List Box):
+                        </label>
+                        <select id="mapFilterCategory" class="form-select form-select-sm rounded-pill px-3 fw-semibold shadow-xs" onchange="applyCategoryFilter()" style="font-size: 0.85rem; border-color: #cbd5e1; cursor: pointer;">
+                            <option value="">-- แสดงทุกหมวดแผนทั้งหมด (All Categories) --</option>
+                            @foreach($categories as $cat)
+                                @if(!in_array($cat->plan_code, ['P13S', 'P26S', 'P27S', 'P28', 'P29']))
+                                    <option value="{{ $cat->plan_code }}">{{ $cat->plan_code }} - {{ $cat->plan_name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-5 col-12 text-md-end mt-2 mt-md-0">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold shadow-xs" onclick="resetMappingFilters()" style="font-size: 0.8rem;">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> รีเซ็ตตัวกรอง
+                        </button>
+                    </div>
                 </div>
-                <div class="table-responsive rounded-3 border" style="max-height: 480px; overflow-y: auto;">
-                    <table class="table table-hover table-sm mb-0 align-middle" id="mappingsMasterTable" style="font-size: 0.82rem;">
-                        <thead class="bg-light sticky-top">
+
+                <!-- DataTable Container -->
+                <div class="table-responsive rounded-3 border p-3 bg-white shadow-xs">
+                    <table class="table table-hover table-striped table-sm mb-0 align-middle w-100" id="mappingsMasterTable" style="font-size: 0.82rem;">
+                        <thead class="table-light border-bottom">
                             <tr>
-                                <th class="py-2 ps-3" style="width: 60px;">#</th>
-                                <th class="py-2" style="width: 150px;">รหัสบัญชี 10 หลัก</th>
-                                <th class="py-2">ชื่อบัญชี</th>
-                                <th class="py-2 text-center" style="width: 100px;">รหัส PlanFin</th>
-                                <th class="py-2" style="width: 220px;">ชื่อหมวด PlanFin</th>
+                                <th class="py-2.5 text-center" style="width: 50px;">#</th>
+                                <th class="py-2.5" style="width: 160px;">รหัสบัญชี 10 หลัก</th>
+                                <th class="py-2.5">ชื่อบัญชี</th>
+                                <th class="py-2.5 text-center" style="width: 110px;">รหัส PlanFin</th>
+                                <th class="py-2.5" style="width: 260px;">ชื่อหมวด PlanFin</th>
                             </tr>
                         </thead>
                         <tbody id="mappingsTableBody">
-                            <!-- Populated via AJAX / Initial JSON -->
+                            <!-- Populated via DataTables -->
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
@@ -1979,57 +2045,177 @@
         .catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
     }
 
-    // Load Mappings into Modal
-    let allMappings = [];
+    // =========================================================================
+    // Account Mapping Modal with DataTables & Category List Box Filter
+    // =========================================================================
+    let mappingsDataTable = null;
+    let allMappingsData = [];
+
     document.getElementById('mappingModal').addEventListener('show.bs.modal', function () {
-        if (allMappings.length === 0) {
+        if (allMappingsData.length === 0) {
             const tbody = document.getElementById('mappingsTableBody');
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูลผังบัญชี...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูลผังจับคู่บัญชี 10 หลัก...</td></tr>`;
             fetch('{{ url("hosfin/planfin/mappings") }}')
             .then(res => {
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 return res.json();
             })
             .then(data => {
-                allMappings = data;
-                renderMappings(allMappings);
+                allMappingsData = data;
+                initMappingDataTable(allMappingsData);
             })
             .catch(err => {
-                console.error(err);
+                console.error('Error fetching mappings:', err);
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-1"></i>เกิดข้อผิดพลาดในการโหลดข้อมูลผังบัญชี</td></tr>`;
             });
         }
     });
 
-    function renderMappings(list) {
-        const tbody = document.getElementById('mappingsTableBody');
-        tbody.innerHTML = '';
-        if (!list || list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">ไม่พบข้อมูลผังบัญชี</td></tr>`;
-            return;
+    document.getElementById('mappingModal').addEventListener('shown.bs.modal', function () {
+        if (mappingsDataTable) {
+            mappingsDataTable.columns.adjust().draw(false);
         }
-        list.slice(0, 500).forEach((m, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="text-center text-muted ps-3">${idx + 1}</td>
-                <td class="font-monospace fw-bold text-secondary">${m.account_code}</td>
-                <td>${m.account_name || '-'}</td>
-                <td class="text-center fw-bold text-primary">${m.plan_code}</td>
-                <td class="text-muted">${m.plan_name || '-'}</td>
-            `;
-            tbody.appendChild(tr);
+    });
+
+    function initMappingDataTable(data) {
+        // Update header badge count
+        const totalCountEl = document.getElementById('mappingTotalCount');
+        if (totalCountEl) {
+            totalCountEl.textContent = data.length.toLocaleString() + ' รายการ';
+        }
+
+        // Populate Category List Box dynamically with counts
+        const catMap = {};
+        data.forEach(item => {
+            const code = (item.plan_code || '').trim();
+            const name = (item.plan_name || '').trim();
+            if (code) {
+                if (!catMap[code]) {
+                    catMap[code] = { code: code, name: name, count: 0 };
+                }
+                catMap[code].count++;
+            }
+        });
+
+        const select = document.getElementById('mapFilterCategory');
+        if (select) {
+            select.innerHTML = `<option value="">-- แสดงทุกหมวดแผนทั้งหมด (${data.length} รายการ) --</option>`;
+            Object.keys(catMap).sort().forEach(code => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = `[${code}] ${catMap[code].name} (${catMap[code].count} รายการ)`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Destroy previous instance if any
+        if ($.fn.DataTable.isDataTable('#mappingsMasterTable')) {
+            $('#mappingsMasterTable').DataTable().destroy();
+        }
+
+        // Initialize DataTable
+        mappingsDataTable = $('#mappingsMasterTable').DataTable({
+            data: data,
+            columns: [
+                {
+                    data: null,
+                    className: 'text-center text-muted fw-semibold ps-3',
+                    orderable: false,
+                    width: '50px',
+                    render: function(data, type, row, meta) {
+                        return meta.row + 1;
+                    }
+                },
+                {
+                    data: 'account_code',
+                    className: 'font-monospace fw-bold text-dark text-nowrap',
+                    width: '160px',
+                    render: function(data) {
+                        return data ? `<i class="bi bi-hash text-muted me-0.5"></i>${data}` : '-';
+                    }
+                },
+                {
+                    data: 'account_name',
+                    className: 'fw-medium text-dark',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                },
+                {
+                    data: 'plan_code',
+                    className: 'text-center fw-bold text-nowrap',
+                    width: '110px',
+                    render: function(data) {
+                        return `<span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 font-monospace">${data || '-'}</span>`;
+                    }
+                },
+                {
+                    data: 'plan_name',
+                    className: 'text-secondary fw-semibold',
+                    width: '260px',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                }
+            ],
+            order: [[1, 'asc']],
+            pageLength: 25,
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                ['10 รายการ', '25 รายการ', '50 รายการ', '100 รายการ', 'แสดงทั้งหมด']
+            ],
+            language: {
+                search: '<i class="bi bi-search me-1"></i>ค้นหา:',
+                searchPlaceholder: 'พิมพ์รหัส, ชื่อบัญชี...',
+                lengthMenu: 'แสดง _MENU_',
+                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                infoEmpty: 'ไม่พบรายการที่ค้นหา',
+                infoFiltered: '(กรองจากทั้งหมด _MAX_ รายการ)',
+                zeroRecords: '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-4 d-block mb-1"></i>ไม่พบข้อมูลบัญชีที่ตรงกับเงื่อนไข</div>',
+                paginate: {
+                    first: '<i class="bi bi-chevron-double-left"></i>',
+                    last: '<i class="bi bi-chevron-double-right"></i>',
+                    next: '<i class="bi bi-chevron-right"></i>',
+                    previous: '<i class="bi bi-chevron-left"></i>'
+                }
+            },
+            dom: "<'row g-2 mb-3 align-items-center'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 d-flex justify-content-md-end'f>>" +
+                 "<'row'<'col-12'tr>>" +
+                 "<'row g-2 mt-3 align-items-center'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7 d-flex justify-content-md-end'p>>",
+            autoWidth: false
+        });
+
+        // Dynamic numbering on sort or page
+        mappingsDataTable.on('draw.dt', function () {
+            const info = mappingsDataTable.page.info();
+            mappingsDataTable.column(0, { search: 'applied', order: 'applied', page: 'current' }).nodes().each(function (cell, i) {
+                cell.innerHTML = info.start + i + 1;
+            });
+        });
+
+        // Bind filter event
+        $('#mapFilterCategory').off('change').on('change', function() {
+            applyCategoryFilter();
         });
     }
 
-    function filterMappings() {
-        const q = document.getElementById('mapSearchInput').value.toLowerCase();
-        const filtered = allMappings.filter(m => 
-            (m.account_code && m.account_code.toLowerCase().includes(q)) ||
-            (m.account_name && m.account_name.toLowerCase().includes(q)) ||
-            (m.plan_code && m.plan_code.toLowerCase().includes(q)) ||
-            (m.plan_name && m.plan_name.toLowerCase().includes(q))
-        );
-        renderMappings(filtered);
+    function applyCategoryFilter() {
+        if (!mappingsDataTable) return;
+        const sel = document.getElementById('mapFilterCategory').value.trim();
+        if (sel) {
+            // Exact regex match on Column 3 (plan_code)
+            mappingsDataTable.column(3).search('^' + sel + '$', true, false).draw();
+        } else {
+            mappingsDataTable.column(3).search('').draw();
+        }
+    }
+
+    function resetMappingFilters() {
+        const select = document.getElementById('mapFilterCategory');
+        if (select) select.value = '';
+        if (mappingsDataTable) {
+            mappingsDataTable.search('').column(3).search('').draw();
+        }
     }
 
     // Init Recalculate on load & Sub-tab state

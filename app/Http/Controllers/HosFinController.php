@@ -5248,6 +5248,26 @@ class HosFinController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    /**
+     * Get PlanFin Account Mappings list for Modal
+     */
+    public function getPlanfinMappings(Request $request)
+    {
+        $mappings = DB::table('hosfin_planfin_mappings')
+            ->orderBy('plan_code')
+            ->orderBy('account_code')
+            ->get();
+
+        if ($mappings->isEmpty()) {
+            $path = base_path('docs/lookup/hosfin_planfin_mappings.json');
+            if (file_exists($path)) {
+                $mappings = json_decode(file_get_contents($path), true);
+            }
+        }
+
+        return response()->json($mappings);
+    }
 }
 
 

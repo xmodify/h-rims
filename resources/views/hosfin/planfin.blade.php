@@ -1983,20 +1983,32 @@
     let allMappings = [];
     document.getElementById('mappingModal').addEventListener('show.bs.modal', function () {
         if (allMappings.length === 0) {
-            fetch('{{ asset("docs/lookup/hosfin_planfin_mappings.json") }}')
-            .then(res => res.json())
+            const tbody = document.getElementById('mappingsTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูลผังบัญชี...</td></tr>`;
+            fetch('{{ url("hosfin/planfin/mappings") }}')
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
             .then(data => {
                 allMappings = data;
                 renderMappings(allMappings);
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle me-1"></i>เกิดข้อผิดพลาดในการโหลดข้อมูลผังบัญชี</td></tr>`;
+            });
         }
     });
 
     function renderMappings(list) {
         const tbody = document.getElementById('mappingsTableBody');
         tbody.innerHTML = '';
-        list.slice(0, 200).forEach((m, idx) => {
+        if (!list || list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">ไม่พบข้อมูลผังบัญชี</td></tr>`;
+            return;
+        }
+        list.slice(0, 500).forEach((m, idx) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-center text-muted ps-3">${idx + 1}</td>

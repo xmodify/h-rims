@@ -669,6 +669,7 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::post('hosfin/planfin/analyze_mdb', [App\Http\Controllers\HosFinController::class, 'analyzeMdbPlanfin'])->name('hosfin.planfin.analyze_mdb');
     Route::post('hosfin/planfin/import_mdb', [App\Http\Controllers\HosFinController::class, 'importMdbPlanfin'])->name('hosfin.planfin.import_mdb');
     Route::post('hosfin/planfin/save_target', [App\Http\Controllers\HosFinController::class, 'savePlanfinTarget'])->name('hosfin.planfin.save_target');
+    Route::get('hosfin/planfin/mappings', [App\Http\Controllers\HosFinController::class, 'getPlanfinMappings'])->name('hosfin.planfin.mappings');
     Route::get('hosfin/planfin/export_excel', [App\Http\Controllers\HosFinController::class, 'exportPlanfinExcel'])->name('hosfin.planfin.export_excel');
 });
 

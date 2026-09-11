@@ -874,6 +874,59 @@ class MainSettingController extends Controller
                         $report[] = "hosfin_planfin_mappings (ไม่พบไฟล์)";
                     }
 
+                    // --- 2.6.3: Import/Sync HosFin PlanFin Targets (hosfin_planfin_targets.json) ---
+                    $filePathPFTargets = base_path('docs/lookup/hosfin_planfin_targets.json');
+                    if (file_exists($filePathPFTargets)) {
+                        $jsonData = json_decode(file_get_contents($filePathPFTargets), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $insertedPFTargets = 0;
+                            DB::beginTransaction();
+                            try {
+                                if (Schema::hasTable('hosfin_planfin_targets')) {
+                                    $batchTargets = [];
+                                    foreach ($jsonData as $row) {
+                                        $batchTargets[] = [
+                                            'budget_year' => intval($row['budget_year']),
+                                            'round_no' => trim($row['round_no'] ?? '1st'),
+                                            'plan_code' => trim($row['plan_code']),
+                                            'baseline_amount' => isset($row['baseline_amount']) ? floatval($row['baseline_amount']) : 0.00,
+                                            'growth_rate' => isset($row['growth_rate']) ? floatval($row['growth_rate']) : 0.0000,
+                                            'target_amount' => isset($row['target_amount']) ? floatval($row['target_amount']) : 0.00,
+                                            'notes' => $row['notes'] ?? null,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                        if (count($batchTargets) >= 500) {
+                                            DB::table('hosfin_planfin_targets')->upsert(
+                                                $batchTargets,
+                                                ['budget_year', 'round_no', 'plan_code'],
+                                                ['baseline_amount', 'growth_rate', 'target_amount', 'notes', 'updated_at']
+                                            );
+                                            $batchTargets = [];
+                                        }
+                                    }
+                                    if (!empty($batchTargets)) {
+                                        DB::table('hosfin_planfin_targets')->upsert(
+                                            $batchTargets,
+                                            ['budget_year', 'round_no', 'plan_code'],
+                                            ['baseline_amount', 'growth_rate', 'target_amount', 'notes', 'updated_at']
+                                        );
+                                    }
+                                }
+                                DB::commit();
+                                $insertedPFTargets = count($jsonData);
+                                $report[] = "hosfin_planfin_targets ($insertedPFTargets รายการ)";
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
+                            }
+                        } else {
+                            $report[] = "hosfin_planfin_targets (ไฟล์ JSON รูปแบบไม่ถูกต้อง)";
+                        }
+                    } else {
+                        $report[] = "hosfin_planfin_targets (ไม่พบไฟล์)";
+                    }
+
                     // --- 2.7: Import/Sync Lookup C Deny (lookup_nhso_c_deny.json) ---
                     $filePathCDeny = base_path('docs/lookup/lookup_nhso_c_deny.json');
                     if (file_exists($filePathCDeny)) {

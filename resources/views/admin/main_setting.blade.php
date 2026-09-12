@@ -68,7 +68,7 @@
                 'sub' => 'Telegram, MOPH Notify',
                 'slug' => 'notify-setting'
             ],
-            'RiMS Copilot (AI & LLM)' => [
+            'RiMS AI (AI & LLM)' => [
                 'icon' => 'bi-robot',
                 'color' => 'success',
                 'sub' => 'HosFin การเงิน & คลังความรู้ RAG',
@@ -297,8 +297,8 @@
                          aria-labelledby="nav-tab-{{ $tabSlug }}"
                          tabindex="0">
                         
-                        {{-- Special Layout for RiMS Copilot (AI & LLM): Sub-tabs for HosFin, RAG, and HOSxP --}}
-                        @if($category === 'RiMS Copilot (AI & LLM)')
+                        {{-- Special Layout for RiMS AI (AI & LLM): Sub-tabs for HosFin, RAG, and HOSxP --}}
+                        @if($category === 'RiMS AI (AI & LLM)')
                             @php
                                 $hosfinSettings = $settings->filter(function($s) {
                                     return str_starts_with($s->name, 'ai_hosfin');
@@ -1132,7 +1132,7 @@
         transition: all 0.2s ease;
     }
 
-    /* Inner Sub-Tabs for RiMS Copilot */
+    /* Inner Sub-Tabs for RiMS AI */
     .custom-inner-tabs .nav-link {
         border: none;
         background: transparent;

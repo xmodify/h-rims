@@ -61,7 +61,7 @@
                         <h4 class="fw-bold mb-0 text-info mt-1 text-uppercase">{{ $aiConfig['provider'] }}</h4>
                         <div class="d-flex align-items-center gap-1 mt-1">
                             @if($aiConfig['is_active'])
-                                <span class="badge bg-success bg-opacity-10 text-success border small fw-bold">🟢 เปิด Copilot</span>
+                                <span class="badge bg-success bg-opacity-10 text-success border small fw-bold">🟢 เปิด AI</span>
                             @else
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary border small fw-bold">⚪ ปิดใช้งาน</span>
                             @endif

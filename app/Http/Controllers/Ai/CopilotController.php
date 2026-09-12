@@ -36,7 +36,7 @@ class CopilotController extends Controller
         }
 
         if ($user->status !== 'admin' && ($user->allow_ai_copilot ?? 'N') !== 'Y') {
-            abort(403, 'คุณไม่ได้รับสิทธิ์ใช้งาน RiMS Copilot กรุณาติดต่อผู้ดูแลระบบ');
+            abort(403, 'คุณไม่ได้รับสิทธิ์ใช้งาน น้องมีตังค์ (RiMS AI) กรุณาติดต่อผู้ดูแลระบบ');
         }
 
         return $user;
@@ -126,7 +126,7 @@ class CopilotController extends Controller
         $formatted = $messages->map(function ($msg) use ($isAdmin) {
             $content = $msg->content;
             if (!$isAdmin && (str_contains($content, 'SQLSTATE[') || str_contains($content, 'คำสั่ง SQL ขัดข้อง'))) {
-                $content = 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
+                $content = 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ';
             }
 
             $data = [
@@ -301,7 +301,7 @@ class CopilotController extends Controller
         }
 
         // -------------------------------------------------------------
-        // Branch B: Text-to-SQL Mode (HRiMS, HOSxP, or Auto-detect)
+        // Branch B: Text-to-SQL Mode (RiMS, HOSxP, or Auto-detect)
         // -------------------------------------------------------------
         if ($scope === 'auto') {
             $isDocQuestion = (bool) preg_match('/(คู่มือ|ระเบียบ|ข้อบังคับ|ประกาศ|cpg|แนวทาง|มาตรฐาน|หนังสือสั่งการ|วิธีใช้|วิธีปฏิบัติ|เอกสาร)/iu', $question);
@@ -363,7 +363,7 @@ class CopilotController extends Controller
                 }
             }
 
-            $errorMessage = $sqlResult['message'] ?? 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
+            $errorMessage = $sqlResult['message'] ?? 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ';
 
             $botMsg = AiChatMessage::create([
                 'session_id' => $session->id,
@@ -431,15 +431,10 @@ class CopilotController extends Controller
     }
 
     /**
-     * Check if a question is asking for a pure greeting (never intercept HosFin data queries)
+     * Check if a question is asking for a pure greeting or capability inquiry
      */
     protected function isCapabilityQuestion(string $question, string $scope = 'auto'): bool
     {
-        // Never intercept HosFin questions: user expects live querying across hosfin_* tables
-        if ($scope === 'hosfin') {
-            return false;
-        }
-
         $q = mb_strtolower(trim($question), 'UTF-8');
         $q = preg_replace('/[?!.,\s]+$/u', '', $q);
 
@@ -459,7 +454,8 @@ class CopilotController extends Controller
     protected function getCapabilityResponse(string $scope): array
     {
         if ($scope === 'hosfin') {
-            $summary = "ในระบบ **HosFin** ผมสามารถช่วยท่านสืบค้นและวิเคราะห์ข้อมูลด้านการเงินการคลังโรงพยาบาลได้หลากหลายรายการครับ เช่น:\n\n"
+            $summary = "สวัสดีค่ะ! หนูชื่อ **น้องมีตังค์** (RiMS AI) ผู้ช่วยสาวอัจฉริยะด้านการเงินการคลังประจำระบบ RiMS ยินดีให้บริการค่ะ 💰✨\n\n"
+                . "ในระบบ **HosFin** น้องมีตังค์สามารถช่วยท่านสืบค้นและวิเคราะห์ข้อมูลด้านการเงินการคลังโรงพยาบาลได้หลากหลายรายการค่ะ เช่น:\n\n"
                 . "1. **เจ้าหนี้การค้า (AP)**: สรุปยอดหนี้แยกตามบริษัท/ผู้ขาย, รายการบิลค้างจ่าย, ใบรับวางบิล และประวัติการจ่ายเงิน\n"
                 . "2. **ลูกหนี้ค่ารักษาพยาบาล (AR)**: ตรวจสอบลูกหนี้ค้างชำระแยกตามสิทธิ (UC, ประกันสังคม, ข้าราชการ) และลูกหนี้ตามผังบัญชี\n"
                 . "3. **ผังบัญชีและงบทดลอง (Trial Balance)**: ขอยอดสรุปงบทดลองรายเดือน และยอดเดบิต/เครดิตแต่ละหมวด\n"
@@ -474,7 +470,7 @@ class CopilotController extends Controller
                 'สรุปการลงสมุดรายวันทั่วไป (Journal Voucher)'
             ];
         } elseif ($scope === 'hosxp') {
-            $summary = "ในระบบ **HOSxP Setting** ผมสามารถช่วยท่านตรวจสอบความถูกต้องของข้อมูลพื้นฐานของโรงพยาบาลได้ครับ เช่น:\n\n"
+            $summary = "ในระบบ **HOSxP Setting** น้องมีตังค์สามารถช่วยท่านตรวจสอบความถูกต้องของข้อมูลพื้นฐานของโรงพยาบาลได้ค่ะ เช่น:\n\n"
                 . "1. **รายการค่ารักษาพยาบาลและหัตถการ (nondrugitems)**: ตรวจสอบรายการที่ยังไม่ได้ผูกรหัสมาตรฐาน ADP หรือรหัส 16 แฟ้ม\n"
                 . "2. **สิทธิการรักษาพยาบาล (pttype)**: ตรวจสอบการตั้งค่าสิทธิการรักษาที่เปิดใช้งาน และรหัสมาตรฐาน pttype\n"
                 . "3. **ข้อมูลแพทย์และผู้ประกอบวิชาชีพ (doctor)**: รายชื่อแพทย์ที่ยังไม่มีเลขที่ใบประกอบวิชาชีพ (เลข ว.) หรือตำแหน่ง\n"
@@ -488,7 +484,7 @@ class CopilotController extends Controller
                 'ตรวจสอบรหัสมาตรฐาน 16 แฟ้มในรายการค่าบริการ'
             ];
         } elseif ($scope === 'rag') {
-            $summary = "ในระบบ **Knowledge Base** ผมสามารถช่วยท่านค้นหาข้อมูล กฎระเบียบ คู่มือปฏิบัติงาน และแนวทาง CPG จากเอกสารได้ครับ เช่น:\n\n"
+            $summary = "ในระบบ **Knowledge Base** น้องมีตังค์สามารถช่วยท่านค้นหาข้อมูล กฎระเบียบ คู่มือปฏิบัติงาน และแนวทาง CPG จากเอกสารได้ค่ะ เช่น:\n\n"
                 . "1. **ระเบียบเงินบำรุงโรงพยาบาล**: ระเบียบเงินบำรุงฉบับล่าสุด และหลักเกณฑ์การใช้จ่าย\n"
                 . "2. **แนวทางเวชปฏิบัติ (CPG)**: แนวทางการวินิจฉัยและบันทึกรหัสโรค เช่น Sepsis, Stroke, STEMI\n"
                 . "3. **หลักเกณฑ์การเบิกจ่ายและชดเชย**: เกณฑ์ฟอกไต, รหัส C-Code, แนวทาง สปสช.\n"
@@ -502,7 +498,7 @@ class CopilotController extends Controller
                 'โครงสร้างข้อมูลมาตรฐาน 16 แฟ้ม (e-Claim)'
             ];
         } else {
-            $summary = "ผมคือ **RiMS Copilot** ผู้ช่วย AI อัจฉริยะ ท่านสามารถถามข้อมูลได้ทั้ง 3 ระบบหลักครับ:\n\n"
+            $summary = "หนูชื่อ **น้องมีตังค์** ผู้ช่วย AI อัจฉริยะ ท่านสามารถถามข้อมูลได้ทั้ง 3 ระบบหลักค่ะ:\n\n"
                 . "1. **🏢 HosFin (ระบบการเงิน)**: เจ้าหนี้การค้า, ลูกหนี้ค่ารักษา, ผังบัญชี, งบทดลอง\n"
                 . "2. **🏥 HOSxP Setting (ระบบตั้งค่า)**: ตรวจสอบรายการค่าบริการผูก ADP, การตั้งค่าสิทธิ pttype, เลข ว. แพทย์\n"
                 . "3. **📚 Knowledge Base (คลังความรู้)**: ค้นหาระเบียบเงินบำรุง, แนวทาง CPG, หลักเกณฑ์เบิกจ่าย สปสช.";

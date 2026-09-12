@@ -10,13 +10,13 @@ class SchemaCatalogService
     protected static ?array $extractedSchemas = null;
 
     /**
-     * Get Schema string for HRiMS Database (Strictly all 12 hosfin_* tables)
+     * Get Schema string for RiMS Database (Strictly all 12 hosfin_* tables)
      */
     public function getHrimsSchema(string $userQuery): string
     {
         $tables = $this->getCuratedHosfinTables();
 
-        $out = "=== ฐานข้อมูล HRiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 12 ตาราง) ===\n";
+        $out = "=== ฐานข้อมูล RiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 12 ตาราง) ===\n";
         $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: mysql)\n";
         $out .= "กฎเหล็ก: อนุญาตให้เขียนคำสั่ง SELECT เฉพาะตารางที่ขึ้นต้นด้วย 'hosfin_' เท่านั้น ห้ามใช้ตารางอื่นนอกเหนือจาก hosfin_*\n";
         $out .= "ข้อแนะนำสำคัญในการเขียน SQL ด้านการเงินการคลัง:\n";

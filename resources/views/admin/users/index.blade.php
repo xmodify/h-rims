@@ -108,7 +108,7 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
-                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><i class="bi bi-robot me-1"></i>RiMS Copilot</span> @endif
+                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><img src="{{ asset('images/meetung_avatar.png') }}" class="rounded-circle me-1" style="width: 13px; height: 13px; object-fit: cover;">น้องมีตังค์</span> @endif
                                                     @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
                                                     @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
                                                     @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
@@ -250,7 +250,7 @@
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                                     @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                     @if($user->allow_hosfin === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">HosFin</span> @endif
-                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><i class="bi bi-robot me-1"></i>RiMS Copilot</span> @endif
+                                                    @if($user->allow_ai_copilot === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;"><img src="{{ asset('images/meetung_avatar.png') }}" class="rounded-circle me-1" style="width: 13px; height: 13px; object-fit: cover;">น้องมีตังค์</span> @endif
                                                     @if($user->allow_export_f16_eclaim === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">ส่งออก e-Claim</span> @endif
                                                     @if($user->allow_export_f16_fdh === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">ส่งออก FDH</span> @endif
                                                     @if($user->allow_export_ssop === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">ส่งออก SSOP</span> @endif
@@ -607,7 +607,7 @@
                                     <div class="col">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" name="allow_ai_copilot" id="add_allow_ai_copilot" value="Y">
-                                            <label class="form-check-label small text-primary fw-bold" for="add_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
+                                            <label class="form-check-label small text-primary fw-bold d-inline-flex align-items-center" for="add_allow_ai_copilot"><img src="{{ asset('images/meetung_avatar.png') }}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;">น้องมีตังค์ (AI ผู้ช่วย)</label>
                                         </div>
                                     </div>
                                     @endif
@@ -919,7 +919,7 @@
                                     <div class="col">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input p_switch" type="checkbox" name="allow_ai_copilot" id="edit_allow_ai_copilot" value="Y">
-                                            <label class="form-check-label small text-primary fw-bold" for="edit_allow_ai_copilot"><i class="bi bi-robot me-1"></i>RiMS Copilot (AI)</label>
+                                            <label class="form-check-label small text-primary fw-bold d-inline-flex align-items-center" for="edit_allow_ai_copilot"><img src="{{ asset('images/meetung_avatar.png') }}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;">น้องมีตังค์ (AI ผู้ช่วย)</label>
                                         </div>
                                     </div>
                                     @endif

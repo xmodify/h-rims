@@ -1187,7 +1187,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-09-11 16.00
+                                V.69-09-12 13.00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1269,7 +1269,7 @@
                                         @if(auth()->user()->status === 'admin' || (auth()->user()->allow_ai_copilot ?? 'N') === 'Y')
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ route('copilot.index') }}" target="_blank">
-                                                <i class="bi bi-robot me-2 text-primary"></i> RiMS Copilot (หน้าเต็ม)
+                                                <img src="{{ asset('images/meetung_avatar.png') }}" class="me-2 rounded-circle shadow-sm" style="width: 20px; height: 20px; object-fit: cover; border: 1px solid #22c55e;"> น้องมีตังค์ (RiMS AI)
                                             </a>
                                         @endif
                                     @endauth

@@ -6,18 +6,20 @@
     <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
     <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>RiMS Copilot - ผู้ช่วย AI อัจฉริยะ (Text-to-SQL & Knowledge)</title>
+    <title>น้องมีตังค์ - ผู้ช่วย AI อัจฉริยะ (RiMS AI)</title>
     <!-- Google Fonts: Prompt & Sarabun -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- SheetJS for Excel Export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Bootstrap 5 & Icons (Local Assets) -->
+    <link href="{{ asset('assets/vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-icons/bootstrap-icons.css') }}">
+    <!-- SweetAlert2 (Local Assets) -->
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <!-- SheetJS for Excel Export (Local Assets) -->
+    <script src="{{ asset('assets/vendor/xlsx.full.min.js') }}"></script>
+    <!-- Chart.js for Interactive Charts (Local Assets) -->
+    <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
 
     <style>
         :root {
@@ -241,16 +243,24 @@
         }
 
         .bot-avatar-circle {
-            width: 38px;
-            height: 38px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
-            font-size: 1.15rem;
-            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
+            border: 2px solid #22c55e;
+            box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+            flex-shrink: 0;
+            background: #ffffff;
+        }
+
+        .bot-avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 2px;
         }
 
         .bot-title-group h5 {
@@ -350,16 +360,24 @@
         }
 
         .bot-avatar-sm {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: #e0e7ff;
-            color: #4f46e5;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 0.9rem;
+            border: 1.5px solid rgba(22, 163, 74, 0.35);
+            background: #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+            padding: 2px;
+        }
+
+        .bot-avatar-sm img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .summary-text {
@@ -417,6 +435,55 @@
         .table-responsive-custom {
             max-height: 380px;
             overflow: auto;
+        }
+
+        /* Interactive Chart Styles */
+        .chart-view-panel {
+            padding: 14px 16px;
+            background: #ffffff;
+        }
+
+        .chart-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 360px;
+            max-height: 420px;
+        }
+
+        .chart-stats-card {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .chart-stat-item {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #475569;
+        }
+
+        .chart-stat-item strong {
+            color: #0f172a;
         }
 
         .data-table-copilot {
@@ -586,10 +653,10 @@
                 <i class="bi bi-list fs-5"></i>
             </button>
             <a href="{{ route('home') }}" class="brand-logo">
-                <img src="{{ asset('images/logo_hrims.png?v=2') }}" alt="RiMS Logo" style="height: 30px; width: auto; object-fit: contain;">
-                <span>RiMS Copilot</span>
+                <img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์" style="height: 34px; width: 34px; object-fit: cover; border-radius: 50%; border: 1.5px solid #22c55e;">
+                <span>น้องมีตังค์</span>
             </a>
-            <span class="badge-copilot-ai">Copilot AI</span>
+            <span class="badge-copilot-ai">RiMS AI</span>
         </div>
 
         <div class="d-flex align-items-center gap-2">
@@ -662,11 +729,11 @@
             <div class="workspace-header">
                 <div class="bot-status-pill">
                     <div class="bot-avatar-circle">
-                        <i class="bi bi-robot"></i>
+                        <img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์">
                     </div>
                     <div class="bot-title-group">
                         <h5 class="d-flex align-items-center gap-2">
-                            <span>RiMS Copilot</span>
+                            <span>น้องมีตังค์</span>
                         </h5>
                         <div class="status-online">
                             <span class="pulse-green"></span> Online พร้อมใช้งาน
@@ -692,14 +759,14 @@
             <div class="chat-body" id="chatMessagesBox">
                 <!-- Welcome greeting message -->
                 <div class="msg-row msg-bot" id="welcomeGreetingCard">
-                    <div class="bot-avatar-sm"><i class="bi bi-robot"></i></div>
+                    <div class="bot-avatar-sm"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                     <div class="bot-card">
                         <div>
-                            <h6 class="fw-bold mb-1" id="welcomeScopeTitle">สวัสดีครับ! ผมคือ RiMS Copilot 🩺✨</h6>
+                            <h6 class="fw-bold mb-1" id="welcomeScopeTitle">สวัสดีค่ะ! หนูชื่อ น้องมีตังค์ 💰✨</h6>
                             <p class="text-secondary small mb-0" id="welcomeScopeDesc">
                                 ผู้ช่วย AI อัจฉริยะด้านการวิเคราะห์ฐานข้อมูลโรงพยาบาล สามารถสืบค้นข้อมูลด้วยภาษาไทยผ่าน <strong>Text-to-SQL</strong> 
-                                ทั้งฐานข้อมูล <strong>HRiMS (งานบริหาร/การเงิน/พัสดุ)</strong> และ <strong>HOSxP (เวชระเบียน/สถิติการรักษา)</strong> 
-                                รวมถึงค้นหาเอกสารและระเบียบในคลังความรู้ RAG ได้อย่างแม่นยำและปลอดภัยครับ
+                                ทั้งฐานข้อมูล <strong>RiMS (งานบริหาร/การเงิน/พัสดุ)</strong> และ <strong>HOSxP (เวชระเบียน/สถิติการรักษา)</strong> 
+                                รวมถึงค้นหาเอกสารและระเบียบในคลังความรู้ RAG ได้อย่างแม่นยำและปลอดภัยค่ะ
                             </p>
                         </div>
 
@@ -720,7 +787,7 @@
             <!-- Typing Indicator (Hidden by default) -->
             <div id="typingIndicatorRow" class="px-4 py-2 d-none">
                 <div class="d-flex align-items-center gap-2">
-                    <div class="bot-avatar-sm"><i class="bi bi-robot"></i></div>
+                    <div class="bot-avatar-sm"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                     <div class="typing-bubble">
                         <span class="dot-pulse"></span>
                         <span class="dot-pulse"></span>
@@ -743,15 +810,15 @@
                         <span class="security-badge">
                             <i class="bi bi-shield-check"></i> ปลอดภัย 100%: รันเฉพาะ SELECT และจำกัด 100 รายการสูงสุด
                         </span>
-                        <span>RiMS Copilot AI Hospital Assistant</span>
+                        <span>น้องมีตังค์ AI Hospital Assistant (RiMS AI)</span>
                     </div>
                 </form>
             </div>
         </main>
     </div>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS Bundle (Local Assets) -->
+    <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
     <script>
         // State Management
@@ -974,7 +1041,7 @@
         // Scope Definitions: Titles, Descriptions, Placeholders & Example Chips
         const SCOPE_CONFIG = {
             hosfin: {
-                title: 'RiMS Copilot 🏢 ระบบการเงิน HosFin',
+                title: 'น้องมีตังค์ 🏢 ระบบการเงิน HosFin',
                 desc: 'สืบค้นข้อมูลบัญชี การเงิน เจ้าหนี้ ลูกหนี้ ผังบัญชี และงบทดลอง พร้อมค้นหาเทียบเคียงระเบียบการเงินจากคลังความรู้ RAG อย่างแม่นยำและปลอดภัย',
                 placeholder: 'พิมพ์คำถามการเงิน เช่น สรุปยอดหนี้เจ้าหนี้การค้า, ลูกหนี้ค้างชำระตามสิทธิ, ขอยอดงบทดลองล่าสุด...',
                 chips: [
@@ -986,7 +1053,7 @@
                 ]
             },
             hosxp: {
-                title: 'RiMS Copilot 🏥 ข้อมูลพื้นฐาน HOSxP Setting',
+                title: 'น้องมีตังค์ 🏥 ข้อมูลพื้นฐาน HOSxP Setting',
                 desc: 'ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP ของโรงพยาบาลพร้อมค้นหาเทียบเคียงระเบียบและมาตรฐานจากคลังความรู้ RAG',
                 placeholder: 'พิมพ์คำถามตั้งค่า เช่น ตรวจสอบค่าบริการที่ยังไม่ผูกรหัส ADP, รายชื่อแพทย์ที่ไม่มีเลข ว., การตั้งค่าสิทธิ pttype...',
                 chips: [
@@ -998,7 +1065,7 @@
                 ]
             },
             rag: {
-                title: 'RiMS Copilot 📚 Knowledge Base',
+                title: 'น้องมีตังค์ 📚 Knowledge Base',
                 desc: 'ค้นหาข้อมูล กฎระเบียบ คู่มือปฏิบัติงาน และแนวทางเวชปฏิบัติ CPG จากเอกสารในคลังความรู้ Knowledge Base ด้วยระบบ Semantic Vector Search โดยตรง',
                 placeholder: 'พิมพ์คำถามเพื่อค้นหาในเอกสาร เช่น ระเบียบเงินบำรุง, แนวทาง CPG Sepsis, หลักเกณฑ์การเบิกจ่าย...',
                 chips: [
@@ -1010,7 +1077,7 @@
                 ]
             },
             auto: {
-                title: 'RiMS Copilot 🌐 ตรวจหาอัตโนมัติ',
+                title: 'น้องมีตังค์ 🌐 ตรวจหาอัตโนมัติ',
                 desc: 'ผู้ช่วย AI อัจฉริยะวิเคราะห์คำถามและเลือกสืบค้นจาก HosFin, HOSxP Setting หรือ Knowledge Base ให้อัตโนมัติตามบริบท',
                 placeholder: 'พิมพ์คำถามภาษาไทย เช่น ขอยอดหนี้เจ้าหนี้การค้า, ค่าบริการที่ยังไม่ผูก ADP, หรือระเบียบเงินบำรุง...',
                 chips: [
@@ -1357,6 +1424,8 @@
             const text = chatInput.value.trim();
             if (!text || isProcessing) return;
 
+            window.lastUserQuestion = text;
+
             const scope = document.getElementById('scopeSelector').value;
 
             // Render User Bubble immediately
@@ -1417,16 +1486,18 @@
                             sql_query: data.sql,
                             rows: data.rows || [],
                             columns: data.columns || [],
+                            column_labels: data.column_labels || {},
                             total_rows: data.total_rows || 0,
                             db_target: data.db_target,
                             execution_time_ms: data.execution_time_ms,
                             suggestions: data.suggestions || [],
-                            sources: data.sources || []
+                            sources: data.sources || [],
+                            user_prompt: text
                         });
                     } else {
                         renderMessageBubble({
                             role: 'assistant',
-                            content: data.message || 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ',
+                            content: data.message || 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ',
                             sql_query: data.sql,
                             error_detail: data.error_detail,
                             db_target: data.db_target
@@ -1442,7 +1513,7 @@
 
                 renderMessageBubble({
                     role: 'assistant',
-                    content: 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้งครับ',
+                    content: 'ขออภัยค่ะ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้งนะคะ',
                     error_detail: isUserAdmin ? String(err) : null
                 });
                 scrollChatToBottom();
@@ -1454,13 +1525,17 @@
             const box = document.getElementById('chatMessagesBox');
             const row = document.createElement('div');
             row.className = `msg-row ${msg.role === 'user' ? 'msg-user' : 'msg-bot'}`;
+            let activeVisId = null;
+            let activeWantsChart = false;
 
             if (msg.role === 'user') {
                 row.innerHTML = `<div class="user-bubble">${escapeHtml(msg.content)}</div>`;
             } else {
                 let tableHtml = '';
+
                 if (msg.rows && msg.rows.length > 0 && msg.columns && msg.columns.length > 0) {
                     const tableId = 'table-' + Math.random().toString(36).substring(2, 9);
+                    const visId = 'vis-' + Math.random().toString(36).substring(2, 9);
                     window[tableId + '_data'] = msg.rows;
 
                     let headers = msg.columns.map(col => {
@@ -1473,20 +1548,125 @@
                         return `<tr>${cells}</tr>`;
                     }).join('');
 
+                    const chartInfo = detectChartableColumns(msg.columns, msg.rows);
+                    let chartToolbarHtml = '';
+                    let chartPanelHtml = '';
+
+                    const lastQuery = (window.lastUserQuestion || '').toLowerCase();
+                    const wantsChart = Boolean(chartInfo && (/กราฟ|chart|แผนภูมิ|พล็อต|plot|สัดส่วน/i.test(lastQuery) || (msg.user_prompt && /กราฟ|chart|แผนภูมิ|พล็อต|plot|สัดส่วน/i.test(msg.user_prompt))));
+
+                    if (chartInfo) {
+                        activeVisId = visId;
+                        activeWantsChart = wantsChart;
+
+                        window['chartData_' + visId] = {
+                            rows: msg.rows,
+                            columns: msg.columns,
+                            columnLabels: msg.column_labels || {},
+                            labelCol: chartInfo.labelCol,
+                            numericCols: chartInfo.numericCols,
+                            currentMetric: chartInfo.defaultMetric,
+                            currentType: 'bar_h',
+                            currentTop: 10,
+                            chartInstance: null
+                        };
+
+                        // Metric options dropdown
+                        let metricOptions = chartInfo.numericCols.map(c => {
+                            const lbl = (msg.column_labels && msg.column_labels[c]) ? msg.column_labels[c] : formatColumnHeader(c);
+                            const isSelected = c === chartInfo.defaultMetric ? 'selected' : '';
+                            return `<option value="${escapeHtml(c)}" ${isSelected}>${escapeHtml(lbl)}</option>`;
+                        }).join('');
+
+                        const metricSelectorHtml = chartInfo.numericCols.length > 1 ? `
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="text-muted small" style="font-size: 0.72rem;">ตัวชี้วัด:</span>
+                                <select class="form-select form-select-sm py-0 px-2 shadow-none" style="font-size: 0.75rem; width: auto; height: 26px; border-radius: 6px;" onchange="changeChartMetric('${visId}', this.value)">
+                                    ${metricOptions}
+                                </select>
+                            </div>
+                        ` : '';
+
+                        chartToolbarHtml = `
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-sm btn-light border py-1 px-2.5 fw-medium ${wantsChart ? '' : 'active bg-white text-primary shadow-sm'}" id="btn-tab-table-${visId}" onclick="switchVisualizationView('${visId}', 'table')">
+                                    <i class="bi bi-table text-primary me-1"></i> ตาราง (${(msg.total_rows || msg.rows.length).toLocaleString('th-TH')})
+                                </button>
+                                <button type="button" class="btn btn-sm btn-light border py-1 px-2.5 fw-medium ${wantsChart ? 'active bg-white text-success shadow-sm' : ''}" id="btn-tab-chart-${visId}" onclick="switchVisualizationView('${visId}', 'chart')">
+                                    <i class="bi bi-bar-chart-fill text-success me-1"></i> กราฟสรุป <span class="badge bg-success text-white ms-1" style="font-size: 0.6rem; padding: 2px 5px;">AI</span>
+                                </button>
+                            </div>
+                        `;
+
+                        chartPanelHtml = `
+                            <div id="panel-chart-${visId}" class="chart-view-panel ${wantsChart ? '' : 'd-none'}">
+                                <div class="chart-toolbar">
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        <!-- Chart Type Buttons -->
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary py-0 px-2 small shadow-none active" title="กราฟแท่งแนวนอน (อ่านชื่อยาวง่าย)" onclick="changeChartType('${visId}', 'bar_h', this)">
+                                                <i class="bi bi-bar-chart-steps me-1"></i>แท่งแนวนอน
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" title="กราฟแท่งแนวตั้ง" onclick="changeChartType('${visId}', 'bar_v', this)">
+                                                <i class="bi bi-bar-chart me-1"></i>แท่งแนวตั้ง
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" title="กราฟวงกลม/โดนัท" onclick="changeChartType('${visId}', 'doughnut', this)">
+                                                <i class="bi bi-pie-chart me-1"></i>โดนัท
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" title="กราฟเส้นแนวโน้ม" onclick="changeChartType('${visId}', 'line', this)">
+                                                <i class="bi bi-graph-up me-1"></i>เส้น
+                                            </button>
+                                        </div>
+                                        ${metricSelectorHtml}
+                                    </div>
+
+                                    <!-- Top N Selector -->
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="text-muted small" style="font-size: 0.72rem;">แสดง:</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" onclick="changeChartTopN('${visId}', 5, this)">Top 5</button>
+                                            <button type="button" class="btn btn-sm btn-secondary active py-0 px-2 small shadow-none" onclick="changeChartTopN('${visId}', 10, this)">Top 10</button>
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" onclick="changeChartTopN('${visId}', 20, this)">Top 20</button>
+                                            <button type="button" class="btn btn-sm btn-light border py-0 px-2 small shadow-none" onclick="changeChartTopN('${visId}', 'all', this)">ทั้งหมด</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Canvas -->
+                                <div class="chart-canvas-wrapper">
+                                    <canvas id="canvas-${visId}"></canvas>
+                                </div>
+
+                                <!-- Stats summary card -->
+                                <div class="chart-stats-card" id="stats-${visId}"></div>
+                            </div>
+                        `;
+                    }
+
                     tableHtml = `
                         <div class="table-card-container">
                             <div class="table-toolbar">
-                                <span class="small fw-bold text-dark"><i class="bi bi-table text-primary me-1"></i> ตารางผลลัพธ์ (${(msg.total_rows || msg.rows.length).toLocaleString('th-TH')} รายการ)</span>
-                                <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 small" onclick="exportTableToExcel('${tableId}', '${escapeHtml(msg.db_target || 'data')}')">
-                                    <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
-                                </button>
+                                <div class="d-flex align-items-center gap-2">
+                                    ${chartToolbarHtml || `<span class="small fw-bold text-dark"><i class="bi bi-table text-primary me-1"></i> ตารางผลลัพธ์ (${(msg.total_rows || msg.rows.length).toLocaleString('th-TH')} รายการ)</span>`}
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 small ${wantsChart ? 'd-none' : ''}" id="btn-export-excel-${visId}" onclick="exportTableToExcel('${tableId}', '${escapeHtml(msg.db_target || 'data')}')">
+                                        <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                                    </button>
+                                    ${chartInfo ? `
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 small ${wantsChart ? '' : 'd-none'}" id="btn-download-png-${visId}" onclick="downloadChartImage('${visId}')">
+                                        <i class="bi bi-camera me-1"></i> เซฟรูปกราฟ (PNG)
+                                    </button>
+                                    ` : ''}
+                                </div>
                             </div>
-                            <div class="table-responsive-custom">
+                            <div id="panel-table-${visId}" class="table-responsive-custom ${wantsChart ? 'd-none' : ''}">
                                 <table class="data-table-copilot" id="${tableId}">
                                     <thead><tr>${headers}</tr></thead>
                                     <tbody>${rowsHtml}</tbody>
                                 </table>
                             </div>
+                            ${chartPanelHtml}
                         </div>
                     `;
                 }
@@ -1506,7 +1686,7 @@
                                 ${msg.sql_query ? `
                                     <div class="d-flex justify-content-between align-items-center mb-1 text-white-50 pb-1 border-bottom border-secondary">
                                         <span class="badge bg-secondary" style="font-size: 0.65rem;">
-                                            <i class="bi bi-database me-1"></i>${escapeHtml((msg.db_target || 'database').toUpperCase())}
+                                            <i class="bi bi-database me-1"></i>${escapeHtml((((msg.db_target || '').toLowerCase() === 'hrims' || (msg.db_target || '').toLowerCase() === 'hosfin') ? 'RIMS' : (msg.db_target || 'database')).toUpperCase())}
                                         </span>
                                         <button type="button" class="btn btn-xs btn-outline-light py-0 px-2" style="font-size: 0.68rem;" onclick="copyCopilotSql('${escapeHtml(msg.sql_query)}', this)">
                                             <i class="bi bi-clipboard me-1"></i>คัดลอก SQL
@@ -1550,7 +1730,7 @@
                 }
 
                 row.innerHTML = `
-                    <div class="bot-avatar-sm"><i class="bi bi-robot"></i></div>
+                    <div class="bot-avatar-sm"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                     <div class="bot-card">
                         <div class="summary-text">${formatMarkdownText(msg.content)}</div>
                         ${sqlHtml}
@@ -1562,6 +1742,315 @@
             }
 
             box.appendChild(row);
+
+            if (activeVisId && activeWantsChart && typeof renderVisualizationChart === 'function') {
+                setTimeout(() => { renderVisualizationChart(activeVisId); }, 80);
+            }
+        }
+
+        // Detect chartable columns from SQL result set
+        function detectChartableColumns(columns, rows) {
+            if (!rows || rows.length === 0 || !columns || columns.length === 0) return null;
+
+            const numericCols = [];
+            const labelCols = [];
+
+            columns.forEach(col => {
+                let numCount = 0;
+                let strCount = 0;
+                const sampleSize = Math.min(rows.length, 15);
+                for (let i = 0; i < sampleSize; i++) {
+                    const val = rows[i][col];
+                    if (val !== null && val !== undefined && val !== '') {
+                        const cleaned = String(val).replace(/,/g, '').trim();
+                        if (!isNaN(Number(cleaned)) && isFinite(Number(cleaned))) {
+                            numCount++;
+                        } else {
+                            strCount++;
+                        }
+                    }
+                }
+                const isLikelyId = /(_id|^id$|code$|cid$|vn$|an$|hn$|no$|เลขที่|รหัส)/i.test(col);
+                if (numCount > sampleSize * 0.7 && !isLikelyId) {
+                    numericCols.push(col);
+                } else {
+                    labelCols.push(col);
+                }
+            });
+
+            if (numericCols.length === 0 || labelCols.length === 0) {
+                return null;
+            }
+
+            return {
+                labelCol: labelCols[0],
+                numericCols: numericCols,
+                defaultMetric: numericCols[numericCols.length - 1]
+            };
+        }
+
+        // Switch between Table and Chart Views
+        function switchVisualizationView(visId, mode) {
+            const config = window['chartData_' + visId];
+            if (!config) return;
+
+            const tableBtn = document.getElementById(`btn-tab-table-${visId}`);
+            const chartBtn = document.getElementById(`btn-tab-chart-${visId}`);
+            const tablePanel = document.getElementById(`panel-table-${visId}`);
+            const chartPanel = document.getElementById(`panel-chart-${visId}`);
+            const exportBtn = document.getElementById(`btn-export-excel-${visId}`);
+            const pngBtn = document.getElementById(`btn-download-png-${visId}`);
+
+            if (mode === 'chart') {
+                if (tableBtn) tableBtn.classList.remove('active', 'bg-white', 'text-primary', 'shadow-sm');
+                if (chartBtn) chartBtn.classList.add('active', 'bg-white', 'text-success', 'shadow-sm');
+                if (tablePanel) tablePanel.classList.add('d-none');
+                if (chartPanel) chartPanel.classList.remove('d-none');
+                if (exportBtn) exportBtn.classList.add('d-none');
+                if (pngBtn) pngBtn.classList.remove('d-none');
+
+                setTimeout(() => { renderVisualizationChart(visId); }, 50);
+            } else {
+                if (tableBtn) tableBtn.classList.add('active', 'bg-white', 'text-primary', 'shadow-sm');
+                if (chartBtn) chartBtn.classList.remove('active', 'bg-white', 'text-success', 'shadow-sm');
+                if (tablePanel) tablePanel.classList.remove('d-none');
+                if (chartPanel) chartPanel.classList.add('d-none');
+                if (exportBtn) exportBtn.classList.remove('d-none');
+                if (pngBtn) pngBtn.classList.add('d-none');
+            }
+        }
+
+        // Change Chart Type (Horizontal Bar, Vertical Bar, Doughnut, Line)
+        function changeChartType(visId, type, btn) {
+            const config = window['chartData_' + visId];
+            if (!config) return;
+            config.currentType = type;
+
+            const parent = btn.closest('.btn-group');
+            if (parent) {
+                parent.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('active', 'btn-primary');
+                    b.classList.add('btn-light');
+                });
+                btn.classList.add('active', 'btn-primary');
+                btn.classList.remove('btn-light');
+            }
+
+            renderVisualizationChart(visId);
+        }
+
+        // Change Metric to plot
+        function changeChartMetric(visId, metric) {
+            const config = window['chartData_' + visId];
+            if (!config) return;
+            config.currentMetric = metric;
+            renderVisualizationChart(visId);
+        }
+
+        // Change Top N limiter
+        function changeChartTopN(visId, topN, btn) {
+            const config = window['chartData_' + visId];
+            if (!config) return;
+            config.currentTop = topN;
+
+            const parent = btn.closest('.btn-group');
+            if (parent) {
+                parent.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('active', 'btn-secondary');
+                    b.classList.add('btn-light');
+                });
+                btn.classList.add('active', 'btn-secondary');
+                btn.classList.remove('btn-light');
+            }
+
+            renderVisualizationChart(visId);
+        }
+
+        // Download Chart Canvas as PNG
+        function downloadChartImage(visId) {
+            const canvas = document.getElementById(`canvas-${visId}`);
+            if (!canvas) {
+                Swal.fire('แจ้งเตือน', 'ไม่พบกราฟสำหรับบันทึกรูปภาพ', 'info');
+                return;
+            }
+            try {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = `RiMS_AI_Chart_${new Date().toISOString().slice(0,10)}.png`;
+                a.click();
+            } catch (e) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกรูปกราฟได้: ' + e, 'error');
+            }
+        }
+
+        // Render Chart using Chart.js v3.8 (Local Asset)
+        function renderVisualizationChart(visId) {
+            const config = window['chartData_' + visId];
+            if (!config || typeof Chart === 'undefined') return;
+
+            const canvas = document.getElementById(`canvas-${visId}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            if (config.chartInstance) {
+                config.chartInstance.destroy();
+                config.chartInstance = null;
+            }
+
+            const { rows, labelCol, currentMetric, currentType, currentTop, columnLabels } = config;
+            const metricLabel = (columnLabels && columnLabels[currentMetric]) ? columnLabels[currentMetric] : formatColumnHeader(currentMetric);
+
+            // Sort rows descending by currentMetric
+            const sorted = rows.slice().sort((a, b) => {
+                const valA = parseFloat(String(a[currentMetric]).replace(/,/g, '')) || 0;
+                const valB = parseFloat(String(b[currentMetric]).replace(/,/g, '')) || 0;
+                return valB - valA;
+            });
+
+            const limit = currentTop === 'all' ? sorted.length : parseInt(currentTop, 10);
+            const sliced = sorted.slice(0, limit);
+
+            const labels = sliced.map(r => {
+                const raw = String(r[labelCol] || '-');
+                return raw.length > 28 ? raw.substring(0, 26) + '...' : raw;
+            });
+            const values = sliced.map(r => parseFloat(String(r[currentMetric]).replace(/,/g, '')) || 0);
+
+            // Summary statistics
+            const allValues = sorted.map(r => parseFloat(String(r[currentMetric]).replace(/,/g, '')) || 0);
+            const totalSum = allValues.reduce((acc, v) => acc + v, 0);
+            const topItem = sorted.length > 0 ? sorted[0] : null;
+            const topItemLabel = topItem ? (topItem[labelCol] || '-') : '-';
+            const topItemVal = topItem ? (parseFloat(String(topItem[currentMetric]).replace(/,/g, '')) || 0) : 0;
+            const avgVal = allValues.length > 0 ? (totalSum / allValues.length) : 0;
+
+            const statsContainer = document.getElementById(`stats-${visId}`);
+            if (statsContainer) {
+                const isBaht = /amount|ยอด|บาท|เงิน|หนี้|จ่าย|price|cost/i.test(currentMetric) || /amount|ยอด|บาท|เงิน|หนี้|จ่าย|ราคา/i.test(metricLabel);
+                const unit = isBaht ? ' บาท' : ' รายการ';
+                statsContainer.innerHTML = `
+                    <div class="chart-stat-item">
+                        <i class="bi bi-calculator text-primary"></i>
+                        <span>ยอดรวม (${allValues.length.toLocaleString('th-TH')} รายการ): <strong>${totalSum.toLocaleString('th-TH', { maximumFractionDigits: 2 })}${unit}</strong></span>
+                    </div>
+                    <div class="chart-stat-item">
+                        <i class="bi bi-trophy text-warning"></i>
+                        <span>อันดับ 1: <strong>${escapeHtml(topItemLabel)}</strong> (${topItemVal.toLocaleString('th-TH', { maximumFractionDigits: 2 })}${unit})</span>
+                    </div>
+                    <div class="chart-stat-item">
+                        <i class="bi bi-graph-up-arrow text-success"></i>
+                        <span>ค่าเฉลี่ย: <strong>${avgVal.toLocaleString('th-TH', { maximumFractionDigits: 2 })}${unit}</strong></span>
+                    </div>
+                `;
+            }
+
+            // Modern Color Palette
+            const colors = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+                '#84cc16', '#a855f7', '#0ea5e9', '#e11d48', '#d97706'
+            ];
+
+            let chartJsType = 'bar';
+            let indexAxis = 'y'; // Default horizontal bar: best for Thai labels
+
+            if (currentType === 'bar_v') {
+                chartJsType = 'bar';
+                indexAxis = 'x';
+            } else if (currentType === 'bar_h' || currentType === 'bar') {
+                chartJsType = 'bar';
+                indexAxis = 'y';
+            } else if (currentType === 'doughnut') {
+                chartJsType = 'doughnut';
+            } else if (currentType === 'line') {
+                chartJsType = 'line';
+            }
+
+            const isBar = chartJsType === 'bar';
+            const isDoughnut = chartJsType === 'doughnut';
+            const isLine = chartJsType === 'line';
+
+            const datasetBg = isDoughnut
+                ? colors.slice(0, sliced.length)
+                : (isLine ? 'rgba(59, 130, 246, 0.12)' : (isBar && indexAxis === 'y' ? colors.slice(0, sliced.length) : '#3b82f6'));
+
+            const datasetBorder = isDoughnut
+                ? '#ffffff'
+                : (isLine ? '#3b82f6' : (isBar && indexAxis === 'y' ? colors.slice(0, sliced.length) : '#2563eb'));
+
+            config.chartInstance = new Chart(ctx, {
+                type: chartJsType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: metricLabel,
+                        data: values,
+                        backgroundColor: datasetBg,
+                        borderColor: datasetBorder,
+                        borderWidth: isDoughnut ? 2 : (isLine ? 3 : 1),
+                        borderRadius: isBar ? 6 : 0,
+                        fill: isLine,
+                        tension: isLine ? 0.35 : 0,
+                        pointBackgroundColor: isLine ? '#3b82f6' : undefined,
+                        pointRadius: isLine ? 5 : undefined
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: isBar ? indexAxis : undefined,
+                    plugins: {
+                        legend: {
+                            display: isDoughnut,
+                            position: 'right',
+                            labels: {
+                                boxWidth: 14,
+                                font: { family: "'Prompt', sans-serif", size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            titleFont: { family: "'Prompt', sans-serif", size: 12 },
+                            bodyFont: { family: "'Prompt', sans-serif", size: 12 },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    const val = context.parsed ? (isBar && indexAxis === 'y' ? context.parsed.x : (isDoughnut ? context.raw : context.parsed.y)) : context.raw;
+                                    return label + Number(val).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+                                }
+                            }
+                        }
+                    },
+                    scales: isDoughnut ? {} : {
+                        x: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { family: "'Prompt', sans-serif", size: 10 },
+                                callback: function(val) {
+                                    if (isBar && indexAxis === 'y') {
+                                        if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                                        if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
+                                    }
+                                    return this.getLabelForValue ? this.getLabelForValue(val) : val;
+                                }
+                            }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { family: "'Prompt', sans-serif", size: 10 },
+                                callback: function(val) {
+                                    if ((isBar && indexAxis === 'x') || isLine) {
+                                        if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                                        if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
+                                    }
+                                    return this.getLabelForValue ? this.getLabelForValue(val) : val;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Export Data to Excel (using rendered table for Thai headers and formatted numbers)
@@ -1576,7 +2065,7 @@
                 const ws = XLSX.utils.table_to_sheet(table);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Result");
-                const filename = `RiMS_Copilot_${targetName}_${new Date().toISOString().slice(0,10)}.xlsx`;
+                const filename = `RiMS_AI_${targetName}_${new Date().toISOString().slice(0,10)}.xlsx`;
                 XLSX.writeFile(wb, filename);
             } catch (err) {
                 Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งออกไฟล์ได้: ' + err, 'error');

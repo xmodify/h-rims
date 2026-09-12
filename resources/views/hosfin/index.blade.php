@@ -2078,7 +2078,7 @@
                     html += `
                         <div class="mb-2">
                             <a class="badge bg-light text-secondary border text-decoration-none small py-1 px-2" data-bs-toggle="collapse" href="#${sqlId}" role="button" aria-expanded="false">
-                                <i class="bi bi-code-square text-primary me-1"></i> ดูคำสั่ง SQL (${res.db_target || 'hrims'}) <i class="bi bi-chevron-down ms-1"></i>
+                                <i class="bi bi-code-square text-primary me-1"></i> ดูคำสั่ง SQL (${((res.db_target || '').toLowerCase() === 'hrims' || (res.db_target || '').toLowerCase() === 'hosfin') ? 'RiMS' : (res.db_target || 'RiMS')}) <i class="bi bi-chevron-down ms-1"></i>
                             </a>
                             <div class="collapse mt-1" id="${sqlId}">
                                 <div class="card card-body bg-dark text-light p-2 font-monospace small" style="font-size: 0.78rem; max-height: 120px; overflow-y: auto;">
@@ -2494,7 +2494,7 @@
 
         <!-- Footer -->
         <div class="border-top mt-3 pt-2 text-muted text-center" style="font-size: 7.5pt;">
-            เอกสารรายงานสรุปผู้บริหารนี้ประมวลผลอัตโนมัติโดยระบบ RiMS HosFin ร่วมกับ AI Copilot เพื่อใช้ประกอบการวิเคราะห์และวางแผนบริหารการเงินการคลัง
+            เอกสารรายงานสรุปผู้บริหารนี้ประมวลผลอัตโนมัติโดยระบบ RiMS HosFin ร่วมกับ RiMS AI เพื่อใช้ประกอบการวิเคราะห์และวางแผนบริหารการเงินการคลัง
         </div>
     </div>
 
@@ -2515,7 +2515,7 @@
         Swal.fire({
             icon: 'warning',
             title: 'ไม่มีสิทธิ์เข้าถึงระบบ AI',
-            text: 'คุณไม่ได้รับสิทธิ์ใช้งานระบบ AI (RiMS Copilot) กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์การใช้งาน',
+            text: 'คุณไม่ได้รับสิทธิ์ใช้งานระบบ AI (น้องมีตังค์) กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์การใช้งาน',
             confirmButtonColor: '#4f46e5',
             confirmButtonText: 'ตกลง'
         });

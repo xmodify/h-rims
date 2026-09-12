@@ -418,7 +418,7 @@ class RagKnowledgeController extends Controller
         if (!$user || ($user->status !== 'admin' && ($user->allow_ai_copilot ?? 'N') !== 'Y')) {
             return response()->json([
                 'success' => false,
-                'message' => 'คุณไม่ได้รับสิทธิ์ใช้งาน RiMS Copilot กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์'
+                'message' => 'คุณไม่ได้รับสิทธิ์ใช้งาน น้องมีตังค์ (RiMS AI) กรุณาติดต่อผู้ดูแลระบบเพื่อขอเปิดสิทธิ์'
             ], 403);
         }
 

@@ -50,7 +50,7 @@ class TextToSqlService
         $contextScope = ($target === 'hosxp') ? 'hosxp' : 'hosfin';
 
         // 2. Retrieve relevant Schema
-        // (HRiMS strictly hosfin_*, HOSxP strictly nondrugitems, pttype, doctor)
+        // (RiMS strictly hosfin_*, HOSxP strictly nondrugitems, pttype, doctor)
         $schema = ($target === 'hosxp')
             ? $this->schemaCatalog->getHosxpSchema($cleanQuestion)
             : $this->schemaCatalog->getHrimsSchema($cleanQuestion);
@@ -95,7 +95,7 @@ class TextToSqlService
             Log::error("TextToSql LLM Generation Error: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'ขออภัยครับ ระบบ AI ไม่สามารถประมวลผลคำถามได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ',
+                'message' => 'ขออภัยค่ะ ระบบ AI ไม่สามารถประมวลผลคำถามได้ในขณะนี้ กรุณาลองใหม่อีกครั้งนะคะ',
                 'admin_message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อกับโมเดล AI: ' . $e->getMessage(),
                 'error_detail' => $e->getMessage(),
                 'db_target' => $target
@@ -126,7 +126,7 @@ class TextToSqlService
 
             return [
                 'success' => false,
-                'message' => 'ขออภัยครับ AI ไม่สามารถสืบค้นข้อมูลตามคำถามนี้ได้ กรุณาลองปรับเปลี่ยนคำถามหรือระบุเงื่อนไขให้เฉพาะเจาะจงขึ้นครับ',
+                'message' => 'ขออภัยค่ะ AI ไม่สามารถสืบค้นข้อมูลตามคำถามนี้ได้ กรุณาลองปรับเปลี่ยนคำถามหรือระบุเงื่อนไขให้เฉพาะเจาะจงขึ้นนะคะ',
                 'admin_message' => $explanation ?: 'AI ไม่สามารถแปลงคำถามเป็นคำสั่ง SQL ที่ถูกต้องได้',
                 'error_detail' => $explanation ?: 'AI ไม่สามารถแปลงคำถามเป็นคำสั่ง SQL ที่ถูกต้องได้',
                 'raw_response' => $rawResponse,
@@ -139,7 +139,7 @@ class TextToSqlService
         if (!$securityResult['is_valid']) {
             return [
                 'success' => false,
-                'message' => 'คำถามนี้ไม่สามารถประมวลผลได้เนื่องจากติดเงื่อนไขความปลอดภัย กรุณาสอบถามเฉพาะข้อมูลที่เกี่ยวข้องกับระบบครับ',
+                'message' => 'คำถามนี้ไม่สามารถประมวลผลได้เนื่องจากติดเงื่อนไขความปลอดภัย กรุณาสอบถามเฉพาะข้อมูลที่เกี่ยวข้องกับระบบนะคะ',
                 'admin_message' => 'ความปลอดภัยคำสั่ง SQL: ' . $securityResult['error'],
                 'error_detail' => $securityResult['error'],
                 'sql' => $generatedSql,
@@ -165,7 +165,7 @@ class TextToSqlService
             if (str_contains(strtolower($err), 'access denied') || str_contains(strtolower($err), 'connection refused') || str_contains(strtolower($err), 'unknown host')) {
                 return [
                     'success' => false,
-                    'message' => 'ขออภัยครับ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบครับ',
+                    'message' => 'ขออภัยค่ะ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบนะคะ',
                     'admin_message' => "ไม่สามารถเชื่อมต่อฐานข้อมูล [{$target}] ได้ (กรุณาตรวจสอบการตั้งค่า Host/Credentials หรือเครือข่าย รพ.)",
                     'error_detail' => $err,
                     'sql' => $sanitizedSql,
@@ -175,7 +175,7 @@ class TextToSqlService
 
             return [
                 'success' => false,
-                'message' => 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ',
+                'message' => 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ',
                 'admin_message' => 'คำสั่ง SQL ขัดข้อง: ' . $err,
                 'error_detail' => $err,
                 'sql' => $sanitizedSql,
@@ -235,7 +235,7 @@ class TextToSqlService
         // Strong HOSxP indicators (Master configs: nondrug, pttype, doctor, adp, etc.)
         $isHosxp = (bool) preg_match('/(nondrug|ค่าบริการ|หัตถการ|adp|pttype|สิทธิการรักษา|16\s*แฟ้ม|hipdata|doctor|แพทย์|หมอ|licenseno|ใบประกอบ|สภาวิชาชีพ)/iu', $q);
 
-        // Strong HRiMS indicators (HosFin: financial, fiscal, ap, ar, tb, journal, account, costs)
+        // Strong RiMS indicators (HosFin: financial, fiscal, ap, ar, tb, journal, account, costs)
         $isHrims = (bool) preg_match('/(hosfin|การเงิน|การคลัง|ผังบัญชี|งบ|งบทดลอง|สมุดรายวัน|เจ้าหนี้|ลูกหนี้|บิล|ค้างจ่าย|ค้างชำระ|บริษัท|vendor|ap\b|ar\b|voucher|journal|กระแสเงินสด|เงินสด|ต้นทุน|สถิติ|หนี้สิน)/iu', $q);
 
         if ($isHosxp && !$isHrims) {
@@ -256,10 +256,13 @@ class TextToSqlService
     {
         $dbTitle = ($targetDb === 'hosxp')
             ? 'HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน: nondrugitems, pttype, doctor)'
-            : 'HRiMS HosFin (ระบบการเงินการคลัง HosFin: สืบค้นและวิเคราะห์ข้อมูลจากตาราง hosfin_* ทั้งหมด 12 ตาราง)';
+            : 'RiMS HosFin (ระบบการเงินการคลัง HosFin: สืบค้นและวิเคราะห์ข้อมูลจากตาราง hosfin_* ทั้งหมด 12 ตาราง)';
 
         return <<<EOT
-คุณคือผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาลและการวิเคราะห์ฐานข้อมูล (Hospital CFO & Senior Financial Database Analyst) สำหรับ {$dbTitle}
+คุณคือ "น้องมีตังค์" (RiMS AI) ผู้ช่วยสาวอัจฉริยะเพศหญิง ผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาลและการวิเคราะห์ฐานข้อมูลสำหรับ {$dbTitle}
+- บุคลิกภาพ: เพศหญิง สุภาพ น่ารัก อ่อนหวาน มั่นใจ เป็นมืออาชีพ
+- การพูดคุย: แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" เท่านั้น และลงท้ายด้วย "ค่ะ" หรือ "นะคะ" เสมอ ห้ามใช้ "ครับ", "ครับ/ค่ะ" หรือแทนตัวเองว่า "ผม" โดยเด็ดขาด
+- ชื่อระบบ: เรียกว่า "RiMS" เท่านั้น ห้ามเรียกหรือเขียนว่า "HRiMS" โดยเด็ดขาด
 หน้าที่ของคุณ: แปลงคำถามภาษาไทยของผู้ใช้ ให้เป็นคำสั่ง SQL สำหรับ MariaDB/MySQL เพื่อดึงข้อมูลจริงทุกคอลัมน์และทุกแถวที่เกี่ยวข้อง นำมาตอบคำถามและวิเคราะห์ข้อมูลด้านการเงินการคลังได้อย่างถูกต้อง ปลอดภัย และแม่นยำสูงสุด
 
 === โครงสร้างตารางและคอลัมน์ที่อนุญาตให้ใช้งาน (Schema Definition) ===
@@ -370,16 +373,24 @@ EOT;
         string $contextScope = 'hosfin'
     ): string {
         $count = count($rows);
-        $dbName = ($dbTarget === 'hosxp') ? 'HOSxP (การตั้งค่าข้อมูลพื้นฐาน)' : 'HRiMS (ระบบการเงินการคลัง HosFin)';
+        $dbName = ($dbTarget === 'hosxp') ? 'HOSxP (การตั้งค่าข้อมูลพื้นฐาน)' : 'RiMS (ระบบการเงินการคลัง HosFin)';
 
         if ($count === 0) {
-            return "ผลลัพธ์จากฐานข้อมูล {$dbName}: ไม่พบข้อมูลที่ตรงกับเงื่อนไข \"{$question}\"";
+            return "ผลลัพธ์จากฐานข้อมูล {$dbName}: น้องมีตังค์ไม่พบข้อมูลที่ตรงกับเงื่อนไข \"{$question}\" ค่ะ";
         }
 
         // Generate AI-powered Financial & Fiscal Analysis
         try {
             $sampleData = array_slice($rows, 0, 15);
             $sampleJson = json_encode($sampleData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+            $summarySystemPrompt = <<<EOT
+คุณคือ "น้องมีตังค์" (RiMS AI) ผู้ช่วยสาวอัจฉริยะเพศหญิงประจำระบบ RiMS (ระบบการเงินการคลัง HosFin) และการตรวจสอบข้อมูลพื้นฐาน HOSxP
+- เพศและบุคลิกภาพ: เพศหญิง สุภาพ น่ารัก อ่อนหวาน มั่นใจ เป็นมืออาชีพด้านการเงินการคลังโรงพยาบาล
+- สรรพนามแทนตัวเอง: ให้แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" เท่านั้น
+- คำลงท้าย: ต้องใช้คำลงท้ายเพศหญิง เช่น "ค่ะ", "นะคะ" เสมอ ห้ามใช้ "ครับ", "ครับ/ค่ะ", หรือแทนตัวเองว่า "ผม" โดยเด็ดขาด
+- ชื่อระบบ: ให้เรียกชื่อระบบว่า "RiMS" เท่านั้น ห้ามเรียกหรือเขียนว่า "HRiMS" โดยเด็ดขาด
+EOT;
 
             if ($dbTarget === 'hosxp') {
                 $analysisPrompt = <<<EOT
@@ -390,7 +401,7 @@ EOT;
 {$sampleJson}
 {$ragContext}
 
-หน้าที่ของคุณ: ตรวจสอบความถูกต้องสมบูรณ์ของการตั้งค่าข้อมูลพื้นฐานของโรงพยาบาล (กฎสำคัญ: ให้ใช้คำว่า "ข้อมูลพื้นฐาน" เสมอ และห้ามใช้คำว่า "Master Data" ในคำตอบ)
+หน้าที่ของคุณ (น้องมีตังค์ - เพศหญิง): ตรวจสอบความถูกต้องสมบูรณ์ของการตั้งค่าข้อมูลพื้นฐานของโรงพยาบาล (กฎสำคัญ: ให้ใช้คำว่า "ข้อมูลพื้นฐาน" เสมอ และห้ามใช้คำว่า "Master Data" ในคำตอบ)
 1. **สรุปผลการตรวจสอบข้อมูล**:
    - สรุปจำนวนรายการที่พบ และลักษณะของข้อมูล
 2. **วิเคราะห์ความถูกต้องเทียบกับมาตรฐาน**:
@@ -399,7 +410,10 @@ EOT;
 3. **ข้อเสนอแนะเพื่อแก้ไขปรับปรุง**:
    - ระบุสิ่งที่ต้องแก้ไขในระบบ HOSxP เพื่อป้องกัน Error ในการส่งเบิก e-Claim หรือการรายงานข้อมูล
 
-ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน (ย้ำ: ใช้คำว่า "ข้อมูลพื้นฐาน" แทนคำว่า "Master Data")
+ข้อกำหนดการตอบ:
+- คุณคือน้องมีตังค์ (เพศหญิง) แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" และลงท้ายด้วย "ค่ะ/นะคะ" เสมอ ห้ามใช้ "ครับ" หรือ "ครับ/ค่ะ"
+- เรียกชื่อระบบว่า "RiMS" เท่านั้น (ห้ามใช้คำว่า "HRiMS")
+- ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน (ย้ำ: ใช้คำว่า "ข้อมูลพื้นฐาน" แทนคำว่า "Master Data")
 EOT;
             } else {
                 $analysisPrompt = <<<EOT
@@ -410,7 +424,7 @@ EOT;
 {$sampleJson}
 {$ragContext}
 
-หน้าที่ของคุณ: ทำหน้าที่เป็นผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาล (Hospital CFO & Senior Financial Analyst)
+หน้าที่ของคุณ (น้องมีตังค์ - เพศหญิง): ทำหน้าที่เป็นผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาล (Hospital CFO & Senior Financial Analyst) ประจำระบบ RiMS
 ให้วิเคราะห์ข้อมูลจริงที่ได้รับเพื่อตอบคำถามและให้มุมมองเชิงบริหารการเงินการคลัง:
 1. **สรุปตัวเลขและประเด็นสำคัญ (Key Financial Figures)**:
    - นำตัวเลขจริงจากผลลัพธ์มาสรุปอย่างชัดเจน จัดรูปแบบตัวเลขให้อ่านง่าย เช่น มีจุลภาคคั่นหลักพัน (เช่น 47,200,451.67 บาท)
@@ -421,11 +435,14 @@ EOT;
 3. **ข้อเสนอแนะเชิงบริหารและการปฏิบัติการ (Actionable Recommendations)**:
    - คำแนะนำเพื่อการตัดสินใจ การวางแผนจ่ายหนี้ การเร่งรัดเรียกเก็บหนี้ หรือการปรับปรุงระบบบัญชีการเงิน
 
-ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน
+ข้อกำหนดการตอบ:
+- คุณคือน้องมีตังค์ (เพศหญิง) แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" และลงท้ายด้วย "ค่ะ/นะคะ" เสมอ ห้ามใช้ "ครับ", "ครับ/ค่ะ" หรือ "ผม"
+- เรียกชื่อระบบว่า "RiMS" เท่านั้น (ห้ามใช้คำว่า "HRiMS")
+- ตอบเป็นภาษาไทย รูปแบบสวยงาม มีหัวข้อและ Bullet points ชัดเจน
 EOT;
             }
 
-            $aiAnalysis = $this->aiService->generateChat($analysisPrompt, null, $contextScope);
+            $aiAnalysis = $this->aiService->generateChat($analysisPrompt, $summarySystemPrompt, $contextScope);
             if (!empty($aiAnalysis) && mb_strlen($aiAnalysis, 'UTF-8') > 30) {
                 return $aiAnalysis;
             }

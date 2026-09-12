@@ -67,7 +67,7 @@ class MainSettingController extends Controller
             ],
             'FDH Setting' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Notify Setting' => $notifyTokens,
-            'RiMS Copilot (AI & LLM)' => [
+            'RiMS AI (AI & LLM)' => [
                 'ai_hosfin_provider',
                 'ai_hosfin_api_key',
                 'ai_hosfin_model_name',

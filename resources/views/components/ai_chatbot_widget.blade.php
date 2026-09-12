@@ -1,10 +1,10 @@
 <!-- Floating AI Chatbot Button & Widget -->
 <div id="aiChatbotWrapper">
     <!-- Floating Action Button (FAB) -->
-    <button type="button" id="aiChatbotFab" class="ai-fab-btn" title="ผู้ช่วย AI อัจฉริยะ (RiMS Copilot)" onclick="toggleAiChatbot()">
+    <button type="button" id="aiChatbotFab" class="ai-fab-btn" title="น้องมีตังค์ (ผู้ช่วย AI อัจฉริยะ)" onclick="toggleAiChatbot()">
         <span class="ai-fab-pulse"></span>
         <span class="ai-fab-icon" id="aiFabIcon">
-            <i class="bi bi-robot"></i>
+            <img src="{{ asset('images/meetung.png') }}" alt="น้องมีตังค์" class="ai-fab-avatar-img">
         </span>
         <span class="ai-fab-badge">AI</span>
     </button>
@@ -15,11 +15,11 @@
         <div class="ai-chat-header d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <div class="ai-avatar-badge">
-                    <i class="bi bi-robot fs-5"></i>
+                    <img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์" class="ai-header-avatar-img">
                     <span class="ai-status-dot"></span>
                 </div>
                 <div>
-                    <h6 class="mb-0 fw-bold text-white fs-6">RiMS Copilot</h6>
+                    <h6 class="mb-0 fw-bold text-white fs-6">น้องมีตังค์ <small class="fw-normal text-white-50" style="font-size: 0.7rem;">(RiMS AI)</small></h6>
                     <small class="text-white-50" style="font-size: 0.72rem;" id="aiChatHeaderSubtitle">ผู้ช่วย AI: มอนิเตอร์การเงินการคลัง • ตรวจสอบ HOSxP • เบิกจ่ายกองทุนต่าง ๆ</small>
                 </div>
             </div>
@@ -40,10 +40,10 @@
         <div class="ai-chat-body" id="aiChatMessages">
             <!-- Welcome Message -->
             <div class="ai-msg-row ai-msg-incoming">
-                <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
+                <div class="ai-msg-avatar"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                 <div class="ai-msg-bubble">
-                    <p class="mb-1">สวัสดีครับ! ผมคือ <strong>RiMS Copilot</strong> 🩺✨</p>
-                    <p class="mb-2 small text-muted" id="aiWelcomeDesc">ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน สามารถพิมพ์สอบถามได้เลยครับ</p>
+                    <p class="mb-1">สวัสดีค่ะ! หนูชื่อ <strong>น้องมีตังค์</strong> 💰✨</p>
+                    <p class="mb-2 small text-muted" id="aiWelcomeDesc">ผู้ช่วย AI อัจฉริยะด้านการเงินการคลังโรงพยาบาลและบัญชี GL พร้อมวิเคราะห์สถานการณ์งบประมาณ เจ้าหนี้การค้า ลูกหนี้ค่ารักษา และดัชนีวิกฤตทางการเงิน สามารถพิมพ์สอบถามหนูได้เลยค่ะ</p>
                     <div id="aiQuickSuggestions" class="mt-2 pt-2 border-top">
                         <small class="d-block text-muted mb-1" style="font-size: 0.75rem;"><i class="bi bi-lightbulb text-warning me-1"></i> คำถามแนะนำด่วน:</small>
                         <div class="d-flex flex-wrap gap-1" id="aiSuggestionChips">
@@ -59,7 +59,7 @@
 
         <!-- Typing Indicator (Hidden by default) -->
         <div id="aiTypingIndicator" class="ai-typing-indicator d-none">
-            <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
+            <div class="ai-msg-avatar"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
             <div class="ai-typing-bubble">
                 <span class="ai-dot"></span>
                 <span class="ai-dot"></span>
@@ -143,25 +143,25 @@
         position: fixed;
         bottom: 24px;
         right: 24px;
-        width: 60px;
-        height: 60px;
+        width: 68px;
+        height: 68px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #0a4d2c 0%, #16a34a 100%);
-        color: #ffffff;
-        border: none;
-        box-shadow: 0 8px 24px rgba(10, 77, 44, 0.4);
+        background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f0fdf4 75%, #dcfce7 100%);
+        border: 2px solid #22c55e;
+        box-shadow: 0 8px 24px rgba(22, 163, 74, 0.35);
         cursor: pointer;
         z-index: 99998;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        padding: 0;
     }
 
     .ai-fab-btn:hover {
-        transform: scale(1.1) rotate(5deg);
-        box-shadow: 0 12px 30px rgba(10, 77, 44, 0.55);
-        color: #ffffff;
+        transform: scale(1.1) translateY(-2px);
+        box-shadow: 0 14px 30px rgba(22, 163, 74, 0.5);
+        border-color: #16a34a;
     }
 
     .ai-fab-btn:active {
@@ -169,18 +169,27 @@
     }
 
     .ai-fab-icon {
-        font-size: 1.8rem;
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: transform 0.3s ease;
     }
 
+    .ai-fab-avatar-img {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+        pointer-events: none;
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
+    }
+
     .ai-fab-badge {
         position: absolute;
-        top: -2px;
-        right: -2px;
-        background: #ef4444;
+        top: -3px;
+        right: -3px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: #fff;
         font-size: 0.65rem;
         font-weight: 800;
@@ -188,6 +197,7 @@
         border-radius: 10px;
         border: 2px solid #fff;
         letter-spacing: 0.5px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
 
     .ai-fab-pulse {
@@ -195,7 +205,7 @@
         width: 100%;
         height: 100%;
         border-radius: 50%;
-        background: rgba(22, 163, 74, 0.5);
+        background: rgba(34, 197, 94, 0.35);
         animation: aiPulse 2.4s infinite;
         z-index: -1;
     }
@@ -245,14 +255,22 @@
 
     .ai-avatar-badge {
         position: relative;
-        width: 38px;
-        height: 38px;
-        background: rgba(255, 255, 255, 0.2);
+        width: 40px;
+        height: 40px;
+        background: #ffffff;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #ffffff;
+        overflow: visible;
+        border: 1.5px solid #22c55e;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .ai-header-avatar-img {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
     }
 
     .ai-status-dot {
@@ -292,9 +310,9 @@
     }
 
     .ai-msg-avatar {
-        width: 28px;
-        height: 28px;
-        background: #e2e8f0;
+        width: 34px;
+        height: 34px;
+        background: #ffffff;
         color: #0a4d2c;
         border-radius: 50%;
         display: flex;
@@ -302,6 +320,15 @@
         justify-content: center;
         font-size: 0.85rem;
         flex-shrink: 0;
+        overflow: hidden;
+        border: 1.5px solid rgba(22, 163, 74, 0.35);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .ai-msg-avatar img {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
     }
 
     .ai-msg-bubble {
@@ -457,14 +484,18 @@
         win.classList.toggle('active');
 
         if (win.classList.contains('active')) {
-            icon.innerHTML = '<i class="bi bi-x-lg"></i>';
+            icon.innerHTML = '<i class="bi bi-x-lg fs-3 text-danger"></i>';
+            fab.style.background = '#ffffff';
+            fab.style.borderColor = '#ef4444';
             setTimeout(() => {
                 const input = document.getElementById('aiChatInput');
                 if (input) input.focus();
             }, 100);
             scrollChatToBottom();
         } else {
-            icon.innerHTML = '<i class="bi bi-robot"></i>';
+            icon.innerHTML = '<img src="{{ asset('images/meetung.png') }}" alt="น้องมีตังค์" class="ai-fab-avatar-img">';
+            fab.style.background = '';
+            fab.style.borderColor = '';
         }
     }
 
@@ -637,7 +668,7 @@
                     });
                 }
             } else {
-                const friendlyMsg = data.message || 'ขออภัยครับ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งครับ';
+                const friendlyMsg = data.message || 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ';
                 aiConversationHistory.push({ role: 'assistant', content: friendlyMsg });
                 appendMessage('incoming', friendlyMsg, [], {
                     mode: 'error',
@@ -649,7 +680,7 @@
         })
         .catch(err => {
             indicator.classList.add('d-none');
-            const fallbackMsg = 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบ AI กรุณาลองใหม่อีกครั้งครับ';
+            const fallbackMsg = 'ขออภัยค่ะ เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบ AI กรุณาลองใหม่อีกครั้งนะคะ';
             appendMessage('incoming', fallbackMsg, [], {
                 mode: 'error',
                 error_detail: isUserAdmin ? String(err) : null
@@ -741,7 +772,7 @@
                     <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center small text-muted">
                         <span><i class="bi bi-table text-primary me-1"></i>พบข้อมูล <strong>${totalCount.toLocaleString('th-TH')}</strong> รายการ</span>
                         <a href="javascript:void(0)" onclick="openFullScreenCopilot()" class="text-primary text-decoration-none fw-semibold">
-                            <i class="bi bi-arrows-fullscreen me-1"></i>เปิดดูตารางเต็มจอ
+                            <i class="bi bi-bar-chart-fill text-success me-1"></i>เปิดดูตารางและกราฟสรุปเต็มจอ
                         </a>
                     </div>
                 `;
@@ -751,7 +782,8 @@
             let adminSqlHtml = '';
             if (isUserAdmin && extra && (extra.sql || extra.error_detail)) {
                 const adminId = 'admin-sql-' + Math.random().toString(36).substring(2, 9);
-                const targetName = extra.db_target ? extra.db_target.toUpperCase() : 'DATABASE';
+                const rawTarget = extra.db_target ? String(extra.db_target).toLowerCase() : 'database';
+                const targetName = (rawTarget === 'hrims' || rawTarget === 'hosfin') ? 'RIMS' : rawTarget.toUpperCase();
                 const isError = extra.mode === 'error' || Boolean(extra.error_detail);
 
                 adminSqlHtml = `
@@ -798,7 +830,7 @@
             }
 
             row.innerHTML = `
-                <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
+                <div class="ai-msg-avatar"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                 <div class="ai-msg-bubble">
                     <div>${formattedText}</div>
                     ${sqlDetailsHtml}
@@ -827,10 +859,10 @@
         const container = document.getElementById('aiChatMessages');
         container.innerHTML = `
             <div class="ai-msg-row ai-msg-incoming">
-                <div class="ai-msg-avatar"><i class="bi bi-robot"></i></div>
+                <div class="ai-msg-avatar"><img src="{{ asset('images/meetung_avatar.png') }}" alt="น้องมีตังค์"></div>
                 <div class="ai-msg-bubble">
-                    <p class="mb-1">ล้างบทสนทนาเรียบร้อยแล้วครับ ✨</p>
-                    <p class="mb-0 small text-muted">ต้องการสอบถามข้อมูลอะไรเพิ่มเติม พิมพ์ถามได้เลยครับ</p>
+                    <p class="mb-1">ล้างบทสนทนาเรียบร้อยแล้วค่ะ ✨</p>
+                    <p class="mb-0 small text-muted">ต้องการสอบถามข้อมูลอะไรเพิ่มเติม พิมพ์ถามหนูได้เลยนะคะ</p>
                 </div>
             </div>
         `;
@@ -892,7 +924,7 @@
 
         if (isRag) {
             if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: Knowledge Base';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะสืบค้นคลังเอกสารและระเบียบปฏิบัติ Knowledge Base พร้อมตอบคำถามและค้นหาแนวทางแก้ไขจากคู่มือ ระเบียบการเบิกจ่าย สปสช. กรมบัญชีกลาง และแนวทาง CPG สามารถพิมพ์คำถามได้เลยครับ';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะสืบค้นคลังเอกสารและระเบียบปฏิบัติ Knowledge Base พร้อมตอบคำถามและค้นหาแนวทางแก้ไขจากคู่มือ ระเบียบการเบิกจ่าย สปสช. กรมบัญชีกลาง และแนวทาง CPG สามารถพิมพ์คำถามได้เลยค่ะ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('แนวทางแก้ไขข้อผิดพลาดติด C300')">📑 แก้ไขข้อผิดพลาดติด C300</button>
@@ -903,7 +935,7 @@
             }
         } else if (isHosxp) {
             if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ข้อมูลพื้นฐาน HOSxP Setting';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP ของโรงพยาบาลพร้อมค้นหาเทียบเคียงระเบียบและมาตรฐานจากคลังความรู้ RAG สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยครับ';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP ของโรงพยาบาลพร้อมค้นหาเทียบเคียงระเบียบและมาตรฐานจากคลังความรู้ RAG สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยค่ะ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปปัญหาความสมบูรณ์ของข้อมูลแพทย์ในระบบ HOSxP')">👨‍⚕️ สรุปปัญหาข้อมูลแพทย์</button>
@@ -914,7 +946,7 @@
             }
         } else if (isHosfin) {
             if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ระบบการเงิน HosFin';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะด้านการเงินการคลัง HosFin พร้อมเทียบระเบียบและคู่มือจาก RAG สามารถพิมพ์สอบถามเพื่อวิเคราะห์เจ้าหนี้การค้า ลูกหนี้ค่ารักษา หรืองบทดลองได้เลยครับ';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI อัจฉริยะด้านการเงินการคลัง HosFin พร้อมเทียบระเบียบและคู่มือจาก RAG สามารถพิมพ์สอบถามเพื่อวิเคราะห์เจ้าหนี้การค้า ลูกหนี้ค่ารักษา หรืองบทดลองได้เลยค่ะ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
                     <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('เจ้าหนี้บริษัทไหนต้องจ่ายก่อนตามอายุหนี้')">📌 เจ้าหนี้บริษัทไหนต้องจ่ายก่อน?</button>

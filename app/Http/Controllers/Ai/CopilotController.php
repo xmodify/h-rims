@@ -35,6 +35,10 @@ class CopilotController extends Controller
             abort(401, 'กรุณาเข้าสู่ระบบก่อนใช้งาน');
         }
 
+        if (!\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge')) {
+            abort(403, 'ระบบน้องมีตังค์ (RiMS AI) ยังไม่ได้รับอนุญาตสิทธิ์การใช้งาน License หรือลิขสิทธิ์หมดอายุ กรุณาติดต่อผู้ดูแลระบบ');
+        }
+
         if ($user->status !== 'admin' && ($user->allow_ai_copilot ?? 'N') !== 'Y') {
             abort(403, 'คุณไม่ได้รับสิทธิ์ใช้งาน น้องมีตังค์ (RiMS AI) กรุณาติดต่อผู้ดูแลระบบ');
         }

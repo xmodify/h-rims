@@ -1266,11 +1266,13 @@
                                                 </a>
                                             @endif
                                         @endif
-                                        @if(auth()->user()->status === 'admin' || (auth()->user()->allow_ai_copilot ?? 'N') === 'Y')
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('copilot.index') }}" target="_blank">
-                                                <img src="{{ asset('images/meetung_avatar.png') }}" class="me-2 rounded-circle shadow-sm" style="width: 20px; height: 20px; object-fit: cover; border: 1px solid #22c55e;"> น้องมีตังค์ (RiMS AI)
-                                            </a>
+                                        @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge'))
+                                            @if(auth()->user()->status === 'admin' || (auth()->user()->allow_ai_copilot ?? 'N') === 'Y')
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ route('copilot.index') }}" target="_blank">
+                                                    <img src="{{ asset('images/meetung_avatar.png') }}" class="me-2 rounded-circle shadow-sm" style="width: 20px; height: 20px; object-fit: cover; border: 1px solid #22c55e;"> น้องมีตังค์ (RiMS AI)
+                                                </a>
+                                            @endif
                                         @endif
                                     @endauth
                                     <div class="dropdown-divider opacity-10"></div>

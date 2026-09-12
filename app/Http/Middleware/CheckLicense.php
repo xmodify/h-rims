@@ -78,7 +78,10 @@ class CheckLicense
             ) {
                 $module = 'hosfin';
             } elseif (
-                str_starts_with($path, 'admin/rag-knowledge')
+                $path === 'copilot' ||
+                str_starts_with($path, 'copilot/') ||
+                str_starts_with($path, 'admin/rag-knowledge') ||
+                str_starts_with($path, 'hosxp-setting/copilot_ask')
             ) {
                 $module = 'ai_knowledge';
             }

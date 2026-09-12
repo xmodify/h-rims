@@ -487,6 +487,13 @@ class HosxpSettingController extends Controller
     {
         $this->checkPermission();
 
+        if (!\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ระบบ AI ยังไม่ได้รับอนุญาตสิทธิ์การใช้งาน License หรือลิขสิทธิ์หมดอายุ กรุณาติดต่อผู้ดูแลระบบ'
+            ], 403);
+        }
+
         $query = trim($request->input('query', ''));
         $tab = $request->input('tab', 'doctor');
 

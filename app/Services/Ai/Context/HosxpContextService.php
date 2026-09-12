@@ -49,6 +49,18 @@ class HosxpContextService
                     $contextBlocks[] = $pttypeData['text'];
                     $sources[] = $pttypeData['source'];
                 }
+            } elseif ($category === 'drug' || $category === 'drugitems') {
+                $drugData = $this->getDrugItemContext($query, true);
+                if ($drugData) {
+                    $contextBlocks[] = $drugData['text'];
+                    $sources[] = $drugData['source'];
+                }
+            } elseif ($category === 'lab' || $category === 'lab_items') {
+                $labData = $this->getLabItemContext($query, true);
+                if ($labData) {
+                    $contextBlocks[] = $labData['text'];
+                    $sources[] = $labData['source'];
+                }
             } else {
                 // Fallback: Smart auto-detection based on user question keywords
                 // 1. Check for specific medical items / services (nondrugitems)
@@ -84,6 +96,20 @@ class HosxpContextService
                 if ($pttypeData) {
                     $contextBlocks[] = $pttypeData['text'];
                     $sources[] = $pttypeData['source'];
+                }
+
+                // 6. Check for Drug items / Drug catalog / hrims.drugcat_*
+                $drugData = $this->getDrugItemContext($query);
+                if ($drugData) {
+                    $contextBlocks[] = $drugData['text'];
+                    $sources[] = $drugData['source'];
+                }
+
+                // 7. Check for Lab items / Lab profile / hrims.labcat_*
+                $labData = $this->getLabItemContext($query);
+                if ($labData) {
+                    $contextBlocks[] = $labData['text'];
+                    $sources[] = $labData['source'];
                 }
             }
 
@@ -632,6 +658,255 @@ class HosxpContextService
             ];
         } catch (\Throwable $e) {
             Log::warning("Pttype Context Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Search drugitems (ข้อมูลยา, ราคาแยกเก็บ, ตารางเชื่อมโยง, และแคตตาล็อกยา hrims.drugcat_*)
+     */
+    public function getDrugItemContext(string $query, bool $force = false): ?array
+    {
+        try {
+            if (!$force) {
+                $hasDrugKeyword = (bool) preg_match('/(ยา|drug|drugitems|icode|did|24หลัก|tmt|แคตตาล็อกยา|drugcat|ned|ed|ค่ายา|ราคาแยกเก็บ|unitprice|sks_price|unitcost)/iu', $query);
+                if (!$hasDrugKeyword) {
+                    return null;
+                }
+            }
+
+            $localDb = config('database.connections.mysql.database');
+            $hosxp = DB::connection('hosxp');
+
+            // 1. Check if user query mentions specific drug icode
+            preg_match('/(?:icode\s*[:=]?\s*|\b)([12]\d{6})\b/i', $query, $codeMatch);
+            $targetIcode = $codeMatch[1] ?? null;
+
+            // Priority 1: Exact drug icode search
+            if ($targetIcode) {
+                $drug = $hosxp->select("
+                    SELECT d.icode, d.name, d.strength, d.units, d.dosageform, d.drugaccount,
+                           d.unitprice, d.price2, d.price3, d.ipd_price, d.unitcost, d.stdprice, d.sks_price, d.sks_reimb_price,
+                           d.did, d2.ref_code AS code_24, d.tmt_tp_code, d3.ref_code AS code_tmt,
+                           i.name AS income_name, d.income, d.istatus,
+                           nd.unitprice AS price_nhso, nd.ised AS ised_nhso, nd.ndc24 AS code_24_nhso, nd.tmtid AS code_tmt_nhso,
+                           chi.unitprice AS price_chi
+                    FROM drugitems d
+                    LEFT JOIN income i ON i.income = d.income
+                    LEFT JOIN drugitems_ref_code d2 ON d2.icode = d.icode AND d2.drugitems_ref_code_type_id = 1
+                    LEFT JOIN drugitems_ref_code d3 ON d3.icode = d.icode AND d3.drugitems_ref_code_type_id = 3
+                    LEFT JOIN (
+                        SELECT hospdrugcode, unitprice, ised, ndc24, tmtid
+                        FROM {$localDb}.drugcat_nhso
+                        GROUP BY hospdrugcode
+                    ) nd ON nd.hospdrugcode = d.icode
+                    LEFT JOIN (
+                        SELECT hospdrugcode, unitprice
+                        FROM {$localDb}.drugcat_chi
+                        GROUP BY hospdrugcode
+                    ) chi ON chi.hospdrugcode = d.icode
+                    WHERE d.icode = ?
+                    LIMIT 1
+                ", [$targetIcode]);
+
+                if (!empty($drug)) {
+                    $d = $drug[0];
+                    $code24 = !empty($d->code_24) ? $d->code_24 : ($d->did ?: '⚠️ ไม่มีรหัส 24 หลัก');
+                    $codeTmt = !empty($d->code_tmt) ? $d->code_tmt : ($d->tmt_tp_code ?: '⚠️ ไม่มีรหัส TMT');
+                    $status = ($d->istatus === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive (ปิดใช้งาน)';
+                    $nhsoCatalog = !empty($d->price_nhso) ? "พบในแคตตาล็อก สปสช. (ราคาเบิก: {$d->price_nhso} บ., บัญชียา: {$d->ised_nhso})" : "⚠️ ไม่พบในแคตตาล็อก สปสช. (drugcat_nhso)";
+                    $chiCatalog = !empty($d->price_chi) ? "พบในแคตตาล็อก กรมบัญชีกลาง (ราคาเบิก: {$d->price_chi} บ.)" : "ไม่พบในแคตตาล็อก กรมบัญชีกลาง (drugcat_chi)";
+
+                    $lines = [
+                        "รายละเอียดข้อมูลยาจากระบบ HOSxP และแคตตาล็อกยา RiMS (icode: {$d->icode}):",
+                        "• ชื่อยา: {$d->name} {$d->strength} (รูปแบบ: {$d->dosageform}, หน่วย: {$d->units})",
+                        "• บัญชียา: " . ($d->drugaccount ?: 'ยานอกบัญชี (NED)') . " | หมวดรายได้: [{$d->income}] {$d->income_name}",
+                        "• รหัสมาตรฐาน: 24 หลัก: {$code24} | TMT: {$codeTmt}",
+                        "• ราคาแยกเก็บ (เหมือนค่ารักษาพยาบาล):",
+                        "  - ราคาจำหน่าย OPD 1: " . number_format($d->unitprice, 2) . " บ. | OPD 2: " . number_format($d->price2, 2) . " บ. | OPD 3: " . number_format($d->price3, 2) . " บ.",
+                        "  - ราคาจำหน่าย IPD 1: " . number_format($d->ipd_price, 2) . " บ.",
+                        "  - ราคาทุน (unitcost): " . number_format($d->unitcost, 2) . " บ. | ราคากลาง (stdprice): " . number_format($d->stdprice ?? 0, 2) . " บ.",
+                        "  - ราคาเบิกจ่ายกรมบัญชีกลาง (sks_price): " . number_format($d->sks_price ?? 0, 2) . " บ. (ชดเชย: " . number_format($d->sks_reimb_price ?? 0, 2) . " บ.)",
+                        "• สถานะในแคตตาล็อกของ RiMS:",
+                        "  - สปสช. (hrims.drugcat_nhso): {$nhsoCatalog}",
+                        "  - กรมบัญชีกลาง (hrims.drugcat_chi): {$chiCatalog}",
+                        "• สถานะการใช้งาน: {$status}"
+                    ];
+
+                    return [
+                        'text' => "[ข้อมูลยา icode {$d->icode}]:\n" . implode("\n", $lines),
+                        'source' => [
+                            'title' => "ข้อมูลยา {$d->name} ({$d->icode})",
+                            'filename' => 'hosxp_drugitems',
+                            'page' => 1,
+                            'score' => 99.0,
+                            'snippet' => "{$d->name} ราคา OPD: {$d->unitprice} บ., รหัส 24 หลัก: {$code24}"
+                        ]
+                    ];
+                }
+            }
+
+            // Priority 2: General questions about drug catalog, pricing structure, or connected tables
+            $isRelationQuery = (bool) preg_match('/(เชื่อม(โยง)?|ตารางไหน|ตารางอะไร|โครงสร้าง|ราคาแยกเก็บ|drugcat|แคตตาล็อกยา|สัมพันธ์|เก็บยังไง)/iu', $query);
+            $isSummaryQuery = (bool) preg_match('/(สรุป|สถิติ|มีกี่|ทั้งหมด|ขาด\s*24|ขาด\s*tmt|ไม่มีรหัส)/iu', $query);
+
+            if ($isRelationQuery || $isSummaryQuery || $force) {
+                $totalDrugs = $hosxp->table('drugitems')->count();
+                $activeDrugs = $hosxp->table('drugitems')->where('istatus', 'Y')->count();
+                $missing24 = $hosxp->select("
+                    SELECT COUNT(*) as c FROM drugitems d
+                    LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 1
+                    WHERE d.istatus = 'Y' AND (d.did IS NULL OR LENGTH(TRIM(d.did)) < 24) AND (r.ref_code IS NULL OR LENGTH(TRIM(r.ref_code)) < 24)
+                ")[0]->c ?? 0;
+                $missingTmt = $hosxp->select("
+                    SELECT COUNT(*) as c FROM drugitems d
+                    LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 3
+                    WHERE d.istatus = 'Y' AND (d.tmt_tp_code IS NULL OR d.tmt_tp_code = '') AND (r.ref_code IS NULL OR r.ref_code = '')
+                ")[0]->c ?? 0;
+
+                $nhsoCatCount = DB::table('drugcat_nhso')->count();
+                $chiCatCount = DB::table('drugcat_chi')->count();
+                $fdhCatCount = DB::table('drugcat_fdh')->count();
+
+                $lines = [
+                    "ภาพรวมข้อมูลยา (drugitems) ในระบบ HOSxP และการเชื่อมโยงแคตตาล็อกยา RiMS:",
+                    "• สถิติรายการยา HOSxP: ทั้งหมด {$totalDrugs} รายการ (เปิดใช้งาน {$activeDrugs} รายการ, ปิดใช้งาน " . ($totalDrugs - $activeDrugs) . " รายการ)",
+                    "• ความสมบูรณ์ของรหัสยา Active: ขาดรหัส 24 หลัก {$missing24} รายการ, ขาดรหัส TMT {$missingTmt} รายการ",
+                    "",
+                    "• โครงสร้างราคาแยกเก็บของยาใน HOSxP (เหมือนค่ารักษาพยาบาล):",
+                    "  - ราคาจำหน่าย OPD: unitprice (ราคาปกติ 1), price2 (ราคา 2), price3 (ราคา 3)",
+                    "  - ราคาจำหน่าย IPD: ipd_price (ราคา IPD 1), ipd_price2, ipd_price3",
+                    "  - ราคาทุนและราคากลาง: unitcost (ต้นทุนต่อหน่วย), stdprice (ราคากลางมาตรฐาน)",
+                    "  - ราคาเบิกจ่ายตามสิทธิ: sks_price (ราคาจ่ายตรงกรมบัญชีกลาง), sks_reimb_price (ราคาชดเชย)",
+                    "",
+                    "• ตารางที่ drugitems เชื่อมโยงในระบบ HOSxP:",
+                    "  1. income: หมวดรายได้ค่าบริการทางการแพทย์และค่ายา (เชื่อมด้วย drugitems.income = income.income)",
+                    "  2. drugitems_ref_code: เก็บประวัติรหัสมาตรฐานอ้างอิง (type 1 = รหัส 24 หลัก, type 2 = Barcode, type 3 = รหัส TMT, type 4 = รหัสยาแผนไทย)",
+                    "  3. ttmt_code: รหัสมาตรฐานสมุนไพรและยาแผนไทย",
+                    "  4. drugusage และ sp_use: วิธีใช้ยาปกติ และวิธีใช้ยาพิเศษสำหรับพิมพ์สติ๊กเกอร์ยา",
+                    "  5. dphardep และ stock_item_drugitems: การจัดสรรคลังยาและการตัดยอดสต๊อกยา",
+                    "  6. drugitems_price_plan: แผนการปรับราคาตามช่วงเวลาที่มีผลบังคับใช้",
+                    "  7. drugitems_interaction และ drugitems_icd10: ระบบแจ้งเตือนการแพ้ยาและข้อห้ามใช้ตามโรค",
+                    "",
+                    "• ตารางแคตตาล็อกยาในฐานข้อมูล RiMS (hrims.drugcat_*):",
+                    "  1. hrims.drugcat_nhso: แคตตาล็อกยา สปสช. (มี {$nhsoCatCount} รายการ) เชื่อมด้วย hospdrugcode = drugitems.icode เพื่อตรวจสอบการอนุมัติ, รหัส 24 หลัก (ndc24), TMT, ราคาเบิก สปสช. และหมวด ised (E=ในบัญชี, N=นอกบัญชี)",
+                    "  2. hrims.drugcat_chi: แคตตาล็อกยา กรมบัญชีกลาง CSMBS (มี {$chiCatCount} รายการ) ใช้เปรียบเทียบราคาสิทธิข้าราชการและการเบิกจ่ายตรง",
+                    "  3. hrims.drugcat_fdh: แคตตาล็อกยา Financial Data Hub (มี {$fdhCatCount} รายการ) ใช้ตรวจสอบความพร้อมในการส่งออกข้อมูลเคลม FDH MOPH",
+                    "",
+                    "(แนะนำการตั้งค่าใน HOSxP: เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดรายการยา (Drug Items)' เพื่อบันทึกรหัส 24 หลัก, TMT และปรับโครงสร้างราคาแยกเก็บให้ครบถ้วน)"
+                ];
+
+                return [
+                    'text' => "[โครงสร้างและความสัมพันธ์ของข้อมูลยาและแคตตาล็อก]:\n" . implode("\n", $lines),
+                    'source' => [
+                        'title' => "โครงสร้างข้อมูลยาและแคตตาล็อก HOSxP & RiMS",
+                        'filename' => 'hosxp_drug_relations',
+                        'page' => 1,
+                        'score' => 98.0,
+                        'snippet' => "สรุปความสัมพันธ์ของ drugitems, ราคาแยกเก็บ, และแคตตาล็อก hrims.drugcat_*"
+                    ]
+                ];
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning("Drug Context Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Search lab_items and lab_items_sub_group (ข้อมูล Lab, Item vs Profile, การผูก icode และแคตตาล็อก hrims.labcat_*)
+     */
+    public function getLabItemContext(string $query, bool $force = false): ?array
+    {
+        try {
+            if (!$force) {
+                $hasLabKeyword = (bool) preg_match('/(lab|แลป|แล็บ|lab_items|lab_items_sub_group|profile|ชุดตรวจ|item|ตรวจเดี่ยว|tmlt|loinc|labcat|สิ่งส่งตรวจ|specimen|cbc|fbs|lipid|electrolyte|creatinine|urinalysis)/iu', $query);
+                if (!$hasLabKeyword) {
+                    return null;
+                }
+            }
+
+            $localDb = config('database.connections.mysql.database');
+            $hosxp = DB::connection('hosxp');
+
+            // 1. General questions about Lab structure, Item vs Profile, or connected tables
+            $isRelationQuery = (bool) preg_match('/(เชื่อม(โยง)?|ตารางไหน|ตารางอะไร|โครงสร้าง|item|profile|ชุดตรวจ|ตรวจเดี่ยว|labcat|ผูก\s*icode|nondrugitems)/iu', $query);
+            $isSummaryQuery = (bool) preg_match('/(สรุป|สถิติ|มีกี่|ทั้งหมด|ยังไม่ผูก|ขาด\s*tmlt|ไม่(ได้)?ผูก)/iu', $query);
+
+            if ($isRelationQuery || $isSummaryQuery || $force) {
+                $totalLabItems = $hosxp->table('lab_items')->count();
+                $activeLabItems = $hosxp->table('lab_items')->where('active_status', 'Y')->count();
+                $unmappedItems = $hosxp->select("
+                    SELECT COUNT(*) as c FROM lab_items l
+                    LEFT JOIN nondrugitems n ON n.icode = l.icode
+                    WHERE l.active_status = 'Y' AND (l.icode IS NULL OR l.icode = '' OR n.icode IS NULL)
+                ")[0]->c ?? 0;
+                $missingTmlt = $hosxp->table('lab_items')->where('active_status', 'Y')->where(function($q) {
+                    $q->whereNull('tmlt_code')->orWhere('tmlt_code', '');
+                })->count();
+
+                $totalProfiles = $hosxp->table('lab_items_sub_group')->count();
+                $unmappedProfiles = $hosxp->select("
+                    SELECT COUNT(*) as c FROM lab_items_sub_group sg
+                    LEFT JOIN nondrugitems n ON n.icode = sg.group_icode
+                    WHERE (sg.active_status <> 'N' OR sg.active_status IS NULL) AND (sg.group_icode IS NULL OR sg.group_icode = '' OR n.icode IS NULL)
+                ")[0]->c ?? 0;
+
+                $labcatChiCount = DB::table('labcat_chi')->count();
+                $labcatTmtCount = DB::table('labcat_tmt')->count();
+                $labcatSsCount = DB::table('labcat_ss')->count();
+
+                $lines = [
+                    "ภาพรวมข้อมูล Lab ในระบบ HOSxP และการเชื่อมโยงแคตตาล็อก Lab RiMS:",
+                    "• สถิติ Lab ในระบบ HOSxP:",
+                    "  - รายการตรวจเดี่ยว (lab_items): ทั้งหมด {$totalLabItems} รายการ (เปิดใช้งาน {$activeLabItems} รายการ, ยังไม่ผูก icode คิดเงิน {$unmappedItems} รายการ, ขาดรหัส TMLT {$missingTmlt} รายการ)",
+                    "  - ชุดตรวจ/โปรไฟล์ (lab_items_sub_group): ทั้งหมด {$totalProfiles} ชุดตรวจ (ยังไม่ผูก group_icode คิดเงิน {$unmappedProfiles} ชุด)",
+                    "",
+                    "• การจำแนกประเภท Item และ Profile (ตามแนวทาง Lab Catalog):",
+                    "  1. Item (รายการตรวจเดี่ยว): อยู่ในตาราง lab_items เช่น FBS, Creatinine, BUN, SGOT, SGPT, Uric Acid",
+                    "  2. Profile (ชุดตรวจ/โปรไฟล์): อยู่ในตาราง lab_items_sub_group เช่น CBC, Lipid Profile, Electrolyte, Liver Function Test (LFT), Urine Analysis (U/A)",
+                    "",
+                    "• กฎสำคัญเด็ดขาดเรื่องการผูกรหัสค่ารักษาพยาบาล (icode ใน nondrugitems):",
+                    "  - รายการตรวจเดี่ยว lab_items ต้องผูกรหัส 'icode' เข้ากับตาราง 'nondrugitems'",
+                    "  - ชุดตรวจโปรไฟล์ lab_items_sub_group ต้องผูกรหัส 'group_icode' เข้ากับตาราง 'nondrugitems'",
+                    "  - ความสำคัญ: หากไม่มีการผูก icode เข้ากับ nondrugitems ระบบ HOSxP จะไม่สามารถคิดค่าบริการเข้าใบเสร็จ และไม่สามารถส่งออกเคลม e-Claim/FDH 16 แฟ้มได้เลย",
+                    "",
+                    "• โครงสร้างราคาค่าตรวจทางห้องปฏิบัติการ:",
+                    "  - รายการเดี่ยว: service_price (ราคา OPD 1), service_price2, service_price3, service_price_ipd, service_cost (ต้นทุน)",
+                    "  - ชุดตรวจโปรไฟล์: group_price (ราคาชุดตรวจ OPD 1), group_price2, group_price3, group_price_ipd",
+                    "",
+                    "• ตารางที่เชื่อมโยงกับ Lab ในระบบ HOSxP:",
+                    "  1. nondrugitems: ตารางค่าบริการและค่ารักษาพยาบาล (ผูกผ่าน lab_items.icode หรือ lab_items_sub_group.group_icode)",
+                    "  2. lab_items_group: หมวดกลุ่มงาน/แผนกทางห้องปฏิบัติการ (เช่น CLINICAL CHEMISTRY, HEMATOLOGY, CLINICAL MICROSCOPY)",
+                    "  3. lab_specimen_items: ชนิดสิ่งส่งตรวจ (ผูกผ่าน specimen_code เช่น เลือด, ปัสสาวะ, อุจจาระ)",
+                    "  4. lab_order, lab_order_service, lab_head: ตารางบันทึกการสั่งตรวจและการรายงานผลการตรวจของผู้ป่วย",
+                    "",
+                    "• ตารางแคตตาล็อก Lab ในฐานข้อมูล RiMS (hrims.labcat_*):",
+                    "  1. hrims.labcat_chi: แคตตาล็อกแล็ป กรมบัญชีกลาง CSMBS (มี {$labcatChiCount} รายการ) เชื่อมด้วย lccode = nondrugitems.icode เพื่อตรวจสอบรหัส TMLT, LOINC, และราคาชดเชย",
+                    "  2. hrims.labcat_tmt: แคตตาล็อกแล็ป TMT มาตรฐาน (มี {$labcatTmtCount} รายการ) สำหรับแมปรหัสการตรวจให้ได้มาตรฐานกระทรวงฯ",
+                    "  3. hrims.labcat_ss: แคตตาล็อกแล็ป ประกันสังคม (มี {$labcatSsCount} รายการ) สำหรับตรวจสอบสิทธิประกันสังคม",
+                    "  (ในแคตตาล็อกมีฟิลด์ panel ระบุว่า 'Y' คือชุดตรวจ หรือ 'N' คือรายการเดี่ยว)",
+                    "",
+                    "(แนะนำการตั้งค่าใน HOSxP: เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดรายการตรวจทางห้องปฏิบัติการ (Lab Items)' และ 'กำหนดชุดตรวจ (Lab Sub Group)' เพื่อผูก icode และบันทึกรหัสมาตรฐาน TMLT/LOINC ให้ครบถ้วน)"
+                ];
+
+                return [
+                    'text' => "[โครงสร้างและความสัมพันธ์ของข้อมูล Lab และแคตตาล็อก]:\n" . implode("\n", $lines),
+                    'source' => [
+                        'title' => "โครงสร้างข้อมูล Lab และแคตตาล็อก HOSxP & RiMS",
+                        'filename' => 'hosxp_lab_relations',
+                        'page' => 1,
+                        'score' => 98.0,
+                        'snippet' => "สรุปความสัมพันธ์ของ lab_items, lab_items_sub_group, nondrugitems และแคตตาล็อก hrims.labcat_*"
+                    ]
+                ];
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning("Lab Context Warning: " . $e->getMessage());
             return null;
         }
     }

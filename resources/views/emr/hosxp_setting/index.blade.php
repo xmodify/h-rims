@@ -160,7 +160,7 @@
                 <h5 class="mb-1 text-dark fw-bold">
                     ข้อมูลพื้นฐาน HOSxP
                 </h5>
-                <small class="text-muted">ตรวจสอบความถูกต้องและครบถ้วนของข้อมูลแพทย์, ค่ารักษาพยาบาล (nondrugitems) และสิทธิการรักษา (pttype, สิทธิ สปสช)</small>
+                <small class="text-muted">ตรวจสอบความถูกต้องและครบถ้วนของข้อมูลแพทย์, ค่ารักษาพยาบาล, ข้อมูลยา, ข้อมูล Lab และสิทธิการรักษา</small>
             </div>
         </div>
         
@@ -182,7 +182,7 @@
     @else
         <!-- Main Layout: Left Sidebar + Right Tab Content -->
         <div class="row g-4 mb-5">
-            <!-- Left Sidebar (3 Tabs) -->
+            <!-- Left Sidebar (6 Tabs) -->
             <div class="col-xl-3 col-lg-4">
                 <div class="card border-0 shadow-sm rounded-4 sticky-setting-sidebar bg-white overflow-hidden">
                     <!-- Sidebar Header -->
@@ -192,7 +192,7 @@
                                 <i class="bi bi-grid-fill me-1 text-primary"></i> หมวดหมู่ข้อมูลพื้นฐาน
                             </span>
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
-                                4 หมวด
+                                6 หมวด
                             </span>
                         </div>
                     </div>
@@ -234,7 +234,41 @@
                                 </span>
                             </a>
 
-                            <!-- Tab 3: Pttype -->
+                            <!-- Tab 3: Drug (ข้อมูลยา) -->
+                            <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug']) }}" 
+                               class="nav-link setting-nav-btn {{ $activeTab === 'drug' ? 'active' : '' }}">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <span class="setting-nav-icon me-2.5" style="background-color: #f3e8ff; color: #9333ea;">
+                                        <i class="bi bi-capsule"></i>
+                                    </span>
+                                    <div class="text-truncate">
+                                        <div class="setting-nav-title text-truncate">ข้อมูลยา</div>
+                                        <div class="setting-nav-sub text-truncate">รายการยา, รหัส 24 หลัก, TMT, ราคาแยกเก็บ</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill setting-nav-badge">
+                                    {{ number_format($stats['drug']['active'] ?? 0) }}
+                                </span>
+                            </a>
+
+                            <!-- Tab 4: Lab (ข้อมูล Lab) -->
+                            <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab']) }}" 
+                               class="nav-link setting-nav-btn {{ $activeTab === 'lab' ? 'active' : '' }}">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <span class="setting-nav-icon me-2.5" style="background-color: #ccfbf1; color: #0d9488;">
+                                        <i class="bi bi-eyedropper"></i>
+                                    </span>
+                                    <div class="text-truncate">
+                                        <div class="setting-nav-title text-truncate">ข้อมูล Lab</div>
+                                        <div class="setting-nav-sub text-truncate">รายการตรวจเดี่ยว, ชุดตรวจ/โปรไฟล์</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill setting-nav-badge">
+                                    {{ number_format(($stats['lab']['active_items'] ?? 0) + ($stats['lab']['total_profiles'] ?? 0)) }}
+                                </span>
+                            </a>
+
+                            <!-- Tab 5: Pttype -->
                             <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype']) }}" 
                                class="nav-link setting-nav-btn {{ $activeTab === 'pttype' ? 'active' : '' }}">
                                 <div class="d-flex align-items-center text-truncate me-2">
@@ -251,7 +285,7 @@
                                 </span>
                             </a>
 
-                            <!-- Tab 4: NHSO Subinscl -->
+                            <!-- Tab 6: NHSO Subinscl -->
                             <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl']) }}" 
                                class="nav-link setting-nav-btn {{ $activeTab === 'nhso_subinscl' ? 'active' : '' }}">
                                 <div class="d-flex align-items-center text-truncate me-2">
@@ -527,6 +561,108 @@
                                 </a>
                             </div>
                         </div>
+                    @elseif($activeTab === 'drug')
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'all']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card {{ $filter === 'all' ? 'border-primary ring-1' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ยาทั้งหมด</span>
+                                            <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-capsule"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-dark mb-1">{{ number_format($stats['drug']['total'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รายการยาในระบบ HOSxP</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'active']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-success {{ $filter === 'active' ? 'border-success' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">เปิดใช้งาน (Active)</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="bi bi-check2"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-success mb-1">{{ number_format($stats['drug']['active'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ยาที่มีสถานะเปิดใช้</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'missing_code24']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'missing_code24' ? 'border-danger' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ขาดรหัส 24 หลัก</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-exclamation-octagon"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-danger mb-1">{{ number_format($stats['drug']['missing_24'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ยังไม่มี NDC 24 หลัก</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'missing_tmt']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-warning {{ $filter === 'missing_tmt' ? 'border-warning' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ขาดรหัส TMT</span>
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill"><i class="bi bi-tag"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-warning-dark mb-1">{{ number_format($stats['drug']['missing_tmt'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ยังไม่มีรหัสยามาตรฐาน TMT</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    @elseif($activeTab === 'lab')
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => 'items', 'filter' => 'active']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-primary {{ ($subTab ?? 'items') === 'items' ? 'border-primary' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">รายการตรวจเดี่ยว (Items)</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill"><i class="bi bi-eyedropper"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-primary mb-1">{{ number_format($stats['lab']['active_items'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รายการเดี่ยวที่เปิดใช้งาน</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => 'profiles', 'filter' => 'all']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-info {{ ($subTab ?? 'items') === 'profiles' ? 'border-info' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ชุดตรวจ / Profile</span>
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill"><i class="bi bi-collection"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-info mb-1">{{ number_format($stats['lab']['total_profiles'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ชุดตรวจโปรไฟล์ในระบบ</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'unmapped']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'unmapped' ? 'border-danger' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ยังไม่ผูก icode ค่ารักษา</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-link-45deg"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-danger mb-1">{{ number_format(($subTab ?? 'items') === 'profiles' ? ($stats['lab']['unmapped_profiles'] ?? 0) : ($stats['lab']['unmapped_items'] ?? 0)) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">คิดเงิน/ส่งเบิกเคลมไม่ได้</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'missing_tmlt']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-warning {{ $filter === 'missing_tmlt' ? 'border-warning' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ขาดรหัส TMLT</span>
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill"><i class="bi bi-exclamation-triangle"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-warning-dark mb-1">{{ number_format($stats['lab']['missing_tmlt'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ยังไม่มีรหัสมาตรฐาน TMLT</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
                     @elseif($activeTab === 'pttype')
                         <div class="row g-3 mb-4">
                             <div class="col-6 col-md-3">
@@ -629,7 +765,7 @@
                         </div>
                     @endif
 
-                    <!-- 2. MAIN DATA TABLE CARD FOR NONDRUGITEMS & PTTYPE -->
+                    <!-- 2. MAIN DATA TABLE CARD -->
                     <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
                         <!-- Filter Toolbar -->
                         <div class="p-3 px-4 bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -648,6 +784,57 @@
                                     <a href="{{ route('emr.hosxp_setting', ['tab' => 'nondrugitems', 'filter' => 'missing_adp']) }}" 
                                        class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_adp' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
                                        <i class="bi bi-exclamation-circle me-1"></i>ยังไม่ผูกรหัส ADP ({{ $stats['nondrugitems']['missing_adp'] }})
+                                    </a>
+                                @elseif($activeTab === 'drug')
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">ทั้งหมด</a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'active']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-success text-white' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-check-circle me-1"></i>เปิดใช้งาน (Active) ({{ number_format($stats['drug']['active'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'missing_code24']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_code24' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-exclamation-octagon me-1"></i>ขาดรหัส 24 หลัก ({{ number_format($stats['drug']['missing_24'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'missing_tmt']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_tmt' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-tag me-1"></i>ขาดรหัส TMT ({{ number_format($stats['drug']['missing_tmt'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'drug', 'filter' => 'inactive']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'inactive' ? 'btn-secondary text-white' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-eye-slash me-1"></i>ปิดใช้งาน ({{ number_format($stats['drug']['inactive'] ?? 0) }})
+                                    </a>
+                                @elseif($activeTab === 'lab')
+                                    <div class="btn-group me-2" role="group">
+                                        <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => 'items', 'filter' => $filter === 'all' ? 'all' : 'active']) }}" 
+                                           class="btn btn-sm px-3 {{ ($subTab ?? 'items') === 'items' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary' }}" style="border-radius: 20px 0 0 20px;">
+                                           <i class="bi bi-eyedropper me-1"></i>รายการตรวจเดี่ยว (Items)
+                                        </a>
+                                        <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => 'profiles', 'filter' => 'all']) }}" 
+                                           class="btn btn-sm px-3 {{ ($subTab ?? 'items') === 'profiles' ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary' }}" style="border-radius: 0 20px 20px 0;">
+                                           <i class="bi bi-collection me-1"></i>ชุดตรวจ / Profile ({{ number_format($stats['lab']['total_profiles'] ?? 0) }})
+                                        </a>
+                                    </div>
+                                    <span class="text-muted small mx-1">|</span>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">ทั้งหมด</a>
+                                    @if(($subTab ?? 'items') === 'items')
+                                        <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => 'items', 'filter' => 'active']) }}" 
+                                           class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-success text-white' : 'btn-light text-muted' }}">
+                                           <i class="bi bi-check-circle me-1"></i>เปิดใช้งาน
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'mapped']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'mapped' ? 'btn-info text-white' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-link-45deg me-1"></i>ผูก icode แล้ว
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'unmapped']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'unmapped' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-exclamation-circle me-1"></i>ยังไม่ผูก icode (คิดเงินไม่ได้)
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'lab', 'subtab' => $subTab ?? 'items', 'filter' => 'missing_tmlt']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'missing_tmlt' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-tag me-1"></i>ขาด TMLT
                                     </a>
                                 @elseif($activeTab === 'pttype')
                                     <a href="{{ route('emr.hosxp_setting', ['tab' => 'pttype', 'filter' => 'active']) }}" 
@@ -761,7 +948,412 @@
                                             @endforeach
                                         </tbody>
                                     </table>
-
+                                @elseif($activeTab === 'drug')
+                                    {{-- 2. Drug Items Table (ข้อมูลยา HOSxP) --}}
+                                    <table id="table-drugitems" class="table data-table-modern w-100 align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-center" style="width: 75px;">icode</th>
+                                                <th class="text-start" style="min-width: 220px;">ชื่อยา / ความแรง / รูปแบบ</th>
+                                                <th class="text-start" style="width: 140px;">หมวดรายได้</th>
+                                                <th class="text-center" style="width: 190px;">บัญชียา / รหัส 24 หลัก</th>
+                                                <th class="text-center" style="width: 110px;">รหัส TMT</th>
+                                                <th class="text-end" style="width: 105px;">ราคา OPD 1</th>
+                                                <th class="text-end" style="width: 95px;">ราคา IPD</th>
+                                                <th class="text-end" style="width: 95px;">ราคาทุน</th>
+                                                <th class="text-end" style="width: 95px;">กรมบัญชีกลาง</th>
+                                                <th class="text-center" style="width: 110px;">แคตตาล็อก สปสช.</th>
+                                                <th class="text-center" style="width: 85px;">สถานะ</th>
+                                                <th class="text-center" style="width: 70px;">ผลตรวจ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($records as $item)
+                                                <tr>
+                                                    <td class="text-center"><span class="code-badge fw-bold">{{ $item->icode }}</span></td>
+                                                    <td>
+                                                        <div class="fw-bold text-dark">{{ $item->name }}</div>
+                                                        <div class="small text-muted d-flex align-items-center gap-2 flex-wrap mt-0.5">
+                                                            @if(!empty($item->strength))
+                                                                <span class="badge bg-light text-dark border">{{ $item->strength }}</span>
+                                                            @endif
+                                                            @if(!empty($item->dosageform))
+                                                                <span>{{ $item->dosageform }}</span>
+                                                            @endif
+                                                            @if(!empty($item->units))
+                                                                <span>({{ $item->units }})</span>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if(!empty($item->income))
+                                                            <span class="badge bg-light text-dark border" title="{{ $item->income_name ?? '' }}">
+                                                                [{{ $item->income }}] {{ \Illuminate\Support\Str::limit($item->income_name ?? 'ไม่ระบุ', 16) }}
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">⚠️ ไม่ระบุ</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="d-flex flex-column align-items-center gap-1">
+                                                            @if(!empty($item->drugaccount))
+                                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary font-monospace py-0.5 px-2" style="font-size: 0.72rem;">{{ $item->drugaccount }}</span>
+                                                            @endif
+                                                            @if($item->has_24)
+                                                                <span class="font-monospace text-dark small" style="font-size: 0.74rem;" title="รหัส 24 หลัก: {{ $item->resolved_code_24 }}">
+                                                                    {{ substr($item->resolved_code_24, 0, 10) }}...{{ substr($item->resolved_code_24, -6) }}
+                                                                </span>
+                                                            @else
+                                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger" style="font-size: 0.7rem;">⚠️ ขาดรหัส 24 หลัก</span>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($item->has_tmt)
+                                                            <span class="font-monospace fw-semibold text-secondary small">{{ $item->resolved_code_tmt }}</span>
+                                                        @else
+                                                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning" style="font-size: 0.7rem;">⚠️ ขาด TMT</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end font-monospace">
+                                                        <span class="fw-bold text-dark">{{ number_format($item->unitprice ?? 0, 2) }}</span>
+                                                        @if(($item->price2 ?? 0) > 0 || ($item->price3 ?? 0) > 0)
+                                                            <div class="text-muted" style="font-size: 0.68rem;">
+                                                                p2: {{ number_format($item->price2 ?? 0, 1) }} | p3: {{ number_format($item->price3 ?? 0, 1) }}
+                                                            </div>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end font-monospace">
+                                                        <span class="text-dark">{{ number_format($item->ipd_price ?? 0, 2) }}</span>
+                                                    </td>
+                                                    <td class="text-end font-monospace text-muted small">
+                                                        {{ number_format($item->unitcost ?? 0, 2) }}
+                                                    </td>
+                                                    <td class="text-end font-monospace">
+                                                        @if(($item->sks_price ?? 0) > 0 || ($item->sks_reimb_price ?? 0) > 0)
+                                                            <span class="text-primary fw-semibold">{{ number_format($item->sks_price ?: $item->sks_reimb_price, 2) }}</span>
+                                                        @else
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(!empty($item->nhso_price))
+                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace" style="font-size: 0.72rem;" title="ราคา สปสช: {{ number_format($item->nhso_price, 2) }} บ. ({{ $item->nhso_ised ?? '-' }})">
+                                                                {{ number_format($item->nhso_price, 2) }} บ.
+                                                            </span>
+                                                        @else
+                                                            <span class="text-muted small" style="font-size: 0.7rem;">ไม่พบแคตตาล็อก</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->istatus ?? '') === 'Y')
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">Active</span>
+                                                        @else
+                                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">Inactive</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $item->item_errors ?? []) }}">
+                                                        @if($item->is_valid)
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / ครบถ้วน">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $drugDetails = [
+                                                                    'รหัสยา (icode)' => $item->icode,
+                                                                    'ชื่อยา' => $item->name . ($item->strength ? ' ' . $item->strength : ''),
+                                                                    'หมวดรายได้' => ($item->income_name ?? '') ?: (($item->income ?? '') ?: 'ไม่ได้ระบุ'),
+                                                                    'บัญชียา' => $item->drugaccount ?: 'ไม่ระบุ',
+                                                                    'รหัส 24 หลัก' => $item->resolved_code_24 ?: 'ไม่มี',
+                                                                    'รหัส TMT' => $item->resolved_code_tmt ?: 'ไม่มี',
+                                                                    'ราคา OPD 1' => number_format($item->unitprice ?? 0, 2) . ' บ.',
+                                                                    'ราคา OPD 2 / 3' => number_format($item->price2 ?? 0, 2) . ' / ' . number_format($item->price3 ?? 0, 2) . ' บ.',
+                                                                    'ราคา IPD' => number_format($item->ipd_price ?? 0, 2) . ' บ.',
+                                                                    'ราคาทุน' => number_format($item->unitcost ?? 0, 2) . ' บ.',
+                                                                    'ราคากลาง' => number_format($item->stdprice ?? 0, 2) . ' บ.',
+                                                                    'ราคาเบิกตรงกรมบัญชีกลาง' => number_format($item->sks_price ?? 0, 2) . ' บ.',
+                                                                    'แคตตาล็อก สปสช.' => !empty($item->nhso_price) ? (number_format($item->nhso_price, 2) . ' บ. (' . ($item->nhso_ised ?? '-') . ')') : 'ไม่พบใน drugcat_nhso',
+                                                                    'สถานะ' => (($item->istatus ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="ข้อมูลยา"
+                                                                    data-code="{{ $item->icode }}"
+                                                                    data-name="{{ $item->name }}"
+                                                                    data-errors='@json($item->item_errors ?? [])'
+                                                                    data-details='@json($drugDetails)'
+                                                                    title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                @elseif($activeTab === 'lab')
+                                    {{-- 3. Lab Data Table (ข้อมูล Lab HOSxP) --}}
+                                    @if(($subTab ?? 'items') === 'profiles')
+                                        {{-- Subtab: ชุดตรวจ / Profile (lab_items_sub_group) --}}
+                                        <table id="table-labprofiles" class="table data-table-modern w-100 align-middle">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center" style="width: 80px;">รหัสกลุ่ม</th>
+                                                    <th class="text-start" style="min-width: 200px;">ชื่อชุดตรวจ / Profile</th>
+                                                    <th class="text-start" style="min-width: 220px;">ผูกรหัสค่ารักษา (group_icode)</th>
+                                                    <th class="text-center" style="width: 140px;">รหัส TMLT / LOINC</th>
+                                                    <th class="text-end" style="width: 110px;">ราคาชุดตรวจ OPD</th>
+                                                    <th class="text-end" style="width: 100px;">ราคา IPD</th>
+                                                    <th class="text-center" style="width: 110px;">กรมบัญชีกลาง</th>
+                                                    <th class="text-center" style="width: 85px;">สถานะ</th>
+                                                    <th class="text-center" style="width: 70px;">ผลตรวจ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($records as $item)
+                                                    <tr>
+                                                        <td class="text-center"><span class="code-badge fw-bold">{{ $item->lab_items_sub_group_code }}</span></td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark">{{ $item->lab_items_sub_group_name }}</div>
+                                                        </td>
+                                                        <td>
+                                                            @if($item->is_mapped)
+                                                                <div>
+                                                                    <span class="code-badge fw-bold me-1">{{ $item->group_icode }}</span>
+                                                                    <span class="text-dark small fw-semibold">{{ $item->nondrug_name }}</span>
+                                                                </div>
+                                                                <div class="small text-muted">
+                                                                    ราคาค่ารักษา: <span class="font-monospace">{{ number_format($item->nondrug_price ?? 0, 2) }}</span> บ.
+                                                                </div>
+                                                            @else
+                                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
+                                                                    ⚠️ ยังไม่ผูก icode (คิดเงินไม่ได้)
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(!empty($item->tmlt_code))
+                                                                <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace">{{ $item->tmlt_code }}</span>
+                                                            @else
+                                                                <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning" style="font-size: 0.7rem;">⚠️ ขาด TMLT</span>
+                                                            @endif
+                                                            @if(!empty($item->loinc_code))
+                                                                <div class="small text-muted font-monospace">{{ $item->loinc_code }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-end font-monospace fw-bold text-dark">
+                                                            {{ number_format($item->group_price ?? 0, 2) }} บ.
+                                                        </td>
+                                                        <td class="text-end font-monospace text-dark">
+                                                            {{ number_format($item->group_price_ipd ?? 0, 2) }} บ.
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(!empty($item->chi_price))
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success font-monospace" style="font-size: 0.72rem;" title="ราคาเบิกชดเชย: {{ number_format($item->chi_reimb ?? 0, 2) }} บ.">
+                                                                    {{ number_format($item->chi_price, 2) }} บ.
+                                                                </span>
+                                                            @else
+                                                                <span class="text-muted small">-</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(($item->active_status ?? '') === 'Y')
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">Active</span>
+                                                            @else
+                                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">Inactive</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $item->item_errors ?? []) }}">
+                                                            @if($item->is_valid)
+                                                                <span class="d-none">2</span>
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / ครบถ้วน">
+                                                                    <i class="bi bi-eye-fill fs-6"></i>
+                                                                </span>
+                                                            @else
+                                                                <span class="d-none">1</span>
+                                                                @php
+                                                                    $profileDetails = [
+                                                                        'รหัสชุดตรวจ' => $item->lab_items_sub_group_code,
+                                                                        'ชื่อชุดตรวจ / Profile' => $item->lab_items_sub_group_name,
+                                                                        'รหัสค่ารักษา (group_icode)' => ($item->group_icode ?? '') ?: '⚠️ ยังไม่ผูก',
+                                                                        'ชื่อใน nondrugitems' => ($item->nondrug_name ?? '') ?: 'ไม่พบรายการใน nondrugitems',
+                                                                        'ราคาค่ารักษา (nondrugitems)' => number_format($item->nondrug_price ?? 0, 2) . ' บ.',
+                                                                        'ราคาชุดตรวจ OPD (group_price)' => number_format($item->group_price ?? 0, 2) . ' บ.',
+                                                                        'ราคาชุดตรวจ IPD' => number_format($item->group_price_ipd ?? 0, 2) . ' บ.',
+                                                                        'รหัส TMLT' => ($item->tmlt_code ?? '') ?: 'ไม่มี',
+                                                                        'รหัส LOINC' => ($item->loinc_code ?? '') ?: 'ไม่มี',
+                                                                        'แคตตาล็อก กรมบัญชีกลาง' => !empty($item->chi_price) ? (number_format($item->chi_price, 2) . ' บ. (ชดเชย ' . number_format($item->chi_reimb ?? 0, 2) . ' บ.)') : 'ไม่พบใน labcat_chi',
+                                                                        'สถานะ' => (($item->active_status ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
+                                                                    ];
+                                                                @endphp
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                        style="width: 32px; height: 32px;"
+                                                                        data-category="ข้อมูลชุดตรวจ Lab"
+                                                                        data-code="{{ $item->lab_items_sub_group_code }}"
+                                                                        data-name="{{ $item->lab_items_sub_group_name }}"
+                                                                        data-errors='@json($item->item_errors ?? [])'
+                                                                        data-details='@json($profileDetails)'
+                                                                        title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                    <i class="bi bi-eye-fill fs-6"></i>
+                                                                </button>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    @else
+                                        {{-- Subtab: รายการตรวจเดี่ยว (Items - lab_items) --}}
+                                        <table id="table-labitems" class="table data-table-modern w-100 align-middle">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center" style="width: 75px;">รหัส</th>
+                                                    <th class="text-start" style="min-width: 200px;">ชื่อการตรวจวิเคราะห์ / กลุ่มแล็ป</th>
+                                                    <th class="text-start" style="min-width: 220px;">ผูกรหัสค่ารักษา (icode)</th>
+                                                    <th class="text-center" style="width: 140px;">รหัส TMLT / LOINC</th>
+                                                    <th class="text-start" style="width: 160px;">ค่าปกติ / ค่าวิกฤต</th>
+                                                    <th class="text-end" style="width: 105px;">ค่าบริการ OPD</th>
+                                                    <th class="text-end" style="width: 95px;">ค่าบริการ IPD</th>
+                                                    <th class="text-center" style="width: 105px;">กรมบัญชีกลาง</th>
+                                                    <th class="text-center" style="width: 85px;">สถานะ</th>
+                                                    <th class="text-center" style="width: 70px;">ผลตรวจ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($records as $item)
+                                                    <tr>
+                                                        <td class="text-center"><span class="code-badge fw-bold">{{ $item->lab_items_code }}</span></td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark">{{ $item->lab_items_name }}</div>
+                                                            <div class="small text-muted d-flex align-items-center gap-2 flex-wrap mt-0.5">
+                                                                @if(!empty($item->lab_items_group_name))
+                                                                    <span class="badge bg-light text-dark border">{{ $item->lab_items_group_name }}</span>
+                                                                @endif
+                                                                @if(!empty($item->lab_items_sub_group_name))
+                                                                    <span>ชุดตรวจ: {{ $item->lab_items_sub_group_name }}</span>
+                                                                @endif
+                                                                @if(!empty($item->specimen_name))
+                                                                    <span class="text-secondary"><i class="bi bi-droplet-half me-0.5"></i>{{ $item->specimen_name }}</span>
+                                                                @endif
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            @if($item->is_mapped)
+                                                                <div>
+                                                                    <span class="code-badge fw-bold me-1">{{ $item->icode }}</span>
+                                                                    <span class="text-dark small fw-semibold">{{ $item->nondrug_name }}</span>
+                                                                </div>
+                                                                <div class="small text-muted">
+                                                                    ราคาค่ารักษา: <span class="font-monospace">{{ number_format($item->nondrug_price ?? 0, 2) }}</span> บ.
+                                                                </div>
+                                                            @else
+                                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
+                                                                    ⚠️ ยังไม่ผูก icode (คิดเงินไม่ได้)
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(!empty($item->tmlt_code))
+                                                                <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace">{{ $item->tmlt_code }}</span>
+                                                            @else
+                                                                <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning" style="font-size: 0.7rem;">⚠️ ขาด TMLT</span>
+                                                            @endif
+                                                            @if(!empty($item->loinc_code))
+                                                                <div class="small text-muted font-monospace">{{ $item->loinc_code }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if(!empty($item->lab_items_normal_value))
+                                                                <div class="small fw-semibold text-dark">
+                                                                    {{ $item->lab_items_normal_value }}
+                                                                    @if(!empty($item->lab_items_unit))
+                                                                        <span class="text-muted fw-normal">({{ $item->lab_items_unit }})</span>
+                                                                    @endif
+                                                                </div>
+                                                            @else
+                                                                <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">ไม่ได้ระบุค่าปกติ</span>
+                                                            @endif
+                                                            @if(!empty($item->critical_value))
+                                                                <div class="small text-danger" style="font-size: 0.7rem;">
+                                                                    วิกฤต: {{ $item->critical_value }}
+                                                                </div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-end font-monospace fw-bold text-dark">
+                                                            {{ number_format($item->service_price ?? 0, 2) }}
+                                                        </td>
+                                                        <td class="text-end font-monospace text-dark">
+                                                            {{ number_format($item->service_price_ipd ?? 0, 2) }}
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(!empty($item->chi_price))
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success font-monospace" style="font-size: 0.72rem;" title="ราคาเบิกชดเชย: {{ number_format($item->chi_reimb ?? 0, 2) }} บ.">
+                                                                    {{ number_format($item->chi_price, 2) }} บ.
+                                                                </span>
+                                                            @else
+                                                                <span class="text-muted small">-</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if(($item->active_status ?? '') === 'Y')
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">Active</span>
+                                                            @else
+                                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1 rounded-pill">Inactive</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ผิดพลาด ข้อผิดพลาด ไม่ผ่าน ' . implode(' ', $item->item_errors ?? []) }}">
+                                                            @if($item->is_valid)
+                                                                <span class="d-none">2</span>
+                                                                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ / ครบถ้วน">
+                                                                    <i class="bi bi-eye-fill fs-6"></i>
+                                                                </span>
+                                                            @else
+                                                                <span class="d-none">1</span>
+                                                                @php
+                                                                    $labItemDetails = [
+                                                                        'รหัสแล็ป' => $item->lab_items_code,
+                                                                        'ชื่อการตรวจวิเคราะห์' => $item->lab_items_name,
+                                                                        'รหัสค่ารักษา (icode)' => ($item->icode ?? '') ?: '⚠️ ยังไม่ผูก',
+                                                                        'ชื่อใน nondrugitems' => ($item->nondrug_name ?? '') ?: 'ไม่พบรายการใน nondrugitems',
+                                                                        'ราคาค่ารักษา (nondrugitems)' => number_format($item->nondrug_price ?? 0, 2) . ' บ.',
+                                                                        'ค่าบริการ OPD' => number_format($item->service_price ?? 0, 2) . ' บ.',
+                                                                        'ค่าบริการ IPD' => number_format($item->service_price_ipd ?? 0, 2) . ' บ.',
+                                                                        'ต้นทุนบริการ' => number_format($item->service_cost ?? 0, 2) . ' บ.',
+                                                                        'กลุ่มการตรวจ' => ($item->lab_items_group_name ?? '') ?: '-',
+                                                                        'ชุดตรวจย่อย' => ($item->lab_items_sub_group_name ?? '') ?: '-',
+                                                                        'สิ่งส่งตรวจ' => ($item->specimen_name ?? '') ?: '-',
+                                                                        'ค่าปกติ (Normal Value)' => ($item->lab_items_normal_value ?? '') ?: 'ไม่ได้ระบุ',
+                                                                        'ค่าวิกฤต (Critical Value)' => ($item->critical_value ?? '') ?: 'ไม่ได้ระบุ',
+                                                                        'หน่วย' => ($item->lab_items_unit ?? '') ?: '-',
+                                                                        'รหัส TMLT' => ($item->tmlt_code ?? '') ?: 'ไม่มี',
+                                                                        'รหัส LOINC' => ($item->loinc_code ?? '') ?: 'ไม่มี',
+                                                                        'แคตตาล็อก กรมบัญชีกลาง' => !empty($item->chi_price) ? (number_format($item->chi_price, 2) . ' บ. (ชดเชย ' . number_format($item->chi_reimb ?? 0, 2) . ' บ.)') : 'ไม่พบใน labcat_chi',
+                                                                        'สถานะ' => (($item->active_status ?? '') === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive'
+                                                                    ];
+                                                                @endphp
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                        style="width: 32px; height: 32px;"
+                                                                        data-category="ข้อมูลรายการตรวจ Lab"
+                                                                        data-code="{{ $item->lab_items_code }}"
+                                                                        data-name="{{ $item->lab_items_name }}"
+                                                                        data-errors='@json($item->item_errors ?? [])'
+                                                                        data-details='@json($labItemDetails)'
+                                                                        title="พบข้อผิดพลาด (คลิกดูสาเหตุ)">
+                                                                    <i class="bi bi-eye-fill fs-6"></i>
+                                                                </button>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    @endif
                                 @elseif($activeTab === 'pttype')
                                     {{-- 3. Pttype Table (สิทธิการรักษา HOSxP) --}}
                                     @php
@@ -1096,6 +1688,65 @@
                     }
                 });
             }
+        @elseif($activeTab === 'drug')
+            if ($('#table-drugitems').length && !$.fn.DataTable.isDataTable('#table-drugitems')) {
+                $('#table-drugitems').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'ข้อมูลยา HOSxP'
+                        }
+                    ],
+                    pageLength: 10,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[0, 'asc']],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        infoEmpty: "ไม่พบข้อมูล",
+                        infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                        zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    },
+                    drawCallback: function () {
+                        initTooltips();
+                    }
+                });
+            }
+        @elseif($activeTab === 'lab')
+            const labTableId = $('#table-labprofiles').length ? '#table-labprofiles' : '#table-labitems';
+            if ($(labTableId).length && !$.fn.DataTable.isDataTable(labTableId)) {
+                $(labTableId).DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'ข้อมูล Lab HOSxP'
+                        }
+                    ],
+                    pageLength: 10,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[0, 'asc']],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        infoEmpty: "ไม่พบข้อมูล",
+                        infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                        zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    },
+                    drawCallback: function () {
+                        initTooltips();
+                    }
+                });
+            }
         @elseif($activeTab === 'pttype')
             if ($('#table-pttype').length && !$.fn.DataTable.isDataTable('#table-pttype')) {
                 $('#table-pttype').DataTable({
@@ -1204,6 +1855,34 @@
             'ไม่พบรหัสสิทธินี้ในตาราง pttype ของ HOSxP': {
                 desc: 'รหัสสิทธิย่อย สปสช (Sub-Insurance Class) นี้ยังไม่มีการตั้งค่ารหัสสิทธิที่ตรงกันในตาราง pttype ของ HOSxP',
                 action: 'เข้าเมนูตั้งค่าสิทธิการรักษา (pttype) ใน HOSxP แล้วเพิ่มรหัสสิทธินี้ หรือตรวจสอบการจับคู่รหัสระหว่าง สปสช กับ HOSxP'
+            },
+            'ยังไม่มีรหัสมาตรฐาน 24 หลัก (NDC 24 digits)': {
+                desc: 'รายการยานี้ยังไม่มีรหัสมาตรฐาน 24 หลักของ สปสช. (ndc24) หรือผูกใน drugitems_ref_code (type 1)',
+                action: 'เข้าเมนูตั้งค่ายา (drugitems) ใน HOSxP แล้วผูกรหัส 24 หลักให้ถูกต้อง เพื่อให้สามารถส่งออกข้อมูล 16 แฟ้ม/FDH และเบิกชดเชยค่ายาได้'
+            },
+            'ยังไม่มีรหัสยามาตรฐาน TMT': {
+                desc: 'รายการยานี้ยังไม่มีการระบุรหัสมาตรฐาน TMT (Thai Medicines Terminology) หรือผูกใน drugitems_ref_code (type 3)',
+                action: 'เข้าเมนูตั้งค่ายา (drugitems) ใน HOSxP แล้วผูกรหัส TMT (tmt_tp_code หรือ ref_code type 3) ให้สอดคล้องกับบัญชียา'
+            },
+            'ยังไม่ได้ระบุราคาจำหน่าย OPD (unitprice)': {
+                desc: 'รายการยาเปิดใช้งานแต่ราคาขายผู้ป่วยนอก (unitprice) เป็น 0 หรือยังไม่ได้ระบุ',
+                action: 'ตรวจสอบและกำหนดราคาจำหน่ายยา OPD (unitprice), IPD (ipd_price) และราคาทุนใน HOSxP ให้ถูกต้อง'
+            },
+            'ยังไม่ผูกรหัสค่ารักษา (icode ใน nondrugitems) ทำให้คิดค่าบริการและส่งเคลมไม่ได้': {
+                desc: 'รายการตรวจแล็ปนี้ยังไม่ได้ผูกรหัสค่ารักษาพยาบาล (icode) เข้ากับตาราง nondrugitems ทำให้ระบบคิดเงินคนไข้ไม่ได้และส่งเบิกเคลมไม่ได้',
+                action: 'เข้าเมนูตั้งค่ารายการตรวจแล็ป (lab_items) ใน HOSxP แล้วเลือกผูกรหัสค่ารักษาพยาบาล (icode) ให้ตรงกับรายการค่าตรวจใน nondrugitems'
+            },
+            'ยังไม่ผูกรหัสค่ารักษาชุดตรวจ (group_icode ใน nondrugitems) ทำให้คิดค่าบริการและส่งเคลมไม่ได้': {
+                desc: 'ชุดตรวจแล็ป (Profile/Panel) นี้ยังไม่ได้ระบุ group_icode เพื่อผูกกับรายการค่ารักษาใน nondrugitems',
+                action: 'เข้าเมนูตั้งค่ากลุ่มแล็ป (lab_items_sub_group) ใน HOSxP แล้วเลือกผูกรหัสค่ารักษาชุดตรวจ (group_icode) ใน nondrugitems'
+            },
+            'ยังไม่ได้ระบุรหัสมาตรฐาน TMLT': {
+                desc: 'ยังไม่มีการผูกรหัสมาตรฐานการตรวจทางห้องปฏิบัติการ TMLT (Thai Medical Laboratory Terminology)',
+                action: 'เข้าเมนูตั้งค่าแล็ปใน HOSxP แล้วระบุรหัส TMLT ให้ตรงกับการตรวจวิเคราะห์ เพื่อรองรับการส่งออกข้อมูลมาตรฐานกระทรวงฯ'
+            },
+            'ยังไม่กำหนดค่าปกติ (Normal Value)': {
+                desc: 'รายการตรวจวิเคราะห์นี้ยังไม่ได้ระบุช่วงค่าอ้างอิงปกติ (lab_items_normal_value)',
+                action: 'เข้าเมนู lab_items ใน HOSxP แล้วระบุค่าปกติและหน่วยอ้างอิงของการตรวจ เพื่อให้แพทย์และพยาบาลแปลผลตรวจได้ถูกต้อง'
             }
         };
 

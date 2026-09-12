@@ -280,10 +280,70 @@ class HosxpSettingController extends Controller
             ];
         }
 
+        // Stats for drug
+        try {
+            $drugTotal = $hosxp->table('drugitems')->count();
+            $drugActive = $hosxp->table('drugitems')->where('istatus', 'Y')->count();
+            $drugMissing24 = $hosxp->select("
+                SELECT COUNT(*) as c FROM drugitems d
+                LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 1
+                WHERE d.istatus = 'Y' AND (d.did IS NULL OR LENGTH(TRIM(d.did)) < 24) AND (r.ref_code IS NULL OR LENGTH(TRIM(r.ref_code)) < 24)
+            ")[0]->c ?? 0;
+            $drugMissingTmt = $hosxp->select("
+                SELECT COUNT(*) as c FROM drugitems d
+                LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 3
+                WHERE d.istatus = 'Y' AND (d.tmt_tp_code IS NULL OR d.tmt_tp_code = '') AND (r.ref_code IS NULL OR r.ref_code = '')
+            ")[0]->c ?? 0;
+
+            $stats['drug'] = [
+                'total' => $drugTotal,
+                'active' => $drugActive,
+                'inactive' => $drugTotal - $drugActive,
+                'missing_24' => $drugMissing24,
+                'missing_tmt' => $drugMissingTmt,
+                'health_rate' => $drugActive > 0 ? round((($drugActive - $drugMissing24) / $drugActive) * 100, 1) : 100,
+            ];
+        } catch (\Throwable $e) {
+            $stats['drug'] = ['total' => 0, 'active' => 0, 'inactive' => 0, 'missing_24' => 0, 'missing_tmt' => 0, 'health_rate' => 100];
+        }
+
+        // Stats for lab
+        try {
+            $labTotal = $hosxp->table('lab_items')->count();
+            $labActive = $hosxp->table('lab_items')->where('active_status', 'Y')->count();
+            $labUnmapped = $hosxp->select("
+                SELECT COUNT(*) as c FROM lab_items l
+                LEFT JOIN nondrugitems n ON n.icode = l.icode
+                WHERE l.active_status = 'Y' AND (l.icode IS NULL OR l.icode = '' OR n.icode IS NULL)
+            ")[0]->c ?? 0;
+            $labMissingTmlt = $hosxp->table('lab_items')->where('active_status', 'Y')->where(function($q) {
+                $q->whereNull('tmlt_code')->orWhere('tmlt_code', '');
+            })->count();
+            $labProfileTotal = $hosxp->table('lab_items_sub_group')->count();
+            $labProfileUnmapped = $hosxp->select("
+                SELECT COUNT(*) as c FROM lab_items_sub_group sg
+                LEFT JOIN nondrugitems n ON n.icode = sg.group_icode
+                WHERE (sg.active_status <> 'N' OR sg.active_status IS NULL) AND (sg.group_icode IS NULL OR sg.group_icode = '' OR n.icode IS NULL)
+            ")[0]->c ?? 0;
+
+            $stats['lab'] = [
+                'total_items' => $labTotal,
+                'active_items' => $labActive,
+                'unmapped_items' => $labUnmapped,
+                'missing_tmlt' => $labMissingTmlt,
+                'total_profiles' => $labProfileTotal,
+                'unmapped_profiles' => $labProfileUnmapped,
+                'health_rate' => $labActive > 0 ? round((($labActive - $labUnmapped) / $labActive) * 100, 1) : 100,
+            ];
+        } catch (\Throwable $e) {
+            $stats['lab'] = ['total_items' => 0, 'active_items' => 0, 'unmapped_items' => 0, 'missing_tmlt' => 0, 'total_profiles' => 0, 'unmapped_profiles' => 0, 'health_rate' => 100];
+        }
+
         // ==========================================
         // 2. Query Tab Records with Pagination & Search
         // ==========================================
         $records = collect();
+        $subTab = $request->input('subtab', 'items');
 
         if ($activeTab === 'doctor') {
             // Handled via $doctorTabConfigs and client-side DataTables matching check/doctor
@@ -456,6 +516,203 @@ class HosxpSettingController extends Controller
                 $row->item_errors = $rowErrors;
                 $row->is_valid = empty($rowErrors);
             }
+        } elseif ($activeTab === 'drug') {
+            $localDb = config('database.connections.mysql.database');
+            $queryRows = $hosxp->select("
+                SELECT d.icode, d.name, d.strength, d.units, d.dosageform, d.drugaccount,
+                       d.unitprice, d.price2, d.price3, d.ipd_price, d.ipd_price2, d.ipd_price3,
+                       d.unitcost, d.stdprice, d.sks_price, d.sks_reimb_price,
+                       d.did, d2.ref_code AS code_24, d.tmt_tp_code, d3.ref_code AS code_tmt,
+                       d.nhso_adp_code, d.income, i.name AS income_name, d.istatus,
+                       nd.unitprice AS nhso_price, nd.ised AS nhso_ised, nd.ndc24 AS code_24_nhso
+                FROM drugitems d
+                LEFT JOIN income i ON i.income = d.income
+                LEFT JOIN drugitems_ref_code d2 ON d2.icode = d.icode AND d2.drugitems_ref_code_type_id = 1
+                LEFT JOIN drugitems_ref_code d3 ON d3.icode = d.icode AND d3.drugitems_ref_code_type_id = 3
+                LEFT JOIN (
+                    SELECT hospdrugcode, unitprice, ised, ndc24
+                    FROM {$localDb}.drugcat_nhso
+                    GROUP BY hospdrugcode
+                ) nd ON nd.hospdrugcode = d.icode
+                ORDER BY d.istatus DESC, d.name ASC, d.icode ASC
+            ");
+
+            // Validate each drug record
+            foreach ($queryRows as $item) {
+                $code24 = !empty($item->code_24) ? trim($item->code_24) : trim($item->did ?? '');
+                $codeTmt = !empty($item->code_tmt) ? trim($item->code_tmt) : trim($item->tmt_tp_code ?? '');
+                $has24 = (strlen($code24) >= 24);
+                $hasTmt = !empty($codeTmt);
+
+                $item->resolved_code_24 = $code24;
+                $item->resolved_code_tmt = $codeTmt;
+                $item->has_24 = $has24;
+                $item->has_tmt = $hasTmt;
+
+                $itemErrors = [];
+                if (!$has24) {
+                    $itemErrors[] = 'ยังไม่มีรหัสมาตรฐาน 24 หลัก (NDC 24 digits)';
+                }
+                if (!$hasTmt) {
+                    $itemErrors[] = 'ยังไม่มีรหัสยามาตรฐาน TMT';
+                }
+                if (empty(trim($item->income ?? ''))) {
+                    $itemErrors[] = 'ยังไม่ระบุหมวดรายได้ (income)';
+                }
+                if (($item->unitprice ?? 0) <= 0) {
+                    $itemErrors[] = 'ยังไม่ได้ระบุราคาจำหน่าย OPD (unitprice)';
+                }
+
+                $item->item_errors = $itemErrors;
+                $item->is_valid = empty($itemErrors);
+            }
+
+            if ($filter === 'active') {
+                $queryRows = array_filter($queryRows, fn($r) => ($r->istatus ?? '') === 'Y');
+            } elseif ($filter === 'inactive') {
+                $queryRows = array_filter($queryRows, fn($r) => ($r->istatus ?? '') !== 'Y');
+            } elseif ($filter === 'missing_code24') {
+                $queryRows = array_filter($queryRows, fn($r) => ($r->istatus ?? '') === 'Y' && !$r->has_24);
+            } elseif ($filter === 'missing_tmt') {
+                $queryRows = array_filter($queryRows, fn($r) => ($r->istatus ?? '') === 'Y' && !$r->has_tmt);
+            }
+
+            if (!empty($search)) {
+                $searchLower = mb_strtolower($search);
+                $queryRows = array_filter($queryRows, function ($r) use ($searchLower) {
+                    return str_contains(mb_strtolower($r->icode ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->name ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->strength ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->resolved_code_24 ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->resolved_code_tmt ?? ''), $searchLower)
+                        || str_contains(mb_strtolower($r->income_name ?? ''), $searchLower);
+                });
+            }
+
+            $records = collect($queryRows)->values();
+        } elseif ($activeTab === 'lab') {
+            $localDb = config('database.connections.mysql.database');
+
+            if ($subTab === 'profiles') {
+                $queryRows = $hosxp->select("
+                    SELECT sg.lab_items_sub_group_code, sg.lab_items_sub_group_name, sg.group_icode,
+                           n.name AS nondrug_name, n.price AS nondrug_price,
+                           sg.group_price, sg.group_price_ipd, sg.tmlt_code, sg.loinc_code,
+                           sg.active_status,
+                           lc.unitprice AS chi_price, lc.reimbprice AS chi_reimb
+                    FROM lab_items_sub_group sg
+                    LEFT JOIN nondrugitems n ON n.icode = sg.group_icode
+                    LEFT JOIN (
+                        SELECT lccode, unitprice, reimbprice
+                        FROM {$localDb}.labcat_chi
+                        GROUP BY lccode
+                    ) lc ON lc.lccode = sg.group_icode
+                    ORDER BY sg.lab_items_sub_group_name ASC
+                ");
+
+                foreach ($queryRows as $item) {
+                    $itemErrors = [];
+                    $isMapped = (!empty($item->group_icode) && !empty($item->nondrug_name));
+                    $item->is_mapped = $isMapped;
+
+                    if (!$isMapped) {
+                        $itemErrors[] = 'ยังไม่ผูกรหัสค่ารักษาชุดตรวจ (group_icode ใน nondrugitems) ทำให้คิดค่าบริการและส่งเคลมไม่ได้';
+                    }
+                    if (empty(trim($item->tmlt_code ?? ''))) {
+                        $itemErrors[] = 'ยังไม่ได้ระบุรหัสมาตรฐาน TMLT';
+                    }
+
+                    $item->item_errors = $itemErrors;
+                    $item->is_valid = empty($itemErrors);
+                }
+
+                if ($filter === 'mapped') {
+                    $queryRows = array_filter($queryRows, fn($r) => $r->is_mapped);
+                } elseif ($filter === 'unmapped') {
+                    $queryRows = array_filter($queryRows, fn($r) => !$r->is_mapped);
+                } elseif ($filter === 'missing_tmlt') {
+                    $queryRows = array_filter($queryRows, fn($r) => empty(trim($r->tmlt_code ?? '')));
+                }
+
+                if (!empty($search)) {
+                    $searchLower = mb_strtolower($search);
+                    $queryRows = array_filter($queryRows, function ($r) use ($searchLower) {
+                        return str_contains(mb_strtolower($r->lab_items_sub_group_code ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->lab_items_sub_group_name ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->group_icode ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->nondrug_name ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->tmlt_code ?? ''), $searchLower);
+                    });
+                }
+
+                $records = collect($queryRows)->values();
+            } else {
+                // Default: Lab Items (ตรวจเดี่ยว)
+                $queryRows = $hosxp->select("
+                    SELECT l.lab_items_code, l.lab_items_name, l.icode, n.name AS nondrug_name, n.price AS nondrug_price,
+                           l.service_price, l.service_price_ipd, l.service_cost, l.tmlt_code, l.loinc_code,
+                           l.lab_items_unit, l.lab_items_normal_value, l.critical_value,
+                           sg.lab_items_sub_group_name, g.lab_items_group_name, sp.specimen_name,
+                           l.active_status,
+                           lc.unitprice AS chi_price, lc.reimbprice AS chi_reimb
+                    FROM lab_items l
+                    LEFT JOIN nondrugitems n ON n.icode = l.icode
+                    LEFT JOIN lab_items_sub_group sg ON sg.lab_items_sub_group_code = l.lab_items_sub_group_code
+                    LEFT JOIN lab_items_group g ON g.lab_items_group_code = l.lab_items_group
+                    LEFT JOIN lab_specimen_items sp ON sp.specimen_code = l.specimen_code
+                    LEFT JOIN (
+                        SELECT lccode, unitprice, reimbprice
+                        FROM {$localDb}.labcat_chi
+                        GROUP BY lccode
+                    ) lc ON lc.lccode = l.icode
+                    ORDER BY l.active_status DESC, l.lab_items_name ASC
+                ");
+
+                foreach ($queryRows as $item) {
+                    $itemErrors = [];
+                    $isMapped = (!empty($item->icode) && !empty($item->nondrug_name));
+                    $item->is_mapped = $isMapped;
+
+                    if (!$isMapped) {
+                        $itemErrors[] = 'ยังไม่ผูกรหัสค่ารักษา (icode ใน nondrugitems) ทำให้คิดค่าบริการและส่งเคลมไม่ได้';
+                    }
+                    if (empty(trim($item->tmlt_code ?? ''))) {
+                        $itemErrors[] = 'ยังไม่ได้ระบุรหัสมาตรฐาน TMLT';
+                    }
+                    if (empty(trim($item->lab_items_normal_value ?? ''))) {
+                        $itemErrors[] = 'ยังไม่กำหนดค่าปกติ (Normal Value)';
+                    }
+
+                    $item->item_errors = $itemErrors;
+                    $item->is_valid = empty($itemErrors);
+                }
+
+                if ($filter === 'active') {
+                    $queryRows = array_filter($queryRows, fn($r) => ($r->active_status ?? '') === 'Y');
+                } elseif ($filter === 'inactive') {
+                    $queryRows = array_filter($queryRows, fn($r) => ($r->active_status ?? '') !== 'Y');
+                } elseif ($filter === 'mapped') {
+                    $queryRows = array_filter($queryRows, fn($r) => ($r->active_status ?? '') === 'Y' && $r->is_mapped);
+                } elseif ($filter === 'unmapped') {
+                    $queryRows = array_filter($queryRows, fn($r) => ($r->active_status ?? '') === 'Y' && !$r->is_mapped);
+                } elseif ($filter === 'missing_tmlt') {
+                    $queryRows = array_filter($queryRows, fn($r) => ($r->active_status ?? '') === 'Y' && empty(trim($r->tmlt_code ?? '')));
+                }
+
+                if (!empty($search)) {
+                    $searchLower = mb_strtolower($search);
+                    $queryRows = array_filter($queryRows, function ($r) use ($searchLower) {
+                        return str_contains(mb_strtolower($r->lab_items_code ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->lab_items_name ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->icode ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->nondrug_name ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->tmlt_code ?? ''), $searchLower)
+                            || str_contains(mb_strtolower($r->lab_items_group_name ?? ''), $searchLower);
+                    });
+                }
+
+                $records = collect($queryRows)->values();
+            }
         }
 
         // Get AI model info configured for HOSxP
@@ -467,6 +724,7 @@ class HosxpSettingController extends Controller
         return view('emr.hosxp_setting.index', compact(
             'hosxpAlive',
             'activeTab',
+            'subTab',
             'stats',
             'records',
             'activeDocs',
@@ -542,6 +800,8 @@ class HosxpSettingController extends Controller
    - ข้อมูลแพทย์/บุคลากร: แนะนำให้เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดข้อมูลแพทย์/ผู้ให้บริการ' เพื่อแก้ไขหรือบันทึกเลขที่ใบประกอบวิชาชีพ, เลขประจำตัวประชาชน 13 หลัก, และรหัสสภาวิชาชีพ
    - ข้อมูลค่ารักษาพยาบาล: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการค่ารักษาพยาบาล (Non-Drug Items)' เพื่อตรวจสอบการผูกรหัส ADP และหมวดรายได้
    - ข้อมูลสิทธิการรักษา: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดสิทธิการรักษา (Pttype)' เพื่อตรวจสอบรหัสสิทธิมาตรฐานและรหัสส่งออกเคลม
+   - ข้อมูลยา: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการยา (Drug Items)' เพื่อตรวจสอบและบันทึกรหัสมาตรฐาน 24 หลัก, รหัส TMT, หมวดรายได้ และกำหนดโครงสร้างราคาแยกเก็บ (OPD 1, 2, 3, IPD, ราคากรมบัญชีกลาง SKS)
+   - ข้อมูล Lab: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการตรวจทางห้องปฏิบัติการ (Lab Items)' และ 'กำหนดชุดตรวจ (Lab Sub Group)' เพื่อผูกรหัสค่าบริการ icode เข้ากับ nondrugitems และระบุรหัสมาตรฐาน TMLT/LOINC
 4. อธิบายอย่างเป็นมืออาชีพ สุภาพ ชัดเจน เข้าใจง่าย ชี้ให้เห็นว่าข้อมูลขาดอะไรและจะส่งผลกระทบต่อการส่งออก 43 แฟ้ม หรือการส่งเบิกเคลมอย่างไร พร้อมบอกวิธีบันทึกแก้ไขใน HOSxP
 5. จัดรูปแบบด้วย Markdown ใช้หัวข้อ, bullet points, และตัวหนาให้อ่านง่าย สบายตา
 6. กฎสำคัญเรื่องการใช้คำ: ให้ใช้คำว่า 'ข้อมูลพื้นฐาน' เสมอ และห้ามใช้คำว่า 'Master Data' ในคำตอบเด็ดขาด";

@@ -22,6 +22,14 @@ class HosxpContextService
                 return null;
             }
 
+            // Auto-detect if caller passed category as first parameter (e.g. getContext('icd10', 'คำถาม...'))
+            $knownCategories = ['doctor', 'nondrugitems', 'pttype', 'drug', 'drugitems', 'lab', 'lab_items', 'icd', 'icd10', 'icd9', 'fund_audit', 'audit', 'fund'];
+            if (in_array(strtolower(trim($query)), $knownCategories) && (!is_string($category) || !in_array(strtolower(trim($category)), $knownCategories))) {
+                $temp = $query;
+                $query = (string)$category;
+                $category = $temp;
+            }
+
             $contextBlocks = [];
             $sources = [];
 

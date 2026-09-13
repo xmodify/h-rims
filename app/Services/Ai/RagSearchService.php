@@ -91,7 +91,7 @@ class RagSearchService
         // If on RAG page, only lookup HOSxP if user explicitly mentions HOSxP configuration check
         $isHosxpQuery = $isRagPage
             ? (bool) preg_match('/(ตรวจการตั้งค่า|ตั้งค่าถูกไหม|ใน\s*hosxp|เทียบกับ\s*hosxp|ตาราง.*hosxp|drugcat|labcat)/iu', $augmentedQuery)
-            : ($isHosxpPage || (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|\b1\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม|แพทย์|หมอ|doctor|licenseno|council|pttype|สิทธิ|สิทธิการรักษา|ยา|drug|drugitems|lab|แลป|แล็บ|lab_items|lab_items_sub_group|profile|ชุดตรวจ|ตรวจเดี่ยว|tmlt|loinc|drugcat|labcat|ราคาแยกเก็บ)/iu', $augmentedQuery));
+            : ($isHosxpPage || (bool) preg_match('/(16\s*แฟ้ม|adp|nondrug|ค่ารักษา|ค่าบริการ|ผูก\s*income|หมวด\s*income|สเปก|fdh|e-?claim|icode|\b3\d{6}\b|\b1\d{6}\b|did|ยา24หลัก|รหัสยา|ตาราง.*hosxp|hosxp|ตรวจการตั้งค่า|ตั้งค่าถูกไหม|แพทย์|หมอ|doctor|licenseno|council|pttype|สิทธิ|สิทธิการรักษา|ยา|drug|drugitems|lab|แลป|แล็บ|lab_items|lab_items_sub_group|profile|ชุดตรวจ|ตรวจเดี่ยว|tmlt|loinc|drugcat|labcat|ราคาแยกเก็บ|icd|icd10|icd9|icd101|icd9cm1|รหัสโรค|รหัสหัตถการ|โรคหลัก|โรคแทรก|accpdx|ปิดรหัส|ปิดการใช้งาน)/iu', $augmentedQuery));
 
         // Domain B: HosFin Financials (งบทดลอง, การเงิน, หนี้สิน, สภาพคล่อง, risk score, ผังบัญชี, AP, AR, GL)
         // If on RAG or HOSxP page, strictly DISABLE HosFin financial data injection (focus on HOSxP ข้อมูลพื้นฐาน / RAG documents)
@@ -137,6 +137,10 @@ class RagSearchService
                     $hosxpCategory = 'drug';
                 } elseif (str_contains($pageContext, 'lab')) {
                     $hosxpCategory = 'lab';
+                } elseif (str_contains($pageContext, 'icd10') || str_contains($pageContext, 'icd')) {
+                    $hosxpCategory = 'icd10';
+                } elseif (str_contains($pageContext, 'icd9')) {
+                    $hosxpCategory = 'icd9';
                 }
             }
             $hosxpData = $this->hosxpContext->getContext($augmentedQuery, $hosxpCategory);

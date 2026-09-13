@@ -61,8 +61,21 @@ class HosxpContextService
                     $contextBlocks[] = $labData['text'];
                     $sources[] = $labData['source'];
                 }
+            } elseif ($category === 'fund_audit' || $category === 'audit' || $category === 'fund') {
+                $fundData = $this->getFundAuditContext($query, true);
+                if ($fundData) {
+                    $contextBlocks[] = $fundData['text'];
+                    $sources[] = $fundData['source'];
+                }
             } else {
                 // Fallback: Smart auto-detection based on user question keywords
+                // 0. Check for Fund Audit / 16 แฟ้ม / AIPN / SSOP / CSOP
+                $fundData = $this->getFundAuditContext($query);
+                if ($fundData) {
+                    $contextBlocks[] = $fundData['text'];
+                    $sources[] = $fundData['source'];
+                }
+
                 // 1. Check for specific medical items / services (nondrugitems)
                 $nondrugData = $this->getNondrugItemContext($query);
                 if ($nondrugData) {
@@ -669,7 +682,7 @@ class HosxpContextService
     {
         try {
             if (!$force) {
-                $hasDrugKeyword = (bool) preg_match('/(ยา|drug|drugitems|icode|did|24หลัก|tmt|แคตตาล็อกยา|drugcat|ned|ed|ค่ายา|ราคาแยกเก็บ|unitprice|sks_price|unitcost)/iu', $query);
+                $hasDrugKeyword = (bool) preg_match('/(ยา|drug|drugitems|icode|did|24หลัก|tmt|แคตตาล็อกยา|drugcat|ned|ed|ค่ายา|ราคาแยกเก็บ|unitprice|sks_price|unitcost|\b[0-9]{6,7}\b|\b[0-9]{24}\b)/iu', $query);
                 if (!$hasDrugKeyword) {
                     return null;
                 }
@@ -678,11 +691,11 @@ class HosxpContextService
             $localDb = config('database.connections.mysql.database');
             $hosxp = DB::connection('hosxp');
 
-            // 1. Check if user query mentions specific drug icode
-            preg_match('/(?:icode\s*[:=]?\s*|\b)([12]\d{6})\b/i', $query, $codeMatch);
+            // 1. Check if user query mentions specific drug code (6-7 digit code, 24-digit code, or icode)
+            preg_match('/(?:icode\s*[:=]?\s*|\b)([0-9]{6,7}|[0-9]{24})\b/i', $query, $codeMatch);
             $targetIcode = $codeMatch[1] ?? null;
 
-            // Priority 1: Exact drug icode search
+            // Priority 1: Exact drug code search (icode, 24-digit, TMT, or ref_code)
             if ($targetIcode) {
                 $drug = $hosxp->select("
                     SELECT d.icode, d.name, d.strength, d.units, d.dosageform, d.drugaccount,
@@ -705,22 +718,25 @@ class HosxpContextService
                         FROM {$localDb}.drugcat_chi
                         GROUP BY hospdrugcode
                     ) chi ON chi.hospdrugcode = d.icode
-                    WHERE d.icode = ?
+                    WHERE d.icode = ? OR d.did LIKE ? OR d.tmt_tp_code = ? OR d2.ref_code LIKE ? OR d3.ref_code = ?
                     LIMIT 1
-                ", [$targetIcode]);
+                ", [$targetIcode, "%{$targetIcode}%", $targetIcode, "%{$targetIcode}%", $targetIcode]);
 
                 if (!empty($drug)) {
                     $d = $drug[0];
                     $code24 = !empty($d->code_24) ? $d->code_24 : ($d->did ?: '⚠️ ไม่มีรหัส 24 หลัก');
                     $codeTmt = !empty($d->code_tmt) ? $d->code_tmt : ($d->tmt_tp_code ?: '⚠️ ไม่มีรหัส TMT');
                     $status = ($d->istatus === 'Y') ? 'Active (เปิดใช้งาน)' : 'Inactive (ปิดใช้งาน)';
-                    $nhsoCatalog = !empty($d->price_nhso) ? "พบในแคตตาล็อก สปสช. (ราคาเบิก: {$d->price_nhso} บ., บัญชียา: {$d->ised_nhso})" : "⚠️ ไม่พบในแคตตาล็อก สปสช. (drugcat_nhso)";
+                    $isEd = in_array(trim($d->drugaccount ?? ''), ['ก', 'ข', 'ค', 'ง', 'จ'], true);
+                    $edLabel = $isEd ? "ยาในบัญชียาหลักแห่งชาติ (ED บัญชี '{$d->drugaccount}')" : "ยานอกบัญชียาหลักแห่งชาติ (NED / บัญชี '" . ($d->drugaccount ?: '-') . "')";
+                    $nhsoEd = ($d->ised_nhso === 'E') ? 'ยาในบัญชี (ED)' : (($d->ised_nhso === 'N') ? 'ยานอกบัญชี (NED)' : 'ไม่ระบุ');
+                    $nhsoCatalog = !empty($d->price_nhso) ? "พบในแคตตาล็อก สปสช. (ราคาเบิก: {$d->price_nhso} บ., สถานะบัญชี: {$nhsoEd})" : "⚠️ ไม่พบในแคตตาล็อก สปสช. (drugcat_nhso)";
                     $chiCatalog = !empty($d->price_chi) ? "พบในแคตตาล็อก กรมบัญชีกลาง (ราคาเบิก: {$d->price_chi} บ.)" : "ไม่พบในแคตตาล็อก กรมบัญชีกลาง (drugcat_chi)";
 
                     $lines = [
                         "รายละเอียดข้อมูลยาจากระบบ HOSxP และแคตตาล็อกยา RiMS (icode: {$d->icode}):",
                         "• ชื่อยา: {$d->name} {$d->strength} (รูปแบบ: {$d->dosageform}, หน่วย: {$d->units})",
-                        "• บัญชียา: " . ($d->drugaccount ?: 'ยานอกบัญชี (NED)') . " | หมวดรายได้: [{$d->income}] {$d->income_name}",
+                        "• สถานะบัญชียา: **{$edLabel}** | หมวดรายได้: [{$d->income}] {$d->income_name}",
                         "• รหัสมาตรฐาน: 24 หลัก: {$code24} | TMT: {$codeTmt}",
                         "• ราคาแยกเก็บ (เหมือนค่ารักษาพยาบาล):",
                         "  - ราคาจำหน่าย OPD 1: " . number_format($d->unitprice, 2) . " บ. | OPD 2: " . number_format($d->price2, 2) . " บ. | OPD 3: " . number_format($d->price3, 2) . " บ.",
@@ -734,13 +750,82 @@ class HosxpContextService
                     ];
 
                     return [
-                        'text' => "[ข้อมูลยา icode {$d->icode}]:\n" . implode("\n", $lines),
+                        'text' => "[ข้อมูลยา {$d->name} ({$d->icode})]:\n" . implode("\n", $lines),
                         'source' => [
                             'title' => "ข้อมูลยา {$d->name} ({$d->icode})",
                             'filename' => 'hosxp_drugitems',
                             'page' => 1,
                             'score' => 99.0,
-                            'snippet' => "{$d->name} ราคา OPD: {$d->unitprice} บ., รหัส 24 หลัก: {$code24}"
+                            'snippet' => "{$d->name} ({$edLabel}) ราคา OPD: {$d->unitprice} บ., รหัส 24 หลัก: {$code24}"
+                        ]
+                    ];
+                }
+
+                // If not found in HOSxP drugitems, search in RiMS drug catalogs
+                $catNhso = DB::select("
+                    SELECT hospdrugcode, genericname, tradename, dosageform, strength, unitprice, ised, ndc24, tmtid
+                    FROM {$localDb}.drugcat_nhso
+                    WHERE hospdrugcode = ? OR ndc24 LIKE ? OR tmtid = ?
+                    LIMIT 1
+                ", [$targetIcode, "%{$targetIcode}%", $targetIcode]);
+
+                if (!empty($catNhso)) {
+                    $c = $catNhso[0];
+                    $cEd = ($c->ised === 'E') ? 'ยาในบัญชียาหลักแห่งชาติ (ED)' : 'ยานอกบัญชียาหลักแห่งชาติ (NED)';
+                    $lines = [
+                        "ผลการค้นหารหัส '{$targetIcode}' ในแคตตาล็อกยา สปสช. (drugcat_nhso) และระบบ HOSxP:",
+                        "• สถานะใน HOSxP: ⚠️ ยังไม่พบรายการยานี้ในฐานข้อมูล drugitems ของโรงพยาบาล",
+                        "• ข้อมูลจากแคตตาล็อกมาตรฐาน สปสช. (drugcat_nhso):",
+                        "  - ชื่อสามัญ: {$c->genericname} | ชื่อการค้า: {$c->tradename}",
+                        "  - ความแรง: {$c->strength} | รูปแบบ: {$c->dosageform}",
+                        "  - สถานะบัญชียา: **{$cEd}** (ised = '{$c->ised}')",
+                        "  - รหัสมาตรฐาน: 24 หลัก: " . ($c->ndc24 ?: '-') . " | TMT: " . ($c->tmtid ?: '-'),
+                        "  - ราคาชดเชย สปสช.: " . number_format($c->unitprice, 2) . " บาท",
+                        "• คำแนะนำ: หากโรงพยาบาลมีการใช้ยานี้ สามารถนำรหัส 24 หลักและ TMT ข้างต้นไปเพิ่มรายการยาใน HOSxP (เมนู Tools > System Setting > กำหนดรายการยา) พร้อมกำหนดบัญชียาเป็น {$cEd}"
+                    ];
+
+                    return [
+                        'text' => "[ข้อมูลยาจากแคตตาล็อก สปสช. รหัส {$targetIcode}]:\n" . implode("\n", $lines),
+                        'source' => [
+                            'title' => "แคตตาล็อกยา สปสช. ({$targetIcode})",
+                            'filename' => 'drugcat_nhso',
+                            'page' => 1,
+                            'score' => 95.0,
+                            'snippet' => "พบในแคตตาล็อก สปสช. {$c->genericname} ({$cEd})"
+                        ]
+                    ];
+                }
+
+                // If code not found in both HOSxP and Catalogs, but user asks whether it is ED or NED
+                $isEdNedQuery = (bool) preg_match('/(นอกบัญชี|ในบัญชี|ed\b|ned\b|บัญชีหลัก)/iu', $query);
+                if ($isEdNedQuery || $force) {
+                    $lines = [
+                        "ผลการตรวจสอบรหัส '{$targetIcode}' ในฐานข้อมูล HOSxP และแคตตาล็อกยา RiMS:",
+                        "• ผลการค้นหา: ไม่พบรหัส '{$targetIcode}' ในตาราง drugitems ของ HOSxP และแคตตาล็อกยามาตรฐาน (drugcat_nhso / drugcat_chi)",
+                        "",
+                        "• หลักเกณฑ์การแยกรหัสยาในบัญชี (ED) และนอกบัญชี (NED) ตามมาตรฐานกระทรวงสาธารณสุขและ สปสช.:",
+                        "  1. ยาในบัญชียาหลักแห่งชาติ (ED - Essential Drugs):",
+                        "     - ในระบบ HOSxP: ดูจากฟิลด์ `drugitems.drugaccount` จะกำหนดเป็นตัวอักษร **'ก', 'ข', 'ค', 'ง', หรือ 'จ'**",
+                        "     - ในแคตตาล็อก สปสช. (drugcat_nhso): ฟิลด์ `ised` จะระบุเป็น **'E'**",
+                        "     - หมวดรายได้ (income): กำหนดเป็นหมวด '03' (ค่ายาในบัญชียาหลักแห่งชาติ)",
+                        "  2. ยานอกบัญชียาหลักแห่งชาติ (NED - Non-Essential Drugs):",
+                        "     - ในระบบ HOSxP: ฟิลด์ `drugitems.drugaccount` จะเว้นว่าง, เป็นเครื่องหมาย **'-'**, หรือระบุว่า **'NED'**",
+                        "     - ในแคตตาล็อก สปสช. (drugcat_nhso): ฟิลด์ `ised` จะระบุเป็น **'N'**",
+                        "     - หมวดรายได้ (income): กำหนดเป็นหมวด '17' (ค่ายานอกบัญชียาหลักแห่งชาติ)",
+                        "",
+                        "• วิธีตรวจสอบและตั้งค่าในโปรแกรม HOSxP:",
+                        "  - เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดรายการยา (Drug Items)'",
+                        "  - ค้นหารายการยาที่ต้องการ แล้วตรวจสอบที่ช่อง 'บัญชียา' เพื่อเลือกกำหนดเป็น ก-จ หรือระบุเป็นยานอกบัญชี พร้อมตรวจสอบรหัส 24 หลักและ TMT ให้ครบถ้วน"
+                    ];
+
+                    return [
+                        'text' => "[ผลการค้นหารหัส {$targetIcode} และหลักเกณฑ์ ED/NED]:\n" . implode("\n", $lines),
+                        'source' => [
+                            'title' => "หลักเกณฑ์ยาในบัญชีและนอกบัญชี (ED/NED)",
+                            'filename' => 'hosxp_ed_ned_criteria',
+                            'page' => 1,
+                            'score' => 90.0,
+                            'snippet' => "เกณฑ์การตรวจสอบ drugaccount ใน HOSxP และ ised ใน drugcat_nhso"
                         ]
                     ];
                 }
@@ -907,6 +992,114 @@ class HosxpContextService
             return null;
         } catch (\Throwable $e) {
             Log::warning("Lab Context Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Audit HOSxP Setting Readiness across major funds: 16 แฟ้ม/FDH, AIPN, SSOP, CSOP, CIPN
+     */
+    public function getFundAuditContext(string $query, bool $force = false): ?array
+    {
+        try {
+            $isFundQuery = (bool) preg_match('/(16\s*แฟ้ม|fdh|aipn|ssop|csop|cipn|กองทุน|ส่งออก|เคลม|claim|audit|ตรวจสอบ(การตั้งค่า|ความพร้อม)?)/iu', $query);
+            if (!$isFundQuery && !$force) {
+                return null;
+            }
+
+            $hosxp = DB::connection('hosxp');
+
+            // 1. DRU Audit
+            $totalActiveDrugs = $hosxp->table('drugitems')->where('istatus', 'Y')->count();
+            $drugsMissing24 = $hosxp->select("
+                SELECT COUNT(*) as c FROM drugitems d
+                LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 1
+                WHERE d.istatus = 'Y' AND (d.did IS NULL OR LENGTH(TRIM(d.did)) < 24) AND (r.ref_code IS NULL OR LENGTH(TRIM(r.ref_code)) < 24)
+            ")[0]->c ?? 0;
+            $drugsMissingTmt = $hosxp->select("
+                SELECT COUNT(*) as c FROM drugitems d
+                LEFT JOIN drugitems_ref_code r ON r.icode = d.icode AND r.drugitems_ref_code_type_id = 3
+                WHERE d.istatus = 'Y' AND (d.tmt_tp_code IS NULL OR d.tmt_tp_code = '') AND (r.ref_code IS NULL OR r.ref_code = '')
+            ")[0]->c ?? 0;
+
+            // 2. ADP Audit
+            $totalActiveNondrug = $hosxp->table('nondrugitems')->where('istatus', 'Y')->count();
+            $nondrugMissingAdp = $hosxp->table('nondrugitems')->where('istatus', 'Y')->where(function($q) {
+                $q->whereNull('nhso_adp_code')->orWhere('nhso_adp_code', '');
+            })->count();
+
+            // 3. Doctor Audit
+            $totalActiveDocs = $hosxp->table('doctor')->where('active', 'Y')->count();
+            $docsMissingLic = $hosxp->table('doctor')->where('active', 'Y')->where(function($q) {
+                $q->whereNull('licenseno')->orWhere('licenseno', '')->orWhere('licenseno', 'LIKE', '-%');
+            })->count();
+            $docsMissingCid = $hosxp->table('doctor')->where('active', 'Y')->where(function($q) {
+                $q->whereNull('cid')->orWhereRaw('LENGTH(TRIM(cid)) != 13');
+            })->count();
+
+            // 4. Pttype Audit
+            $totalActivePttype = $hosxp->table('pttype')->where('isuse', 'Y')->count();
+            $pttypeMissingHipdata = $hosxp->table('pttype')->where('isuse', 'Y')->where(function($q) {
+                $q->whereNull('hipdata_code')->orWhere('hipdata_code', '');
+            })->count();
+
+            // 5. Lab Audit
+            $totalActiveLab = $hosxp->table('lab_items')->where('active_status', 'Y')->count();
+            $labUnmappedIcode = $hosxp->select("
+                SELECT COUNT(*) as c FROM lab_items l
+                LEFT JOIN nondrugitems n ON n.icode = l.icode
+                WHERE l.active_status = 'Y' AND (l.icode IS NULL OR l.icode = '' OR n.icode IS NULL)
+            ")[0]->c ?? 0;
+            $labMissingTmlt = $hosxp->table('lab_items')->where('active_status', 'Y')->where(function($q) {
+                $q->whereNull('tmlt_code')->orWhere('tmlt_code', '');
+            })->count();
+
+            // Specific fund checks
+            $equipDevCount = DB::table('lookup_sss_equipdev_aipn')->count();
+            $drugcatChiCount = DB::table('drugcat_chi')->count();
+            $drugcatNhsoCount = DB::table('drugcat_nhso')->count();
+
+            $lines = [
+                "ผลการตรวจสอบความพร้อมของการตั้งค่าระบบ HOSxP ก่อนส่งออกแต่ละกองทุน (Fund Audit Summary):",
+                "",
+                "1. กองทุน 16 แฟ้ม / FDH (Financial Data Hub / e-Claim สปสช.):",
+                "   • แฟ้ม DRU (ยา): ยาเปิดใช้งาน {$totalActiveDrugs} รายการ -> ขาดรหัส 24 หลัก {$drugsMissing24} รายการ, ขาดรหัส TMT {$drugsMissingTmt} รายการ",
+                "   • แฟ้ม ADP (ค่าบริการ/หัตถการ): ค่าบริการเปิดใช้งาน {$totalActiveNondrug} รายการ -> ยังไม่ผูกรหัส ADP สปสช. {$nondrugMissingAdp} รายการ",
+                "   • แฟ้ม PROVIDER (ผู้ให้บริการ): แพทย์ปฏิบัติงาน {$totalActiveDocs} ราย -> ไม่มี/เลขใบประกอบฯ ไม่ถูกต้อง {$docsMissingLic} ราย, เลขบัตร ปชช. ไม่ครบ 13 หลัก {$docsMissingCid} ราย",
+                "   • แฟ้ม INS (สิทธิการรักษา): สิทธิเปิดใช้งาน {$totalActivePttype} สิทธิ -> ขาดรหัสส่งออก 16 แฟ้ม (hipdata_code) {$pttypeMissingHipdata} สิทธิ",
+                "",
+                "2. กองทุน AIPN (ผู้ป่วยใน ประกันสังคม IPD):",
+                "   • อุปกรณ์/อวัยวะเทียม: ใน RiMS มีแคตตาล็อกอุปกรณ์เทียมประกันสังคม {$equipDevCount} รายการ (lookup_sss_equipdev_aipn) ต้องผูกรหัสค่าบริการให้ตรงเพื่อป้องกันติด C",
+                "   • รหัสยา: ตรวจสอบความสมบูรณ์ของรหัส 24 หลัก (ขาด {$drugsMissing24} รายการ)",
+                "   • แพทย์ผู้รักษา: ตรวจสอบเลข ว. แพทย์ (ขาด {$docsMissingLic} ราย) เพื่อส่งออกใน XML AIPN",
+                "",
+                "3. กองทุน SSOP (ผู้ป่วยนอก ประกันสังคม OPD):",
+                "   • ตรวจสอบรายการค่าบริการต้องมีรหัส ADP สปสช. (ขาด {$nondrugMissingAdp} รายการ)",
+                "   • รายการยาต้องมีรหัส 24 หลักและ TMT ครบถ้วน",
+                "   • สิทธิการรักษาประกันสังคมต้องกำหนด pcode = 'SS'",
+                "",
+                "4. กองทุน CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD):",
+                "   • ยา: เทียบกับแคตตาล็อกยา กรมบัญชีกลาง CSMBS ({$drugcatChiCount} รายการ) ตรวจสอบราคาสิทธิข้าราชการ (sks_price) และยา จ(2)",
+                "   • ค่าบริการ: ตรวจสอบการระบุรหัส billcode กรมบัญชีกลางใน nondrugitems",
+                "   • สิทธิการรักษาข้าราชการต้องกำหนด pcode = 'OF'",
+                "",
+                "5. การตรวจทางห้องปฏิบัติการ (Lab Items & Profiles):",
+                "   • รายการตรวจเดี่ยว lab_items ที่ยังไม่ผูก icode คิดเงิน: {$labUnmappedIcode} รายการ (คิดเงินและส่งเคลมไม่ได้)",
+                "   • รายการแล็บที่ยังไม่ระบุรหัสมาตรฐาน TMLT: {$labMissingTmlt} รายการ"
+            ];
+
+            return [
+                'text' => "[ผลการตรวจสอบการตั้งค่า HOSxP รายกองทุน]:\n" . implode("\n", $lines),
+                'source' => [
+                    'title' => "สรุปผลการตรวจสอบการตั้งค่าระบบ HOSxP รายกองทุน",
+                    'filename' => 'hosxp_fund_audit',
+                    'page' => 1,
+                    'score' => 99.0,
+                    'snippet' => "สรุปความพร้อมการตั้งค่า HOSxP ก่อนส่งออก 16 แฟ้ม, AIPN, SSOP, CSOP"
+                ]
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("Fund Audit Context Warning: " . $e->getMessage());
             return null;
         }
     }

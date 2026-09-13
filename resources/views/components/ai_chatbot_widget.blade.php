@@ -934,14 +934,16 @@
                 `;
             }
         } else if (isHosxp) {
-            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ข้อมูลพื้นฐาน HOSxP Setting';
-            if (welcomeDesc) welcomeDesc.innerHTML = 'ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP ของโรงพยาบาลพร้อมค้นหาเทียบเคียงระเบียบและมาตรฐานจากคลังความรู้ RAG สามารถพิมพ์สอบถามหรือสั่งตรวจสอบได้เลยค่ะ';
+            if (subTitle) subTitle.textContent = 'ผู้ช่วย AI: ข้อมูลพื้นฐาน HOSxP & ตรวจสอบก่อนส่งออกกองทุน';
+            if (welcomeDesc) welcomeDesc.innerHTML = 'ผู้ช่วย AI ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน HOSxP (แพทย์, ค่าบริการ, ยา, แล็บ, สิทธิ) เทียบแคตตาล็อกและตรวจสอบความพร้อมก่อนส่งออกกองทุน 16 แฟ้ม, AIPN, SSOP, CSOP, CIPN สามารถพิมพ์สอบถามหนูได้เลยค่ะ';
             if (chipsContainer) {
                 chipsContainer.innerHTML = `
-                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('สรุปปัญหาความสมบูรณ์ของข้อมูลแพทย์ในระบบ HOSxP')">👨‍⚕️ สรุปปัญหาข้อมูลแพทย์</button>
-                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('มีรายการค่ารักษาพยาบาลใดบ้างที่ยังไม่ได้ผูกรหัส ADP?')">💊 ค่ารักษาที่ยังไม่ผูกรหัส ADP</button>
-                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจสอบสิทธิการรักษา (pttype) ที่ยังไม่ระบุ pttype_standard หรือ export_code')">📑 ตรวจสอบสิทธิ pttype</button>
-                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('แนะนำแนวทางการตั้งค่าสิทธิการรักษาประกันสังคมและบัตรทองใน HOSxP')">🏥 แนะนำตั้งค่าสิทธิการรักษา</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจสอบความพร้อมส่งออก 16 แฟ้ม และ FDH')">📊 ตรวจความพร้อม 16 แฟ้ม / FDH</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจสอบการตั้งค่าสำหรับกองทุน AIPN ประกันสังคม')">🏥 ตรวจตั้งค่า AIPN ประกันสังคม</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจรายการยาที่ยังขาดรหัสมาตรฐาน 24 หลัก และ TMT')">💊 ตรวจรหัสยา 24 หลัก/TMT</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจรายการตรวจ Lab ที่ยังไม่ผูก icode คิดเงิน และขาดรหัส TMLT')">🔬 ตรวจการผูก Lab & TMLT</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('ตรวจรายชื่อแพทย์ที่ไม่มีเลขที่ใบประกอบวิชาชีพ')">👨‍⚕️ ตรวจเลข ว. แพทย์</button>
+                    <button type="button" class="ai-suggestion-pill" onclick="sendQuickPrompt('มีรายการค่ารักษาพยาบาลใดบ้างที่ยังไม่ได้ผูกรหัส ADP?')">📑 ค่าบริการที่ยังไม่ผูก ADP</button>
                 `;
             }
         } else if (isHosfin) {

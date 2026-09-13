@@ -49,39 +49,51 @@ class SchemaCatalogService
 
         $out = "=== ฐานข้อมูล HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน) ===\n";
         $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: hosxp)\n\n";
-        $out .= "=== โครงสร้างหลักและตารางตั้งต้น (Core Anchor Architecture) ===\n";
-        $out .= "ระบบข้อมูลพื้นฐานในหน้านี้จะตั้งต้นด้วย 3 ตารางหลักเสมอ แล้วค่อยเชื่อมไปยังตาราง lookup อื่นตามคอลัมน์:\n\n";
+        $out .= "=== โครงสร้างหลักและตารางตั้งต้น (Core Anchor Architecture 5 เสาหลัก) ===\n";
+        $out .= "ระบบข้อมูลพื้นฐานในหน้านี้จะตั้งต้นด้วย 5 กลุ่มตารางหลัก แล้วเชื่อมโยงไปยังตาราง lookup และแคตตาล็อก:\n\n";
         $out .= "1. [บุคลากรทางการแพทย์]: ตั้งต้นด้วยตาราง `doctor` เสมอ (เช่น `FROM doctor d`)\n";
         $out .= "   - เชื่อมตำแหน่ง: `LEFT JOIN doctor_position dp ON dp.id = d.position_id`\n";
         $out .= "   - เชื่อมสาขาความเชี่ยวชาญ: `LEFT JOIN spclty s ON s.spclty = d.spclty`\n";
         $out .= "   - เชื่อมคลินิก: `LEFT JOIN clinic c ON c.clinic = d.clinic`\n";
-        $out .= "   - ฟิลด์สำคัญ: `code` (รหัสแพทย์), `name` (ชื่อแพทย์), `licenseno` (เลขใบประกอบฯ), `cid` (เลขบัตรประชาชน 13 หลัก), `council_code` (สภาวิชาชีพ), `active` (สถานะปฏิบัติงาน 'Y'/'N')\n\n";
-        $out .= "2. [ค่ารักษาพยาบาล]: ตั้งต้นด้วยตาราง `nondrugitems` เสมอ (เช่น `FROM nondrugitems n`)\n";
+        $out .= "   - ฟิลด์สำคัญ: `code` (รหัสแพทย์), `name` (ชื่อแพทย์), `licenseno` (เลขใบประกอบฯ), `cid` (เลขบัตรประชาชน 13 หลัก), `council_code` (สภาวิชาชีพ), `active` (สถานะปฏิบัติงาน 'Y'/'N')\n";
+        $out .= "   - เกณฑ์ตรวจสอบ: แฟ้ม PROVIDER (16 แฟ้ม) และส่งเคลม AIPN/FDH แพทย์ต้องมีเลข ว. (ขึ้นต้นด้วย ว/ท/ภ/พ ตามด้วยตัวเลข), มี CID ครบ 13 หลัก และระบุรหัสสภาวิชาชีพ\n\n";
+        $out .= "2. [ค่ารักษาพยาบาลและหัตถการ]: ตั้งต้นด้วยตาราง `nondrugitems` เสมอ (เช่น `FROM nondrugitems n`)\n";
         $out .= "   - เชื่อมหมวดค่ารักษา: `LEFT JOIN income i ON i.income = n.income`\n";
         $out .= "   - เชื่อมสถานะการชำระ: `LEFT JOIN paidst p ON p.paidst = n.paidst`\n";
         $out .= "   - เชื่อมราคาตามสิทธิ (HOSxP v4): `LEFT JOIN pttype_items_price pip ON pip.items_table_code = n.icode` (เชื่อมผ่าน items_table_code = icode โดยตรง ห้ามกรอง WHERE items_table_name)\n";
-        $out .= "   - ฟิลด์สำคัญ: `icode` (รหัสค่าบริการ), `name` (ชื่อรายการ), `price` (ราคามาตรฐาน 1), `price2`, `price3`, `nhso_adp_code` (รหัส ADP สปสช.), `billcode` (รหัสเบิกกรมบัญชีกลาง), `istatus` (สถานะ 'Y'/'N')\n\n";
+        $out .= "   - ฟิลด์สำคัญ: `icode` (รหัสค่าบริการ), `name` (ชื่อรายการ), `price` (ราคามาตรฐาน 1), `price2`, `price3`, `nhso_adp_code` (รหัส ADP สปสช.), `nhso_adp_type_id` (หมวด ADP), `billcode` (รหัสเบิกกรมบัญชีกลาง), `sks_tmlt_code` (รหัสตรวจแล็บ TMLT), `istatus` (สถานะ 'Y'/'N')\n";
+        $out .= "   - เกณฑ์ตรวจสอบ: แฟ้ม ADP (16 แฟ้ม/FDH) ต้องผูก nhso_adp_code และ nhso_adp_type_id, สิทธิข้าราชการต้องมี billcode กรมบัญชีกลาง\n\n";
         $out .= "3. [สิทธิการรักษา]: ตั้งต้นด้วยตาราง `pttype` เสมอ (เช่น `FROM pttype p`)\n";
         $out .= "   - เชื่อมสถานะชำระเงิน: `LEFT JOIN paidst p1 ON p1.paidst = p.paidst`\n";
-        $out .= "   - เชื่อมกลุ่มสิทธิมาตรฐานประเทศ: `LEFT JOIN pcode pc ON pc.code = p.pcode`\n";
+        $out .= "   - เชื่อมกลุ่มสิทธิมาตรฐานประเทศ: `LEFT JOIN pcode pc ON pc.code = p.pcode` (A1=จ่ายเอง, UC=บัตรทอง, OF=ข้าราชการ, SS=ประกันสังคม)\n";
         $out .= "   - เชื่อมสิทธิมาตรฐาน PROVIS/สปสช.: `LEFT JOIN provis_instype pi ON pi.code = p.nhso_code`\n";
         $out .= "   - เชื่อมกลุ่มราคาตามสิทธิ: `LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id = p.pttype_price_group_id`\n";
         $out .= "   - เชื่อมสิทธิย่อย สปสช.: `LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype = p.pttype`\n";
-        $out .= "   - เชื่อมรายการราคาตามสิทธินี้: `LEFT JOIN pttype_items_price pip ON pip.pttype = p.pttype`\n";
-        $out .= "   - ฟิลด์สำคัญ: `pttype` (รหัสสิทธิ), `name` (ชื่อสิทธิ), `hipdata_code` (รหัสส่งออก 16 แฟ้ม), `pttype_std_code` (รหัสส่งออก HOSxP), `isuse` (สถานะ 'Y'/'N')\n\n";
-        $out .= "=== ความสำคัญของการดูตารางที่เชื่อมโยง (Lookup Tables) ===\n";
-        $out .= "- การตั้งค่าจะถูกต้องได้ จำเป็นต้องดูตารางที่เชื่อมโยงควบคู่กันเสมอ เช่น:\n";
-        $out .= "  * ดู `doctor_position`: เพื่อแยกว่าบุคลากรเป็นแพทย์จริง หรือเป็นเจ้าหน้าที่สายสนับสนุน (เช่น พนักงานบริการ, เวชสถิติ) ซึ่งถ้าเป็นสายสนับสนุนเลขใบประกอบฯ มักขึ้นต้นด้วยขีด '-' ตามด้วยเลขบัตร\n";
-        $out .= "  * ดู `spclty` และ `clinic`: เพื่อดูว่าสังกัดคลินิกและสาขาความเชี่ยวชาญใด เพื่อให้ส่งออกแฟ้ม PROVIDER (43 แฟ้ม) ได้สมบูรณ์\n";
-        $out .= "  * ดู `income`: เพื่อตรวจว่าค่าบริการ nondrugitems ผูกหมวดรายได้ 16 หมวดตรงตามประเภทหรือไม่\n";
-        $out .= "  * ดู `provis_instype`: เพื่อตรวจว่าสิทธิ pttype ผูกรหัสมาตรฐาน PROVIS และรหัสส่งออก 16 แฟ้ม (UCS=0100) ตรงกันหรือไม่\n\n";
+        $out .= "   - ฟิลด์สำคัญ: `pttype` (รหัสสิทธิ), `name` (ชื่อสิทธิ), `hipdata_code` (รหัสส่งออก 16 แฟ้ม เช่น UCS, OFC, SSS, LGO), `pttype_std_code` (รหัสส่งออก HOSxP), `isuse` (สถานะ 'Y'/'N')\n";
+        $out .= "   - เกณฑ์ตรวจสอบ: ต้องมี hipdata_code ถูกต้องตรงตามกลุ่มสิทธิ pcode และสอดคล้องกับ provis_instype\n\n";
+        $out .= "4. [ยาและเวชภัณฑ์]: ตั้งต้นด้วยตาราง `drugitems` (เช่น `FROM drugitems d`)\n";
+        $out .= "   - เชื่อมหมวดรายได้: `LEFT JOIN income i ON i.income = d.income` (ปกติ income = '03')\n";
+        $out .= "   - เชื่อมรหัสมาตรฐานอ้างอิง: `LEFT JOIN drugitems_ref_code r1 ON r1.icode = d.icode AND r1.drugitems_ref_code_type_id = 1` (24 หลัก), `LEFT JOIN drugitems_ref_code r3 ON r3.icode = d.icode AND r3.drugitems_ref_code_type_id = 3` (TMT)\n";
+        $out .= "   - ฟิลด์สำคัญ: `icode` (รหัสยา), `name` (ชื่อยา), `strength`, `units`, `dosageform`, `drugaccount` (บัญชียา: ก, ข, ค, ง, จ = ยาในบัญชี ED | '-', 'NED', หรือว่าง = ยานอกบัญชี NED), `did` (รหัส 24 หลัก), `tmt_tp_code` (รหัส TMT), `unitprice` (ราคา OPD 1), `price2`, `price3`, `ipd_price`, `unitcost`, `stdprice`, `sks_price` (ราคาเบิกกรมบัญชีกลาง), `istatus` (สถานะ 'Y'/'N')\n";
+        $out .= "   - เกณฑ์ตรวจสอบ: สำหรับแฟ้ม DRU (16 แฟ้ม/FDH/AIPN/SSOP/CSOP) รายการยา Active ต้องมีรหัส 24 หลักครบถ้วน (ความยาว 24 ตัวอักษร), มีรหัส TMT, ระบุบัญชียา ED/NED ชัดเจน และมีราคาขาย unitprice\n\n";
+        $out .= "5. [ตรวจชันสูตร/แล็บ]: ตาราง `lab_items` (ตรวจเดี่ยว) และ `lab_items_sub_group` (ชุดตรวจ/โปรไฟล์)\n";
+        $out .= "   - กฎเหล็ก: ตรวจเดี่ยว `lab_items.icode` ต้องผูกเข้ากับ `nondrugitems.icode`, และชุดตรวจ `lab_items_sub_group.group_icode` ต้องผูกเข้ากับ `nondrugitems.icode` เสมอ มิฉะนั้นจะไม่สามารถคิดเงินและส่งเบิกเคลมได้\n";
+        $out .= "   - ฟิลด์สำคัญ: `lab_items_code`, `lab_items_name`, `icode`, `tmlt_code` (รหัส TMLT), `loinc_code`, `active_status`\n";
+        $out .= "   - เกณฑ์ตรวจสอบ: ตรวจสอบรายการแล็บที่ยังไม่ผูก icode คิดเงิน หรือขาดรหัสมาตรฐาน TMLT\n\n";
+        $out .= "=== มาตรฐานการตรวจสอบก่อนส่งออกแยกตามกองทุน (Fund Audit Rules) ===\n";
+        $out .= "- 16 แฟ้ม / FDH: DRU (24 หลัก, TMT, ED/NED), ADP (nhso_adp_code, adp_type), INS (hipdata_code), PROVIDER (licenseno ว., cid 13 หลัก)\n";
+        $out .= "- AIPN (ผู้ป่วยใน ประกันสังคม IPD): อุปกรณ์/อวัยวะเทียมเทียบกับ lookup_sss_equipdev_aipn, ยา 24 หลัก, แพทย์มีเลข ว.\n";
+        $out .= "- SSOP (ผู้ป่วยนอก ประกันสังคม OPD): ค่าบริการ OPD, รหัส ADP, รหัสยา 24 หลัก, สิทธิประกันสังคม (pcode = 'SS')\n";
+        $out .= "- CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD): ยาเทียบกับ drugcat_chi (ราคากลาง, 24 หลัก, ยา จ(2)), nondrugitems.billcode, pcode = 'OF'\n\n";
         $out .= "*** ตัวอย่างคำสั่ง SELECT ที่ถูกต้องและปลอดภัย ***:\n";
         $out .= "- แพทย์ไม่มีเลขใบประกอบฯ: `SELECT d.code, d.name, d.licenseno, d.council_code, d.cid, dp.name AS position_name, s.name AS spclty_name, c.name AS clinic_name, d.active FROM doctor d LEFT JOIN doctor_position dp ON dp.id = d.position_id LEFT JOIN spclty s ON s.spclty = d.spclty LEFT JOIN clinic c ON c.clinic = d.clinic WHERE (d.licenseno IS NULL OR d.licenseno = '' OR d.licenseno LIKE '-%') AND d.active = 'Y'`\n";
         $out .= "- ค่าบริการที่ยังไม่ผูกรหัส ADP: `SELECT n.icode, n.name, n.price, i.name AS income_name, n.nhso_adp_code FROM nondrugitems n LEFT JOIN income i ON i.income = n.income WHERE (n.nhso_adp_code IS NULL OR n.nhso_adp_code = '') AND n.istatus = 'Y' AND n.price > 0`\n";
+        $out .= "- ยา Active ขาดรหัส 24 หลัก: `SELECT d.icode, d.name, d.strength, d.drugaccount, d.unitprice, d.did FROM drugitems d WHERE d.istatus = 'Y' AND (d.did IS NULL OR LENGTH(TRIM(d.did)) < 24)`\n";
+        $out .= "- ตรวจสอบยา ED หรือ NED: `SELECT d.icode, d.name, d.strength, d.dosageform, d.drugaccount, CASE WHEN d.drugaccount IN ('ก','ข','ค','ง','จ') THEN 'ยาในบัญชียาหลัก (ED)' ELSE 'ยานอกบัญชียาหลัก (NED)' END AS ed_status, d.did, d.tmt_tp_code, d.unitprice, d.sks_price FROM drugitems d WHERE d.icode = '1000001' OR d.did LIKE '%...%'`\n";
+        $out .= "- แล็บที่ยังไม่ผูก icode: `SELECT l.lab_items_code, l.lab_items_name, l.icode, l.tmlt_code FROM lab_items l WHERE l.active_status = 'Y' AND (l.icode IS NULL OR l.icode = '')`\n";
         $out .= "- สิทธิที่รหัสส่งออกไม่ตรงกับ PROVIS: `SELECT p.pttype, p.name, p.hipdata_code, p.pttype_std_code, pi.code AS provis_code, pi.name AS provis_name, pi.pttype_std_code AS provis_std_code FROM pttype p LEFT JOIN provis_instype pi ON pi.code = p.nhso_code WHERE p.isuse = 'Y' AND (p.pttype_std_code != pi.pttype_std_code OR p.pttype_std_code IS NULL)`\n\n";
         $out .= "*** กฎเหล็กและขอบเขตข้อมูล ***:\n";
-        $out .= "- ให้มุ่งเน้นดึงข้อมูลของ 3 กลุ่มตารางตั้งต้นนี้ให้ถูกต้องตรงเป๊ะก่อน (doctor, nondrugitems, pttype) ร่วมกับตาราง lookup ข้างต้น\n";
-        $out .= "- ในหน้านี้ยังไม่ต้องเชื่อมหรืออ้างอิงตารางยา (drugitems) หรือแล็บ (lab_items) จนกว่าจะมีการเพิ่มข้อมูลพื้นฐานดังกล่าวในระบบต่อไป\n";
+        $out .= "- สามารถสืบค้นตรวจสอบข้อมูลพื้นฐานทั้ง 5 เสาหลัก (doctor, nondrugitems, pttype, drugitems, lab_items) และตารางเชื่อมโยง/แคตตาล็อกที่เกี่ยวข้องได้ครบถ้วน\n";
         $out .= "- คำสั่ง SELECT ทุกคำสั่งต้องปลอดภัย (Read-Only) และห้าม INSERT/UPDATE/DELETE เด็ดขาด\n\n";
 
         foreach ($tables as $table => $info) {
@@ -408,6 +420,112 @@ class SchemaCatalogService
                     'pttype' => 'char(2) รหัสสิทธิการรักษา (เชื่อมกับ pttype.pttype)',
                     'nhso_subinscl' => 'varchar(3) รหัสสิทธิย่อย สปสช. (เช่น 01, 02, 03)',
                 ]
+            ],
+            'drugitems' => [
+                'description' => 'ตารางข้อมูลยาและเวชภัณฑ์ (Drug Items Master): รายการยา, รหัสมาตรฐาน 24 หลัก, TMT, ราคาแยกเก็บ และบัญชียา ED/NED',
+                'columns' => [
+                    'icode' => 'varchar(7) รหัสรายการยา (Primary Key ขึ้นต้นด้วย 1 หรือ 2)',
+                    'name' => 'varchar(150) ชื่อทางการค้า/ชื่อยา',
+                    'strength' => 'varchar(100) ความแรงของยา',
+                    'units' => 'varchar(50) หน่วยนับ',
+                    'dosageform' => 'varchar(50) รูปแบบยา (เม็ด, แคปซูล, ฉีด ฯลฯ)',
+                    'drugaccount' => 'varchar(10) บัญชียาหลักแห่งชาติ: ก, ข, ค, ง, จ = ยาในบัญชี (ED) | ว่าง, \'-\', หรือ \'NED\' = ยานอกบัญชี (NED)',
+                    'did' => 'varchar(30) รหัสยามาตรฐาน 24 หลัก (NDC24)',
+                    'tmt_tp_code' => 'varchar(20) รหัสมาตรฐานยาไทย TMT (TP/GPU)',
+                    'unitprice' => 'double ราคาจำหน่าย OPD ปกติ (ราคา 1)',
+                    'price2' => 'double ราคาจำหน่าย OPD ราคา 2',
+                    'price3' => 'double ราคาจำหน่าย OPD ราคา 3',
+                    'ipd_price' => 'double ราคาจำหน่าย IPD',
+                    'unitcost' => 'double ราคาทุนต่อหน่วย',
+                    'stdprice' => 'double ราคากลางมาตรฐาน',
+                    'sks_price' => 'double ราคาเบิกจ่ายตรงกรมบัญชีกลาง (CSMBS/CSOP/CIPN)',
+                    'sks_reimb_price' => 'double ราคาชดเชยกรมบัญชีกลาง',
+                    'income' => 'char(2) หมวดรายได้ (Foreign Key -> income.income ปกติคือ 03 ค่ายา)',
+                    'istatus' => 'char(1) สถานะการใช้งาน (Y=เปิดใช้งาน, N=ยกเลิก)',
+                ]
+            ],
+            'drugitems_ref_code' => [
+                'description' => 'ตารางเก็บประวัติรหัสมาตรฐานอ้างอิงของยา (Drug Reference Codes): type 1 = รหัส 24 หลัก, type 2 = Barcode, type 3 = รหัส TMT, type 4 = รหัส TTMT (ยาแผนไทย)',
+                'columns' => [
+                    'drugitems_ref_code_id' => 'int รหัสรายการ (Primary Key)',
+                    'icode' => 'varchar(7) รหัสยา (เชื่อมกับ drugitems.icode)',
+                    'drugitems_ref_code_type_id' => 'int ประเภท (1=24หลัก, 2=Barcode, 3=TMT, 4=TTMT)',
+                    'ref_code' => 'varchar(100) ค่ารหัสมาตรฐานอ้างอิง',
+                ]
+            ],
+            'drugusage' => [
+                'description' => 'ตารางวิธีใช้ยา (Drug Usage Master): วิธีการรับประทานยาและข้อบ่งใช้สำหรับพิมพ์สติ๊กเกอร์ยาและส่งออกแฟ้ม DRU',
+                'columns' => [
+                    'drugusage' => 'varchar(10) รหัสวิธีใช้ยา (Primary Key)',
+                    'name1' => 'varchar(100) ข้อความวิธีใช้แถวที่ 1',
+                    'name2' => 'varchar(100) ข้อความวิธีใช้แถวที่ 2',
+                    'name3' => 'varchar(100) ข้อความวิธีใช้แถวที่ 3',
+                    'shortlist' => 'varchar(50) ชื่อย่อคำสั่งวิธีใช้',
+                    'status' => 'char(1) สถานะการใช้งาน (Y=ใช้งาน, N=ไม่ใช้งาน)',
+                ]
+            ],
+            'lab_items' => [
+                'description' => 'ตารางรายการตรวจชันสูตรทางห้องปฏิบัติการเดี่ยว (Lab Single Items Master): ต้องผูก icode เข้ากับ nondrugitems จึงจะคิดเงินและส่งเคลมได้',
+                'columns' => [
+                    'lab_items_code' => 'int รหัสรายการตรวจแล็บ (Primary Key)',
+                    'lab_items_name' => 'varchar(100) ชื่อการตรวจแล็บ',
+                    'icode' => 'varchar(7) รหัสค่าบริการใน nondrugitems ที่ต้องผูก (หากเว้นว่างจะคิดเงินและส่งเคลมไม่ได้)',
+                    'service_price' => 'double ราคาค่าตรวจ OPD 1',
+                    'service_price2' => 'double ราคาค่าตรวจ OPD 2',
+                    'service_price3' => 'double ราคาค่าตรวจ OPD 3',
+                    'service_price_ipd' => 'double ราคาค่าตรวจ IPD',
+                    'service_cost' => 'double ราคาทุนค่าตรวจ',
+                    'tmlt_code' => 'varchar(20) รหัสตรวจแล็บมาตรฐาน TMLT (Thai Medical Laboratory Terminology)',
+                    'loinc_code' => 'varchar(20) รหัสสากล LOINC',
+                    'lab_items_sub_group_code' => 'int รหัสชุดตรวจโปรไฟล์ (Foreign Key -> lab_items_sub_group.lab_items_sub_group_code)',
+                    'lab_items_group' => 'int แผนกกลุ่มงานแล็บ (Foreign Key -> lab_items_group.lab_items_group_code)',
+                    'active_status' => 'char(1) สถานะการใช้งาน (Y=เปิดใช้งาน, N=ปิดใช้งาน)',
+                ]
+            ],
+            'lab_items_sub_group' => [
+                'description' => 'ตารางชุดตรวจ/โปรไฟล์ทางห้องปฏิบัติการ (Lab Profile / Sub Group Master เช่น CBC, Lipid, Electrolyte): ต้องผูก group_icode เข้ากับ nondrugitems',
+                'columns' => [
+                    'lab_items_sub_group_code' => 'int รหัสชุดตรวจโปรไฟล์ (Primary Key)',
+                    'lab_items_sub_group_name' => 'varchar(100) ชื่อชุดตรวจ/โปรไฟล์ (เช่น CBC, Lipid Profile, LFT)',
+                    'group_icode' => 'varchar(7) รหัสค่าบริการชุดตรวจใน nondrugitems (หากเว้นว่างจะคิดเงินชุดตรวจไม่ได้)',
+                    'group_price' => 'double ราคาชุดตรวจ OPD 1',
+                    'group_price_ipd' => 'double ราคาชุดตรวจ IPD',
+                    'tmlt_code' => 'varchar(20) รหัสตรวจแล็บมาตรฐาน TMLT ของชุดตรวจ',
+                    'loinc_code' => 'varchar(20) รหัสสากล LOINC',
+                    'active_status' => 'char(1) สถานะการใช้งาน (Y=เปิดใช้งาน, N=ปิดใช้งาน)',
+                ]
+            ],
+            'drugcat_nhso' => [
+                'description' => 'ตารางแคตตาล็อกยา สปสช. (NHSO Drug Catalog Master ใน RiMS): ฐานข้อมูลรายการยามาตรฐาน สปสช. สำหรับตรวจสอบความถูกต้องของรหัส 24 หลัก, TMT, ราคาเบิกจ่าย และสถานะ ED/NED',
+                'columns' => [
+                    'hospdrugcode' => 'varchar(255) รหัสยาของโรงพยาบาล (เชื่อมกับ drugitems.icode)',
+                    'genericname' => 'varchar(255) ชื่อสามัญทางยา',
+                    'tradename' => 'varchar(255) ชื่อทางการค้า',
+                    'dosageform' => 'varchar(255) รูปแบบยา',
+                    'strength' => 'varchar(255) ความแรงยา',
+                    'unitprice' => 'double ราคาเบิกชดเชย สปสช.',
+                    'ised' => 'varchar(255) สถานะบัญชียา: E = ในบัญชียาหลัก (ED) | N = นอกบัญชียาหลัก (NED)',
+                    'ndc24' => 'varchar(255) รหัสยา 24 หลักมาตรฐาน สปสช.',
+                    'tmtid' => 'varchar(255) รหัส TMT มาตรฐาน',
+                    'dateeffective' => 'date วันที่มีผลบังคับใช้',
+                    'ised_approved' => 'varchar(255) สถานะการอนุมัติบัญชียา',
+                ]
+            ],
+            'drugcat_chi' => [
+                'description' => 'ตารางแคตตาล็อกยา กรมบัญชีกลาง CSMBS (CHI Drug Catalog Master ใน RiMS): รายการยาและเพดานราคาเบิกจ่ายตรงสิทธิข้าราชการ (CSOP/CIPN)',
+                'columns' => [
+                    'hospdrugcode' => 'varchar(255) รหัสยาของโรงพยาบาล (เชื่อมกับ drugitems.icode)',
+                    'tmtid' => 'varchar(255) รหัส TMT มาตรฐาน',
+                    'unitprice' => 'double ราคาเพดานเบิกจ่ายตรงสิทธิข้าราชการ',
+                ]
+            ],
+            'lookup_sss_equipdev_aipn' => [
+                'description' => 'ตารางรหัสมาตรฐานอุปกรณ์และอวัยวะเทียม ประกันสังคม กองทุน AIPN (SSS AIPN Equipment & Devices Master ใน RiMS)',
+                'columns' => [
+                    'code' => 'varchar(50) รหัสอุปกรณ์/อวัยวะเทียมมาตรฐาน ประกันสังคม',
+                    'name' => 'varchar(255) ชื่อรายการอุปกรณ์/อวัยวะเทียม',
+                    'price' => 'double ราคาเพดานเบิกชดเชย AIPN',
+                ]
             ]
         ];
     }
@@ -424,6 +542,9 @@ class SchemaCatalogService
         $isPttype = preg_match('/(สิทธิ|pttype|บัตรทอง|ประกันสังคม|ข้าราชการ|hipdata|16\s*แฟ้ม|เบิกได้|จ่ายเอง|pcode|สิทธิการรักษา|subinscl|provis)/iu', $q);
         $isDoctor = preg_match('/(หมอ|แพทย์|doctor|ผู้ตรวจ|licenseno|ใบประกอบ|สภาวิชาชีพ|council|ตำแหน่ง|เชี่ยวชาญ|spclty|คลินิก|clinic)/iu', $q);
         $isPriceByRight = preg_match('/(pttype_items_price|ราคาแยกตามสิทธิ|ราคาตามสิทธิ|แยกสิทธ|แยกสิทธิ์|หลายสิทธิ|หลายสิทธิ์|หลายราคา|ราคาต่างกัน|ส่วนลด|ราคาพิเศษ|กลุ่มราคา)/iu', $q);
+        $isDrug = preg_match('/(ยา|drug|did|tmt|icode|24\s*หลัก|ed\b|ned\b|drugcat|ค่ายา|drugusage|วิธีใช้|9418424|\b\d{6,7}\b)/iu', $q);
+        $isLab = preg_match('/(lab|แลป|แล็บ|tmlt|loinc|ชุดตรวจ|โปรไฟล์|profile|item|สิ่งส่งตรวจ|specimen|labcat)/iu', $q);
+        $isFundAudit = preg_match('/(16\s*แฟ้ม|fdh|aipn|ssop|csop|cipn|กองทุน|ส่งออก|เคลม|claim|audit|ตรวจสอบ)/iu', $q);
 
         if ($isDoctor) {
             $selected['doctor'] = $tables['doctor'];
@@ -453,7 +574,32 @@ class SchemaCatalogService
             $selected['nondrugitems'] = $tables['nondrugitems'];
         }
 
-        // If general or no specific match, include the 3 core masters + pttype_items_price + lookups
+        if ($isDrug) {
+            if (isset($tables['drugitems'])) $selected['drugitems'] = $tables['drugitems'];
+            if (isset($tables['drugitems_ref_code'])) $selected['drugitems_ref_code'] = $tables['drugitems_ref_code'];
+            if (isset($tables['drugusage'])) $selected['drugusage'] = $tables['drugusage'];
+            if (isset($tables['income'])) $selected['income'] = $tables['income'];
+            if (isset($tables['drugcat_nhso'])) $selected['drugcat_nhso'] = $tables['drugcat_nhso'];
+            if (isset($tables['drugcat_chi'])) $selected['drugcat_chi'] = $tables['drugcat_chi'];
+        }
+
+        if ($isLab) {
+            if (isset($tables['lab_items'])) $selected['lab_items'] = $tables['lab_items'];
+            if (isset($tables['lab_items_sub_group'])) $selected['lab_items_sub_group'] = $tables['lab_items_sub_group'];
+            if (isset($tables['nondrugitems'])) $selected['nondrugitems'] = $tables['nondrugitems'];
+        }
+
+        if ($isFundAudit) {
+            if (isset($tables['drugitems'])) $selected['drugitems'] = $tables['drugitems'];
+            if (isset($tables['nondrugitems'])) $selected['nondrugitems'] = $tables['nondrugitems'];
+            if (isset($tables['pttype'])) $selected['pttype'] = $tables['pttype'];
+            if (isset($tables['doctor'])) $selected['doctor'] = $tables['doctor'];
+            if (isset($tables['lookup_sss_equipdev_aipn'])) $selected['lookup_sss_equipdev_aipn'] = $tables['lookup_sss_equipdev_aipn'];
+            if (isset($tables['drugcat_chi'])) $selected['drugcat_chi'] = $tables['drugcat_chi'];
+            if (isset($tables['drugcat_nhso'])) $selected['drugcat_nhso'] = $tables['drugcat_nhso'];
+        }
+
+        // If general or no specific match, include the 5 core masters + lookups
         if (empty($selected)) {
             return $tables;
         }

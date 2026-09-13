@@ -83,6 +83,22 @@ class TextToSqlService
             Log::warning("TextToSql RAG search error: " . $e->getMessage());
         }
 
+        // 3.1 Inject live HOSxP Context and Catalog Knowledge if targeting HOSxP
+        if ($target === 'hosxp') {
+            try {
+                $hosxpContextService = app(\App\Services\Ai\Context\HosxpContextService::class);
+                $hCtx = $hosxpContextService->getContext($cleanQuestion);
+                if ($hCtx && !empty($hCtx['text'])) {
+                    $ragContextText .= "\n\n=== ข้อมูลบริบทจริงและสถิติการตั้งค่าจากระบบ HOSxP & แคตตาล็อก RiMS ===\n" . $hCtx['text'];
+                    if (!empty($hCtx['sources'])) {
+                        $ragSources = array_merge($ragSources, $hCtx['sources']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("TextToSql HosxpContext error: " . $e->getMessage());
+            }
+        }
+
         // 4. Build Prompt for LLM to generate SQL
         $systemPrompt = $this->buildSystemPrompt($target, $schema, $ragContextText);
         $userPrompt = $this->buildUserPrompt($cleanQuestion, $history);
@@ -232,8 +248,8 @@ class TextToSqlService
 
         $q = mb_strtolower($question, 'UTF-8');
 
-        // Strong HOSxP indicators (Master configs: nondrug, pttype, doctor, adp, etc.)
-        $isHosxp = (bool) preg_match('/(nondrug|ค่าบริการ|หัตถการ|adp|pttype|สิทธิการรักษา|16\s*แฟ้ม|hipdata|doctor|แพทย์|หมอ|licenseno|ใบประกอบ|สภาวิชาชีพ)/iu', $q);
+        // Strong HOSxP indicators (Master configs: nondrug, pttype, doctor, drug, lab, funds, adp, etc.)
+        $isHosxp = (bool) preg_match('/(nondrug|ค่าบริการ|หัตถการ|adp|pttype|สิทธิการรักษา|16\s*แฟ้ม|hipdata|doctor|แพทย์|หมอ|licenseno|ใบประกอบ|สภาวิชาชีพ|ยา|drug|did|tmt|icode|24\s*หลัก|ed\b|ned\b|drugcat|lab|แลป|แล็บ|tmlt|loinc|aipn|ssop|csop|cipn|fdh|audit)/iu', $q);
 
         // Strong RiMS indicators (HosFin: financial, fiscal, ap, ar, tb, journal, account, costs)
         $isHrims = (bool) preg_match('/(hosfin|การเงิน|การคลัง|ผังบัญชี|งบ|งบทดลอง|สมุดรายวัน|เจ้าหนี้|ลูกหนี้|บิล|ค้างจ่าย|ค้างชำระ|บริษัท|vendor|ap\b|ar\b|voucher|journal|กระแสเงินสด|เงินสด|ต้นทุน|สถิติ|หนี้สิน)/iu', $q);
@@ -255,7 +271,7 @@ class TextToSqlService
     protected function buildSystemPrompt(string $targetDb, string $schema, string $ragContext = ''): string
     {
         $dbTitle = ($targetDb === 'hosxp')
-            ? 'HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน: nondrugitems, pttype, doctor)'
+            ? 'HOSxP (ตรวจสอบการตั้งค่าข้อมูลพื้นฐาน: แพทย์, ค่าบริการ, สิทธิการรักษา, ยา, แล็บ, และแคตตาล็อกกองทุน 16 แฟ้ม, AIPN, SSOP, CSOP)'
             : 'RiMS HosFin (ระบบการเงินการคลัง HosFin: สืบค้นและวิเคราะห์ข้อมูลจากตาราง hosfin_* ทั้งหมด 12 ตาราง)';
 
         return <<<EOT
@@ -273,7 +289,7 @@ class TextToSqlService
 1. ต้องสร้างเฉพาะคำสั่ง **SELECT** เท่านั้น ห้ามสร้าง INSERT, UPDATE, DELETE, DROP, ALTER, CREATE หรือคำสั่งแก้ไขข้อมูลใดๆ ทั้งสิ้น เด็ดขาด
 2. ต้องเป็นคำสั่งเดี่ยว (Single Statement) ห้ามมีเครื่องหมายเซมิโคลอน (;) คั่นหลายคำสั่ง
 3. สำหรับ HosFin: อ้างอิงเฉพาะตารางที่ขึ้นต้นด้วย `hosfin_` เท่านั้น (มีทั้งหมด 12 ตาราง: ap_bills, ar_debtors, trial_balance, daily_summaries, cost_summaries, monthly_balances, journals, journal_items, accounts, subledgers, dtl_mappings, sync_logs)
-4. สำหรับ HOSxP: อ้างอิงเฉพาะตาราง `nondrugitems`, `pttype`, `doctor` เท่านั้นเพื่อตรวจสอบการตั้งค่าข้อมูลพื้นฐาน
+4. สำหรับ HOSxP: อ้างอิงเฉพาะตารางข้อมูลพื้นฐานที่ได้รับอนุญาต ได้แก่ `nondrugitems`, `pttype`, `doctor`, `drugitems`, `drugitems_ref_code`, `drugusage`, `lab_items`, `lab_items_sub_group`, `income`, `paidst`, `pcode`, `spclty`, `clinic`, `doctor_position`, `provis_instype`, `pttype_items_price`, `pttype_price_group`, `pttype_nhso_subinscl` และตารางแคตตาล็อก RiMS เพื่อตรวจสอบความถูกต้องก่อนส่งออกกองทุนต่างๆ (16 แฟ้ม, AIPN, SSOP, CSOP, CIPN)
 5. การค้นหาข้อความภาษาไทย ให้ใช้ `LIKE '%...%'`
 6. สำหรับคำถามภาพรวม ภาพรวมระบบ หรือถามว่าดูอะไรได้บ้าง (เช่น "ดูอะไรได้บ้าง", "มีข้อมูลอะไรบ้าง", "สรุปข้อมูลการเงิน", "ภาพรวมการเงิน"):
    - ห้ามค้นหา information_schema หรือ SHOW TABLES เด็ดขาด!
@@ -376,6 +392,32 @@ EOT;
         $dbName = ($dbTarget === 'hosxp') ? 'HOSxP (การตั้งค่าข้อมูลพื้นฐาน)' : 'RiMS (ระบบการเงินการคลัง HosFin)';
 
         if ($count === 0) {
+            if ($dbTarget === 'hosxp') {
+                try {
+                    $zeroPrompt = <<<EOT
+คำถามของผู้ใช้: "{$question}"
+บริบท: ทำการค้นหาในฐานข้อมูล HOSxP แล้วพบ 0 รายการ (ไม่พบข้อมูลตามเงื่อนไขคำสั่ง SQL: {$explanation})
+{$ragContext}
+
+หน้าที่ของคุณ (น้องมีตังค์ - เพศหญิง): ให้คำตอบเชิงปรึกษาและคำแนะนำที่เป็นประโยชน์แก่เจ้าหน้าที่โรงพยาบาล:
+1. ชี้แจงอย่างสุภาพว่าจากการตรวจสอบในฐานข้อมูล HOSxP ขณะนี้น้องมีตังค์ไม่พบข้อมูลตรงกับรหัสหรือเงื่อนไขดังกล่าว
+2. ให้ความรู้/หลักเกณฑ์มาตรฐานที่เกี่ยวข้องกับคำถาม (เช่น หากถามเรื่องยานอกบัญชี/ในบัญชี ED/NED ให้อธิบายว่าใน HOSxP ดูจากฟิลด์ drugaccount: ก-จ คือในบัญชี ED, ส่วน '-' หรือ NED คือนอกบัญชี NED, และในแคตตาล็อก สปสช. ดูจากฟิลด์ ised: E คือในบัญชี, N คือนอกบัญชี)
+3. แนะนำแนวทางการตรวจสอบหรือการตั้งค่าในโปรแกรม HOSxP (เช่น เมนู Tools > System Setting > กำหนดรายการยา / ค่าบริการ) เพื่อให้ข้อมูลถูกต้องก่อนส่งออกกองทุน (16 แฟ้ม, AIPN, SSOP, CSOP)
+
+ข้อกำหนดการตอบ:
+- คุณคือน้องมีตังค์ (เพศหญิง) แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" และลงท้ายด้วย "ค่ะ/นะคะ" เสมอ
+- เรียกชื่อระบบว่า "RiMS" เท่านั้น
+- ใช้คำว่า "ข้อมูลพื้นฐาน" เสมอ และห้ามใช้คำว่า "Master Data"
+EOT;
+                    $summarySystemPrompt = "คุณคือ 'น้องมีตังค์' (RiMS AI) ผู้ช่วยสาวอัจฉริยะเพศหญิงประจำระบบ RiMS และการตรวจสอบข้อมูลพื้นฐาน HOSxP พูดจาสุภาพ น่ารัก อ่อนหวาน ลงท้ายด้วย 'ค่ะ/นะคะ' เสมอ";
+                    $zeroAnalysis = $this->aiService->generateChat($zeroPrompt, $summarySystemPrompt, 'hosxp');
+                    if (!empty($zeroAnalysis) && mb_strlen($zeroAnalysis, 'UTF-8') > 30) {
+                        return $zeroAnalysis;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Zero rows analysis failed: " . $e->getMessage());
+                }
+            }
             return "ผลลัพธ์จากฐานข้อมูล {$dbName}: น้องมีตังค์ไม่พบข้อมูลที่ตรงกับเงื่อนไข \"{$question}\" ค่ะ";
         }
 
@@ -484,8 +526,10 @@ EOT;
     {
         if ($dbTarget === 'hosxp') {
             return json_encode([
+                "ตรวจสอบความพร้อมส่งออก 16 แฟ้ม / FDH",
+                "ตรวจสอบการตั้งค่าสำหรับกองทุน AIPN ประกันสังคม",
+                "ตรวจรายการยาที่ยังขาดรหัสมาตรฐาน 24 หลัก และ TMT",
                 "ตรวจรายการค่าบริการและหัตถการที่ยังไม่ผูกรหัส ADP สปสช.",
-                "ตรวจสอบการตั้งค่าสิทธิการรักษาที่ยังไม่ผูกรหัสส่งออก 16 แฟ้ม",
                 "ตรวจรายชื่อแพทย์และผู้ตรวจรักษาที่ไม่มีเลขที่ใบประกอบวิชาชีพ"
             ], JSON_UNESCAPED_UNICODE);
         }
@@ -612,18 +656,39 @@ EOT;
             'message' => 'ข้อความผลการทำงาน',
             'duration_seconds' => 'เวลาที่ใช้ (วินาที)',
 
-            // HOSxP Master
-            'icode' => 'รหัสค่าบริการ',
+            // HOSxP Master & Drugs / Labs
+            'icode' => 'รหัสค่าบริการ/รหัสยา',
             'name' => 'ชื่อรายการ',
+            'strength' => 'ความแรง',
+            'units' => 'หน่วยนับ',
+            'dosageform' => 'รูปแบบยา',
+            'drugaccount' => 'บัญชียา',
+            'ed_status' => 'สถานะบัญชียา (ED/NED)',
+            'did' => 'รหัสยา 24 หลัก',
+            'tmt_tp_code' => 'รหัสมาตรฐาน TMT',
             'price' => 'ราคาปกติ (บาท)',
             'price2' => 'ราคา 2 (บาท)',
             'price3' => 'ราคา 3 (บาท)',
+            'ipd_price' => 'ราคา IPD (บาท)',
+            'unitcost' => 'ราคาทุน (บาท)',
+            'stdprice' => 'ราคากลาง (บาท)',
+            'sks_price' => 'ราคาเบิกกรมบัญชีกลาง (บาท)',
+            'sks_reimb_price' => 'ราคาชดเชยกรมบัญชีกลาง (บาท)',
             'income' => 'หมวดค่ารักษา',
             'nhso_adp_code' => 'รหัสมาตรฐาน ADP สปสช.',
             'billcode' => 'รหัสเบิกกรมบัญชีกลาง',
             'unit' => 'หน่วยนับ',
             'istat' => 'สถานะการใช้งาน',
             'istatus' => 'สถานะการใช้งาน',
+            'lab_items_code' => 'รหัสแล็บ',
+            'lab_items_name' => 'ชื่อรายการตรวจแล็บ',
+            'tmlt_code' => 'รหัสตรวจแล็บ TMLT',
+            'loinc_code' => 'รหัสสากล LOINC',
+            'service_price' => 'ราคาตรวจ OPD (บาท)',
+            'service_cost' => 'ราคาทุนค่าตรวจ (บาท)',
+            'lab_items_sub_group_name' => 'ชื่อชุดตรวจ/โปรไฟล์',
+            'group_icode' => 'รหัสค่าบริการชุดตรวจ',
+            'group_price' => 'ราคาชุดตรวจ (บาท)',
             'pttype' => 'รหัสสิทธิการรักษา',
             'pcode' => 'กลุ่มสิทธิมาตรฐาน',
             'hipdata_code' => 'รหัสส่งออก 16 แฟ้ม',

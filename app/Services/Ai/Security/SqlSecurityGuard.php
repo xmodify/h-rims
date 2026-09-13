@@ -171,19 +171,28 @@ class SqlSecurityGuard
                 'nondrugitems', 'pttype', 'doctor', 'pttype_items_price', 'opitemrece',
                 'income', 'paidst', 'pcode', 'spclty', 'doctor_position', 'clinic',
                 'nhso_adp_type', 'provis_instype', 'pttype_price_group',
-                'pttype_price_policy_type', 'pttype_nhso_subinscl', 'sks_claim_category_type'
+                'pttype_price_policy_type', 'pttype_nhso_subinscl', 'sks_claim_category_type',
+                // Drug tables & lookups
+                'drugitems', 'drugitems_ref_code', 'drugusage', 's_drugitems',
+                // Lab tables & lookups
+                'lab_items', 'lab_items_sub_group', 'lab_items_group', 'lab_specimen_items', 'nhso_adp_code',
+                // RiMS Catalogs & Lookup tables
+                'drugcat_nhso', 'drugcat_chi', 'drugcat_fdh',
+                'labcat_chi', 'labcat_fdh', 'labcat_nhso', 'labcat_ss', 'labcat_tmt',
+                'lookup_sss_equipdev_aipn', 'lookup_adp', 'lookup_lab_nhso',
+                'lookup_nhso_adp_code', 'lookup_nhso_adp_type'
             ];
             foreach ($tables as $tbl) {
                 if (!in_array($tbl, $allowedHosxp, true)) {
                     if ($tbl === 'information_schema' || str_contains($tbl, 'schema')) {
                         return [
                             'is_valid' => false,
-                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยค่ะ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจราคาตามสิทธิใน pttype_items_price', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยน้องมีตังค์จะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีค่ะ"
+                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยค่ะ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจรหัสยา 24 หลัก/TMT', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยน้องมีตังค์จะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีค่ะ"
                         ];
                     }
                     return [
                         'is_valid' => false,
-                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลตั้งค่า nondrugitems, pttype, doctor, pttype_items_price, opitemrece และตาราง lookup ที่เกี่ยวข้องเท่านั้น (พบการเรียกดู '{$tbl}')"
+                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลตั้งค่าแพทย์, ค่ารักษา, ยา, แล็บ, สิทธิการรักษา และตารางแคตตาล็อกที่เกี่ยวข้องเท่านั้น (พบการเรียกดู '{$tbl}')"
                     ];
                 }
             }

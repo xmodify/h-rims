@@ -774,7 +774,7 @@
                             <small class="text-muted fw-bold d-block mb-1"><i class="bi bi-lightbulb text-warning me-1"></i> ตัวอย่างคำถามแนะนำ:</small>
                             <div class="suggestion-group" id="welcomeSuggestionChips">
                                 <span class="suggestion-chip" onclick="handleQuickPrompt('ขอยอดสรุปเจ้าหนี้การค้าแยกตามบริษัท')">📌 สรุปยอดหนี้เจ้าหนี้การค้า</span>
-                                <span class="suggestion-chip" onclick="handleQuickPrompt('ขอยอดผู้ป่วยนอกวันนี้ แยกตามแผนก')">🏥 ยอดผู้ป่วยนอกวันนี้แยกแผนก</span>
+                                <span class="suggestion-chip" onclick="handleQuickPrompt('สรุปเป้าหมายและผลดำเนินงานตามแผน PlanFin')">📊 แผนเงินบำรุง PlanFin</span>
                                 <span class="suggestion-chip" onclick="handleQuickPrompt('ลูกหนี้ค่ารักษาพยาบาลค้างชำระแยกตามสิทธิ')">👛 ลูกหนี้ค้างชำระแยกตามสิทธิ</span>
                                 <span class="suggestion-chip" onclick="handleQuickPrompt('ตรวจรายการค่าบริการที่ยังไม่ผูกรหัส ADP')">💊 ค่าบริการที่ยังไม่ผูก ADP</span>
                                 <span class="suggestion-chip" onclick="handleQuickPrompt('สรุปยอดหนี้องค์การเภสัชกรรม GPO')">🏢 ยอดหนี้ อภ. (GPO)</span>
@@ -1042,14 +1042,15 @@
         const SCOPE_CONFIG = {
             hosfin: {
                 title: 'น้องมีตังค์ 🏢 ระบบการเงิน HosFin',
-                desc: 'สืบค้นข้อมูลบัญชี การเงิน เจ้าหนี้ ลูกหนี้ ผังบัญชี และงบทดลอง พร้อมค้นหาเทียบเคียงระเบียบการเงินจากคลังความรู้ RAG อย่างแม่นยำและปลอดภัย',
-                placeholder: 'พิมพ์คำถามการเงิน เช่น สรุปยอดหนี้เจ้าหนี้การค้า, ลูกหนี้ค้างชำระตามสิทธิ, ขอยอดงบทดลองล่าสุด...',
+                desc: 'สืบค้นข้อมูลบัญชี การเงิน เจ้าหนี้ ลูกหนี้ ผังบัญชี งบทดลอง และแผนเงินบำรุง PlanFin พร้อมค้นหาเทียบเคียงระเบียบการเงินจากคลังความรู้ RAG อย่างแม่นยำและปลอดภัย',
+                placeholder: 'พิมพ์คำถามการเงิน เช่น สรุปเป้าหมายแผนเงินบำรุง PlanFin, ยอดหนี้เจ้าหนี้การค้า, ลูกหนี้ค้างชำระ...',
                 chips: [
+                    '📊 สรุปเป้าหมายและผลดำเนินงานตามแผน PlanFin',
                     '📌 สรุปยอดหนี้เจ้าหนี้การค้าแยกตามบริษัท',
                     '🏢 ยอดหนี้ค้างจ่ายองค์การเภสัชกรรม GPO',
                     '👛 ลูกหนี้ค่ารักษาพยาบาลค้างชำระแยกตามสิทธิ',
-                    '📊 ขอยอดงบทดลอง (Trial Balance) ล่าสุด',
-                    '📑 สรุปการลงสมุดรายวันทั่วไป (Journal Voucher)'
+                    '📈 EBITDA และวงเงินลงทุนเงินบำรุงปีปัจจุบัน',
+                    '📑 ขอยอดงบทดลอง (Trial Balance) ล่าสุด'
                 ]
             },
             hosxp: {

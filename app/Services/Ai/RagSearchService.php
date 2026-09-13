@@ -240,6 +240,19 @@ class RagSearchService
                     'snippet' => "พบ {$tbAccountContext['count']} ผังบัญชี: " . $tbAccountContext['preview']
                 ];
             }
+
+            // F. PlanFin Budget & Monitoring Lookup (from hosfin_planfin_targets & categories)
+            $planfinContext = $this->hosfinContext->getPlanfinContext($augmentedQuery);
+            if ($planfinContext) {
+                $contextParts[] = "[ข้อมูลแผนเงินบำรุงโรงพยาบาล (PlanFin) จาก HosFin]:\n" . $planfinContext['text'];
+                $sources[] = [
+                    'title' => "แผนเงินบำรุงโรงพยาบาล PlanFin (hosfin_planfin_targets)",
+                    'filename' => 'hosfin_planfin_targets',
+                    'page' => 1,
+                    'score' => 99.0,
+                    'snippet' => $planfinContext['preview']
+                ];
+            }
         }
 
         // Scope and capabilities response
@@ -680,6 +693,14 @@ PROMPT;
     public function getTrialBalanceAccountContext(string $query): ?array
     {
         return $this->hosfinContext->getTrialBalanceAccountContext($query);
+    }
+
+    /**
+     * Look up PlanFin context (delegates to HosfinContextService)
+     */
+    public function getPlanfinContext(string $query): ?array
+    {
+        return $this->hosfinContext->getPlanfinContext($query);
     }
 
     /**

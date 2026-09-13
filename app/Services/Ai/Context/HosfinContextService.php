@@ -656,4 +656,137 @@ class HosfinContextService
             return null;
         }
     }
+
+    /**
+     * Look up PlanFin budget targets and monitoring vs actuals
+     */
+    public function getPlanfinContext(string $query): ?array
+    {
+        try {
+            if (!Schema::hasTable('hosfin_planfin_targets') || !Schema::hasTable('hosfin_planfin_categories')) {
+                return null;
+            }
+
+            $isPlanfinQuery = (bool) preg_match('/(planfin|แผนเงินบำรุง|เป้าหมายแผน|ebitda|กำไรสุทธิตามแผน|วงเงินลงทุน|target|หมวดแผน|จำลองแผน|simulator|mdb|แผนประมาณการ)/iu', $query);
+            if (!$isPlanfinQuery) {
+                return null;
+            }
+
+            $latestYear = DB::table('hosfin_planfin_targets')->max('budget_year');
+            if (!$latestYear) {
+                return null;
+            }
+
+            // Get target records for latestYear
+            $targetsRaw = DB::table('hosfin_planfin_targets as t')
+                ->join('hosfin_planfin_categories as c', 'c.plan_code', '=', 't.plan_code')
+                ->where('t.budget_year', $latestYear)
+                ->select('t.plan_code', 'c.plan_name', 'c.category_type', 't.round_no', 't.target_amount')
+                ->orderBy('c.sort_order')
+                ->get();
+
+            if ($targetsRaw->isEmpty()) {
+                return null;
+            }
+
+            $planTargets = [];
+            $planNames = [];
+            $roundNo = $targetsRaw->first()->round_no ?? '';
+            foreach ($targetsRaw as $row) {
+                $planTargets[$row->plan_code] = floatval($row->target_amount);
+                $planNames[$row->plan_code] = $row->plan_name;
+            }
+
+            // Summary targets
+            $targetRev = $planTargets['P13S'] ?? 0.0;
+            $targetExp = $planTargets['P26S'] ?? 0.0;
+            $targetNet = $planTargets['P27S'] ?? ($targetRev - $targetExp);
+            $targetEbitda = $planTargets['P29'] ?? 0.0;
+            $targetCap20 = max(0, $targetEbitda * 0.20);
+
+            // Latest period actuals from trial balance
+            $latestPeriod = DB::table('hosfin_trial_balance')->orderBy('acc_period', 'desc')->value('acc_period');
+            $actualRev = 0.0;
+            $actualExp = 0.0;
+            $actualNet = 0.0;
+            $actualEbitda = 0.0;
+            $actualCap20 = 0.0;
+            $cumMonths = 0;
+
+            if ($latestPeriod) {
+                $parts = explode('-', $latestPeriod);
+                $py = intval($parts[0] ?? 2569);
+                $pm = intval($parts[1] ?? 1);
+                $cumMonths = ($pm >= 10) ? ($pm - 9) : ($pm + 3);
+                if ($cumMonths <= 0 || $cumMonths > 12) $cumMonths = 12;
+
+                $controller = app(\App\Http\Controllers\HosFinController::class);
+                $ref = new \ReflectionMethod($controller, 'calculatePlanfinActuals');
+                $ref->setAccessible(true);
+                $actuals = $ref->invoke($controller, $latestPeriod);
+
+                $actualRev = floatval($actuals['P13S'] ?? 0.0);
+                $actualExp = floatval($actuals['P26S'] ?? 0.0);
+                $actualNet = floatval($actuals['P27S'] ?? 0.0);
+                $actualEbitda = floatval($actuals['P29'] ?? 0.0);
+                $actualCap20 = max(0, $actualEbitda * 0.20);
+            }
+
+            $planCumRev = ($cumMonths > 0) ? ($targetRev / 12.0) * $cumMonths : $targetRev;
+            $planCumExp = ($cumMonths > 0) ? ($targetExp / 12.0) * $cumMonths : $targetExp;
+
+            $revPct = ($planCumRev > 0) ? ($actualRev / $planCumRev) * 100.0 : 0.0;
+            $expPct = ($planCumExp > 0) ? ($actualExp / $planCumExp) * 100.0 : 0.0;
+
+            $lines = [];
+            $lines[] = "ข้อมูลแผนเงินบำรุงโรงพยาบาล (PlanFin) ประจำปีงบประมาณ {$latestYear} (รอบการจัดทำ: {$roundNo}):";
+            $lines[] = "1. เป้าหมายแผนเงินบำรุงทั้งปีงบประมาณ {$latestYear}:";
+            $lines[] = "   • รายได้รวมตามแผน (P13S): " . number_format($targetRev, 2) . " บาท";
+            $lines[] = "   • ค่าใช้จ่ายรวมตามแผน (P26S): " . number_format($targetExp, 2) . " บาท";
+            $lines[] = "   • รายได้สุทธิตามแผน (P27S Net Income): " . number_format($targetNet, 2) . " บาท";
+            $lines[] = "   • EBITDA ตามแผน (P29): " . number_format($targetEbitda, 2) . " บาท";
+            $lines[] = "   • กรอบวงเงินที่สามารถลงทุนด้วยเงินบำรุงได้ (20% ของ EBITDA ตามเกณฑ์กระทรวงฯ): " . number_format($targetCap20, 2) . " บาท";
+
+            if ($latestPeriod) {
+                $lines[] = "\n2. ผลการดำเนินงานจริงสะสมเปรียบเทียบกับแผน ณ งวดล่าสุด ({$latestPeriod}, รวม {$cumMonths} เดือน):";
+                $lines[] = "   • รายได้จริงสะสม (P13S): " . number_format($actualRev, 2) . " บาท (เทียบเป้าหมายสะสม {$cumMonths} เดือน: " . number_format($planCumRev, 2) . " บาท คิดเป็น " . number_format($revPct, 2) . "%)";
+                $lines[] = "   • ค่าใช้จ่ายจริงสะสม (P26S): " . number_format($actualExp, 2) . " บาท (เทียบเป้าหมายสะสม {$cumMonths} เดือน: " . number_format($planCumExp, 2) . " บาท คิดเป็น " . number_format($expPct, 2) . "%)";
+                $lines[] = "   • รายได้สุทธิสะสมจริง (P27S Net Income): " . number_format($actualNet, 2) . " บาท (" . ($actualNet >= 0 ? "เกินดุล/กำไร" : "ขาดดุล/ติดลบ") . ")";
+                $lines[] = "   • EBITDA จริงสะสม (P29): " . number_format($actualEbitda, 2) . " บาท";
+                $lines[] = "   • วงเงินลงทุนด้วยเงินบำรุงสะสมจริง (20% ของ EBITDA): " . number_format($actualCap20, 2) . " บาท";
+            }
+
+            $lines[] = "\n3. โครงสร้างหมวดรายได้และค่าใช้จ่ายหลักตามแผน:";
+            $keyCodes = [
+                'P04' => 'รายได้ UC',
+                'P07' => 'รายได้เบิกจ่ายตรงกรมบัญชีกลาง',
+                'P11' => 'รายได้งบประมาณส่วนบุคลากร',
+                'P08' => 'รายได้ประกันสังคม',
+                'P14' => 'ต้นทุนยา',
+                'P15' => 'ต้นทุนเวชภัณฑ์มิใช่ยาและวัสดุการแพทย์',
+                'P17' => 'เงินเดือนและค่าจ้างประจำ',
+                'P18' => 'ค่าจ้างชั่วคราว/พกส./จ้างเหมา',
+                'P19' => 'ค่าตอบแทน',
+                'P21' => 'ค่าใช้สอย'
+            ];
+            foreach ($keyCodes as $kCode => $kName) {
+                if (isset($planTargets[$kCode])) {
+                    $lines[] = "   • [{$kCode}] {$kName}: เป้าหมายทั้งปี " . number_format($planTargets[$kCode], 2) . " บาท";
+                }
+            }
+
+            $lines[] = "\n4. ระบบสนับสนุน PlanFin ใน RiMS HosFin:";
+            $lines[] = "   • นำเข้าไฟล์ MDB: รองรับการ Import ไฟล์ .mdb หรือ .zip จากโปรแกรม PlanFin กระทรวงสาธารณสุข โดยซิงค์เป้าหมาย ผังบัญชี และงบทดลองอัตโนมัติ";
+            $lines[] = "   • แผนย่อย 2-7: มีระบบติดตามแผนจัดซื้อยา (แผน 2), วัสดุอื่น (แผน 3), เจ้าหนี้การค้า (แผน 4), ลูกหนี้ (แผน 5), ลงทุนเพิ่ม (แผน 6), และสนับสนุน รพ.สต. (แผน 7)";
+            $lines[] = "   • แบบจำลองแผนงบประมาณ (FY Simulator): ปรับอัตราการเติบโต (% Growth) เทียบกับฐานผลดำเนินงานจริง เพื่อประมาณการแผนปีถัดไป";
+
+            return [
+                'text' => implode("\n", $lines),
+                'preview' => "แผนเงินบำรุงปี {$latestYear} (เป้ารายได้ " . number_format($targetRev / 1000000, 1) . "M, กำไร " . number_format($targetNet / 1000, 0) . "k, EBITDA " . number_format($targetEbitda / 1000000, 1) . "M)"
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService PlanFin Warning: " . $e->getMessage());
+            return null;
+        }
+    }
 }

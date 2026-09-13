@@ -16,17 +16,31 @@ class SchemaCatalogService
     {
         $tables = $this->getCuratedHosfinTables();
 
-        $out = "=== ฐานข้อมูล RiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 12 ตาราง) ===\n";
+        $out = "=== ฐานข้อมูล RiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 15 ตาราง) ===\n";
         $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: mysql)\n";
         $out .= "กฎเหล็ก: อนุญาตให้เขียนคำสั่ง SELECT เฉพาะตารางที่ขึ้นต้นด้วย 'hosfin_' เท่านั้น ห้ามใช้ตารางอื่นนอกเหนือจาก hosfin_*\n";
         $out .= "ข้อแนะนำสำคัญในการเขียน SQL ด้านการเงินการคลัง:\n";
-        $out .= "- ปีงบประมาณ (fiscal_year / acc_year) จัดเก็บเป็นปี พ.ศ. เช่น 2568, 2569\n";
+        $out .= "- ปีงบประมาณ (fiscal_year / acc_year / budget_year) จัดเก็บเป็นปี พ.ศ. เช่น 2568, 2569\n";
         $out .= "- เจ้าหนี้ค้างจ่าย (AP): `hosfin_gl_ap_bills` ดูยอดหนี้คงเหลือที่ `remaining_debt > 0` หรือ `is_paid = 0` (0=ค้างจ่าย, 1=จ่ายแล้ว)\n";
         $out .= "- ลูกหนี้ค่ารักษาค้างชำระ (AR): `hosfin_gl_ar_debtors` ดูยอดหนี้คงค้างที่ `outstanding_balance > 0` แยกตามประเภท `debtor_type` หรือสิทธิ\n";
         $out .= "- งบทดลอง: `hosfin_trial_balance` ยอดเดบิต/เครดิตยกมา (`debit_bf`, `credit_bf`), ประจำงวด (`debit_month`, `credit_month`), สุทธิยกไป (`debit_net`, `credit_net`)\n";
         $out .= "- กระแสเงินสดและสรุปการเงินรายวัน: `hosfin_gl_daily_summaries` มีรายรับ (`total_income`), รายจ่าย (`total_expense`), สุทธิ (`net_cash_flow`), เงินสดคงเหลือสะสม (`cash_balance`)\n";
         $out .= "- ต้นทุนโรงพยาบาล: `hosfin_gl_cost_summaries` มีค่าแรง LC (`lc_amount`), ค่าของ MC (`mc_amount`), ค่าลงทุน CC (`cc_amount`), ต้นทุนรวม (`total_cost`)\n";
-        $out .= "- สมุดรายวันและรายการบัญชี: `hosfin_gl_journals` เชื่อมกับ `hosfin_gl_journal_items` ด้วย `voucher_no`\n\n";
+        $out .= "- สมุดรายวันและรายการบัญชี: `hosfin_gl_journals` เชื่อมกับ `hosfin_gl_journal_items` ด้วย `voucher_no`\n";
+        $out .= "- แผนเงินบำรุงโรงพยาบาล (PlanFin):\n";
+        $out .= "  * เป้าหมายแผนเงินบำรุง: `hosfin_planfin_targets` มี `budget_year`, `round_no` (เช่น 256902, 1st), `plan_code`, `target_amount` (ยอดเป้าหมายทั้งปี)\n";
+        $out .= "  * หมวดแผนเงินบำรุง: `hosfin_planfin_categories` มี `plan_code`, `plan_name`, `category_type` (revenue, expense, summary, kpi), `sort_order`\n";
+        $out .= "    - รายได้: P04 (UC), P05 (EMS), P06 (เบิกต้นสังกัด), P61 (อปท.), P07 (ตรงกรมบัญชีกลาง), P08 (ประกันสังคม), P09 (ต่างด้าว), P10 (บริการอื่น), P11 (งบส่วนบุคลากร), P12 (รายได้อื่น), P13 (งบลงทุน)\n";
+        $out .= "    - สรุปรายได้: `P13S` (รวมรายได้)\n";
+        $out .= "    - ค่าใช้จ่าย: P14 (ยา), P15 (เวชภัณฑ์/วัสดุการแพทย์), P151 (ทันตกรรม), P16 (วิทย์การแพทย์), P17 (เงินเดือน/จ้างประจำ), P18 (จ้างชั่วคราว/พกส.), P19 (ค่าตอบแทน), P20 (บุคลากรอื่น), P21 (ค่าใช้สอย), P22 (สาธารณูปโภค), P23 (วัสดุใช้ไป), P24 (ค่าเสื่อมราคา), P241 (หนี้สูญ), P25 (ค่าใช้จ่ายอื่น)\n";
+        $out .= "    - สรุปค่าใช้จ่าย: `P26S` (รวมค่าใช้จ่าย)\n";
+        $out .= "    - รายได้สุทธิ: `P27S` (รายได้สูง/ต่ำกว่าค่าใช้จ่ายสุทธิ Net Income = P13S - P26S)\n";
+        $out .= "    - EBITDA: `P29` (EBITDA รวมรายได้หักงบลงทุน - รวมค่าใช้จ่ายหักค่าเสื่อมราคา)\n";
+        $out .= "    - วงเงินลงทุนด้วยเงินบำรุงได้ตามเกณฑ์กระทรวงฯ: 20% ของ EBITDA (`P29 * 0.20`)\n";
+        $out .= "  * จับคู่ผังบัญชี PlanFin: `hosfin_planfin_mappings` จับคู่ `account_code` กับ `plan_code`\n";
+        $out .= "  * ตัวอย่างคำสั่ง SELECT แผนเงินบำรุง:\n";
+        $out .= "    - ดึงเป้าหมายแผนเงินบำรุงปีปัจจุบัน: `SELECT t.plan_code, c.plan_name, c.category_type, t.target_amount FROM hosfin_planfin_targets t JOIN hosfin_planfin_categories c ON c.plan_code = t.plan_code WHERE t.budget_year = 2569 ORDER BY c.sort_order`\n";
+        $out .= "    - ดึงเป้าหมายสรุป (รายได้, ค่าใช้จ่าย, กำไรสุทธิ, EBITDA): `SELECT t.plan_code, c.plan_name, t.target_amount FROM hosfin_planfin_targets t JOIN hosfin_planfin_categories c ON c.plan_code = t.plan_code WHERE t.budget_year = 2569 AND t.plan_code IN ('P13S', 'P26S', 'P27S', 'P29')`\n\n";
 
         foreach ($tables as $table => $info) {
             $out .= "TABLE: `{$table}` -- {$info['description']}\nCOLUMNS:\n";
@@ -295,6 +309,40 @@ class SchemaCatalogService
                     'message' => 'text ข้อความผลการซิงค์',
                     'agent_ip' => 'varchar(50) ที่อยู่ IP เครื่องที่ดำเนินการ',
                     'duration_seconds' => 'decimal(8,2) ระยะเวลาที่ใช้ในการซิงค์ (วินาที)',
+                ]
+            ],
+            'hosfin_planfin_categories' => [
+                'description' => 'ตารางหมวดแผนเงินบำรุงโรงพยาบาล (PlanFin Categories Master): หมวดรายได้ (P04-P13), หมวดค่าใช้จ่าย (P14-P251), สรุปรายได้ (P13S), สรุปค่าใช้จ่าย (P26S), รายได้สุทธิ (P27S), และ EBITDA (P29)',
+                'columns' => [
+                    'id' => 'bigint(20) รหัสรายการ (Primary Key)',
+                    'plan_code' => 'varchar(20) รหัสหมวดแผนเงินบำรุง (เช่น P04, P13S, P14, P26S, P27S, P29)',
+                    'plan_name' => 'varchar(255) ชื่อหมวดแผนเงินบำรุง (เช่น รายได้ UC, รวมรายได้, ต้นทุนยา, EBITDA)',
+                    'category_type' => 'varchar(20) ประเภทหมวด (revenue, expense, summary, kpi)',
+                    'sort_order' => 'int(11) ลำดับการจัดเรียงหมวดแผน',
+                ]
+            ],
+            'hosfin_planfin_targets' => [
+                'description' => 'ตารางเป้าหมายแผนเงินบำรุงโรงพยาบาล (PlanFin Targets & Estimates): เป้าหมายรายได้ ค่าใช้จ่าย กำไรสุทธิ และ EBITDA ตามปีงบประมาณและรอบแผน',
+                'columns' => [
+                    'id' => 'bigint(20) รหัสรายการ (Primary Key)',
+                    'budget_year' => 'int(11) ปีงบประมาณ (พ.ศ. เช่น 2569, 2570)',
+                    'round_no' => 'varchar(20) รอบการจัดทำแผน (เช่น 256901, 256902, 1st, 2nd)',
+                    'plan_code' => 'varchar(20) รหัสหมวดแผน (Foreign Key -> hosfin_planfin_categories.plan_code)',
+                    'baseline_amount' => 'decimal(15,2) ยอดฐานผลการดำเนินงานอ้างอิง',
+                    'growth_rate' => 'decimal(8,2) อัตราการเติบโตเป้าหมาย (%)',
+                    'target_amount' => 'decimal(15,2) ยอดเป้าหมายแผนเงินบำรุงทั้งปี (บาท)',
+                    'notes' => 'text บันทึกคำอธิบายเป้าหมาย',
+                    'created_by' => 'bigint(20) รหัสผู้บันทึกแผน',
+                ]
+            ],
+            'hosfin_planfin_mappings' => [
+                'description' => 'ตารางจับคู่ผังบัญชีกับหมวดแผนเงินบำรุง (PlanFin Account Mappings): ผูกรหัสผังบัญชี (GL Account) เข้ากับหมวดแผนเงินบำรุง PlanFin',
+                'columns' => [
+                    'id' => 'bigint(20) รหัสรายการ (Primary Key)',
+                    'account_code' => 'varchar(50) รหัสผังบัญชีโรงพยาบาล',
+                    'account_name' => 'varchar(255) ชื่อผังบัญชี',
+                    'plan_code' => 'varchar(20) รหัสหมวดแผนเงินบำรุงที่ผูก (Foreign Key -> hosfin_planfin_categories.plan_code)',
+                    'plan_name' => 'varchar(255) ชื่อหมวดแผนเงินบำรุง',
                 ]
             ]
         ];

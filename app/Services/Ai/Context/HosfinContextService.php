@@ -209,13 +209,13 @@ class HosfinContextService
             $targetPeriod = ($isAskingPreviousMonth && $prevPeriod) ? $prevPeriod : $latestPeriod;
             $periodDesc = ($targetPeriod === $prevPeriod) ? "{$targetPeriod} (เดือนที่แล้ว / เดือนก่อนหน้า)" : "{$targetPeriod} (งวดล่าสุด)";
 
-            // 1. Check if query contains an account code pattern e.g. 1102050101 or 1102
-            preg_match('/(\d{4,10}(?:\.\d{1,4})?)/', $query, $codeMatch);
+            // 1. Check if query contains an account code pattern e.g. 1101030102.10102 or 1101
+            preg_match('/(\d{3,12}(?:\.\d{1,8})?)/', $query, $codeMatch);
             $queryCode = $codeMatch[1] ?? null;
 
             $items = collect();
 
-            if ($queryCode) {
+            if ($queryCode && strlen($queryCode) >= 4) {
                 $items = DB::table('hosfin_trial_balance')
                     ->where('acc_period', $targetPeriod)
                     ->where('account_code', 'like', $queryCode . '%')
@@ -319,6 +319,77 @@ class HosfinContextService
                         ->limit(12)
                         ->get();
                 }
+            }
+
+            // 2.5 Category-specific Drill-Down (หมวด 1 ถึง 5 หรือ สินทรัพย์, หนี้สิน, ทุน, รายได้, ค่าใช้จ่าย)
+            $catMatches = [
+                '1' => ['title' => 'หมวด 1: สินทรัพย์ (Assets)', 'digit' => '1', 'nature' => 'debit'],
+                '2' => ['title' => 'หมวด 2: หนี้สิน (Liabilities)', 'digit' => '2', 'nature' => 'credit'],
+                '3' => ['title' => 'หมวด 3: ส่วนของเจ้าของ/ทุน (Equity)', 'digit' => '3', 'nature' => 'credit'],
+                '4' => ['title' => 'หมวด 4: รายได้ (Revenues)', 'digit' => '4', 'nature' => 'credit'],
+                '5' => ['title' => 'หมวด 5: ค่าใช้จ่าย (Expenses)', 'digit' => '5', 'nature' => 'debit'],
+            ];
+
+            $targetCatDigit = null;
+            if (preg_match('/หมวด\s*([1-5])/u', $query, $mcm)) {
+                $targetCatDigit = $mcm[1];
+            } elseif (preg_match('/(หมวด|กลุ่ม)?\s*(สินทรัพย์|asset)/iu', $query)) {
+                $targetCatDigit = '1';
+            } elseif (preg_match('/(หมวด|กลุ่ม)?\s*(หนี้สิน|liabilit)/iu', $query)) {
+                $targetCatDigit = '2';
+            } elseif (preg_match('/(หมวด|กลุ่ม)?\s*(ส่วนของเจ้าของ|ทุน|equity)/iu', $query)) {
+                $targetCatDigit = '3';
+            } elseif (preg_match('/(หมวด|กลุ่ม)?\s*(รายได้|revenue|income)/iu', $query) && !preg_match('/(รวมรายได้|แผน)/iu', $query)) {
+                $targetCatDigit = '4';
+            } elseif (preg_match('/(หมวด|กลุ่ม)?\s*(ค่าใช้จ่าย|expense)/iu', $query) && !preg_match('/(รวมค่าใช้จ่าย|แผน)/iu', $query)) {
+                $targetCatDigit = '5';
+            }
+
+            if ($items->isEmpty() && $targetCatDigit && isset($catMatches[$targetCatDigit])) {
+                $catInfo = $catMatches[$targetCatDigit];
+                $digit = $catInfo['digit'];
+
+                $sumBf = DB::table('hosfin_trial_balance')
+                    ->where('acc_period', $targetPeriod)
+                    ->where('account_code', 'like', $digit . '%')
+                    ->selectRaw('SUM(debit_bf) as sum_debit_bf, SUM(credit_bf) as sum_credit_bf, SUM(debit_month) as sum_debit_month, SUM(credit_month) as sum_credit_month, SUM(debit_net) as sum_debit_net, SUM(credit_net) as sum_credit_net, COUNT(*) as acc_count')
+                    ->first();
+
+                $netEnding = ($catInfo['nature'] === 'debit')
+                    ? (($sumBf->sum_debit_net ?? 0) - ($sumBf->sum_credit_net ?? 0))
+                    : (($sumBf->sum_credit_net ?? 0) - ($sumBf->sum_debit_net ?? 0));
+
+                $topCatItems = DB::table('hosfin_trial_balance')
+                    ->where('acc_period', $targetPeriod)
+                    ->where('account_code', 'like', $digit . '%')
+                    ->orderByDesc(DB::raw('GREATEST(debit_net, credit_net)'))
+                    ->limit(10)
+                    ->get();
+
+                $cLines = [];
+                $cLines[] = "=== วิเคราะห์เจาะลึก {$catInfo['title']} (ตาราง hosfin_trial_balance งวด {$periodDesc}) ===";
+                $cLines[] = "1. สรุปภาพรวมหมวดนี้ (จำนวน {$sumBf->acc_count} ผังบัญชี):";
+                $cLines[] = "   • ยอดยกมาต้นปี: " . number_format(($catInfo['nature'] === 'debit') ? (($sumBf->sum_debit_bf ?? 0) - ($sumBf->sum_credit_bf ?? 0)) : (($sumBf->sum_credit_bf ?? 0) - ($sumBf->sum_debit_bf ?? 0)), 2) . " บาท";
+                $cLines[] = "   • ความเคลื่อนไหวประจำเดือนนี้: เดบิต = " . number_format($sumBf->sum_debit_month ?? 0, 2) . " บาท | เครดิต = " . number_format($sumBf->sum_credit_month ?? 0, 2) . " บาท";
+                $cLines[] = "   • ยอดสะสมยกไปสุทธิปลายงวด: " . number_format($netEnding, 2) . " บาท";
+
+                $cLines[] = "\n2. รายการผังบัญชีสำคัญ 10 อันดับแรกในหมวดนี้ (Drill-down Items):";
+                foreach ($topCatItems as $idx => $ti) {
+                    $itemNet = ($catInfo['nature'] === 'debit')
+                        ? ($ti->debit_net - $ti->credit_net)
+                        : ($ti->credit_net - $ti->debit_net);
+                    $itemMonth = ($ti->debit_month > 0 || $ti->credit_month > 0)
+                        ? " [เดือนนี้ D: " . number_format($ti->debit_month, 2) . " C: " . number_format($ti->credit_month, 2) . "]"
+                        : "";
+                    $cLines[] = "   " . ($idx + 1) . ". [{$ti->account_code}] {$ti->account_name} => คงเหลือสุทธิ " . number_format($itemNet, 2) . " บาท{$itemMonth}";
+                }
+
+                return [
+                    'text' => implode("\n", $cLines),
+                    'period' => $targetPeriod,
+                    'count' => count($topCatItems),
+                    'preview' => "เจาะลึก {$catInfo['title']} รวม {$sumBf->acc_count} ผัง ยอดสุทธิ " . number_format($netEnding, 2)
+                ];
             }
 
             // 3. Trial Balance Overview
@@ -658,7 +729,8 @@ class HosfinContextService
     }
 
     /**
-     * Look up PlanFin budget targets and monitoring vs actuals
+     * Look up PlanFin budget targets, monthly tracking, and future simulation
+     * Supports: any hospital, any budget year, each individual month, and all dimensions
      */
     public function getPlanfinContext(string $query): ?array
     {
@@ -667,126 +739,398 @@ class HosfinContextService
                 return null;
             }
 
-            $isPlanfinQuery = (bool) preg_match('/(planfin|แผนเงินบำรุง|เป้าหมายแผน|ebitda|กำไรสุทธิตามแผน|วงเงินลงทุน|target|หมวดแผน|จำลองแผน|simulator|mdb|แผนประมาณการ)/iu', $query);
+            $isPlanfinQuery = (bool) preg_match('/(planfin|แผนเงินบำรุง|ทำแผน|แผนปี|แผนงบ|จัดทำแผน|ebitda|กำไรสุทธิตามแผน|วงเงินลงทุน|20%|target|หมวดแผน|จำลองแผน|simulator|mdb|แผนประมาณการ|รายเดือน|แต่ละเดือน|งวด|matrix|เทียบแผน|เป้าหมายแผน)/iu', $query);
             if (!$isPlanfinQuery) {
                 return null;
             }
 
-            $latestYear = DB::table('hosfin_planfin_targets')->max('budget_year');
-            if (!$latestYear) {
-                return null;
+            $expertService = app(\App\Services\Ai\Knowledge\HospitalFinancialKnowledgeService::class);
+
+            // 1. Resolve requested budget year
+            $requestedYear = null;
+            if (preg_match('/\b(25\d{2})\b/', $query, $ym)) {
+                $requestedYear = intval($ym[1]);
+            } elseif (preg_match('/(?:ปี|งบ)\s*(\d{2})\b/u', $query, $ym)) {
+                $requestedYear = intval('25' . $ym[1]);
             }
 
-            // Get target records for latestYear
+            $yearsInfo = $expertService->getBudgetYearsInfo($requestedYear);
+            $hospName = $yearsInfo['hospital_name'];
+            $targetYear = $yearsInfo['target_planning_year'];
+            $baselineYear = $yearsInfo['baseline_year'];
+            $shortTarget = $yearsInfo['short_target_year'];
+            $shortBase = $yearsInfo['short_baseline_year'];
+
+            $isFuturePlanningQuery = (bool) preg_match('/(ทำแผน|เตรียมทำแผน|จัดทำแผน|แผนปีหน้า|ปีถัดไป|จำลอง|simulator|งบลงทุน)/iu', $query);
+
+            if ($requestedYear === null && !$isFuturePlanningQuery) {
+                $activePlanYear = $yearsInfo['max_recorded_year'];
+                $isFutureYear = false;
+                $hasSavedPlan = in_array($activePlanYear, $yearsInfo['plan_years']);
+            } else {
+                $isFutureYear = $yearsInfo['is_future_year'];
+                $hasSavedPlan = $yearsInfo['has_saved_plan'];
+                $activePlanYear = $hasSavedPlan ? $targetYear : $baselineYear;
+            }
+
             $targetsRaw = DB::table('hosfin_planfin_targets as t')
                 ->join('hosfin_planfin_categories as c', 'c.plan_code', '=', 't.plan_code')
-                ->where('t.budget_year', $latestYear)
+                ->where('t.budget_year', $activePlanYear)
                 ->select('t.plan_code', 'c.plan_name', 'c.category_type', 't.round_no', 't.target_amount')
                 ->orderBy('c.sort_order')
                 ->get();
 
             if ($targetsRaw->isEmpty()) {
-                return null;
+                // Fallback to highest year in targets table
+                $maxPlanYear = DB::table('hosfin_planfin_targets')->max('budget_year');
+                if ($maxPlanYear) {
+                    $targetsRaw = DB::table('hosfin_planfin_targets as t')
+                        ->join('hosfin_planfin_categories as c', 'c.plan_code', '=', 't.plan_code')
+                        ->where('t.budget_year', $maxPlanYear)
+                        ->select('t.plan_code', 'c.plan_name', 'c.category_type', 't.round_no', 't.target_amount')
+                        ->orderBy('c.sort_order')
+                        ->get();
+                    $activePlanYear = $maxPlanYear;
+                }
             }
 
             $planTargets = [];
             $planNames = [];
-            $roundNo = $targetsRaw->first()->round_no ?? '';
+            $roundNo = $targetsRaw->isNotEmpty() ? ($targetsRaw->first()->round_no ?? '') : '';
             foreach ($targetsRaw as $row) {
                 $planTargets[$row->plan_code] = floatval($row->target_amount);
                 $planNames[$row->plan_code] = $row->plan_name;
             }
 
-            // Summary targets
+            // Target figures
             $targetRev = $planTargets['P13S'] ?? 0.0;
             $targetExp = $planTargets['P26S'] ?? 0.0;
             $targetNet = $planTargets['P27S'] ?? ($targetRev - $targetExp);
             $targetEbitda = $planTargets['P29'] ?? 0.0;
             $targetCap20 = max(0, $targetEbitda * 0.20);
 
-            // Latest period actuals from trial balance
-            $latestPeriod = DB::table('hosfin_trial_balance')->orderBy('acc_period', 'desc')->value('acc_period');
-            $actualRev = 0.0;
-            $actualExp = 0.0;
-            $actualNet = 0.0;
-            $actualEbitda = 0.0;
-            $actualCap20 = 0.0;
-            $cumMonths = 0;
+            // 2. Resolve Month/Period
+            $monthInfo = $expertService->parseMonthAndPeriod($query, $activePlanYear);
+            $allPeriodsInTb = DB::table('hosfin_trial_balance')->distinct()->orderBy('acc_period', 'asc')->pluck('acc_period')->toArray();
+            $latestPeriod = !empty($allPeriodsInTb) ? end($allPeriodsInTb) : null;
 
-            if ($latestPeriod) {
-                $parts = explode('-', $latestPeriod);
-                $py = intval($parts[0] ?? 2569);
-                $pm = intval($parts[1] ?? 1);
-                $cumMonths = ($pm >= 10) ? ($pm - 9) : ($pm + 3);
-                if ($cumMonths <= 0 || $cumMonths > 12) $cumMonths = 12;
-
-                $controller = app(\App\Http\Controllers\HosFinController::class);
-                $ref = new \ReflectionMethod($controller, 'calculatePlanfinActuals');
-                $ref->setAccessible(true);
-                $actuals = $ref->invoke($controller, $latestPeriod);
-
-                $actualRev = floatval($actuals['P13S'] ?? 0.0);
-                $actualExp = floatval($actuals['P26S'] ?? 0.0);
-                $actualNet = floatval($actuals['P27S'] ?? 0.0);
-                $actualEbitda = floatval($actuals['P29'] ?? 0.0);
-                $actualCap20 = max(0, $actualEbitda * 0.20);
+            // Selected period for evaluation
+            $selectedPeriod = null;
+            if ($monthInfo && in_array($monthInfo['period'], $allPeriodsInTb, true)) {
+                $selectedPeriod = $monthInfo['period'];
+            } elseif ($latestPeriod) {
+                $selectedPeriod = $latestPeriod;
             }
 
-            $planCumRev = ($cumMonths > 0) ? ($targetRev / 12.0) * $cumMonths : $targetRev;
-            $planCumExp = ($cumMonths > 0) ? ($targetExp / 12.0) * $cumMonths : $targetExp;
-
-            $revPct = ($planCumRev > 0) ? ($actualRev / $planCumRev) * 100.0 : 0.0;
-            $expPct = ($planCumExp > 0) ? ($actualExp / $planCumExp) * 100.0 : 0.0;
+            // Reflection helpers from HosFinController
+            $controller = app(\App\Http\Controllers\HosFinController::class);
+            $refCum = new \ReflectionMethod($controller, 'calculatePlanfinActuals');
+            $refCum->setAccessible(true);
+            $refMon = new \ReflectionMethod($controller, 'calculatePlanfinMonthlyActuals');
+            $refMon->setAccessible(true);
 
             $lines = [];
-            $lines[] = "ข้อมูลแผนเงินบำรุงโรงพยาบาล (PlanFin) ประจำปีงบประมาณ {$latestYear} (รอบการจัดทำ: {$roundNo}):";
-            $lines[] = "1. เป้าหมายแผนเงินบำรุงทั้งปีงบประมาณ {$latestYear}:";
-            $lines[] = "   • รายได้รวมตามแผน (P13S): " . number_format($targetRev, 2) . " บาท";
-            $lines[] = "   • ค่าใช้จ่ายรวมตามแผน (P26S): " . number_format($targetExp, 2) . " บาท";
-            $lines[] = "   • รายได้สุทธิตามแผน (P27S Net Income): " . number_format($targetNet, 2) . " บาท";
-            $lines[] = "   • EBITDA ตามแผน (P29): " . number_format($targetEbitda, 2) . " บาท";
-            $lines[] = "   • กรอบวงเงินที่สามารถลงทุนด้วยเงินบำรุงได้ (20% ของ EBITDA ตามเกณฑ์กระทรวงฯ): " . number_format($targetCap20, 2) . " บาท";
 
-            if ($latestPeriod) {
-                $lines[] = "\n2. ผลการดำเนินงานจริงสะสมเปรียบเทียบกับแผน ณ งวดล่าสุด ({$latestPeriod}, รวม {$cumMonths} เดือน):";
-                $lines[] = "   • รายได้จริงสะสม (P13S): " . number_format($actualRev, 2) . " บาท (เทียบเป้าหมายสะสม {$cumMonths} เดือน: " . number_format($planCumRev, 2) . " บาท คิดเป็น " . number_format($revPct, 2) . "%)";
-                $lines[] = "   • ค่าใช้จ่ายจริงสะสม (P26S): " . number_format($actualExp, 2) . " บาท (เทียบเป้าหมายสะสม {$cumMonths} เดือน: " . number_format($planCumExp, 2) . " บาท คิดเป็น " . number_format($expPct, 2) . "%)";
-                $lines[] = "   • รายได้สุทธิสะสมจริง (P27S Net Income): " . number_format($actualNet, 2) . " บาท (" . ($actualNet >= 0 ? "เกินดุล/กำไร" : "ขาดดุล/ติดลบ") . ")";
-                $lines[] = "   • EBITDA จริงสะสม (P29): " . number_format($actualEbitda, 2) . " บาท";
-                $lines[] = "   • วงเงินลงทุนด้วยเงินบำรุงสะสมจริง (20% ของ EBITDA): " . number_format($actualCap20, 2) . " บาท";
-            }
-
-            $lines[] = "\n3. โครงสร้างหมวดรายได้และค่าใช้จ่ายหลักตามแผน:";
-            $keyCodes = [
-                'P04' => 'รายได้ UC',
-                'P07' => 'รายได้เบิกจ่ายตรงกรมบัญชีกลาง',
-                'P11' => 'รายได้งบประมาณส่วนบุคลากร',
-                'P08' => 'รายได้ประกันสังคม',
-                'P14' => 'ต้นทุนยา',
-                'P15' => 'ต้นทุนเวชภัณฑ์มิใช่ยาและวัสดุการแพทย์',
-                'P17' => 'เงินเดือนและค่าจ้างประจำ',
-                'P18' => 'ค่าจ้างชั่วคราว/พกส./จ้างเหมา',
-                'P19' => 'ค่าตอบแทน',
-                'P21' => 'ค่าใช้สอย'
-            ];
-            foreach ($keyCodes as $kCode => $kName) {
-                if (isset($planTargets[$kCode])) {
-                    $lines[] = "   • [{$kCode}] {$kName}: เป้าหมายทั้งปี " . number_format($planTargets[$kCode], 2) . " บาท";
+            // Title block
+            if ($isFutureYear && !$hasSavedPlan) {
+                $lines[] = "=== ข้อมูลเตรียมการจัดทำแผนเงินบำรุงปี {$targetYear} (FY{$shortTarget}) หน่วยบริการ: {$hospName} ===";
+                $lines[] = "• สถานะ: อยู่ระหว่างเตรียมการจัดทำแผน โดยใช้ผลการดำเนินงานและเป้าหมายปีงบประมาณ {$baselineYear} เป็นฐานข้อมูลอ้างอิง (Baseline)";
+            } else {
+                $lines[] = "=== ข้อมูลแผนเงินบำรุงโรงพยาบาล (PlanFin) ประจำปีงบประมาณ {$activePlanYear} หน่วยบริการ: {$hospName} ===";
+                if ($roundNo) {
+                    $lines[] = "• รอบการจัดทำแผน: {$roundNo}";
                 }
             }
 
-            $lines[] = "\n4. ระบบสนับสนุน PlanFin ใน RiMS HosFin:";
-            $lines[] = "   • นำเข้าไฟล์ MDB: รองรับการ Import ไฟล์ .mdb หรือ .zip จากโปรแกรม PlanFin กระทรวงสาธารณสุข โดยซิงค์เป้าหมาย ผังบัญชี และงบทดลองอัตโนมัติ";
-            $lines[] = "   • แผนย่อย 2-7: มีระบบติดตามแผนจัดซื้อยา (แผน 2), วัสดุอื่น (แผน 3), เจ้าหนี้การค้า (แผน 4), ลูกหนี้ (แผน 5), ลงทุนเพิ่ม (แผน 6), และสนับสนุน รพ.สต. (แผน 7)";
-            $lines[] = "   • แบบจำลองแผนงบประมาณ (FY Simulator): ปรับอัตราการเติบโต (% Growth) เทียบกับฐานผลดำเนินงานจริง เพื่อประมาณการแผนปีถัดไป";
+            // Summary annual targets
+            $lines[] = "\n1. เป้าหมายแผนเงินบำรุงทั้งปี (Annual Targets):";
+            $lines[] = "   • รายได้รวมตามแผน (P13S): " . number_format($targetRev, 2) . " บาท (เฉลี่ยเดือนละ " . number_format($targetRev / 12, 2) . " บาท)";
+            $lines[] = "   • ค่าใช้จ่ายรวมตามแผน (P26S): " . number_format($targetExp, 2) . " บาท (เฉลี่ยเดือนละ " . number_format($targetExp / 12, 2) . " บาท)";
+            $lines[] = "   • รายได้สุทธิตามแผน (P27S Net Income): " . number_format($targetNet, 2) . " บาท (" . ($targetNet >= 0 ? "กำไรตามแผน" : "ขาดดุลตามแผน") . ")";
+            $lines[] = "   • EBITDA ตามแผน (P29): " . number_format($targetEbitda, 2) . " บาท";
+            $lines[] = "   • เพดานวงเงินลงทุนด้วยเงินบำรุง (20% ของ EBITDA): " . number_format($targetCap20, 2) . " บาท";
+
+            // If user asked about a specific month or latest period
+            if ($selectedPeriod) {
+                $actualsCum = $refCum->invoke($controller, $selectedPeriod);
+                $actualsMon = $refMon->invoke($controller, $selectedPeriod);
+
+                $pParts = explode('-', $selectedPeriod);
+                $pm = intval($pParts[1] ?? 1);
+                $cumMonths = ($pm >= 10) ? ($pm - 9) : ($pm + 3);
+                if ($cumMonths <= 0 || $cumMonths > 12) $cumMonths = 12;
+
+                $thMonths = [
+                    1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+                    5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+                    9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
+                ];
+                $mLabel = $thMonths[$pm] ?? "งวด {$selectedPeriod}";
+
+                // Single month figures
+                $monRev = floatval($actualsMon['P13S'] ?? 0);
+                $monExp = floatval($actualsMon['P26S'] ?? 0);
+                $monNet = floatval($actualsMon['P27S'] ?? ($monRev - $monExp));
+                $monEbitda = floatval($actualsMon['P29'] ?? 0);
+                $monPlanRev = $targetRev / 12.0;
+                $monPlanExp = $targetExp / 12.0;
+                $monRevDiff = $monRev - $monPlanRev;
+                $monExpDiff = $monExp - $monPlanExp;
+
+                // Cumulative figures
+                $cumRev = floatval($actualsCum['P13S'] ?? 0);
+                $cumExp = floatval($actualsCum['P26S'] ?? 0);
+                $cumNet = floatval($actualsCum['P27S'] ?? ($cumRev - $cumExp));
+                $cumEbitda = floatval($actualsCum['P29'] ?? 0);
+                $cumCap20 = max(0, $cumEbitda * 0.20);
+                $planCumRev = ($targetRev / 12.0) * $cumMonths;
+                $planCumExp = ($targetExp / 12.0) * $cumMonths;
+                $cumRevPct = ($planCumRev > 0) ? ($cumRev / $planCumRev) * 100.0 : 0.0;
+                $cumExpPct = ($planCumExp > 0) ? ($cumExp / $planCumExp) * 100.0 : 0.0;
+
+                // Cash & Bank 1101% at this period
+                $cashBankBalance = DB::table('hosfin_trial_balance')
+                    ->where('acc_period', $selectedPeriod)
+                    ->where('account_code', 'like', '1101%')
+                    ->sum(DB::raw('COALESCE(debit_net, 0) - COALESCE(credit_net, 0)'));
+
+                // Cost summaries for this month
+                $costSummary = DB::table('hosfin_gl_cost_summaries')
+                    ->where('fiscal_year', $activePlanYear)
+                    ->where('fiscal_month', $cumMonths)
+                    ->first();
+
+                $lines[] = "\n2. ผลการดำเนินงานประจำเดือน {$mLabel} (งวดบัญชี {$selectedPeriod} | เดือนที่ {$cumMonths}/12):";
+                $lines[] = "   • [มิติที่ 1: ผลงานประจำเดือนเดี่ยว (Single Month Movement)]";
+                $lines[] = "     - รายได้จริงประจำเดือน: " . number_format($monRev, 2) . " บาท (เทียบเป้าหมายเดือนละ " . number_format($monPlanRev, 2) . " บาท, " . ($monRevDiff >= 0 ? "เกินเป้า +" : "ต่ำกว่าเป้า ") . number_format($monRevDiff, 2) . " บาท)";
+                $lines[] = "     - ค่าใช้จ่ายจริงประจำเดือน: " . number_format($monExp, 2) . " บาท (เทียบกรอบงบเดือนละ " . number_format($monPlanExp, 2) . " บาท, " . ($monExpDiff <= 0 ? "ประหยัดกว่ากรอบ " : "เกินกรอบ +") . number_format($monExpDiff, 2) . " บาท)";
+                $lines[] = "     - กำไรสุทธิประจำเดือน: " . number_format($monNet, 2) . " บาท (" . ($monNet >= 0 ? "เกินดุล/กำไร" : "ขาดดุล/ติดลบ") . ")";
+                $lines[] = "     - EBITDA ประจำเดือน: " . number_format($monEbitda, 2) . " บาท";
+
+                $lines[] = "   • [มิติที่ 2: ผลงานสะสมถึงเดือนนี้ (Cumulative {$cumMonths} Months)]";
+                $lines[] = "     - รายได้จริงสะสม: " . number_format($cumRev, 2) . " บาท (เทียบเป้าหมายสะสม " . number_format($planCumRev, 2) . " บาท คิดเป็น " . number_format($cumRevPct, 2) . "% ของเป้า)";
+                $lines[] = "     - ค่าใช้จ่ายจริงสะสม: " . number_format($cumExp, 2) . " บาท (เทียบเป้าหมายสะสม " . number_format($planCumExp, 2) . " บาท คิดเป็น " . number_format($cumExpPct, 2) . "% ของเป้า)";
+                $lines[] = "     - กำไรสุทธิสะสม: " . number_format($cumNet, 2) . " บาท (" . ($cumNet >= 0 ? "เกินดุลสะสม" : "ขาดดุลสะสม") . ")";
+                $lines[] = "     - EBITDA สะสม: " . number_format($cumEbitda, 2) . " บาท => กรอบวงเงินลงทุน 20% สะสม: " . number_format($cumCap20, 2) . " บาท";
+
+                $lines[] = "   • [มิติที่ 3: สภาพคล่องและเงินสดคงเหลือจริง (Cash & Liquidity)]";
+                $lines[] = "     - ยอดเงินสดและเงินฝากธนาคารคงเหลือจริง (ผัง 1101% ณ สิ้นงวด): " . number_format($cashBankBalance, 2) . " บาท";
+
+                if ($costSummary) {
+                    $totalCost = floatval($costSummary->total_cost);
+                    $lcAmt = floatval($costSummary->lc_amount);
+                    $mcAmt = floatval($costSummary->mc_amount);
+                    $ccAmt = floatval($costSummary->cc_amount);
+                    $lcPct = $totalCost > 0 ? round(($lcAmt / $totalCost) * 100, 1) : 0;
+                    $mcPct = $totalCost > 0 ? round(($mcAmt / $totalCost) * 100, 1) : 0;
+                    $lines[] = "   • [มิติที่ 4: โครงสร้างต้นทุนประจำเดือน (Cost Structure LC/MC/CC)]";
+                    $lines[] = "     - ต้นทุนรวมประจำเดือน: " . number_format($totalCost, 2) . " บาท";
+                    $lines[] = "     - LC (ค่าแรงบุคลากร): " . number_format($lcAmt, 2) . " บาท ({$lcPct}% ของต้นทุน, เกณฑ์ปกติ < 50-55%)";
+                    $lines[] = "     - MC (ค่าของ/ยา/เวชภัณฑ์): " . number_format($mcAmt, 2) . " บาท ({$mcPct}% ของต้นทุน, เกณฑ์ปกติ < 20-25%)";
+                    $lines[] = "     - CC (ค่าลงทุน/เสื่อมราคา): " . number_format($ccAmt, 2) . " บาท";
+                }
+            }
+
+            // 3. Multi-Month Matrix Trajectory (ถ้าถามเรื่อง แต่ละเดือน, รายเดือน, matrix)
+            if (preg_match('/(แต่ละเดือน|รายเดือน|matrix|12\s*เดือน|แนวโน้ม)/iu', $query)) {
+                $yearPeriods = array_filter($allPeriodsInTb, fn($p) => str_starts_with($p, "{$activePlanYear}-") || str_starts_with($p, ($activePlanYear - 1) . "-1"));
+                if (!empty($yearPeriods)) {
+                    $lines[] = "\n3. แนวโน้มผลการดำเนินงานแยกตามแต่ละเดือนของปีงบประมาณ {$activePlanYear} (12-Month Matrix Trends):";
+                    foreach ($yearPeriods as $yp) {
+                        try {
+                            $mAct = $refMon->invoke($controller, $yp);
+                            $pParts = explode('-', $yp);
+                            $mNo = intval($pParts[1] ?? 1);
+                            $r = number_format($mAct['P13S'] ?? 0, 0);
+                            $e = number_format($mAct['P26S'] ?? 0, 0);
+                            $n = number_format($mAct['P27S'] ?? 0, 0);
+                            $lines[] = "   - งวด {$yp} (เดือน {$mNo}): รายรับ {$r} บ. | รายจ่าย {$e} บ. | กำไรสุทธิ {$n} บ.";
+                        } catch (\Throwable $ex) {
+                            // Skip if single period calculation fails
+                        }
+                    }
+                }
+            }
+
+            // 4. Future Budget Simulator Guidance
+            if ($isFutureYear || preg_match('/(ทำแผน|เตรียม|จำลอง|simulator|15|งบลงทุน)/iu', $query)) {
+                $lines[] = "\n4. การใช้งานระบบแบบจำลองแผนงบประมาณปี {$targetYear} (FY{$shortTarget} Budget Simulator):";
+                $lines[] = "   • เข้าเมนู `hosfin/planfin` และคลิกแท็บ **\"แบบจำลองจัดทำแผนเงินบำรุงปี {$targetYear} (FY{$shortTarget} Budget Simulator)\"**";
+                $lines[] = "   • ระบบจะดึงฐานผลงานจริงปี {$baselineYear} มาเป็น Baseline Run-rate ทั้งปีอัตโนมัติ";
+                $lines[] = "   • ผู้บริหารสามารถปรับ % Growth รายได้และรายจ่ายแต่ละหมวด, คำนวณ EBITDA และเคาะกรอบงบลงทุน 20% แบบ Real-time";
+                $lines[] = "   • รองรับการ **\"ส่งออก Excel แผนปี {$targetYear}\"** เพื่อนำเข้าเอกสารการประชุม และปุ่ม **\"บันทึกเป้าหมายปี {$targetYear}\"**";
+            }
+
+            // Append Expert Knowledge
+            try {
+                $lines[] = "\n" . $expertService->getRelevantKnowledge($query);
+            } catch (\Throwable $ex) {
+                // Ignore if expert knowledge fails
+            }
+
+            $previewTitle = $isFutureYear
+                ? "แผนเงินบำรุงปี {$targetYear} (ฐานอ้างอิงปี {$baselineYear}, เป้าหมายรายได้ " . number_format($targetRev / 1000000, 1) . "M) พร้อมแบบจำลอง FY{$shortTarget}"
+                : "แผนเงินบำรุงปี {$activePlanYear} (เป้ารายได้ " . number_format($targetRev / 1000000, 1) . "M, กำไร " . number_format($targetNet / 1000, 0) . "k, EBITDA " . number_format($targetEbitda / 1000000, 1) . "M)";
 
             return [
                 'text' => implode("\n", $lines),
-                'preview' => "แผนเงินบำรุงปี {$latestYear} (เป้ารายได้ " . number_format($targetRev / 1000000, 1) . "M, กำไร " . number_format($targetNet / 1000, 0) . "k, EBITDA " . number_format($targetEbitda / 1000000, 1) . "M)"
+                'preview' => $previewTitle
             ];
         } catch (\Throwable $e) {
             Log::warning("HosfinContextService PlanFin Warning: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Unified HosFin Context Aggregator for RiMS AI
+     * Automatically retrieves and merges all relevant financial dimensions based on query
+     *
+     * @param string $query User's question
+     * @return array|null ['text' => string, 'sources' => array]
+     */
+    public function getContext(string $query): ?array
+    {
+        try {
+            $contextBlocks = [];
+            $sources = [];
+
+            // 1. PlanFin & Monthly Tracking Context
+            $planfinData = $this->getPlanfinContext($query);
+            if ($planfinData && !empty($planfinData['text'])) {
+                $contextBlocks[] = $planfinData['text'];
+                $sources[] = [
+                    'title' => "แผนเงินบำรุงโรงพยาบาล PlanFin & ติดตามรายเดือน (ตาราง hosfin_planfin_targets)",
+                    'filename' => 'hosfin_planfin_targets',
+                    'page' => 1,
+                    'snippet' => $planfinData['preview']
+                ];
+            }
+
+            // 2. Financial Distress Ratios (13 ดัชนี สป.สธ. และ Risk Score 0-7)
+            if (preg_match('/(วิกฤต|สภาพคล่อง|risk|ความเสี่ยง|105|เงินบำรุงสุทธิ|cr\b|qr\b|nwc|ดัชนี|ratio|สถานะการเงิน|ภาพรวมการเงิน)/iu', $query)) {
+                $summaryData = $this->getHosFinSummary();
+                if ($summaryData && !empty($summaryData['text'])) {
+                    $contextBlocks[] = $summaryData['text'];
+                    $sources[] = [
+                        'title' => "13 ดัชนีชี้วัดสถานะการเงินและการเตือนภัยวิกฤต สป.สธ. (ตาราง hosfin_trial_balance)",
+                        'filename' => 'hosfin_trial_balance',
+                        'page' => 1,
+                        'snippet' => "13 ดัชนีสถานะการเงิน งวด " . ($summaryData['period'] ?? '')
+                    ];
+                }
+            }
+
+            // 3. AP Creditor Bills (เจ้าหนี้การค้า)
+            if (preg_match('/(เจ้าหนี้|บริษัท|คู่ค้า|ผู้ขาย|ค้างจ่าย|จ่ายใคร|ลำดับการจ่าย|บิล|ครบกำหนด|อายุหนี้|aging|ap\b)/iu', $query)) {
+                $apData = $this->getApVendorContext($query);
+                if ($apData && !empty($apData['text'])) {
+                    $contextBlocks[] = $apData['text'];
+                    $sources[] = [
+                        'title' => "ทะเบียนคุมเจ้าหนี้การค้าและบิลค้างชำระ (ตาราง hosfin_gl_ap_bills)",
+                        'filename' => 'hosfin_gl_ap_bills',
+                        'page' => 1,
+                        'snippet' => $apData['preview']
+                    ];
+                }
+            }
+
+            // 4. AR Debtor Claims (ลูกหนี้ค่ารักษาพยาบาล)
+            if (preg_match('/(ลูกหนี้|ค่ารักษา|ar\b|ท่อ|ค้างท่อ|ชดเชย|สิทธิบัตรทอง|ข้าราชการ|ประกันสังคม|ตั้งเบิก|เรียกเก็บ)/iu', $query)) {
+                $arData = $this->getArDebtorContext($query);
+                if ($arData && !empty($arData['text'])) {
+                    $contextBlocks[] = $arData['text'];
+                    $sources[] = [
+                        'title' => "ทะเบียนคุมลูกหนี้ค่ารักษาพยาบาลและยอดชดเชย (ตาราง hosfin_gl_ar_debtors)",
+                        'filename' => 'hosfin_gl_ar_debtors',
+                        'page' => 1,
+                        'snippet' => $arData['preview']
+                    ];
+                }
+            }
+
+            // 5. Trial Balance by Account & Categories Drill-Down
+            if (preg_match('/(ผังบัญชี|งบทดลอง|รหัสบัญชี|เดบิต|เครดิต|1101|1102|ยอดยกมา|ยอดยกไป|หมวด\s*[1-5]|หมวด|สินทรัพย์|หนี้สิน|ส่วนของเจ้าของ|ทุน|รายได้|ค่าใช้จ่าย|เงินฝาก|เงินสด|รับจ่าย|ยอดคงเหลือ|เจาะ|รายตัว|รายผัง|\d{4,10}\.\d+)/iu', $query)) {
+                $tbData = $this->getTrialBalanceAccountContext($query);
+                if ($tbData && !empty($tbData['text'])) {
+                    $contextBlocks[] = $tbData['text'];
+                    $sources[] = [
+                        'title' => "งบทดลองรายผังบัญชี (ตาราง hosfin_trial_balance)",
+                        'filename' => 'hosfin_trial_balance',
+                        'page' => 1,
+                        'snippet' => $tbData['preview']
+                    ];
+                }
+            }
+
+            // 6. Journal Vouchers
+            if (preg_match('/(สมุดรายวัน|ใบสำคัญ|voucher|jv|pv|rv|รายวัน)/iu', $query)) {
+                $jvData = $this->getJournalContext($query);
+                if ($jvData && !empty($jvData['text'])) {
+                    $contextBlocks[] = $jvData['text'];
+                    $sources[] = [
+                        'title' => "สมุดรายวันและใบสำคัญลงบัญชี (ตาราง hosfin_gl_journals)",
+                        'filename' => 'hosfin_gl_journals',
+                        'page' => 1,
+                        'snippet' => $jvData['preview']
+                    ];
+                }
+            }
+
+            // 7. If no blocks matched yet, provide expert knowledge fallback
+            if (empty($contextBlocks)) {
+                $expData = $this->getExpertFinancialKnowledge($query);
+                if ($expData && !empty($expData['text'])) {
+                    $contextBlocks[] = $expData['text'];
+                    $sources[] = [
+                        'title' => "คู่มือมาตรฐานการบริหารการเงินการคลังโรงพยาบาล สธ.",
+                        'filename' => 'moph_hospital_cfo_guide',
+                        'page' => 1,
+                        'snippet' => $expData['preview']
+                    ];
+                }
+            }
+
+            if (empty($contextBlocks)) {
+                return null;
+            }
+
+            return [
+                'text' => implode("\n\n" . str_repeat('=', 50) . "\n\n", $contextBlocks),
+                'sources' => $sources
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService getContext error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get standalone expert financial knowledge
+     */
+    public function getExpertFinancialKnowledge(string $query): ?array
+    {
+        try {
+            $expertKnowledge = app(\App\Services\Ai\Knowledge\HospitalFinancialKnowledgeService::class);
+            $text = $expertKnowledge->getRelevantKnowledge($query);
+            if (empty($text)) {
+                return null;
+            }
+            return [
+                'text' => $text,
+                'preview' => 'หลักเกณฑ์และมาตรฐานการบริหารการเงินการคลังโรงพยาบาล สังกัด สธ.'
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("HosfinContextService ExpertKnowledge Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Alias for getTrialBalanceAccountContext
+     */
+    public function getTrialBalanceContext(string $query): ?array
+    {
+        return $this->getTrialBalanceAccountContext($query);
     }
 }

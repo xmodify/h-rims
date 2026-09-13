@@ -99,6 +99,22 @@ class TextToSqlService
             }
         }
 
+        // 3.2 Inject live HosFin Context, PlanFin, Monthly Dimensions & Expert Financial Knowledge if targeting hrims
+        if ($target === 'hrims') {
+            try {
+                $hosfinContextService = app(\App\Services\Ai\Context\HosfinContextService::class);
+                $hCtx = $hosfinContextService->getContext($cleanQuestion);
+                if ($hCtx && !empty($hCtx['text'])) {
+                    $ragContextText .= "\n\n=== ข้อมูลการเงินการคลังจริง และมาตรฐานการบริหารโรงพยาบาล สธ. (ระบบ HosFin) ===\n" . $hCtx['text'];
+                    if (!empty($hCtx['sources'])) {
+                        $ragSources = array_merge($ragSources, $hCtx['sources']);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("TextToSql HosfinContext error: " . $e->getMessage());
+            }
+        }
+
         // 4. Build Prompt for LLM to generate SQL
         $systemPrompt = $this->buildSystemPrompt($target, $schema, $ragContextText);
         $userPrompt = $this->buildUserPrompt($cleanQuestion, $history);
@@ -189,14 +205,19 @@ class TextToSqlService
                 ];
             }
 
-            return [
-                'success' => false,
-                'message' => 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ',
-                'admin_message' => 'คำสั่ง SQL ขัดข้อง: ' . $err,
-                'error_detail' => $err,
-                'sql' => $sanitizedSql,
-                'db_target' => $target
-            ];
+            // For RiMS HosFin queries with live context available: fallback to consultative CFO analysis rather than returning a dead error!
+            if ($target === 'hrims' && !empty($ragContextText)) {
+                $rows = [];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'ขออภัยค่ะ ระบบไม่สามารถค้นหาข้อมูลตามคำถามนี้ได้ในขณะนี้ กรุณาลองปรับเปลี่ยนคำถามใหม่อีกครั้งนะคะ',
+                    'admin_message' => 'คำสั่ง SQL ขัดข้อง: ' . $err,
+                    'error_detail' => $err,
+                    'sql' => $sanitizedSql,
+                    'db_target' => $target
+                ];
+            }
         }
 
         $execTimeMs = (int) round((microtime(true) - $startTime) * 1000);
@@ -416,6 +437,56 @@ EOT;
                     }
                 } catch (\Throwable $e) {
                     Log::warning("Zero rows analysis failed: " . $e->getMessage());
+                }
+            } else {
+                try {
+                    $expertKnowledge = app(\App\Services\Ai\Knowledge\HospitalFinancialKnowledgeService::class);
+                    $yearsInfo = $expertKnowledge->getBudgetYearsInfo();
+                    $hospName = $yearsInfo['hospital_name'];
+                    $baseYear = $yearsInfo['baseline_year'];
+                    $targetYear = $yearsInfo['target_planning_year'];
+                    $shortTarget = $yearsInfo['short_target_year'];
+                    $shortBase = $yearsInfo['short_baseline_year'];
+
+                    $zeroPrompt = <<<EOT
+คำถามของผู้ใช้: "{$question}"
+บริบท: ทำการค้นหาในฐานข้อมูล RiMS (ระบบการเงินการคลัง HosFin) หน่วยบริการ: {$hospName} แล้วไม่พบรายการข้อมูลตามเงื่อนไขคำสั่ง SQL (ผลลัพธ์ 0 รายการ)
+{$ragContext}
+
+หน้าที่ของคุณ (น้องมีตังค์ - เพศหญิง): ทำหน้าที่เป็นผู้เชี่ยวชาญด้านการเงินการคลังโรงพยาบาล (Hospital CFO & Senior Financial Advisor) ประจำระบบ RiMS
+ตอบคำถาม ให้คำปรึกษาเชิงยุทธศาสตร์ และให้คำแนะนำเชิงปฏิบัติการอย่างชาญฉลาด อบอุ่น และเป็นมืออาชีพ แก่ผู้บริหารและเจ้าหน้าที่ {$hospName}:
+
+1. **กรณีเป็นคำถามเกี่ยวกับการจัดทำแผนงบประมาณปี {$targetYear} หรือแผนเงินบำรุง (PlanFin)** เช่น "จะทำแผนปี {$shortTarget} ในวันที่ 15 นี้", "หมายถึง planfin", "เตรียมตัวทำแผน", "จำลองแผน":
+   - ชี้แจงอย่างสุภาพว่าในฐานข้อมูลระบบ RiMS ขณะนี้มีข้อมูลเป้าหมายแผนเงินบำรุงของปีงบประมาณ {$baseYear} (ซึ่งเป็นฐานข้อมูลล่าสุดของ {$hospName}) ส่วนปีงบประมาณ {$targetYear} นั้นอยู่ในขั้นตอนเตรียมการจัดทำของโรงพยาบาล
+   - **นำข้อมูลเป้าหมายและผลการดำเนินงานจริงปี {$baseYear} (Baseline) จากบริบทด้านบนมาสรุปและวิเคราะห์ให้เห็นภาพชัดเจน** เช่น ยอดเป้าหมายรายได้ (P13S), ค่าใช้จ่าย (P26S), กำไรสุทธิ (P27S), EBITDA (P29) และกรอบวงเงินลงทุน 20%
+   - **เสนอแนะแนวทางและ Roadmap การเตรียมตัวจัดทำแผนปี {$targetYear} สำหรับการประชุม**:
+     * 1) การใช้ผลงานจริงของปี {$baseYear} มาปรับเป็นฐานทั้งปี (Annualized Baseline Run-rate)
+     * 2) การตั้งสมมติฐานอัตราการเติบโต (% Growth) ของรายได้แต่ละกองทุน (UC, ข้าราชการ, ประกันสังคม)
+     * 3) การกำหนดกรอบควบคุมต้นทุนยา (MC Drug <= 10-12%) และเวชภัณฑ์มิใช่ยา (<= 8-10%)
+     * 4) การคำนวณ EBITDA และเคาะกรอบวงเงินลงทุนด้วยเงินบำรุง 20% สำหรับจัดซื้อครุภัณฑ์/สิ่งก่อสร้าง
+   - **แนะนำเครื่องมือในระบบ RiMS HosFin**: แนะนำให้เข้าเมนู `hosfin/planfin` และคลิกแท็บ **"แบบจำลองจัดทำแผนเงินบำรุงปี {$targetYear} (FY{$shortTarget} Budget Simulator)"** ซึ่งสามารถปรับ % Growth, คำนวณ EBITDA และงบลงทุน 20% อัตโนมัติ, ส่งออก Excel แผนปี {$targetYear} และบันทึกเป้าหมายได้ทันที
+
+2. **กรณีเป็นคำถามติดตามผลการดำเนินงานในแต่ละเดือน (Monthly Financial Monitoring)**:
+   - นำตัวเลขผลงานประจำเดือนและสะสมจากบริบทข้างต้นมาสรุปให้ครบทุกมิติ: (1) รายได้ (2) ค่าใช้จ่าย (3) กำไรสุทธิ (4) EBITDA (5) ยอดเงินสดและเงินฝากธนาคารคงเหลือจริงจากผังบัญชี 1101% และ (6) หนี้สินหมุนเวียน AP/AR
+
+3. **กรณีเป็นคำถามทั่วไปเกี่ยวกับตัวชี้วัด ระเบียบเงินบำรุง สภาพคล่อง หนี้สิน หรือคำศัพท์การเงิน**:
+   - นำองค์ความรู้มาตรฐาน สธ. และบริบททางการเงินที่มีมาอธิบายอย่างละเอียด มีโครงสร้างชัดเจน และเสนอแนะแนวทางปฏิบัติที่เป็นประโยชน์
+
+4. **กรณีเป็นการค้นหาข้อมูลเฉพาะเจาะจงแล้วไม่พบ (เช่น รหัสบิล, ชื่อบริษัทคู่ค้า)**:
+   - ชี้แจงอย่างสุภาพว่าไม่พบรายการตามเงื่อนไขดังกล่าว พร้อมแนะนำคำค้นหาใกล้เคียงหรือช่องทางตรวจสอบในหน้าจอระบบ HosFin
+
+ข้อกำหนดการตอบ:
+- คุณคือน้องมีตังค์ (เพศหญิง) แทนตัวเองว่า "น้องมีตังค์" หรือ "หนู" และลงท้ายด้วย "ค่ะ/นะคะ" เสมอ ห้ามใช้ "ครับ" หรือ "ผม"
+- เรียกชื่อระบบว่า "RiMS" เท่านั้น ห้ามเขียน "HRiMS"
+- ตอบอย่างเป็นมืออาชีพ อบอุ่น พร้อมสนับสนุนผู้บริหารและเจ้าหน้าที่ {$hospName} อย่างเต็มที่
+EOT;
+                    $summarySystemPrompt = "คุณคือ 'น้องมีตังค์' (RiMS AI) ผู้ช่วยสาวอัจฉริยะเพศหญิงประจำระบบ RiMS (ระบบการเงินการคลัง HosFin) เป็นที่ปรึกษาด้านการเงินการคลังโรงพยาบาลระดับ CFO AI พูดจาสุภาพ น่ารัก มั่นใจ อ่อนหวาน เป็นมืออาชีพ ลงท้ายด้วย 'ค่ะ/นะคะ' เสมอ";
+                    $zeroAnalysis = $this->aiService->generateChat($zeroPrompt, $summarySystemPrompt, 'hosfin');
+                    if (!empty($zeroAnalysis) && mb_strlen($zeroAnalysis, 'UTF-8') > 30) {
+                        return $zeroAnalysis;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("HosFin zero rows analysis failed: " . $e->getMessage());
                 }
             }
             return "ผลลัพธ์จากฐานข้อมูล {$dbName}: น้องมีตังค์ไม่พบข้อมูลที่ตรงกับเงื่อนไข \"{$question}\" ค่ะ";

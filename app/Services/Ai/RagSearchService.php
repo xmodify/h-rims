@@ -253,6 +253,19 @@ class RagSearchService
                     'snippet' => $planfinContext['preview']
                 ];
             }
+
+            // G. Hospital Financial Expert Knowledge (MOPH Standards)
+            $expKnowledge = $this->hosfinContext->getExpertFinancialKnowledge($augmentedQuery);
+            if ($expKnowledge && empty($planfinContext)) {
+                $contextParts[] = "[องค์ความรู้มาตรฐานการบริหารการเงินการคลังโรงพยาบาล สธ.]:\n" . $expKnowledge['text'];
+                $sources[] = [
+                    'title' => "มาตรฐานการบริหารการเงินการคลังโรงพยาบาล สธ.",
+                    'filename' => 'moph_hospital_cfo_guide',
+                    'page' => 1,
+                    'score' => 98.0,
+                    'snippet' => $expKnowledge['preview']
+                ];
+            }
         }
 
         // Scope and capabilities response

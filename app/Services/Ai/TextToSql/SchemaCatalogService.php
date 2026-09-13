@@ -16,32 +16,48 @@ class SchemaCatalogService
     {
         $tables = $this->getCuratedHosfinTables();
 
-        $out = "=== ฐานข้อมูล RiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 15 ตาราง) ===\n";
+        $expertService = app(\App\Services\Ai\Knowledge\HospitalFinancialKnowledgeService::class);
+        $yearsInfo = $expertService->getBudgetYearsInfo();
+        $hospName = $yearsInfo['hospital_name'];
+        $availableYearsStr = implode(', ', $yearsInfo['available_years']);
+        $baseYear = $yearsInfo['baseline_year'];
+        $targetYear = $yearsInfo['target_planning_year'];
+        $shortTarget = $yearsInfo['short_target_year'];
+        $shortBase = $yearsInfo['short_baseline_year'];
+        $maxYear = $yearsInfo['max_recorded_year'];
+
+        $out = "=== ฐานข้อมูล RiMS (ระบบการเงิน HosFin - ตาราง hosfin_* ทั้งหมด 15 ตาราง) หน่วยบริการ: {$hospName} ===\n";
         $out .= "ชนิดฐานข้อมูล: MySQL / MariaDB (Connection: mysql)\n";
         $out .= "กฎเหล็ก: อนุญาตให้เขียนคำสั่ง SELECT เฉพาะตารางที่ขึ้นต้นด้วย 'hosfin_' เท่านั้น ห้ามใช้ตารางอื่นนอกเหนือจาก hosfin_*\n";
-        $out .= "ข้อแนะนำสำคัญในการเขียน SQL ด้านการเงินการคลัง:\n";
-        $out .= "- ปีงบประมาณ (fiscal_year / acc_year / budget_year) จัดเก็บเป็นปี พ.ศ. เช่น 2568, 2569\n";
+        $out .= "ข้อแนะนำสำคัญในการเขียน SQL ด้านการเงินการคลัง (ใช้ได้กับทุก รพ. ทุกปีงบประมาณ และในแต่ละเดือนครบทุกมิติ):\n";
+        $out .= "- ปีงบประมาณ (fiscal_year / acc_year / budget_year) จัดเก็บเป็นปี พ.ศ. (ในระบบมีข้อมูลปี: {$availableYearsStr})\n";
         $out .= "- เจ้าหนี้ค้างจ่าย (AP): `hosfin_gl_ap_bills` ดูยอดหนี้คงเหลือที่ `remaining_debt > 0` หรือ `is_paid = 0` (0=ค้างจ่าย, 1=จ่ายแล้ว)\n";
         $out .= "- ลูกหนี้ค่ารักษาค้างชำระ (AR): `hosfin_gl_ar_debtors` ดูยอดหนี้คงค้างที่ `outstanding_balance > 0` แยกตามประเภท `debtor_type` หรือสิทธิ\n";
-        $out .= "- งบทดลอง: `hosfin_trial_balance` ยอดเดบิต/เครดิตยกมา (`debit_bf`, `credit_bf`), ประจำงวด (`debit_month`, `credit_month`), สุทธิยกไป (`debit_net`, `credit_net`)\n";
-        $out .= "- กระแสเงินสดและสรุปการเงินรายวัน: `hosfin_gl_daily_summaries` มีรายรับ (`total_income`), รายจ่าย (`total_expense`), สุทธิ (`net_cash_flow`), เงินสดคงเหลือสะสม (`cash_balance`)\n";
-        $out .= "- ยอดเงินสดและเงินฝากธนาคารคงเหลือจริง: หากต้องการดูยอดเงินสดและเงินฝากธนาคารที่แท้จริงของโรงพยาบาล ให้ดึงจากผังบัญชีกลุ่ม `1101%` ในงบทดลอง (`hosfin_trial_balance`) หรือ `hosfin_gl_accounts` ที่เชื่อมกับ `hosfin_gl_journal_items` เช่น: `SELECT SUM(COALESCE(debit_net, 0) - COALESCE(credit_net, 0)) AS cash_and_bank FROM hosfin_trial_balance WHERE account_code LIKE '1101%' AND acc_period = (SELECT MAX(acc_period) FROM hosfin_trial_balance)` (ยอดเงินสดและเงินฝากธนาคารจริงมีประมาณ 14.5 ล้านบาท มิใช่ 0.00)\n";
-        $out .= "- ต้นทุนโรงพยาบาล: `hosfin_gl_cost_summaries` มีค่าแรง LC (`lc_amount`), ค่าของ MC (`mc_amount`), ค่าลงทุน CC (`cc_amount`), ต้นทุนรวม (`total_cost`)\n";
+        $out .= "- งบทดลองและการติดตามรายเดือน: `hosfin_trial_balance` มี `acc_period` (เช่น '{$baseYear}-07' หรือ '{$baseYear}-08'), `acc_year`, `acc_month`:\n";
+        $out .= "  * ยอดเคลื่อนไหวเฉพาะงวดเดือนนั้น (Single Month Movement): ใช้ `debit_month` และ `credit_month`\n";
+        $out .= "  * ยอดสะสมยกไปตั้งแต่ต้นปีถึงงวดนั้น (Cumulative Balance): ใช้ `debit_net` และ `credit_net`\n";
+        $out .= "  * ยอดยกมาต้นงวด: ใช้ `debit_bf` และ `credit_bf`\n";
+        $out .= "- กระแสเงินสดและสรุปการเงินรายวัน: `hosfin_gl_daily_summaries` จัดเก็บข้อมูลเป็นรายวัน (คอลัมน์คือ `summary_date` เป็น DATE, ไม่มีคอลัมน์ fiscal_month) มีรายรับ (`total_income`), รายจ่าย (`total_expense`), สุทธิ (`net_cash_flow`), เงินสดคงเหลือสะสม (`cash_balance`)\n";
+        $out .= "- การติดตามและเปรียบเทียบในแต่ละเดือน/รายเดือนทุกมิติ: ให้ดึงจาก `hosfin_trial_balance` โดยใช้ `acc_period` (เช่น '{$baseYear}-07', '{$baseYear}-08', '{$baseYear}-10'), `acc_month`, `debit_month`, `credit_month`, หรือดึงโครงสร้างต้นทุนรายเดือนจาก `hosfin_gl_cost_summaries` (มี `fiscal_year`, `fiscal_month` 1-12) หรือเป้าหมายจาก `hosfin_planfin_targets`\n";
+        $out .= "- ต้นทุนโรงพยาบาลรายเดือน: `hosfin_gl_cost_summaries` มีค่าแรง LC (`lc_amount`), ค่าของ MC (`mc_amount`), ค่าลงทุน CC (`cc_amount`), ต้นทุนรวม (`total_cost`), `fiscal_year`, `fiscal_month` (1=ต.ค. ถึง 12=ก.ย.)\n";
         $out .= "- สมุดรายวันและรายการบัญชี: `hosfin_gl_journals` เชื่อมกับ `hosfin_gl_journal_items` ด้วย `voucher_no`\n";
-        $out .= "- แผนเงินบำรุงโรงพยาบาล (PlanFin):\n";
-        $out .= "  * เป้าหมายแผนเงินบำรุง: `hosfin_planfin_targets` มี `budget_year`, `round_no` (เช่น 256902, 1st), `plan_code`, `target_amount` (ยอดเป้าหมายทั้งปี)\n";
+        $out .= "- แผนเงินบำรุงโรงพยาบาล (PlanFin) & การจัดทำแผนทุกปีงบประมาณ:\n";
+        $out .= "  * ปีงบประมาณในฐานข้อมูล: ปัจจุบันมีเป้าหมายแผนเงินบำรุงของปี {$availableYearsStr} (ปีฐานล่าสุดคือ {$baseYear})\n";
+        $out .= "  * การจัดทำแผนสำหรับปีอนาคตที่ยังไม่มีข้อมูลในตาราง (เช่น ปี {$targetYear} หรือปีใดๆ ที่ > {$maxYear}): หากผู้ใช้ถามเรื่อง 'การทำแผนปี {$shortTarget}', 'แผนปี {$targetYear}', 'ทำแผนวันที่ 15', 'จำลองแผน {$shortTarget}', 'เตรียมตัวทำแผน' >> **ห้ามใส่ `WHERE budget_year = {$targetYear}` หรือ `WHERE budget_year = {$shortTarget}` เด็ดขาด** เพราะจะไม่ได้ข้อมูล (0 แถว)! ให้ดึงหมวดแผนและเป้าหมายปี {$baseYear} เพื่อนำตัวเลขจริงมาเป็นฐาน (Baseline) ประกอบการวิเคราะห์และแนะนำการตั้งเป้าหมายปี {$targetYear} เช่น: `SELECT c.sort_order, c.category_type, c.plan_code, c.plan_name, t.budget_year, t.round_no, t.target_amount FROM hosfin_planfin_categories c LEFT JOIN hosfin_planfin_targets t ON c.plan_code = t.plan_code AND t.budget_year = {$baseYear} ORDER BY c.sort_order ASC`\n";
+        $out .= "  * คำว่า 'planfin' หรือ 'หมายถึง planfin': **ห้ามใส่ `WHERE plan_name LIKE '%planfin%'` เด็ดขาด** เพราะในคอลัมน์ไม่มีคำภาษาอังกฤษนี้ (เก็บเป็นชื่อไทย เช่น P04 รายได้ UC, P13S รวมรายได้, P14 ยา, P26S รวมค่าใช้จ่าย, P27S รายได้สุทธิ, P29 EBITDA) ให้เขียนคำสั่ง SELECT ดึงหมวดแผนและเป้าหมายปี {$baseYear} ออกมาทั้งหมด\n";
+        $out .= "  * เป้าหมายแผนเงินบำรุง: `hosfin_planfin_targets` มี `budget_year`, `round_no`, `plan_code`, `target_amount` (ยอดเป้าหมายทั้งปี)\n";
         $out .= "  * หมวดแผนเงินบำรุง: `hosfin_planfin_categories` มี `plan_code`, `plan_name`, `category_type` (revenue, expense, summary, kpi), `sort_order`\n";
         $out .= "    - รายได้: P04 (UC), P05 (EMS), P06 (เบิกต้นสังกัด), P61 (อปท.), P07 (ตรงกรมบัญชีกลาง), P08 (ประกันสังคม), P09 (ต่างด้าว), P10 (บริการอื่น), P11 (งบส่วนบุคลากร), P12 (รายได้อื่น), P13 (งบลงทุน)\n";
         $out .= "    - สรุปรายได้: `P13S` (รวมรายได้)\n";
         $out .= "    - ค่าใช้จ่าย: P14 (ยา), P15 (เวชภัณฑ์/วัสดุการแพทย์), P151 (ทันตกรรม), P16 (วิทย์การแพทย์), P17 (เงินเดือน/จ้างประจำ), P18 (จ้างชั่วคราว/พกส.), P19 (ค่าตอบแทน), P20 (บุคลากรอื่น), P21 (ค่าใช้สอย), P22 (สาธารณูปโภค), P23 (วัสดุใช้ไป), P24 (ค่าเสื่อมราคา), P241 (หนี้สูญ), P25 (ค่าใช้จ่ายอื่น)\n";
         $out .= "    - สรุปค่าใช้จ่าย: `P26S` (รวมค่าใช้จ่าย)\n";
         $out .= "    - รายได้สุทธิ: `P27S` (รายได้สูง/ต่ำกว่าค่าใช้จ่ายสุทธิ Net Income = P13S - P26S)\n";
-        $out .= "    - EBITDA: `P29` (EBITDA รวมรายได้หักงบลงทุน - รวมค่าใช้จ่ายหักค่าเสื่อมราคา)\n";
+        $out .= "    - EBITDA: `P29` (EBITDA รวมรายได้หักงบลงทุน - รวมค่าใช้จ่ายหักค่าเสื่อส่วน CC)\n";
         $out .= "    - วงเงินลงทุนด้วยเงินบำรุงได้ตามเกณฑ์กระทรวงฯ: 20% ของ EBITDA (`P29 * 0.20`)\n";
         $out .= "  * จับคู่ผังบัญชี PlanFin: `hosfin_planfin_mappings` จับคู่ `account_code` กับ `plan_code`\n";
         $out .= "  * ตัวอย่างคำสั่ง SELECT แผนเงินบำรุง:\n";
-        $out .= "    - ดึงเป้าหมายแผนเงินบำรุงปีปัจจุบัน: `SELECT t.plan_code, c.plan_name, c.category_type, t.target_amount FROM hosfin_planfin_targets t JOIN hosfin_planfin_categories c ON c.plan_code = t.plan_code WHERE t.budget_year = 2569 ORDER BY c.sort_order`\n";
-        $out .= "    - ดึงเป้าหมายสรุป (รายได้, ค่าใช้จ่าย, กำไรสุทธิ, EBITDA): `SELECT t.plan_code, c.plan_name, t.target_amount FROM hosfin_planfin_targets t JOIN hosfin_planfin_categories c ON c.plan_code = t.plan_code WHERE t.budget_year = 2569 AND t.plan_code IN ('P13S', 'P26S', 'P27S', 'P29')`\n\n";
+        $out .= "    - ดึงเป้าหมายแผนเงินบำรุงปีปัจจุบัน/ฐาน Baseline ปี {$baseYear}: `SELECT c.sort_order, c.category_type, c.plan_code, c.plan_name, t.budget_year, t.round_no, t.target_amount FROM hosfin_planfin_categories c LEFT JOIN hosfin_planfin_targets t ON c.plan_code = t.plan_code AND t.budget_year = {$baseYear} ORDER BY c.sort_order ASC`\n";
+        $out .= "    - ดึงเป้าหมายสรุป (รายได้, ค่าใช้จ่าย, กำไรสุทธิ, EBITDA): `SELECT t.plan_code, c.plan_name, t.target_amount FROM hosfin_planfin_targets t JOIN hosfin_planfin_categories c ON c.plan_code = t.plan_code WHERE t.budget_year = {$baseYear} AND t.plan_code IN ('P13S', 'P26S', 'P27S', 'P29')`\n\n";
 
         foreach ($tables as $table => $info) {
             $out .= "TABLE: `{$table}` -- {$info['description']}\nCOLUMNS:\n";

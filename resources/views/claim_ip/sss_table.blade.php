@@ -194,6 +194,7 @@
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
                                     <th class="text-center" width="5%">ตรวจสอบ</th>
                                     <th class="text-center" width="10%">ความพร้อม</th>
                                     <th class="text-center">ตึก</th>
@@ -223,6 +224,9 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ !empty($row->current_errors) ? 'true' : 'false' }}">
+                                    </td>
                                     <td class="text-center">
                                         @php
                                             $btn_color = !empty($row->current_errors) ? 'btn-outline-danger' : (!empty($row->rep_warning) ? 'btn-outline-warning' : 'btn-outline-success');
@@ -312,7 +316,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="13" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

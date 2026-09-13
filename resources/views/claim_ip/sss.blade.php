@@ -1192,6 +1192,15 @@
         const randomSession = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
         document.getElementById('export_session_no').value = randomSession;
 
+        // Auto select suggested TCODE according to the active tab
+        if ($('#claim').hasClass('active')) {
+            document.getElementById('export_tcode').value = 'ADJ';
+        } else if ($('#warning').hasClass('active')) {
+            document.getElementById('export_tcode').value = 'ADD';
+        } else {
+            document.getElementById('export_tcode').value = '';
+        }
+
         $('#aipnExportModal').modal('show');
     };
 

@@ -914,8 +914,7 @@ class SssExportController extends Controller
             $data = $this->generate_aipn_data_array($ans, $session_no, $tcode, $care_as);
             
             $hcode = LicenseVerificationService::getHcode();
-            $tcode_suffix = !empty($tcode) ? "-{$tcode}" : "";
-            $zip_name = "{$hcode}AIPN{$tcode_suffix}{$session_no}.zip";
+            $zip_name = "{$hcode}AIPN{$session_no}.zip";
             
             $temp_dir = storage_path('app/temp_aipn');
             if (!file_exists($temp_dir)) {
@@ -1645,7 +1644,8 @@ class SssExportController extends Controller
             // Rebuild the final XML content ensuring exactly one empty line after </CIPN> and then the <?EndNote tag
             $xml = substr($xml, 0, strpos($xml, '<CIPN')) . $xml_main_trimmed . "\r\n\r\n" . '<?EndNote HMAC="' . $hmac . '" ?>';
 
-            $xml_filename = "{$hcode}-AIPN-{$an}-{$subm_dt}.xml";
+            $tcode_xml_suffix = !empty($tcode) ? "-{$tcode}" : "";
+            $xml_filename = "{$hcode}-AIPN-{$an}-{$subm_dt}{$tcode_xml_suffix}.xml";
             $xml_files[$xml_filename] = $xml;
 
             if (empty($first_xml)) {

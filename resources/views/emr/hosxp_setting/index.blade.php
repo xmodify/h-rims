@@ -192,7 +192,7 @@
                                 <i class="bi bi-grid-fill me-1 text-primary"></i> หมวดหมู่ข้อมูลพื้นฐาน
                             </span>
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
-                                6 หมวด
+                                8 หมวด
                             </span>
                         </div>
                     </div>
@@ -299,6 +299,40 @@
                                 </div>
                                 <span class="badge rounded-pill setting-nav-badge">
                                     {{ number_format($stats['nhso_subinscl']['total'] ?? 0) }}
+                                </span>
+                            </a>
+
+                            <!-- Tab 7: ICD-10 (รหัสโรค) -->
+                            <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10']) }}" 
+                               class="nav-link setting-nav-btn {{ $activeTab === 'icd10' ? 'active' : '' }}">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <span class="setting-nav-icon me-2.5" style="background-color: #fee2e2; color: #dc2626;">
+                                        <i class="bi bi-virus"></i>
+                                    </span>
+                                    <div class="text-truncate">
+                                        <div class="setting-nav-title text-truncate">รหัสโรค ICD-10</div>
+                                        <div class="setting-nav-sub text-truncate">รหัส icd101, เกณฑ์ สกส./สปสช.</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill setting-nav-badge">
+                                    {{ number_format($stats['icd10']['active'] ?? 0) }}
+                                </span>
+                            </a>
+
+                            <!-- Tab 8: ICD-9 (รหัสหัตถการ) -->
+                            <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9']) }}" 
+                               class="nav-link setting-nav-btn {{ $activeTab === 'icd9' ? 'active' : '' }}">
+                                <div class="d-flex align-items-center text-truncate me-2">
+                                    <span class="setting-nav-icon me-2.5" style="background-color: #fef3c7; color: #d97706;">
+                                        <i class="bi bi-scissors"></i>
+                                    </span>
+                                    <div class="text-truncate">
+                                        <div class="setting-nav-title text-truncate">รหัสหัตถการ ICD-9</div>
+                                        <div class="setting-nav-sub text-truncate">รหัส icd9cm1, ประกันสังคม</div>
+                                    </div>
+                                </div>
+                                <span class="badge rounded-pill setting-nav-badge">
+                                    {{ number_format($stats['icd9']['active'] ?? 0) }}
                                 </span>
                             </a>
                         </div>
@@ -763,6 +797,96 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif($activeTab === 'icd10')
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'all']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card {{ $filter === 'all' ? 'border-primary ring-1' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">รหัสโรคทั้งหมด</span>
+                                            <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-virus"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-dark mb-1">{{ number_format($stats['icd10']['total'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสโรคในตาราง icd101</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'active']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-success {{ $filter === 'active' ? 'border-success' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">เปิดใช้งาน (Active)</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="bi bi-check2"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-success mb-1">{{ number_format($stats['icd10']['active'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสที่แพทย์สั่งใช้ได้</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'inactive']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-danger {{ $filter === 'inactive' ? 'border-danger' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ปิดใช้งาน (Inactive)</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="bi bi-lock-fill"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-danger mb-1">{{ number_format($stats['icd10']['inactive'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสที่ปิดการใช้งาน (N)</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'chi_not_pdx']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-warning {{ $filter === 'chi_not_pdx' ? 'border-warning' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">สกส. ไม่รับเป็นโรคหลัก</span>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-warning-emphasis mb-1">{{ number_format($stats['icd10']['chi_not_pdx'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ห้ามลงเป็น PDX (ACCPDX=N)</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    @elseif($activeTab === 'icd9')
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-4">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'all']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card {{ $filter === 'all' ? 'border-primary ring-1' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">หัตถการทั้งหมด</span>
+                                            <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-scissors"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-dark mb-1">{{ number_format($stats['icd9']['total'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">รหัสในตาราง icd9cm1</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'active']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-success {{ $filter === 'active' ? 'border-success' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">เปิดใช้งาน (Active)</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="bi bi-check2"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-success mb-1">{{ number_format($stats['icd9']['active'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">หัตถการที่เปิดใช้งาน</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'inactive']) }}" class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 tab-kpi-card border-start border-4 border-secondary {{ $filter === 'inactive' ? 'border-secondary' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="text-muted small fw-semibold">ปิดใช้งาน (Inactive)</span>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill"><i class="bi bi-eye-slash"></i></span>
+                                        </div>
+                                        <h3 class="fw-bold text-secondary mb-1">{{ number_format($stats['icd9']['inactive'] ?? 0) }}</h3>
+                                        <div class="text-muted" style="font-size: 0.75rem;">หัตถการที่ปิดใช้งาน</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
                     @endif
 
                     <!-- 2. MAIN DATA TABLE CARD -->
@@ -853,8 +977,73 @@
                                        class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">
                                        ทั้งหมด ({{ number_format($stats['pttype']['total'] ?? 0) }})
                                     </a>
+                                @elseif($activeTab === 'nhso_subinscl')
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">
+                                       ทั้งหมด ({{ number_format($stats['nhso_subinscl']['total'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'found']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'found' ? 'btn-success text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-check-circle me-1"></i>พบที่ HOSxP ({{ number_format($stats['nhso_subinscl']['found'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'nhso_subinscl', 'filter' => 'notfound']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'notfound' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-x-circle me-1"></i>ไม่พบที่ HOSxP ({{ number_format($stats['nhso_subinscl']['notfound'] ?? 0) }})
+                                    </a>
+                                @elseif($activeTab === 'icd10')
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">
+                                       ทั้งหมด ({{ number_format($stats['icd10']['total'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'active']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-success text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-check-circle me-1"></i>เปิดใช้งาน (Active) ({{ number_format($stats['icd10']['active'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'inactive']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'inactive' ? 'btn-danger text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-lock-fill me-1"></i>ปิดใช้งาน ({{ number_format($stats['icd10']['inactive'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'chi_not_pdx']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'chi_not_pdx' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-exclamation-triangle-fill me-1"></i>สกส. ไม่รับเป็นโรคหลัก ({{ number_format($stats['icd10']['chi_not_pdx'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'nhso_pp']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'nhso_pp' ? 'btn-info text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-heart-pulse me-1"></i>ส่งเสริมป้องกัน (PP) ({{ number_format($stats['icd10']['nhso_pp'] ?? 0) }})
+                                    </a>
+                                @elseif($activeTab === 'icd9')
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'all']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'all' ? 'btn-dark' : 'btn-light text-muted' }}">
+                                       ทั้งหมด ({{ number_format($stats['icd9']['total'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'active']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'active' ? 'btn-success text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-check-circle me-1"></i>เปิดใช้งาน (Active) ({{ number_format($stats['icd9']['active'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'inactive']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'inactive' ? 'btn-secondary text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-eye-slash me-1"></i>ปิดใช้งาน ({{ number_format($stats['icd9']['inactive'] ?? 0) }})
+                                    </a>
                                 @endif
                             </div>
+
+                            @if(in_array($activeTab, ['icd10', 'icd9']))
+                                <form method="GET" action="{{ route('emr.hosxp_setting') }}" class="d-flex align-items-center gap-2 ms-auto">
+                                    <input type="hidden" name="tab" value="{{ $activeTab }}">
+                                    <input type="hidden" name="filter" value="{{ $filter }}">
+                                    <div class="input-group input-group-sm" style="width: 270px;">
+                                        <input type="text" name="search" class="form-control rounded-start-pill ps-3" placeholder="{{ $activeTab === 'icd10' ? 'ค้นหารหัส / ชื่อโรค ICD-10...' : 'ค้นหารหัส / หัตถการ ICD-9...' }}" value="{{ $search ?? '' }}">
+                                        <button class="btn btn-outline-primary rounded-end-pill px-3" type="submit" title="ค้นหา">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                    @if(!empty($search))
+                                        <a href="{{ route('emr.hosxp_setting', ['tab' => $activeTab, 'filter' => $filter]) }}" class="btn btn-sm btn-light text-danger rounded-pill" title="ล้างการค้นหา">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </a>
+                                    @endif
+                                </form>
+                            @endif
                         </div>
 
                         <!-- Table Content Area -->
@@ -1530,6 +1719,208 @@
                                             @endforeach
                                         </tbody>
                                     </table>
+                                @elseif($activeTab === 'icd10')
+                                    {{-- 5. ICD-10 Table --}}
+                                    @if(count($records) >= 500 && empty($search))
+                                        <div class="alert alert-light border rounded-3 py-2 px-3 mb-3 small d-flex align-items-center justify-content-between">
+                                            <span class="text-muted">
+                                                <i class="bi bi-info-circle text-primary me-1"></i> แสดง 500 รายการแรกจากทั้งหมด {{ number_format($stats['icd10']['total'] ?? 0) }} รายการ (ใช้ช่องค้นหาด้านบนเพื่อค้นหารหัสหรือชื่อโรคที่ต้องการ)
+                                            </span>
+                                            <span class="badge bg-primary-subtle text-primary rounded-pill">จำกัด 500 รายการ</span>
+                                        </div>
+                                    @endif
+                                    <table id="table-icd10" class="table data-table-modern w-100 align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-center" style="width: 90px;">รหัสโรค</th>
+                                                <th class="text-start">ชื่อโรค (English / ภาษาไทย)</th>
+                                                <th class="text-center" style="width: 120px;">สถานะ HOSxP</th>
+                                                <th class="text-center" style="width: 150px;">สกส. (ข้าราชการ)</th>
+                                                <th class="text-center" style="width: 130px;">สปสช. (PP/ODS)</th>
+                                                <th class="text-center" style="width: 70px;">ผลการตรวจ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($records as $item)
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <span class="code-badge fw-bold font-monospace">{{ $item->code }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold text-dark">{{ $item->name }}</div>
+                                                        @if(!empty($item->tname))
+                                                            <small class="text-muted">{{ $item->tname }}</small>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->active_status ?? '') === 'Y')
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">
+                                                                <i class="bi bi-check-circle me-1"></i>Active
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1 rounded-pill">
+                                                                <i class="bi bi-lock-fill me-1"></i>Inactive (N)
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->chi_accpdx ?? '') === 'N')
+                                                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning px-2 py-1 rounded-pill fw-bold" title="ห้ามใช้เป็นโรคหลัก (ACCPDX=N)">
+                                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>ห้ามลงโรคหลัก
+                                                            </span>
+                                                        @elseif(!empty($item->chi_desc))
+                                                            <span class="badge bg-light text-success border px-2 py-1 rounded-pill" title="{{ $item->chi_desc }}">
+                                                                <i class="bi bi-check2 me-1"></i>สกส. รับ
+                                                            </span>
+                                                        @else
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->nhso_pp ?? '') === 'Y')
+                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill me-1" title="ส่งเสริมสุขภาพป้องกันโรค">
+                                                                <i class="bi bi-heart-pulse me-1"></i>PP
+                                                            </span>
+                                                        @endif
+                                                        @if(($item->nhso_ods ?? '') === 'Y')
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1 rounded-pill" title="ผ่าตัดวันเดียวกลับ ODS">
+                                                                <i class="bi bi-clock me-1"></i>ODS
+                                                            </span>
+                                                        @endif
+                                                        @if(($item->nhso_pp ?? '') !== 'Y' && ($item->nhso_ods ?? '') !== 'Y')
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ปิดใช้งาน ไม่ผ่าน ข้อผิดพลาด ' . implode(' ', $item->item_errors ?? []) }}">
+                                                        @if($item->is_valid)
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลพร้อมใช้งาน">
+                                                                <i class="bi bi-check-lg fs-6"></i>
+                                                            </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $icdDetails = [
+                                                                    'รหัสโรค (ICD-10)' => $item->code,
+                                                                    'ชื่อโรคภาษาอังกฤษ' => $item->name,
+                                                                    'ชื่อโรคภาษาไทย' => $item->tname ?: '-',
+                                                                    'สถานะใน HOSxP' => ($item->active_status === 'Y') ? 'เปิดใช้งาน' : 'ปิดใช้งาน (N)',
+                                                                    'เกณฑ์ สกส. (กรมบัญชีกลาง)' => (($item->chi_accpdx ?? '') === 'N') ? 'ห้ามลงเป็นโรคหลัก (ACCPDX=N)' : 'ปกติ',
+                                                                    'เกณฑ์ สปสช. (PP/ODS)' => trim((($item->nhso_pp ?? '') === 'Y' ? 'บริการ PP ' : '') . (($item->nhso_ods ?? '') === 'Y' ? 'ผ่าตัดวันเดียวกลับ ODS' : '')) ?: '-'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="รหัสโรค ICD-10"
+                                                                    data-code="{{ $item->code }}"
+                                                                    data-name="{{ $item->name }}"
+                                                                    data-errors='@json($item->item_errors ?? [])'
+                                                                    data-details='@json($icdDetails)'
+                                                                    title="พบข้อควรระวัง (คลิกดูรายละเอียด)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                @elseif($activeTab === 'icd9')
+                                    {{-- 6. ICD-9 Table --}}
+                                    @if(count($records) >= 500 && empty($search))
+                                        <div class="alert alert-light border rounded-3 py-2 px-3 mb-3 small d-flex align-items-center justify-content-between">
+                                            <span class="text-muted">
+                                                <i class="bi bi-info-circle text-primary me-1"></i> แสดง 500 รายการแรกจากทั้งหมด {{ number_format($stats['icd9']['total'] ?? 0) }} รายการ (ใช้ช่องค้นหาด้านบนเพื่อค้นหารหัสหรือชื่อหัตถการที่ต้องการ)
+                                            </span>
+                                            <span class="badge bg-primary-subtle text-primary rounded-pill">จำกัด 500 รายการ</span>
+                                        </div>
+                                    @endif
+                                    <table id="table-icd9" class="table data-table-modern w-100 align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-center" style="width: 90px;">รหัสหัตถการ</th>
+                                                <th class="text-start">ชื่อหัตถการ (ICD-9-CM)</th>
+                                                <th class="text-center" style="width: 120px;">สถานะ HOSxP</th>
+                                                <th class="text-center" style="width: 130px;">ส่งออกหัตถการ</th>
+                                                <th class="text-center" style="width: 150px;">ประกันสังคม (SSS)</th>
+                                                <th class="text-center" style="width: 70px;">ผลการตรวจ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($records as $item)
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <span class="code-badge fw-bold font-monospace">{{ $item->code }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold text-dark">{{ $item->name }}</div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->active_status ?? '') !== 'N')
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill">
+                                                                <i class="bi bi-check-circle me-1"></i>Active
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1 rounded-pill">
+                                                                <i class="bi bi-lock-fill me-1"></i>Inactive (N)
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(($item->export_proced ?? '') === 'Y')
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1 rounded-pill">
+                                                                <i class="bi bi-upload me-1"></i>ส่งออก (Y)
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-light text-muted border px-2 py-1 rounded-pill">
+                                                                ไม่ส่งออก
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if(!empty($item->sss_desc))
+                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill" title="{{ $item->sss_desc }}">
+                                                                <i class="bi bi-shield-check me-1"></i>มีใน SSS
+                                                            </span>
+                                                        @else
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ปิดใช้งาน ไม่ผ่าน ข้อผิดพลาด ' . implode(' ', $item->item_errors ?? []) }}">
+                                                        @if($item->is_valid)
+                                                            <span class="d-none">2</span>
+                                                            <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="ข้อมูลปกติ">
+                                                                <i class="bi bi-check-lg fs-6"></i>
+                                                            </span>
+                                                        @else
+                                                            <span class="d-none">1</span>
+                                                            @php
+                                                                $icd9Details = [
+                                                                    'รหัสหัตถการ (ICD-9)' => $item->code,
+                                                                    'ชื่อหัตถการ' => $item->name,
+                                                                    'สถานะใน HOSxP' => ($item->active_status === 'Y') ? 'เปิดใช้งาน' : 'ปิดใช้งาน (N)',
+                                                                    'ส่งออกหัตถการ' => ($item->export_proced === 'Y') ? 'ส่งออก' : 'ไม่ส่งออก',
+                                                                    'ประกันสังคม (SSS)' => $item->sss_desc ?: '-'
+                                                                ];
+                                                            @endphp
+                                                            <button type="button" 
+                                                                    class="btn btn-outline-danger p-0 rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs btn-open-validation"
+                                                                    style="width: 32px; height: 32px;"
+                                                                    data-category="รหัสหัตถการ ICD-9"
+                                                                    data-code="{{ $item->code }}"
+                                                                    data-name="{{ $item->name }}"
+                                                                    data-errors='@json($item->item_errors ?? [])'
+                                                                    data-details='@json($icd9Details)'
+                                                                    title="พบข้อควรระวัง (คลิกดูรายละเอียด)">
+                                                                <i class="bi bi-eye-fill fs-6"></i>
+                                                            </button>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
                                 @endif
                             </div>
                         </div>
@@ -1796,10 +2187,80 @@
                     }
                 });
             }
+        @elseif($activeTab === 'icd10')
+            if ($('#table-icd10').length && !$.fn.DataTable.isDataTable('#table-icd10')) {
+                $('#table-icd10').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'รหัสโรค ICD-10 HOSxP'
+                        }
+                    ],
+                    pageLength: 25,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[0, 'asc']],
+                    language: {
+                        search: "ค้นหาในหน้านี้:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        infoEmpty: "ไม่พบข้อมูล",
+                        infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                        zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    },
+                    drawCallback: function () {
+                        initTooltips();
+                    }
+                });
+            }
+        @elseif($activeTab === 'icd9')
+            if ($('#table-icd9').length && !$.fn.DataTable.isDataTable('#table-icd9')) {
+                $('#table-icd9').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="bi bi-file-earmark-excel me-1"></i>Excel',
+                            className: 'btn btn-sm btn-success',
+                            title: 'รหัสหัตถการ ICD-9 HOSxP'
+                        }
+                    ],
+                    pageLength: 25,
+                    lengthMenu: [10, 25, 50, 100],
+                    order: [[0, 'asc']],
+                    language: {
+                        search: "ค้นหาในหน้านี้:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        infoEmpty: "ไม่พบข้อมูล",
+                        infoFiltered: "(กรองจากทั้งหมด _MAX_ รายการ)",
+                        zeroRecords: "ไม่พบข้อมูลที่ตรงกับคำค้นหา",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    },
+                    drawCallback: function () {
+                        initTooltips();
+                    }
+                });
+            }
         @endif
 
         // Extensible Error Guidance Map
         const errorGuidanceMap = {
+            'ปิดใช้งานใน HOSxP (ห้ามสั่งใช้ / ห้ามส่งออกเคลม)': {
+                desc: 'รหัสโรคนี้ถูกกำหนดสถานะ active_status = "N" ในตาราง icd101 ของ HOSxP ทำให้แพทย์ไม่ควรสั่งใช้ และหากนำไปส่งเคลมจะถูกปฏิเสธ',
+                action: 'ตรวจสอบใน HOSxP > ตารางรหัสโรค (icd101) หากต้องการเปิดใช้งานให้ปรับสถานะเป็น "Y" หรือหากเป็นรหัสยกเลิกให้แจ้งแพทย์เปลี่ยนไปใช้รหัสที่ถูกต้อง'
+            },
+            'สกส. (ข้าราชการ) ไม่รับเป็นโรคหลัก (ห้ามลงเป็น PDX มิฉะนั้นจะติด C-Code)': {
+                desc: 'รหัสโรคนี้ถูกกำหนดในเกณฑ์ของกรมบัญชีกลาง (ตาราง lookup_icd10_chi.accpdx = "N") ว่าห้ามใช้เป็น Principal Diagnosis (PDX) มิฉะนั้นการส่งเคลม CSOP/CIPN จะถูกปฏิเสธและติด C-Code',
+                action: 'ให้แพทย์ทบทวนการวินิจฉัย โดยเลือกใช้รหัสโรคอื่นที่ระบุสาเหตุแท้จริงเป็นโรคหลัก (PDX) และนำรหัสนี้ไประบุเป็นโรคร่วม (Comorbidity) หรือโรคแทรกซ้อน (Complication) แทน'
+            },
+            'ปิดใช้งานใน HOSxP': {
+                desc: 'รหัสหัตถการนี้มีสถานะ active_status = "N" ในตาราง icd9cm1 ของ HOSxP',
+                action: 'เข้าเมนูตั้งค่ารหัสหัตถการ (icd9cm1) ใน HOSxP หากยังมีการทำหัตถการนี้อยู่ให้เปิดสถานะเป็น "Y"'
+            },
             'ยังไม่ผูกรหัส ADP': {
                 desc: 'รายการค่ารักษาพยาบาลนี้ยังไม่มีการระบุรหัสมาตรฐาน nhso_adp_code ของ สปสช.',
                 action: 'เข้าเมนู HOSxP > ระบบห้องยา/การเงิน > รายการค่ารักษาพยาบาล (nondrugitems) แล้วเลือกผูกรหัส ADP Code และ ADP Type ให้ตรงกับสิทธิการเบิก'

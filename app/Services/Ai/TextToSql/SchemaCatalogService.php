@@ -80,20 +80,34 @@ class SchemaCatalogService
         $out .= "   - กฎเหล็ก: ตรวจเดี่ยว `lab_items.icode` ต้องผูกเข้ากับ `nondrugitems.icode`, และชุดตรวจ `lab_items_sub_group.group_icode` ต้องผูกเข้ากับ `nondrugitems.icode` เสมอ มิฉะนั้นจะไม่สามารถคิดเงินและส่งเบิกเคลมได้\n";
         $out .= "   - ฟิลด์สำคัญ: `lab_items_code`, `lab_items_name`, `icode`, `tmlt_code` (รหัส TMLT), `loinc_code`, `active_status`\n";
         $out .= "   - เกณฑ์ตรวจสอบ: ตรวจสอบรายการแล็บที่ยังไม่ผูก icode คิดเงิน หรือขาดรหัสมาตรฐาน TMLT\n\n";
+        $out .= "6. [รหัสโรค ICD-10 และรหัสหัตถการ ICD-9]:\n";
+        $out .= "   - รหัสโรค HOSxP: ตั้งต้นด้วยตาราง `icd101` (เช่น `FROM icd101 i`)\n";
+        $out .= "     - ฟิลด์สำคัญ: `code` (รหัสโรค เช่น A00, I10, E119), `name` (ชื่อภาษาอังกฤษ), `tname` (ชื่อภาษาไทย), `active_status` ('Y'=เปิดใช้งาน | 'N'=ปิดใช้งาน), `ipd_valid` (ใช้กับ IPD ได้หรือไม่ 'Y'/'N'), `agemin`, `agemax`, `sex`\n";
+        $out .= "     - เทียบเกณฑ์ สกส. (กรมบัญชีกลาง/ข้าราชการ): `LEFT JOIN lookup_icd10_chi chi ON chi.code = i.code`\n";
+        $out .= "       - กฎสำคัญ: `chi.accpdx` ('Y'=สกส. ยอมรับเป็นโรคหลัก PDX ได้ | 'N'=สกส. ไม่รับเป็นโรคหลัก PDX เด็ดขาด หากใช้เป็น PDX จะถูกปฏิเสธเคลมหรือติด C-Code)\n";
+        $out .= "     - เทียบเกณฑ์ สปสช. (บัตรทอง): `LEFT JOIN lookup_icd10 nhso ON nhso.icd10 = i.code`\n";
+        $out .= "       - ฟิลด์: `nhso.pp` ('Y'=รหัสบริการส่งเสริมสุขภาพป้องกันโรค PP), `nhso.ods` ('Y'=รหัสหัตถการวันเดียว ODS)\n";
+        $out .= "   - รหัสหัตถการ HOSxP: ตั้งต้นด้วยตาราง `icd9cm1` (เช่น `FROM icd9cm1 c`)\n";
+        $out .= "     - ฟิลด์สำคัญ: `code` (รหัสหัตถการ เช่น 8907, 9904), `name` (ชื่อหัตถการ), `active_status` ('Y'=เปิดใช้งาน | 'N'=ปิดใช้งาน), `export_proced` (ส่งออกหัตถการ)\n";
+        $out .= "     - เทียบเกณฑ์ประกันสังคม: `LEFT JOIN lookup_icd9_sss sss9 ON sss9.code = c.code`\n\n";
         $out .= "=== มาตรฐานการตรวจสอบก่อนส่งออกแยกตามกองทุน (Fund Audit Rules) ===\n";
-        $out .= "- 16 แฟ้ม / FDH: DRU (24 หลัก, TMT, ED/NED), ADP (nhso_adp_code, adp_type), INS (hipdata_code), PROVIDER (licenseno ว., cid 13 หลัก)\n";
-        $out .= "- AIPN (ผู้ป่วยใน ประกันสังคม IPD): อุปกรณ์/อวัยวะเทียมเทียบกับ lookup_sss_equipdev_aipn, ยา 24 หลัก, แพทย์มีเลข ว.\n";
+        $out .= "- 16 แฟ้ม / FDH: DRU (24 หลัก, TMT, ED/NED), ADP (nhso_adp_code, adp_type), INS (hipdata_code), PROVIDER (licenseno ว., cid 13 หลัก), DIAG (รหัสโรคที่เปิดใช้งาน active_status = 'Y')\n";
+        $out .= "- AIPN (ผู้ป่วยใน ประกันสังคม IPD): อุปกรณ์/อวัยวะเทียมเทียบกับ lookup_sss_equipdev_aipn, ยา 24 หลัก, แพทย์มีเลข ว., หัตถการ ICD-9 ใน lookup_icd9_sss\n";
         $out .= "- SSOP (ผู้ป่วยนอก ประกันสังคม OPD): ค่าบริการ OPD, รหัส ADP, รหัสยา 24 หลัก, สิทธิประกันสังคม (pcode = 'SS')\n";
-        $out .= "- CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD): ยาเทียบกับ drugcat_chi (ราคากลาง, 24 หลัก, ยา จ(2)), nondrugitems.billcode, pcode = 'OF'\n\n";
+        $out .= "- CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD): ยาเทียบกับ drugcat_chi (ราคากลาง, 24 หลัก, ยา จ(2)), nondrugitems.billcode, รหัสโรคหลักต้องผ่านเกณฑ์ lookup_icd10_chi.accpdx != 'N'\n\n";
         $out .= "*** ตัวอย่างคำสั่ง SELECT ที่ถูกต้องและปลอดภัย ***:\n";
         $out .= "- แพทย์ไม่มีเลขใบประกอบฯ: `SELECT d.code, d.name, d.licenseno, d.council_code, d.cid, dp.name AS position_name, s.name AS spclty_name, c.name AS clinic_name, d.active FROM doctor d LEFT JOIN doctor_position dp ON dp.id = d.position_id LEFT JOIN spclty s ON s.spclty = d.spclty LEFT JOIN clinic c ON c.clinic = d.clinic WHERE (d.licenseno IS NULL OR d.licenseno = '' OR d.licenseno LIKE '-%') AND d.active = 'Y'`\n";
         $out .= "- ค่าบริการที่ยังไม่ผูกรหัส ADP: `SELECT n.icode, n.name, n.price, i.name AS income_name, n.nhso_adp_code FROM nondrugitems n LEFT JOIN income i ON i.income = n.income WHERE (n.nhso_adp_code IS NULL OR n.nhso_adp_code = '') AND n.istatus = 'Y' AND n.price > 0`\n";
         $out .= "- ยา Active ขาดรหัส 24 หลัก: `SELECT d.icode, d.name, d.strength, d.drugaccount, d.unitprice, d.did FROM drugitems d WHERE d.istatus = 'Y' AND (d.did IS NULL OR LENGTH(TRIM(d.did)) < 24)`\n";
         $out .= "- ตรวจสอบยา ED หรือ NED: `SELECT d.icode, d.name, d.strength, d.dosageform, d.drugaccount, CASE WHEN d.drugaccount IN ('ก','ข','ค','ง','จ') THEN 'ยาในบัญชียาหลัก (ED)' ELSE 'ยานอกบัญชียาหลัก (NED)' END AS ed_status, d.did, d.tmt_tp_code, d.unitprice, d.sks_price FROM drugitems d WHERE d.icode = '1000001' OR d.did LIKE '%...%'`\n";
+        $out .= "- รหัสโรค ICD-10 ที่ปิดใช้งาน: `SELECT code, name, tname, active_status FROM icd101 WHERE active_status = 'N' OR active_status IS NULL`\n";
+        $out .= "- รหัสโรคที่ สกส. ไม่รับเป็นโรคหลัก: `SELECT i.code, i.name, i.tname, chi.accpdx, chi.desc FROM icd101 i INNER JOIN lookup_icd10_chi chi ON chi.code = i.code WHERE chi.accpdx = 'N'`\n";
+        $out .= "- ตรวจสอบรหัสโรคเจาะจง (สถานะเปิด/ปิด และเกณฑ์ สกส./สปสช.): `SELECT i.code, i.name, i.tname, i.active_status, chi.accpdx AS chi_accpdx, nhso.pp AS nhso_pp FROM icd101 i LEFT JOIN lookup_icd10_chi chi ON chi.code = i.code LEFT JOIN lookup_icd10 nhso ON nhso.icd10 = i.code WHERE i.code = 'A00'`\n";
+        $out .= "- รหัสหัตถการ ICD-9 ที่ปิดใช้งาน: `SELECT code, name, active_status FROM icd9cm1 WHERE active_status = 'N'`\n";
         $out .= "- แล็บที่ยังไม่ผูก icode: `SELECT l.lab_items_code, l.lab_items_name, l.icode, l.tmlt_code FROM lab_items l WHERE l.active_status = 'Y' AND (l.icode IS NULL OR l.icode = '')`\n";
         $out .= "- สิทธิที่รหัสส่งออกไม่ตรงกับ PROVIS: `SELECT p.pttype, p.name, p.hipdata_code, p.pttype_std_code, pi.code AS provis_code, pi.name AS provis_name, pi.pttype_std_code AS provis_std_code FROM pttype p LEFT JOIN provis_instype pi ON pi.code = p.nhso_code WHERE p.isuse = 'Y' AND (p.pttype_std_code != pi.pttype_std_code OR p.pttype_std_code IS NULL)`\n\n";
         $out .= "*** กฎเหล็กและขอบเขตข้อมูล ***:\n";
-        $out .= "- สามารถสืบค้นตรวจสอบข้อมูลพื้นฐานทั้ง 5 เสาหลัก (doctor, nondrugitems, pttype, drugitems, lab_items) และตารางเชื่อมโยง/แคตตาล็อกที่เกี่ยวข้องได้ครบถ้วน\n";
+        $out .= "- สามารถสืบค้นตรวจสอบข้อมูลพื้นฐานทั้ง 6 เสาหลัก (doctor, nondrugitems, pttype, drugitems, lab_items, icd101/icd9cm1) และตารางเชื่อมโยง/แคตตาล็อกที่เกี่ยวข้องได้ครบถ้วน\n";
         $out .= "- คำสั่ง SELECT ทุกคำสั่งต้องปลอดภัย (Read-Only) และห้าม INSERT/UPDATE/DELETE เด็ดขาด\n\n";
 
         foreach ($tables as $table => $info) {
@@ -526,6 +540,57 @@ class SchemaCatalogService
                     'name' => 'varchar(255) ชื่อรายการอุปกรณ์/อวัยวะเทียม',
                     'price' => 'double ราคาเพดานเบิกชดเชย AIPN',
                 ]
+            ],
+            'icd101' => [
+                'description' => 'ตารางรหัสโรคมาตรฐานสากล ICD-10 ใน HOSxP (ICD-10 Diagnosis Master): รหัสโรค, ชื่อภาษาอังกฤษ, ชื่อภาษาไทย, สถานะเปิด/ปิดใช้งาน (active_status)',
+                'columns' => [
+                    'code' => 'varchar(7) รหัสโรค ICD-10 (Primary Key เช่น A00, I10, E119, K297, Z000)',
+                    'name' => 'varchar(200) ชื่อโรคภาษาอังกฤษ',
+                    'tname' => 'varchar(150) ชื่อโรคภาษาไทย',
+                    'active_status' => 'char(1) สถานะการใช้งาน: Y = เปิดใช้งานปกติ | N หรือว่าง = ปิดการใช้งาน (ห้ามแพทย์สั่งใช้หรือส่งออก)',
+                    'ipd_valid' => 'char(1) อนุญาตให้ใช้เป็นรหัสวินิจฉัยผู้ป่วยใน IPD หรือไม่ (Y/N)',
+                    'icd10compat' => 'char(1) ความสอดคล้องกับมาตรฐาน ICD-10 สากล',
+                    'agemin' => 'varchar(3) เกณฑ์อายุต่ำสุดของผู้ป่วยที่ใช้วินิจฉัยนี้ได้',
+                    'agemax' => 'varchar(3) เกณฑ์อายุสูงสุดของผู้ป่วยที่ใช้วินิจฉัยนี้ได้',
+                    'sex' => 'int(11) เพศที่อนุญาตให้ใช้วินิจฉัยนี้ (1=ชาย, 2=หญิง, 0=ไม่จำกัด)',
+                ]
+            ],
+            'icd9cm1' => [
+                'description' => 'ตารางรหัสหัตถการมาตรฐาน ICD-9-CM ใน HOSxP (ICD-9 Procedure Master): รหัสหัตถการ, ชื่อหัตถการ, สถานะเปิด/ปิดใช้งาน',
+                'columns' => [
+                    'code' => 'varchar(9) รหัสหัตถการ ICD-9-CM (Primary Key เช่น 8907, 9904, 4523, 3893)',
+                    'name' => 'varchar(200) ชื่อหัตถการทางการแพทย์',
+                    'active_status' => 'varchar(1) สถานะการใช้งาน: Y = เปิดใช้งานปกติ | N หรือว่าง = ปิดการใช้งาน',
+                    'export_proced' => 'char(1) สถานะการส่งออกหัตถการ (Y/N)',
+                ]
+            ],
+            'lookup_icd10_chi' => [
+                'description' => 'ตารางตรวจสอบรหัสโรคสิทธิสวัสดิการข้าราชการ/กรมบัญชีกลาง สกส. (CSMBS ICD-10 Rules ใน RiMS): กำหนดเกณฑ์การยอมรับเป็นโรคหลัก (accpdx)',
+                'columns' => [
+                    'code' => 'varchar(10) รหัสโรค ICD-10 (Primary Key เชื่อมกับ icd101.code)',
+                    'accpdx' => 'varchar(5) สกส. รับเป็นโรคหลัก (PDX) หรือไม่: Y = ยอมรับเป็นโรคหลักได้ | N = สกส. ไม่รับเป็นโรคหลักเด็ดขาด (ห้ามลงเป็นโรคหลัก ไม่งั้นจะถูกปฏิเสธเบิกเคลม/ติด C-Code)',
+                    'code_cat' => 'varchar(5) หมวดรหัสโรค',
+                    'desc' => 'varchar(255) คำอธิบายภาษาอังกฤษของ สกส.',
+                ]
+            ],
+            'lookup_icd10' => [
+                'description' => 'ตารางตรวจสอบรหัสโรคสิทธิบัตรทอง สปสช. (NHSO ICD-10 Rules ใน RiMS): รหัสบริการส่งเสริมป้องกันโรค (PP), รหัส ODS, โรคไต, HIV, TB',
+                'columns' => [
+                    'icd10' => 'varchar(100) รหัสโรค ICD-10 (Primary Key เชื่อมกับ icd101.code)',
+                    'pp' => 'varchar(1) รหัสบริการสร้างเสริมสุขภาพและป้องกันโรค (PP): Y = บริการ PP สปสช.',
+                    'ods' => 'varchar(1) รหัสการผ่าตัดวันเดียว One Day Surgery (ODS): Y = เข้าเกณฑ์ ODS สปสช.',
+                    'kidney' => 'varchar(1) รหัสกลุ่มโรคไต (Y/N)',
+                    'hiv' => 'varchar(1) รหัสกลุ่มโรค HIV (Y/N)',
+                    'tb' => 'varchar(1) รหัสกลุ่มวัณโรค TB (Y/N)',
+                ]
+            ],
+            'lookup_icd9_sss' => [
+                'description' => 'ตารางรหัสหัตถการมาตรฐาน ประกันสังคม (SSS ICD-9 Rules ใน RiMS)',
+                'columns' => [
+                    'code' => 'varchar(255) รหัสหัตถการ ICD-9 ประกันสังคม (Primary Key เชื่อมกับ icd9cm1.code)',
+                    'desc' => 'varchar(255) คำอธิบายหัตถการ',
+                    'ortime' => 'varchar(255) เวลาในห้องผ่าตัดมาตรฐาน',
+                ]
             ]
         ];
     }
@@ -544,6 +609,7 @@ class SchemaCatalogService
         $isPriceByRight = preg_match('/(pttype_items_price|ราคาแยกตามสิทธิ|ราคาตามสิทธิ|แยกสิทธ|แยกสิทธิ์|หลายสิทธิ|หลายสิทธิ์|หลายราคา|ราคาต่างกัน|ส่วนลด|ราคาพิเศษ|กลุ่มราคา)/iu', $q);
         $isDrug = preg_match('/(ยา|drug|did|tmt|icode|24\s*หลัก|ed\b|ned\b|drugcat|ค่ายา|drugusage|วิธีใช้|9418424|\b\d{6,7}\b)/iu', $q);
         $isLab = preg_match('/(lab|แลป|แล็บ|tmlt|loinc|ชุดตรวจ|โปรไฟล์|profile|item|สิ่งส่งตรวจ|specimen|labcat)/iu', $q);
+        $isIcd = preg_match('/(icd|icd10|icd-10|icd9|icd-9|โรค|หัตถการ|วินิจฉัย|diag|pdx|sdx|โรคหลัก|โรคแทรก|accpdx|ปิดรหัส|ปิดการใช้งาน|\b[a-z]\d{2,3}\b)/iu', $q);
         $isFundAudit = preg_match('/(16\s*แฟ้ม|fdh|aipn|ssop|csop|cipn|กองทุน|ส่งออก|เคลม|claim|audit|ตรวจสอบ)/iu', $q);
 
         if ($isDoctor) {
@@ -589,6 +655,14 @@ class SchemaCatalogService
             if (isset($tables['nondrugitems'])) $selected['nondrugitems'] = $tables['nondrugitems'];
         }
 
+        if ($isIcd) {
+            if (isset($tables['icd101'])) $selected['icd101'] = $tables['icd101'];
+            if (isset($tables['icd9cm1'])) $selected['icd9cm1'] = $tables['icd9cm1'];
+            if (isset($tables['lookup_icd10_chi'])) $selected['lookup_icd10_chi'] = $tables['lookup_icd10_chi'];
+            if (isset($tables['lookup_icd10'])) $selected['lookup_icd10'] = $tables['lookup_icd10'];
+            if (isset($tables['lookup_icd9_sss'])) $selected['lookup_icd9_sss'] = $tables['lookup_icd9_sss'];
+        }
+
         if ($isFundAudit) {
             if (isset($tables['drugitems'])) $selected['drugitems'] = $tables['drugitems'];
             if (isset($tables['nondrugitems'])) $selected['nondrugitems'] = $tables['nondrugitems'];
@@ -597,9 +671,11 @@ class SchemaCatalogService
             if (isset($tables['lookup_sss_equipdev_aipn'])) $selected['lookup_sss_equipdev_aipn'] = $tables['lookup_sss_equipdev_aipn'];
             if (isset($tables['drugcat_chi'])) $selected['drugcat_chi'] = $tables['drugcat_chi'];
             if (isset($tables['drugcat_nhso'])) $selected['drugcat_nhso'] = $tables['drugcat_nhso'];
+            if (isset($tables['icd101'])) $selected['icd101'] = $tables['icd101'];
+            if (isset($tables['lookup_icd10_chi'])) $selected['lookup_icd10_chi'] = $tables['lookup_icd10_chi'];
         }
 
-        // If general or no specific match, include the 5 core masters + lookups
+        // If general or no specific match, include the core masters + lookups
         if (empty($selected)) {
             return $tables;
         }

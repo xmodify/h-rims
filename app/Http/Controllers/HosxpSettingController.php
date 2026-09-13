@@ -339,6 +339,44 @@ class HosxpSettingController extends Controller
             $stats['lab'] = ['total_items' => 0, 'active_items' => 0, 'unmapped_items' => 0, 'missing_tmlt' => 0, 'total_profiles' => 0, 'unmapped_profiles' => 0, 'health_rate' => 100];
         }
 
+        // Stats for ICD-10
+        try {
+            $icd10Total = $hosxp->table('icd101')->count();
+            $icd10Inactive = $hosxp->table('icd101')->where('active_status', 'N')->count();
+            $icd10Active = $icd10Total - $icd10Inactive;
+            $icd10ChiNotPdx = DB::table('lookup_icd10_chi')->where('accpdx', 'N')->count();
+            $icd10NhsoPp = DB::table('lookup_icd10')->where('pp', 'Y')->count();
+
+            $stats['icd10'] = [
+                'total' => $icd10Total,
+                'active' => $icd10Active,
+                'inactive' => $icd10Inactive,
+                'chi_not_pdx' => $icd10ChiNotPdx,
+                'nhso_pp' => $icd10NhsoPp,
+            ];
+        } catch (\Throwable $e) {
+            $stats['icd10'] = ['total' => 0, 'active' => 0, 'inactive' => 0, 'chi_not_pdx' => 0, 'nhso_pp' => 0];
+        }
+
+        // Stats for ICD-9
+        try {
+            $icd9Total = $hosxp->table('icd9cm1')->count();
+            $icd9Inactive = $hosxp->table('icd9cm1')->where('active_status', 'N')->count();
+            $icd9Active = $hosxp->table('icd9cm1')->where(function($q) {
+                $q->whereNull('active_status')->orWhere('active_status', '<>', 'N');
+            })->count();
+            $icd9SssCount = DB::table('lookup_icd9_sss')->count();
+
+            $stats['icd9'] = [
+                'total' => $icd9Total,
+                'active' => $icd9Active,
+                'inactive' => $icd9Inactive,
+                'sss_count' => $icd9SssCount,
+            ];
+        } catch (\Throwable $e) {
+            $stats['icd9'] = ['total' => 0, 'active' => 0, 'inactive' => 0, 'sss_count' => 0];
+        }
+
         // ==========================================
         // 2. Query Tab Records with Pagination & Search
         // ==========================================
@@ -713,6 +751,90 @@ class HosxpSettingController extends Controller
 
                 $records = collect($queryRows)->values();
             }
+        } elseif ($activeTab === 'icd10') {
+            $localDb = config('database.connections.mysql.database');
+            $query = $hosxp->table('icd101 as i')
+                ->leftJoin("{$localDb}.lookup_icd10_chi as chi", 'chi.code', '=', 'i.code')
+                ->leftJoin("{$localDb}.lookup_icd10 as nhso", 'nhso.icd10', '=', 'i.code')
+                ->select([
+                    'i.code', 'i.name', 'i.tname', 'i.active_status', 'i.ipd_valid',
+                    'chi.accpdx as chi_accpdx', 'chi.desc as chi_desc',
+                    'nhso.pp as nhso_pp', 'nhso.ods as nhso_ods'
+                ]);
+
+            if ($filter === 'active') {
+                $query->where('i.active_status', 'Y');
+            } elseif ($filter === 'inactive') {
+                $query->where('i.active_status', 'N');
+            } elseif ($filter === 'chi_not_pdx') {
+                $query->where('chi.accpdx', 'N');
+            } elseif ($filter === 'nhso_pp') {
+                $query->where('nhso.pp', 'Y');
+            }
+
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('i.code', 'like', "%{$search}%")
+                      ->orWhere('i.name', 'like', "%{$search}%")
+                      ->orWhere('i.tname', 'like', "%{$search}%");
+                });
+            } elseif (in_array($filter, ['all', 'active'])) {
+                $query->limit(500);
+            }
+
+            $records = $query->orderBy('i.active_status', 'desc')
+                ->orderBy('i.code', 'asc')
+                ->get();
+
+            foreach ($records as $item) {
+                $itemErrors = [];
+                if (($item->active_status ?? '') === 'N') {
+                    $itemErrors[] = 'ปิดใช้งานใน HOSxP (ห้ามสั่งใช้ / ห้ามส่งออกเคลม)';
+                }
+                if (($item->chi_accpdx ?? '') === 'N') {
+                    $itemErrors[] = 'สกส. (ข้าราชการ) ไม่รับเป็นโรคหลัก (ห้ามลงเป็น PDX มิฉะนั้นจะติด C-Code)';
+                }
+                $item->item_errors = $itemErrors;
+                $item->is_valid = empty($itemErrors);
+            }
+        } elseif ($activeTab === 'icd9') {
+            $localDb = config('database.connections.mysql.database');
+            $query = $hosxp->table('icd9cm1 as c')
+                ->leftJoin("{$localDb}.lookup_icd9_sss as sss", 'sss.code', '=', 'c.code')
+                ->select([
+                    'c.code', 'c.name', 'c.active_status', 'c.export_proced',
+                    'sss.desc as sss_desc', 'sss.ortime as sss_ortime'
+                ]);
+
+            if ($filter === 'active') {
+                $query->where(function ($q) {
+                    $q->whereNull('c.active_status')->orWhere('c.active_status', '<>', 'N');
+                });
+            } elseif ($filter === 'inactive') {
+                $query->where('c.active_status', 'N');
+            }
+
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('c.code', 'like', "%{$search}%")
+                      ->orWhere('c.name', 'like', "%{$search}%");
+                });
+            } elseif (in_array($filter, ['all', 'active'])) {
+                $query->limit(500);
+            }
+
+            $records = $query->orderBy('c.active_status', 'desc')
+                ->orderBy('c.code', 'asc')
+                ->get();
+
+            foreach ($records as $item) {
+                $itemErrors = [];
+                if (($item->active_status ?? '') === 'N') {
+                    $itemErrors[] = 'ปิดใช้งานใน HOSxP';
+                }
+                $item->item_errors = $itemErrors;
+                $item->is_valid = empty($itemErrors);
+            }
         }
 
         // Get AI model info configured for HOSxP
@@ -758,7 +880,7 @@ class HosxpSettingController extends Controller
         if (empty($query)) {
             return response()->json([
                 'success' => false,
-                'message' => 'กรุณาระบุคำถามหรือข้อสงสัยครับ'
+                'message' => 'กรุณาระบุคำถามหรือข้อสงสัยค่ะ'
             ], 422);
         }
 
@@ -795,13 +917,15 @@ class HosxpSettingController extends Controller
 
 *** ข้อกำหนดและกฎสำคัญเด็ดขาด (Strict Rules) ***:
 1. ห้ามเขียนคำสั่ง SQL ทุกชนิด (เช่น SELECT, UPDATE, INSERT, DELETE) เด็ดขาด ไม่ต้องแสดงบล็อกคำสั่ง SQL ใดๆ ให้ผู้ใช้ แม้ผู้ใช้จะขอโดยตรง ให้แจ้งอย่างสุภาพว่าระบบสงวนสิทธิ์ไม่แสดงคำสั่งแก้ฐานข้อมูลโดยตรงเพื่อความปลอดภัยของข้อมูลโรงพยาบาล
-2. ห้ามเอ่ยชื่อตารางฐานข้อมูลภายในโดยตรง (เช่น doctor, nondrugitems, pttype, spclty, income ฯลฯ) ให้ใช้ภาษาทางการแพทย์หรือชื่อหมวดข้อมูลเชิงธุรกิจแทน เช่น 'ข้อมูลแพทย์และบุคลากร', 'รายการค่าบริการและค่ารักษาพยาบาล', 'สิทธิการรักษาพยาบาล'
+2. ห้ามเอ่ยชื่อตารางฐานข้อมูลภายในโดยตรง (เช่น doctor, nondrugitems, pttype, spclty, income, icd101 ฯลฯ) ให้ใช้ภาษาทางการแพทย์หรือชื่อหมวดข้อมูลเชิงธุรกิจแทน เช่น 'ข้อมูลแพทย์และบุคลากร', 'รายการค่าบริการและค่ารักษาพยาบาล', 'รหัสโรค ICD-10', 'รหัสหัตถการ ICD-9'
 3. ให้คำแนะนำผู้ใช้ในการตรวจสอบและแก้ไขข้อมูลผ่าน 'หน้าจอเมนูของโปรแกรม HOSxP' เป็นหลัก เช่น:
    - ข้อมูลแพทย์/บุคลากร: แนะนำให้เข้าเมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดข้อมูลแพทย์/ผู้ให้บริการ' เพื่อแก้ไขหรือบันทึกเลขที่ใบประกอบวิชาชีพ, เลขประจำตัวประชาชน 13 หลัก, และรหัสสภาวิชาชีพ
    - ข้อมูลค่ารักษาพยาบาล: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการค่ารักษาพยาบาล (Non-Drug Items)' เพื่อตรวจสอบการผูกรหัส ADP และหมวดรายได้
    - ข้อมูลสิทธิการรักษา: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดสิทธิการรักษา (Pttype)' เพื่อตรวจสอบรหัสสิทธิมาตรฐานและรหัสส่งออกเคลม
    - ข้อมูลยา: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการยา (Drug Items)' เพื่อตรวจสอบและบันทึกรหัสมาตรฐาน 24 หลัก, รหัส TMT, หมวดรายได้ และกำหนดโครงสร้างราคาแยกเก็บ (OPD 1, 2, 3, IPD, ราคากรมบัญชีกลาง SKS)
    - ข้อมูล Lab: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรายการตรวจทางห้องปฏิบัติการ (Lab Items)' และ 'กำหนดชุดตรวจ (Lab Sub Group)' เพื่อผูกรหัสค่าบริการ icode เข้ากับ nondrugitems และระบุรหัสมาตรฐาน TMLT/LOINC
+   - ข้อมูลรหัสโรค ICD-10: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรหัสโรค (ICD-10)' เพื่อเปิด/ปิดสถานะ active_status และระวังรหัสที่ สกส. ไม่รับเป็นโรคหลัก (accpdx=N)
+   - ข้อมูลรหัสหัตถการ ICD-9: แนะนำให้เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรหัสหัตถการ (ICD-9-CM)' เพื่อเปิด/ปิดสถานะ และระบุการส่งออกหัตถการ
 4. อธิบายอย่างเป็นมืออาชีพ สุภาพ ชัดเจน เข้าใจง่าย ชี้ให้เห็นว่าข้อมูลขาดอะไรและจะส่งผลกระทบต่อการส่งออก 43 แฟ้ม หรือการส่งเบิกเคลมอย่างไร พร้อมบอกวิธีบันทึกแก้ไขใน HOSxP
 5. จัดรูปแบบด้วย Markdown ใช้หัวข้อ, bullet points, และตัวหนาให้อ่านง่าย สบายตา
 6. กฎสำคัญเรื่องการใช้คำ: ให้ใช้คำว่า 'ข้อมูลพื้นฐาน' เสมอ และห้ามใช้คำว่า 'Master Data' ในคำตอบเด็ดขาด";
@@ -816,7 +940,7 @@ class HosxpSettingController extends Controller
                 $userPrompt .= "--- ข้อกำหนดและแนวทางมาตรฐานจากคลังความรู้ RAG ---\n" . $ragContext . "\n\n";
             }
 
-            $userPrompt .= "กรุณาตอบคำถาม วิเคราะห์จุดที่ข้อมูลไม่สมบูรณ์หรือความเสี่ยงต่อการส่งเคลม และให้คำแนะนำการตรวจสอบ/บันทึกแก้ไขข้อมูลผ่านหน้าจอโปรแกรม HOSxP โดยห้ามระบุคำสั่ง SQL หรือชื่อตารางฐานข้อมูลครับ";
+            $userPrompt .= "กรุณาตอบคำถาม วิเคราะห์จุดที่ข้อมูลไม่สมบูรณ์หรือความเสี่ยงต่อการส่งเคลม และให้คำแนะนำการตรวจสอบ/บันทึกแก้ไขข้อมูลผ่านหน้าจอโปรแกรม HOSxP โดยห้ามระบุคำสั่ง SQL หรือชื่อตารางฐานข้อมูลนะคะ";
 
             $aiService = app(AiService::class);
             $answer = $aiService->generateChat($userPrompt, $systemPrompt, 'hosxp');

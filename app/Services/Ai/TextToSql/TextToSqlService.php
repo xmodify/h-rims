@@ -248,8 +248,8 @@ class TextToSqlService
 
         $q = mb_strtolower($question, 'UTF-8');
 
-        // Strong HOSxP indicators (Master configs: nondrug, pttype, doctor, drug, lab, funds, adp, etc.)
-        $isHosxp = (bool) preg_match('/(nondrug|ค่าบริการ|หัตถการ|adp|pttype|สิทธิการรักษา|16\s*แฟ้ม|hipdata|doctor|แพทย์|หมอ|licenseno|ใบประกอบ|สภาวิชาชีพ|ยา|drug|did|tmt|icode|24\s*หลัก|ed\b|ned\b|drugcat|lab|แลป|แล็บ|tmlt|loinc|aipn|ssop|csop|cipn|fdh|audit)/iu', $q);
+        // Strong HOSxP indicators (Master configs: nondrug, pttype, doctor, drug, lab, funds, adp, icd10, icd9, etc.)
+        $isHosxp = (bool) preg_match('/(nondrug|ค่าบริการ|หัตถการ|adp|pttype|สิทธิการรักษา|16\s*แฟ้ม|hipdata|doctor|แพทย์|หมอ|licenseno|ใบประกอบ|สภาวิชาชีพ|ยา|drug|did|tmt|icode|24\s*หลัก|ed\b|ned\b|drugcat|lab|แลป|แล็บ|tmlt|loinc|aipn|ssop|csop|cipn|fdh|audit|icd|icd10|icd9|รหัสโรค|รหัสหัตถการ|วินิจฉัย|diag|pdx|sdx|accpdx)/iu', $q);
 
         // Strong RiMS indicators (HosFin: financial, fiscal, ap, ar, tb, journal, account, costs)
         $isHrims = (bool) preg_match('/(hosfin|การเงิน|การคลัง|ผังบัญชี|งบ|งบทดลอง|สมุดรายวัน|เจ้าหนี้|ลูกหนี้|บิล|ค้างจ่าย|ค้างชำระ|บริษัท|vendor|ap\b|ar\b|voucher|journal|กระแสเงินสด|เงินสด|ต้นทุน|สถิติ|หนี้สิน)/iu', $q);
@@ -528,6 +528,8 @@ EOT;
             return json_encode([
                 "ตรวจสอบความพร้อมส่งออก 16 แฟ้ม / FDH",
                 "ตรวจสอบการตั้งค่าสำหรับกองทุน AIPN ประกันสังคม",
+                "ตรวจรหัสโรค ICD-10 ที่ปิดใช้งานใน HOSxP",
+                "ตรวจรหัสโรคที่ สกส. ไม่รับเป็นโรคหลัก (accpdx = N)",
                 "ตรวจรายการยาที่ยังขาดรหัสมาตรฐาน 24 หลัก และ TMT",
                 "ตรวจรายการค่าบริการและหัตถการที่ยังไม่ผูกรหัส ADP สปสช.",
                 "ตรวจรายชื่อแพทย์และผู้ตรวจรักษาที่ไม่มีเลขที่ใบประกอบวิชาชีพ"
@@ -713,6 +715,23 @@ EOT;
             'pttype_price_group_name' => 'ชื่อกลุ่มราคาตามสิทธิ',
             'nhso_subinscl' => 'รหัสสิทธิย่อย สปสช.',
             'export_eclaim' => 'สถานะส่งออก e-Claim',
+
+            // ICD-10 & ICD-9
+            'icd10' => 'รหัสโรค ICD-10',
+            'tname' => 'ชื่อโรคภาษาไทย',
+            'active_status' => 'สถานะการใช้งาน (Y=เปิด, N=ปิด)',
+            'ipd_valid' => 'ใช้กับผู้ป่วยใน IPD',
+            'export_proced' => 'สถานะส่งออกหัตถการ',
+            'accpdx' => 'สกส. รับเป็นโรคหลัก (Y/N)',
+            'chi_accpdx' => 'สกส. รับเป็นโรคหลัก (Y/N)',
+            'nhso_pp' => 'สปสช. ส่งเสริมป้องกันโรค (PP)',
+            'pp' => 'ส่งเสริมป้องกันโรค (PP)',
+            'ods' => 'หัตถการวันเดียว (ODS)',
+            'kidney' => 'กลุ่มโรคไต',
+            'hiv' => 'กลุ่มโรค HIV',
+            'tb' => 'กลุ่มวัณโรค TB',
+            'ortime' => 'เวลาในห้องผ่าตัด',
+            'code_cat' => 'หมวดรหัสโรค',
 
             // HOSxP Pricing by Rights (pttype_items_price) & Opitemrece
             'pttype_items_price_id' => 'รหัสราคาตามสิทธิ',

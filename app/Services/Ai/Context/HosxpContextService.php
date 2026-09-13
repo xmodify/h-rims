@@ -61,6 +61,12 @@ class HosxpContextService
                     $contextBlocks[] = $labData['text'];
                     $sources[] = $labData['source'];
                 }
+            } elseif ($category === 'icd' || $category === 'icd10' || $category === 'icd9') {
+                $icdData = $this->getIcdContext($query, true);
+                if ($icdData) {
+                    $contextBlocks[] = $icdData['text'];
+                    $sources[] = $icdData['source'];
+                }
             } elseif ($category === 'fund_audit' || $category === 'audit' || $category === 'fund') {
                 $fundData = $this->getFundAuditContext($query, true);
                 if ($fundData) {
@@ -123,6 +129,13 @@ class HosxpContextService
                 if ($labData) {
                     $contextBlocks[] = $labData['text'];
                     $sources[] = $labData['source'];
+                }
+
+                // 8. Check for ICD-10 & ICD-9 / chi accpdx / nhso pp
+                $icdData = $this->getIcdContext($query);
+                if ($icdData) {
+                    $contextBlocks[] = $icdData['text'];
+                    $sources[] = $icdData['source'];
                 }
             }
 
@@ -1054,6 +1067,11 @@ class HosxpContextService
                 $q->whereNull('tmlt_code')->orWhere('tmlt_code', '');
             })->count();
 
+            // 6. ICD-10 & ICD-9 Audit
+            $inactiveIcd10 = $hosxp->table('icd101')->where('active_status', 'N')->count();
+            $chiNotPdxCount = DB::table('lookup_icd10_chi')->where('accpdx', 'N')->count();
+            $totalActiveIcd9 = $hosxp->table('icd9cm1')->where('active_status', 'Y')->count();
+
             // Specific fund checks
             $equipDevCount = DB::table('lookup_sss_equipdev_aipn')->count();
             $drugcatChiCount = DB::table('drugcat_chi')->count();
@@ -1067,11 +1085,13 @@ class HosxpContextService
                 "   • แฟ้ม ADP (ค่าบริการ/หัตถการ): ค่าบริการเปิดใช้งาน {$totalActiveNondrug} รายการ -> ยังไม่ผูกรหัส ADP สปสช. {$nondrugMissingAdp} รายการ",
                 "   • แฟ้ม PROVIDER (ผู้ให้บริการ): แพทย์ปฏิบัติงาน {$totalActiveDocs} ราย -> ไม่มี/เลขใบประกอบฯ ไม่ถูกต้อง {$docsMissingLic} ราย, เลขบัตร ปชช. ไม่ครบ 13 หลัก {$docsMissingCid} ราย",
                 "   • แฟ้ม INS (สิทธิการรักษา): สิทธิเปิดใช้งาน {$totalActivePttype} สิทธิ -> ขาดรหัสส่งออก 16 แฟ้ม (hipdata_code) {$pttypeMissingHipdata} สิทธิ",
+                "   • แฟ้ม DIAG (รหัสโรค): รหัสโรคที่ปิดใช้งานใน HOSxP {$inactiveIcd10} รายการ (active_status = 'N')",
                 "",
                 "2. กองทุน AIPN (ผู้ป่วยใน ประกันสังคม IPD):",
                 "   • อุปกรณ์/อวัยวะเทียม: ใน RiMS มีแคตตาล็อกอุปกรณ์เทียมประกันสังคม {$equipDevCount} รายการ (lookup_sss_equipdev_aipn) ต้องผูกรหัสค่าบริการให้ตรงเพื่อป้องกันติด C",
                 "   • รหัสยา: ตรวจสอบความสมบูรณ์ของรหัส 24 หลัก (ขาด {$drugsMissing24} รายการ)",
                 "   • แพทย์ผู้รักษา: ตรวจสอบเลข ว. แพทย์ (ขาด {$docsMissingLic} ราย) เพื่อส่งออกใน XML AIPN",
+                "   • รหัสหัตถการ ICD-9: เปิดใช้งาน {$totalActiveIcd9} รายการ",
                 "",
                 "3. กองทุน SSOP (ผู้ป่วยนอก ประกันสังคม OPD):",
                 "   • ตรวจสอบรายการค่าบริการต้องมีรหัส ADP สปสช. (ขาด {$nondrugMissingAdp} รายการ)",
@@ -1081,11 +1101,17 @@ class HosxpContextService
                 "4. กองทุน CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD):",
                 "   • ยา: เทียบกับแคตตาล็อกยา กรมบัญชีกลาง CSMBS ({$drugcatChiCount} รายการ) ตรวจสอบราคาสิทธิข้าราชการ (sks_price) และยา จ(2)",
                 "   • ค่าบริการ: ตรวจสอบการระบุรหัส billcode กรมบัญชีกลางใน nondrugitems",
+                "   • รหัสโรคหลัก (PDX): รหัสที่ สกส. 'ไม่รับเป็นโรคหลัก' มี {$chiNotPdxCount} รายการ (accpdx = 'N' หากบันทึกเป็นโรคหลักจะถูก Reject หรือติด C-Code)",
                 "   • สิทธิการรักษาข้าราชการต้องกำหนด pcode = 'OF'",
                 "",
                 "5. การตรวจทางห้องปฏิบัติการ (Lab Items & Profiles):",
                 "   • รายการตรวจเดี่ยว lab_items ที่ยังไม่ผูก icode คิดเงิน: {$labUnmappedIcode} รายการ (คิดเงินและส่งเคลมไม่ได้)",
-                "   • รายการแล็บที่ยังไม่ระบุรหัสมาตรฐาน TMLT: {$labMissingTmlt} รายการ"
+                "   • รายการแล็บที่ยังไม่ระบุรหัสมาตรฐาน TMLT: {$labMissingTmlt} รายการ",
+                "",
+                "6. รหัสโรค ICD-10 และรหัสหัตถการ ICD-9:",
+                "   • รหัสโรคที่ปิดใช้งานใน HOSxP (active_status = 'N'): {$inactiveIcd10} รายการ",
+                "   • รหัสโรคที่ สกส. ไม่รับเป็นโรคหลัก (accpdx = 'N'): {$chiNotPdxCount} รายการ",
+                "   • รหัสหัตถการ ICD-9 ที่เปิดใช้งาน: {$totalActiveIcd9} รายการ"
             ];
 
             return [
@@ -1100,6 +1126,224 @@ class HosxpContextService
             ];
         } catch (\Throwable $e) {
             Log::warning("Fund Audit Context Warning: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Search ICD-10 (icd101) and ICD-9 (icd9cm1), cross-check with lookup_icd10_chi (accpdx) and lookup_icd10 (pp/ods)
+     */
+    public function getIcdContext(string $query, bool $force = false): ?array
+    {
+        try {
+            if (!$force) {
+                $hasIcdKeyword = (bool) preg_match('/(icd|icd10|icd-10|icd9|icd-9|รหัสโรค|รหัสหัตถการ|การวินิจฉัย|diag|pdx|sdx|โรคหลัก|โรคแทรก|accpdx|ปิดรหัส|ปิดการใช้งาน|\b[a-zA-Z]\d{2,3}(?:\.\d{1,2})?\b|\b\d{2,4}(?:\.\d{1,2})?\b)/iu', $query);
+                if (!$hasIcdKeyword) {
+                    return null;
+                }
+            }
+
+            $hosxp = DB::connection('hosxp');
+
+            // Priority 1: Extract specific ICD-10 code (e.g. A00, I10, E11.9, K29.7, Z00.0, U50)
+            $extractedCodes = [];
+            if (preg_match_all('/\b([A-Za-z]\d{2,3}(?:\.\d{1,2})?)\b/', $query, $matches)) {
+                $extractedCodes = array_map('strtoupper', $matches[1]);
+            }
+
+            // Also check for specific ICD-9 code (e.g. 89.07, 9904, 45.23)
+            $extractedIcd9 = [];
+            if (preg_match_all('/\b(\d{2}\.\d{1,2}|\b\d{4}\b)\b/', $query, $m9)) {
+                $extractedIcd9 = $m9[1];
+            }
+
+            if (!empty($extractedCodes)) {
+                $details = [];
+                foreach (array_unique($extractedCodes) as $rawCode) {
+                    $codeNoDot = str_replace('.', '', $rawCode);
+                    $codeWithDot = (strlen($codeNoDot) > 3) ? substr($codeNoDot, 0, 3) . '.' . substr($codeNoDot, 3) : $codeNoDot;
+
+                    // Lookup in HOSxP icd101
+                    $row = $hosxp->table('icd101')
+                        ->where('code', $rawCode)
+                        ->orWhere('code', $codeNoDot)
+                        ->orWhere('code', $codeWithDot)
+                        ->first();
+
+                    // Lookup in RiMS lookup_icd10_chi (สกส. กรมบัญชีกลาง)
+                    $chi = DB::table('lookup_icd10_chi')
+                        ->where('code', $rawCode)
+                        ->orWhere('code', $codeNoDot)
+                        ->orWhere('code', $codeWithDot)
+                        ->first();
+
+                    // Lookup in RiMS lookup_icd10 (สปสช.)
+                    $nhso = DB::table('lookup_icd10')
+                        ->where('icd10', $rawCode)
+                        ->orWhere('icd10', $codeNoDot)
+                        ->orWhere('icd10', $codeWithDot)
+                        ->first();
+
+                    if ($row || $chi || $nhso) {
+                        $codeDisplay = $row->code ?? $rawCode;
+                        $nameEng = $row->name ?? ($chi->desc ?? 'ไม่พบชื่อภาษาอังกฤษ');
+                        $nameThai = $row->tname ?? 'ไม่ได้ระบุชื่อภาษาไทย';
+                        $status = ($row->active_status ?? '') === 'Y' 
+                            ? '✅ เปิดใช้งานปกติใน HOSxP (active_status = Y)' 
+                            : '❌ ปิดการใช้งานใน HOSxP (active_status = N หรือว่าง: แพทย์ไม่สามารถสั่งใช้และห้ามส่งออก)';
+
+                        // สกส. Rule (accpdx)
+                        $chiStatus = '❓ ไม่พบในตารางตรวจสอบ สกส.';
+                        if ($chi) {
+                            if (($chi->accpdx ?? '') === 'Y') {
+                                $chiStatus = '✅ สกส. (กรมบัญชีกลาง/ข้าราชการ) รับเป็นโรคหลัก (PDX) ได้ตามปกติ (accpdx = Y)';
+                            } elseif (($chi->accpdx ?? '') === 'N') {
+                                $chiStatus = '⚠️ สกส. (กรมบัญชีกลาง/ข้าราชการ) ไม่รับเป็นโรคหลักเด็ดขาด (accpdx = N: ห้ามใช้เป็น PDX ไม่งั้นจะถูกปฏิเสธเบิกเคลม CSOP/CIPN หรือติด C-Code ต้องใช้เป็น SDX เท่านั้น)';
+                            } else {
+                                $chiStatus = 'ℹ️ บันทึกใน สกส. (accpdx = ' . ($chi->accpdx ?: '-') . ')';
+                            }
+                        }
+
+                        // สปสช. Rule (pp/ods)
+                        $nhsoNotes = [];
+                        if ($nhso) {
+                            if (($nhso->pp ?? '') === 'Y') $nhsoNotes[] = 'บริการสร้างเสริมสุขภาพและป้องกันโรค (PP)';
+                            if (($nhso->ods ?? '') === 'Y' || ($nhso->ods_p ?? '') === 'Y') $nhsoNotes[] = 'หัตถการวันเดียว One Day Surgery (ODS)';
+                            if (($nhso->kidney ?? '') === 'Y') $nhsoNotes[] = 'กลุ่มโรคไต';
+                            if (($nhso->hiv ?? '') === 'Y') $nhsoNotes[] = 'กลุ่มโรค HIV';
+                            if (($nhso->tb ?? '') === 'Y') $nhsoNotes[] = 'กลุ่มวัณโรค TB';
+                        }
+                        $nhsoStatus = !empty($nhsoNotes) 
+                            ? '⭐ สปสช. จัดกลุ่ม: ' . implode(', ', $nhsoNotes) 
+                            : 'สปสช.: เป็นรหัสการรักษาพยาบาลทั่วไป';
+
+                        $details[] = implode("\n", [
+                            "• รหัสโรค: {$codeDisplay} ({$nameEng})",
+                            "  - ชื่อภาษาไทย: {$nameThai}",
+                            "  - สถานะใน HOSxP: {$status}",
+                            "  - เกณฑ์กองทุนข้าราชการ (สกส.): {$chiStatus}",
+                            "  - เกณฑ์กองทุนบัตรทอง (สปสช.): {$nhsoStatus}",
+                            "  - ผู้ป่วยใน IPD: " . (($row->ipd_valid ?? 'Y') === 'Y' ? 'ใช้เป็นรหัสผู้ป่วยในได้' : 'ไม่อนุญาตให้ใช้กับ IPD'),
+                            "  - การตั้งค่าใน HOSxP: เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรหัสโรค (ICD-10)' ค้นหารหัส '{$codeDisplay}' เพื่อแก้ไขสถานะเปิด/ปิด"
+                        ]);
+                    }
+                }
+
+                if (!empty($details)) {
+                    return [
+                        'text' => "[ผลการตรวจสอบรหัสโรค ICD-10 จากฐานข้อมูล HOSxP และแคตตาล็อกกองทุน]:\n" . implode("\n\n", $details),
+                        'source' => [
+                            'title' => "ผลการตรวจสอบรหัสโรค ICD-10 ใน HOSxP & กองทุน",
+                            'filename' => 'hosxp_icd10_check',
+                            'page' => 1,
+                            'score' => 99.0,
+                            'snippet' => "ตรวจสอบรหัสโรค สถานะเปิด/ปิด และเกณฑ์การรับเป็นโรคหลัก สกส./สปสช."
+                        ]
+                    ];
+                }
+            }
+
+            // Priority 2: Check for ICD-9 procedures
+            if (!empty($extractedIcd9)) {
+                $procDetails = [];
+                foreach (array_unique($extractedIcd9) as $rawProc) {
+                    $procClean = str_replace('.', '', $rawProc);
+                    $row9 = $hosxp->table('icd9cm1')
+                        ->where('code', $rawProc)
+                        ->orWhere('code', $procClean)
+                        ->first();
+
+                    $sss9 = DB::table('lookup_icd9_sss')
+                        ->where('code', $rawProc)
+                        ->orWhere('code', $procClean)
+                        ->first();
+
+                    if ($row9 || $sss9) {
+                        $code9Display = $row9->code ?? $rawProc;
+                        $nameProc = $row9->name ?? ($sss9->desc ?? 'ไม่ระบุชื่อหัตถการ');
+                        $status9 = ($row9->active_status ?? '') === 'Y'
+                            ? '✅ เปิดใช้งานปกติใน HOSxP (active_status = Y)'
+                            : '❌ ปิดการใช้งานใน HOSxP (active_status = N หรือว่าง)';
+                        $sssStatus = $sss9 ? '✅ มีในแคตตาล็อกหัตถการมาตรฐานประกันสังคม' : 'ℹ️ ไม่พบในรายการมาตรฐานประกันสังคม';
+
+                        $procDetails[] = implode("\n", [
+                            "• รหัสหัตถการ ICD-9-CM: {$code9Display} - {$nameProc}",
+                            "  - สถานะใน HOSxP: {$status9}",
+                            "  - ส่งออกหัตถการ: " . (($row9->export_proced ?? 'Y') === 'Y' ? 'ส่งออกปกติ (export_proced = Y)' : 'ไม่ส่งออก'),
+                            "  - เกณฑ์ประกันสังคม: {$sssStatus}",
+                            "  - การตั้งค่าใน HOSxP: เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรหัสหัตถการ (ICD-9-CM)'"
+                        ]);
+                    }
+                }
+
+                if (!empty($procDetails)) {
+                    return [
+                        'text' => "[ผลการตรวจสอบรหัสหัตถการ ICD-9 จากฐานข้อมูล HOSxP]:\n" . implode("\n\n", $procDetails),
+                        'source' => [
+                            'title' => "ผลการตรวจสอบรหัสหัตถการ ICD-9 ใน HOSxP",
+                            'filename' => 'hosxp_icd9_check',
+                            'page' => 1,
+                            'score' => 98.0,
+                            'snippet' => "ตรวจสอบรหัสหัตถการ ICD-9 สถานะเปิด/ปิด และเกณฑ์ประกันสังคม"
+                        ]
+                    ];
+                }
+            }
+
+            // Priority 3: General summary & Audit of ICD-10 and ICD-9
+            $isSummaryQuery = (bool) preg_match('/(สรุป|สถิติ|มีกี่|ทั้งหมด|ปิดรหัส|ปิดใช้งาน|สกส\s*ไม่รับ|accpdx|หัตถการ|icd10|icd9)/iu', $query);
+            if ($isSummaryQuery || $force) {
+                $totalIcd10 = $hosxp->table('icd101')->count();
+                $inactiveIcd10 = $hosxp->table('icd101')->where('active_status', 'N')->count();
+                $activeIcd10 = $totalIcd10 - $inactiveIcd10;
+
+                $totalChi = DB::table('lookup_icd10_chi')->count();
+                $chiNotPdx = DB::table('lookup_icd10_chi')->where('accpdx', 'N')->count();
+
+                $totalNhsoPp = DB::table('lookup_icd10')->where('pp', 'Y')->count();
+                $totalNhsoOds = DB::table('lookup_icd10')->where('ods', 'Y')->count();
+
+                $totalIcd9 = $hosxp->table('icd9cm1')->count();
+                $activeIcd9 = $hosxp->table('icd9cm1')->where('active_status', 'Y')->count();
+
+                $lines = [
+                    "ภาพรวมข้อมูลรหัสโรค (ICD-10) และรหัสหัตถการ (ICD-9) ในระบบ HOSxP และเกณฑ์กองทุน:",
+                    "• รหัสโรค ICD-10 ใน HOSxP (icd101): ทั้งหมด " . number_format($totalIcd10) . " รายการ",
+                    "  - เปิดใช้งาน (Active): " . number_format($activeIcd10) . " รายการ",
+                    "  - ❌ ปิดการใช้งาน (Inactive: active_status = 'N'): " . number_format($inactiveIcd10) . " รายการ (ป้องกันแพทย์บันทึกรหัสที่ยกเลิก)",
+                    "",
+                    "• เกณฑ์กองทุนสวัสดิการข้าราชการ/กรมบัญชีกลาง (สกส. ใน RiMS: lookup_icd10_chi):",
+                    "  - รหัสโรคในแคตตาล็อก สกส.: " . number_format($totalChi) . " รายการ",
+                    "  - ⚠️ รหัสที่ สกส. 'ไม่รับเป็นโรคหลัก' (accpdx = 'N'): " . number_format($chiNotPdx) . " รายการ",
+                    "    (ข้อควรระวัง: ห้ามให้แพทย์ลงรหัสกลุ่มนี้เป็น Principal Diagnosis / PDX โดยเด็ดขาด มิฉะนั้นการส่งเคลม CSOP/CIPN จะติด Error C-Code หรือถูกปฏิเสธชดเชยค่ารักษา)",
+                    "",
+                    "• เกณฑ์กองทุนหลักประกันสุขภาพแห่งชาติ (สปสช. ใน RiMS: lookup_icd10):",
+                    "  - รหัสบริการส่งเสริมสุขภาพและป้องกันโรค (PP): " . number_format($totalNhsoPp) . " รายการ",
+                    "  - รหัสหัตถการวันเดียว (ODS): " . number_format($totalNhsoOds) . " รายการ",
+                    "",
+                    "• รหัสหัตถการ ICD-9-CM ใน HOSxP (icd9cm1):",
+                    "  - ทั้งหมด: " . number_format($totalIcd9) . " รายการ (เปิดใช้งาน " . number_format($activeIcd9) . " รายการ)",
+                    "",
+                    "คำแนะนำการตั้งค่าในโปรแกรม HOSxP:",
+                    "1. เมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดรหัสโรค (ICD-10)': ใช้สำหรับตรวจสอบและเปิด/ปิดสถานะ active_status ของรหัสโรค",
+                    "2. เมนู 'เครื่องมือ (Tools) > ตั้งค่าระบบ (System Setting) > กำหนดรหัสหัตถการ (ICD-9-CM)': ใช้สำหรับกำหนดสถานะ active_status และการส่งออก export_proced"
+                ];
+
+                return [
+                    'text' => "[สรุปภาพรวมรหัสโรค ICD-10 และรหัสหัตถการ ICD-9]:\n" . implode("\n", $lines),
+                    'source' => [
+                        'title' => "สรุปข้อมูลรหัสโรค ICD-10 และหัตถการ ICD-9 ใน HOSxP",
+                        'filename' => 'hosxp_icd_summary',
+                        'page' => 1,
+                        'score' => 99.0,
+                        'snippet' => "สรุปรหัสโรคที่ปิดใช้งาน, เกณฑ์ สกส. accpdx=N และเกณฑ์ สปสช."
+                    ]
+                ];
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning("ICD Context Warning: " . $e->getMessage());
             return null;
         }
     }

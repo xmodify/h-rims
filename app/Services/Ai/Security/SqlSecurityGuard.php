@@ -176,6 +176,8 @@ class SqlSecurityGuard
                 'drugitems', 'drugitems_ref_code', 'drugusage', 's_drugitems',
                 // Lab tables & lookups
                 'lab_items', 'lab_items_sub_group', 'lab_items_group', 'lab_specimen_items', 'nhso_adp_code',
+                // ICD-10 & ICD-9 tables & lookups
+                'icd101', 'icd9cm1', 'icd10_backlist', 'icd10_nhso', 'icd10_sss', 'lookup_icd10', 'lookup_icd10_chi', 'lookup_icd9_sss',
                 // RiMS Catalogs & Lookup tables
                 'drugcat_nhso', 'drugcat_chi', 'drugcat_fdh',
                 'labcat_chi', 'labcat_fdh', 'labcat_nhso', 'labcat_ss', 'labcat_tmt',
@@ -187,12 +189,12 @@ class SqlSecurityGuard
                     if ($tbl === 'information_schema' || str_contains($tbl, 'schema')) {
                         return [
                             'is_valid' => false,
-                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยค่ะ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจรหัสยา 24 หลัก/TMT', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยน้องมีตังค์จะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีค่ะ"
+                            'error' => "ท่านสามารถพิมพ์คำถามเจาะจงที่ต้องการตรวจสอบได้เลยค่ะ เช่น 'ตรวจรายการค่าบริการที่ยังไม่ผูก ADP', 'ตรวจรหัสยา 24 หลัก/TMT', 'ตรวจรหัสโรค ICD-10 ที่ปิดใช้งานหรือ สกส ไม่รับ', หรือ 'รายชื่อแพทย์ที่ไม่มีเลข ว.' โดยน้องมีตังค์จะตรวจสอบจากฐานข้อมูล HOSxP Setting ให้ทันทีค่ะ"
                         ];
                     }
                     return [
                         'is_valid' => false,
-                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลตั้งค่าแพทย์, ค่ารักษา, ยา, แล็บ, สิทธิการรักษา และตารางแคตตาล็อกที่เกี่ยวข้องเท่านั้น (พบการเรียกดู '{$tbl}')"
+                        'error' => "ระบบความปลอดภัย: ขอบเขต HOSxP Setting อนุญาตให้ตรวจสอบเฉพาะข้อมูลตั้งค่าแพทย์, ค่ารักษา, ยา, แล็บ, สิทธิการรักษา, รหัสโรค ICD-10, รหัสหัตถการ ICD-9 และตารางแคตตาล็อกที่เกี่ยวข้องเท่านั้น (พบการเรียกดู '{$tbl}')"
                     ];
                 }
             }

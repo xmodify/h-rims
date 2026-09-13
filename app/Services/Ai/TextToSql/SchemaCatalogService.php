@@ -85,8 +85,8 @@ class SchemaCatalogService
         $out .= "     - ฟิลด์สำคัญ: `code` (รหัสโรค เช่น A00, I10, E119), `name` (ชื่อภาษาอังกฤษ), `tname` (ชื่อภาษาไทย), `active_status` ('Y'=เปิดใช้งาน | 'N'=ปิดใช้งาน), `ipd_valid` (ใช้กับ IPD ได้หรือไม่ 'Y'/'N'), `agemin`, `agemax`, `sex`\n";
         $out .= "     - เทียบเกณฑ์ สกส. (กรมบัญชีกลาง/ข้าราชการ): `LEFT JOIN lookup_icd10_chi chi ON chi.code = i.code`\n";
         $out .= "       - กฎสำคัญ: `chi.accpdx` ('Y'=สกส. ยอมรับเป็นโรคหลัก PDX ได้ | 'N'=สกส. ไม่รับเป็นโรคหลัก PDX เด็ดขาด หากใช้เป็น PDX จะถูกปฏิเสธเคลมหรือติด C-Code)\n";
-        $out .= "     - เทียบเกณฑ์ สปสช. (บัตรทอง): `LEFT JOIN lookup_icd10 nhso ON nhso.icd10 = i.code`\n";
-        $out .= "       - ฟิลด์: `nhso.pp` ('Y'=รหัสบริการส่งเสริมสุขภาพป้องกันโรค PP), `nhso.ods` ('Y'=รหัสหัตถการวันเดียว ODS)\n";
+        $out .= "     - แยกประเภทบริการ OP / PP (สปสช.): `LEFT JOIN lookup_icd10 nhso ON nhso.icd10 = i.code`\n";
+        $out .= "       - หมายเหตุ: ตาราง lookup_icd10 เอาไว้แค่แยกประเภทบริการ เช่น `nhso.pp = 'Y'` คือสร้างเสริมสุขภาพป้องกันโรค (PP เช่น รหัสกลุ่ม Z) ส่วนรหัสอื่นคือรักษาพยาบาลทั่วไป (OP) ไม่ใช่เงื่อนไขข้อผิดพลาดการเคลม\n";
         $out .= "   - รหัสหัตถการ HOSxP: ตั้งต้นด้วยตาราง `icd9cm1` (เช่น `FROM icd9cm1 c`)\n";
         $out .= "     - ฟิลด์สำคัญ: `code` (รหัสหัตถการ เช่น 8907, 9904), `name` (ชื่อหัตถการ), `active_status` ('Y'=เปิดใช้งาน | 'N'=ปิดใช้งาน), `export_proced` (ส่งออกหัตถการ)\n";
         $out .= "     - เทียบเกณฑ์ประกันสังคม: `LEFT JOIN lookup_icd9_sss sss9 ON sss9.code = c.code`\n\n";

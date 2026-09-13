@@ -1007,9 +1007,13 @@
                                        class="btn btn-sm rounded-pill px-3 {{ $filter === 'chi_not_pdx' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted' }}">
                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>สกส. ไม่รับเป็นโรคหลัก ({{ number_format($stats['icd10']['chi_not_pdx'] ?? 0) }})
                                     </a>
-                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'nhso_pp']) }}" 
-                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'nhso_pp' ? 'btn-info text-white fw-bold' : 'btn-light text-muted' }}">
-                                       <i class="bi bi-heart-pulse me-1"></i>ส่งเสริมป้องกัน (PP) ({{ number_format($stats['icd10']['nhso_pp'] ?? 0) }})
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'pp']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ in_array($filter, ['pp', 'nhso_pp']) ? 'btn-info text-white fw-bold' : 'btn-light text-muted' }}">
+                                       <i class="bi bi-heart-pulse me-1"></i>ประเภท PP ({{ number_format($stats['icd10']['nhso_pp'] ?? 0) }})
+                                    </a>
+                                    <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd10', 'filter' => 'op']) }}" 
+                                       class="btn btn-sm rounded-pill px-3 {{ $filter === 'op' ? 'btn-secondary text-white fw-bold' : 'btn-light text-muted' }}">
+                                       ประเภท OP
                                     </a>
                                 @elseif($activeTab === 'icd9')
                                     <a href="{{ route('emr.hosxp_setting', ['tab' => 'icd9', 'filter' => 'all']) }}" 
@@ -1736,7 +1740,7 @@
                                                 <th class="text-start">ชื่อโรค (English / ภาษาไทย)</th>
                                                 <th class="text-center" style="width: 120px;">สถานะ HOSxP</th>
                                                 <th class="text-center" style="width: 150px;">สกส. (ข้าราชการ)</th>
-                                                <th class="text-center" style="width: 130px;">สปสช. (PP/ODS)</th>
+                                                <th class="text-center" style="width: 140px;">ประเภท (OP/PP)</th>
                                                 <th class="text-center" style="width: 70px;">ผลการตรวจ</th>
                                             </tr>
                                         </thead>
@@ -1778,17 +1782,13 @@
                                                     </td>
                                                     <td class="text-center">
                                                         @if(($item->nhso_pp ?? '') === 'Y')
-                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill me-1" title="ส่งเสริมสุขภาพป้องกันโรค">
-                                                                <i class="bi bi-heart-pulse me-1"></i>PP
+                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill" title="บริการสร้างเสริมสุขภาพและป้องกันโรค (PP)">
+                                                                <i class="bi bi-heart-pulse me-1"></i>PP (ป้องกันโรค)
                                                             </span>
-                                                        @endif
-                                                        @if(($item->nhso_ods ?? '') === 'Y')
-                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1 rounded-pill" title="ผ่าตัดวันเดียวกลับ ODS">
-                                                                <i class="bi bi-clock me-1"></i>ODS
+                                                        @else
+                                                            <span class="badge bg-light text-muted border px-2 py-1 rounded-pill" title="บริการรักษาพยาบาลทั่วไป (OP)">
+                                                                OP (รักษาทั่วไป)
                                                             </span>
-                                                        @endif
-                                                        @if(($item->nhso_pp ?? '') !== 'Y' && ($item->nhso_ods ?? '') !== 'Y')
-                                                            <span class="text-muted small">-</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-center" data-order="{{ $item->is_valid ? 2 : 1 }}" data-sort="{{ $item->is_valid ? 2 : 1 }}" data-search="{{ $item->is_valid ? 'ปกติ สมบูรณ์ ผ่าน' : 'ปิดใช้งาน ไม่ผ่าน ข้อผิดพลาด ' . implode(' ', $item->item_errors ?? []) }}">
@@ -1806,7 +1806,7 @@
                                                                     'ชื่อโรคภาษาไทย' => $item->tname ?: '-',
                                                                     'สถานะใน HOSxP' => ($item->active_status === 'Y') ? 'เปิดใช้งาน' : 'ปิดใช้งาน (N)',
                                                                     'เกณฑ์ สกส. (กรมบัญชีกลาง)' => (($item->chi_accpdx ?? '') === 'N') ? 'ห้ามลงเป็นโรคหลัก (ACCPDX=N)' : 'ปกติ',
-                                                                    'เกณฑ์ สปสช. (PP/ODS)' => trim((($item->nhso_pp ?? '') === 'Y' ? 'บริการ PP ' : '') . (($item->nhso_ods ?? '') === 'Y' ? 'ผ่าตัดวันเดียวกลับ ODS' : '')) ?: '-'
+                                                                    'ประเภทบริการ' => (($item->nhso_pp ?? '') === 'Y') ? 'สร้างเสริมสุขภาพและป้องกันโรค (PP)' : 'รักษาพยาบาลทั่วไป (OP)'
                                                                 ];
                                                             @endphp
                                                             <button type="button" 

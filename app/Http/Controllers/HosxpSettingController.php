@@ -768,8 +768,12 @@ class HosxpSettingController extends Controller
                 $query->where('i.active_status', 'N');
             } elseif ($filter === 'chi_not_pdx') {
                 $query->where('chi.accpdx', 'N');
-            } elseif ($filter === 'nhso_pp') {
+            } elseif ($filter === 'pp' || $filter === 'nhso_pp') {
                 $query->where('nhso.pp', 'Y');
+            } elseif ($filter === 'op') {
+                $query->where(function ($q) {
+                    $q->whereNull('nhso.pp')->orWhere('nhso.pp', '!=', 'Y');
+                });
             }
 
             if (!empty($search)) {

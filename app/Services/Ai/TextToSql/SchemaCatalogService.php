@@ -25,6 +25,7 @@ class SchemaCatalogService
         $out .= "- ลูกหนี้ค่ารักษาค้างชำระ (AR): `hosfin_gl_ar_debtors` ดูยอดหนี้คงค้างที่ `outstanding_balance > 0` แยกตามประเภท `debtor_type` หรือสิทธิ\n";
         $out .= "- งบทดลอง: `hosfin_trial_balance` ยอดเดบิต/เครดิตยกมา (`debit_bf`, `credit_bf`), ประจำงวด (`debit_month`, `credit_month`), สุทธิยกไป (`debit_net`, `credit_net`)\n";
         $out .= "- กระแสเงินสดและสรุปการเงินรายวัน: `hosfin_gl_daily_summaries` มีรายรับ (`total_income`), รายจ่าย (`total_expense`), สุทธิ (`net_cash_flow`), เงินสดคงเหลือสะสม (`cash_balance`)\n";
+        $out .= "- ยอดเงินสดและเงินฝากธนาคารคงเหลือจริง: หากต้องการดูยอดเงินสดและเงินฝากธนาคารที่แท้จริงของโรงพยาบาล ให้ดึงจากผังบัญชีกลุ่ม `1101%` ในงบทดลอง (`hosfin_trial_balance`) หรือ `hosfin_gl_accounts` ที่เชื่อมกับ `hosfin_gl_journal_items` เช่น: `SELECT SUM(COALESCE(debit_net, 0) - COALESCE(credit_net, 0)) AS cash_and_bank FROM hosfin_trial_balance WHERE account_code LIKE '1101%' AND acc_period = (SELECT MAX(acc_period) FROM hosfin_trial_balance)` (ยอดเงินสดและเงินฝากธนาคารจริงมีประมาณ 14.5 ล้านบาท มิใช่ 0.00)\n";
         $out .= "- ต้นทุนโรงพยาบาล: `hosfin_gl_cost_summaries` มีค่าแรง LC (`lc_amount`), ค่าของ MC (`mc_amount`), ค่าลงทุน CC (`cc_amount`), ต้นทุนรวม (`total_cost`)\n";
         $out .= "- สมุดรายวันและรายการบัญชี: `hosfin_gl_journals` เชื่อมกับ `hosfin_gl_journal_items` ด้วย `voucher_no`\n";
         $out .= "- แผนเงินบำรุงโรงพยาบาล (PlanFin):\n";

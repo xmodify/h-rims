@@ -243,6 +243,7 @@ class MainSettingController extends Controller
                     // Drop legacy tables if they exist
                     \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
                     \Illuminate\Support\Facades\Schema::dropIfExists('lookup_adp_sss');
+                    \Illuminate\Support\Facades\Schema::dropIfExists('lookup_icd9_sss');
 
                     // Rename old tables to new names if they exist at other hospitals
                     $renames = [
@@ -741,6 +742,56 @@ class MainSettingController extends Controller
                         }
                     } else {
                         $report[] = "lookup_icd10_chi (ไม่พบไฟล์ ICD-10-TM_CHI.xlsx)";
+                    }
+
+                    // --- 2.5.1: Import/Sync Lookup ICD9 CHI (ICD-9_CHI.xlsx / ICD-9.xlsx) ---
+                    $filePathIcd9ChiXlsx = base_path('docs/lookup/ICD-9_CHI.xlsx');
+                    if (!file_exists($filePathIcd9ChiXlsx)) {
+                        $filePathIcd9ChiXlsx = base_path('docs/lookup/ICD-9.xlsx');
+                    }
+
+                    if (file_exists($filePathIcd9ChiXlsx)) {
+                        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePathIcd9ChiXlsx);
+                        $reader->setReadDataOnly(true);
+                        $spreadsheet = $reader->load($filePathIcd9ChiXlsx);
+                        $sheet = $spreadsheet->getActiveSheet();
+                        $excelRows = $sheet->toArray(null, true, false, false);
+
+                        DB::table('lookup_icd9_chi')->truncate();
+                        $batchXlsx = [];
+                        $insertedCountIcd9 = 0;
+
+                        DB::beginTransaction();
+                        try {
+                            for ($i = 4; $i < count($excelRows); $i++) {
+                                $code = trim((string)($excelRows[$i][1] ?? ''));
+                                if (empty($code)) continue;
+                                $desc = trim((string)($excelRows[$i][2] ?? ''));
+
+                                $batchXlsx[] = [
+                                    'code' => $code,
+                                    'desc' => $desc ?: null,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ];
+                                $insertedCountIcd9++;
+
+                                if (count($batchXlsx) >= 1000) {
+                                    DB::table('lookup_icd9_chi')->insert($batchXlsx);
+                                    $batchXlsx = [];
+                                }
+                            }
+                            if (!empty($batchXlsx)) {
+                                DB::table('lookup_icd9_chi')->insert($batchXlsx);
+                            }
+                            DB::commit();
+                            $report[] = "lookup_icd9_chi Excel ($insertedCountIcd9 รายการ)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
+                        }
+                    } else {
+                        $report[] = "lookup_icd9_chi (ไม่พบไฟล์ ICD-9_CHI.xlsx หรือ ICD-9.xlsx)";
                     }
 
                     // --- 2.6: Import/Sync HosFin Detail Mappings (hosfin_dtl_mappings.json) ---

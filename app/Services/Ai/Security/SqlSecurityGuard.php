@@ -177,7 +177,7 @@ class SqlSecurityGuard
                 // Lab tables & lookups
                 'lab_items', 'lab_items_sub_group', 'lab_items_group', 'lab_specimen_items', 'nhso_adp_code',
                 // ICD-10 & ICD-9 tables & lookups
-                'icd101', 'icd9cm1', 'icd10_backlist', 'icd10_nhso', 'icd10_sss', 'lookup_icd10', 'lookup_icd10_chi', 'lookup_icd9_sss',
+                'icd101', 'icd9cm1', 'icd10_backlist', 'icd10_nhso', 'icd10_sss', 'lookup_icd10', 'lookup_icd10_chi', 'lookup_icd9_chi',
                 // RiMS Catalogs & Lookup tables
                 'drugcat_nhso', 'drugcat_chi', 'drugcat_fdh',
                 'labcat_chi', 'labcat_fdh', 'labcat_nhso', 'labcat_ss', 'labcat_tmt',

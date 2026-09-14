@@ -328,7 +328,7 @@
                                     </span>
                                     <div class="text-truncate">
                                         <div class="setting-nav-title text-truncate">รหัสหัตถการ ICD-9</div>
-                                        <div class="setting-nav-sub text-truncate">รหัส icd9cm1, ประกันสังคม</div>
+                                        <div class="setting-nav-sub text-truncate">รหัส icd9cm1, สกส. / มาตรฐาน</div>
                                     </div>
                                 </div>
                                 <span class="badge rounded-pill setting-nav-badge">
@@ -1843,7 +1843,7 @@
                                                 <th class="text-start">ชื่อหัตถการ (ICD-9-CM)</th>
                                                 <th class="text-center" style="width: 120px;">สถานะ HOSxP</th>
                                                 <th class="text-center" style="width: 130px;">ส่งออกหัตถการ</th>
-                                                <th class="text-center" style="width: 150px;">ประกันสังคม (SSS)</th>
+                                                <th class="text-center" style="width: 150px;">มาตรฐาน สกส. (CHI)</th>
                                                 <th class="text-center" style="width: 70px;">ผลการตรวจ</th>
                                             </tr>
                                         </thead>
@@ -1879,9 +1879,9 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        @if(!empty($item->sss_desc))
-                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill" title="{{ $item->sss_desc }}">
-                                                                <i class="bi bi-shield-check me-1"></i>มีใน SSS
+                                                        @if(!empty($item->chi_desc))
+                                                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1 rounded-pill" title="{{ $item->chi_desc }}">
+                                                                <i class="bi bi-shield-check me-1"></i>มีใน สกส.
                                                             </span>
                                                         @else
                                                             <span class="text-muted small">-</span>
@@ -1901,7 +1901,7 @@
                                                                     'ชื่อหัตถการ' => $item->name,
                                                                     'สถานะใน HOSxP' => ($item->active_status === 'Y') ? 'เปิดใช้งาน' : 'ปิดใช้งาน (N)',
                                                                     'ส่งออกหัตถการ' => ($item->export_proced === 'Y') ? 'ส่งออก' : 'ไม่ส่งออก',
-                                                                    'ประกันสังคม (SSS)' => $item->sss_desc ?: '-'
+                                                                    'เกณฑ์ สกส. (CHI)' => $item->chi_desc ?: '-'
                                                                 ];
                                                             @endphp
                                                             <button type="button" 

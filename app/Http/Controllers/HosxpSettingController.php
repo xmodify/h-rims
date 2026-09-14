@@ -365,16 +365,16 @@ class HosxpSettingController extends Controller
             $icd9Active = $hosxp->table('icd9cm1')->where(function($q) {
                 $q->whereNull('active_status')->orWhere('active_status', '<>', 'N');
             })->count();
-            $icd9SssCount = DB::table('lookup_icd9_sss')->count();
+            $icd9ChiCount = DB::table('lookup_icd9_chi')->count();
 
             $stats['icd9'] = [
                 'total' => $icd9Total,
                 'active' => $icd9Active,
                 'inactive' => $icd9Inactive,
-                'sss_count' => $icd9SssCount,
+                'chi_count' => $icd9ChiCount,
             ];
         } catch (\Throwable $e) {
-            $stats['icd9'] = ['total' => 0, 'active' => 0, 'inactive' => 0, 'sss_count' => 0];
+            $stats['icd9'] = ['total' => 0, 'active' => 0, 'inactive' => 0, 'chi_count' => 0];
         }
 
         // ==========================================
@@ -804,10 +804,10 @@ class HosxpSettingController extends Controller
         } elseif ($activeTab === 'icd9') {
             $localDb = config('database.connections.mysql.database');
             $query = $hosxp->table('icd9cm1 as c')
-                ->leftJoin("{$localDb}.lookup_icd9_sss as sss", 'sss.code', '=', 'c.code')
+                ->leftJoin("{$localDb}.lookup_icd9_chi as chi", 'chi.code', '=', 'c.code')
                 ->select([
                     'c.code', 'c.name', 'c.active_status', 'c.export_proced',
-                    'sss.desc as sss_desc', 'sss.ortime as sss_ortime'
+                    'chi.desc as chi_desc'
                 ]);
 
             if ($filter === 'active') {

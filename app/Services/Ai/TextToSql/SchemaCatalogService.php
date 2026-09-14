@@ -120,10 +120,10 @@ class SchemaCatalogService
         $out .= "       - หมายเหตุ: ตาราง lookup_icd10 เอาไว้แค่แยกประเภทบริการ เช่น `nhso.pp = 'Y'` คือสร้างเสริมสุขภาพป้องกันโรค (PP เช่น รหัสกลุ่ม Z) ส่วนรหัสอื่นคือรักษาพยาบาลทั่วไป (OP) ไม่ใช่เงื่อนไขข้อผิดพลาดการเคลม\n";
         $out .= "   - รหัสหัตถการ HOSxP: ตั้งต้นด้วยตาราง `icd9cm1` (เช่น `FROM icd9cm1 c`)\n";
         $out .= "     - ฟิลด์สำคัญ: `code` (รหัสหัตถการ เช่น 8907, 9904), `name` (ชื่อหัตถการ), `active_status` ('Y'=เปิดใช้งาน | 'N'=ปิดใช้งาน), `export_proced` (ส่งออกหัตถการ)\n";
-        $out .= "     - เทียบเกณฑ์ประกันสังคม: `LEFT JOIN lookup_icd9_sss sss9 ON sss9.code = c.code`\n\n";
+        $out .= "     - เทียบเกณฑ์มาตรฐาน สกส./ประกันสังคม: `LEFT JOIN lookup_icd9_chi chi9 ON chi9.code = c.code`\n\n";
         $out .= "=== มาตรฐานการตรวจสอบก่อนส่งออกแยกตามกองทุน (Fund Audit Rules) ===\n";
         $out .= "- 16 แฟ้ม / FDH: DRU (24 หลัก, TMT, ED/NED), ADP (nhso_adp_code, adp_type), INS (hipdata_code), PROVIDER (licenseno ว., cid 13 หลัก), DIAG (รหัสโรคที่เปิดใช้งาน active_status = 'Y')\n";
-        $out .= "- AIPN (ผู้ป่วยใน ประกันสังคม IPD): อุปกรณ์/อวัยวะเทียมเทียบกับ lookup_sss_equipdev_aipn, ยา 24 หลัก, แพทย์มีเลข ว., หัตถการ ICD-9 ใน lookup_icd9_sss\n";
+        $out .= "- AIPN (ผู้ป่วยใน ประกันสังคม IPD): อุปกรณ์/อวัยวะเทียมเทียบกับ lookup_sss_equipdev_aipn, ยา 24 หลัก, แพทย์มีเลข ว., หัตถการ ICD-9 ใน lookup_icd9_chi\n";
         $out .= "- SSOP (ผู้ป่วยนอก ประกันสังคม OPD): ค่าบริการ OPD, รหัส ADP, รหัสยา 24 หลัก, สิทธิประกันสังคม (pcode = 'SS')\n";
         $out .= "- CSOP / CIPN (ข้าราชการ กรมบัญชีกลาง OPD/IPD): ยาเทียบกับ drugcat_chi (ราคากลาง, 24 หลัก, ยา จ(2)), nondrugitems.billcode, รหัสโรคหลักต้องผ่านเกณฑ์ lookup_icd10_chi.accpdx != 'N'\n\n";
         $out .= "*** ตัวอย่างคำสั่ง SELECT ที่ถูกต้องและปลอดภัย ***:\n";
@@ -649,12 +649,11 @@ class SchemaCatalogService
                     'tb' => 'varchar(1) รหัสกลุ่มวัณโรค TB (Y/N)',
                 ]
             ],
-            'lookup_icd9_sss' => [
-                'description' => 'ตารางรหัสหัตถการมาตรฐาน ประกันสังคม (SSS ICD-9 Rules ใน RiMS)',
+            'lookup_icd9_chi' => [
+                'description' => 'ตารางรหัสหัตถการมาตรฐาน สกส./ประกันสังคม (CHI ICD-9 Rules ใน RiMS)',
                 'columns' => [
-                    'code' => 'varchar(255) รหัสหัตถการ ICD-9 ประกันสังคม (Primary Key เชื่อมกับ icd9cm1.code)',
+                    'code' => 'varchar(255) รหัสหัตถการ ICD-9 มาตรฐาน สกส. (Primary Key เชื่อมกับ icd9cm1.code)',
                     'desc' => 'varchar(255) คำอธิบายหัตถการ',
-                    'ortime' => 'varchar(255) เวลาในห้องผ่าตัดมาตรฐาน',
                 ]
             ]
         ];
@@ -725,7 +724,7 @@ class SchemaCatalogService
             if (isset($tables['icd9cm1'])) $selected['icd9cm1'] = $tables['icd9cm1'];
             if (isset($tables['lookup_icd10_chi'])) $selected['lookup_icd10_chi'] = $tables['lookup_icd10_chi'];
             if (isset($tables['lookup_icd10'])) $selected['lookup_icd10'] = $tables['lookup_icd10'];
-            if (isset($tables['lookup_icd9_sss'])) $selected['lookup_icd9_sss'] = $tables['lookup_icd9_sss'];
+            if (isset($tables['lookup_icd9_chi'])) $selected['lookup_icd9_chi'] = $tables['lookup_icd9_chi'];
         }
 
         if ($isFundAudit) {

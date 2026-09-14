@@ -1261,24 +1261,24 @@ class HosxpContextService
                         ->orWhere('code', $procClean)
                         ->first();
 
-                    $sss9 = DB::table('lookup_icd9_sss')
+                    $chi9 = DB::table('lookup_icd9_chi')
                         ->where('code', $rawProc)
                         ->orWhere('code', $procClean)
                         ->first();
 
-                    if ($row9 || $sss9) {
+                    if ($row9 || $chi9) {
                         $code9Display = $row9->code ?? $rawProc;
-                        $nameProc = $row9->name ?? ($sss9->desc ?? 'ไม่ระบุชื่อหัตถการ');
+                        $nameProc = $row9->name ?? ($chi9->desc ?? 'ไม่ระบุชื่อหัตถการ');
                         $status9 = ($row9->active_status ?? '') === 'Y'
                             ? '✅ เปิดใช้งานปกติใน HOSxP (active_status = Y)'
                             : '❌ ปิดการใช้งานใน HOSxP (active_status = N หรือว่าง)';
-                        $sssStatus = $sss9 ? '✅ มีในแคตตาล็อกหัตถการมาตรฐานประกันสังคม' : 'ℹ️ ไม่พบในรายการมาตรฐานประกันสังคม';
+                        $chiStatus = $chi9 ? '✅ มีในแคตตาล็อกหัตถการมาตรฐาน สกส./ประกันสังคม' : 'ℹ️ ไม่พบในรายการมาตรฐาน สกส./ประกันสังคม';
 
                         $procDetails[] = implode("\n", [
                             "• รหัสหัตถการ ICD-9-CM: {$code9Display} - {$nameProc}",
                             "  - สถานะใน HOSxP: {$status9}",
                             "  - ส่งออกหัตถการ: " . (($row9->export_proced ?? 'Y') === 'Y' ? 'ส่งออกปกติ (export_proced = Y)' : 'ไม่ส่งออก'),
-                            "  - เกณฑ์ประกันสังคม: {$sssStatus}",
+                            "  - เกณฑ์มาตรฐาน สกส./ประกันสังคม: {$chiStatus}",
                             "  - การตั้งค่าใน HOSxP: เข้าเมนู 'เครื่องมือ > ตั้งค่าระบบ > กำหนดรหัสหัตถการ (ICD-9-CM)'"
                         ]);
                     }

@@ -11455,7 +11455,7 @@
       ]
     }
   },
-  "lookup_icd9_sss": {
+  "lookup_icd9_chi": {
     "columns": {
       "code": {
         "type": "varchar(255)",
@@ -11469,8 +11469,14 @@
         "default": null,
         "extra": ""
       },
-      "ortime": {
-        "type": "varchar(255)",
+      "created_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "updated_at": {
+        "type": "timestamp",
         "nullable": true,
         "default": null,
         "extra": ""
@@ -11481,6 +11487,12 @@
         {
           "column": "code",
           "unique": true
+        }
+      ],
+      "lookup_icd9_chi_code_index": [
+        {
+          "column": "code",
+          "unique": false
         }
       ]
     }

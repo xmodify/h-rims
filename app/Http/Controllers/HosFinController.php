@@ -4298,11 +4298,19 @@ class HosFinController extends Controller
             $tbSubLookupMonthly[$r->acc_period][$r->account_code] = $valM;
         }
 
-        $subTargetsSimRaw = DB::table('hosfin_planfin_targets')
+        // Fetch sub-account targets from hosfin_planfin_sub_targets
+        $subTargetsSimRaw = DB::table('hosfin_planfin_sub_targets')
             ->where('budget_year', $targetSimYear)
             ->where('round_no', '1st')
             ->get()
-            ->keyBy('plan_code');
+            ->keyBy('account_code');
+
+        $subTargetsActiveRaw = DB::table('hosfin_planfin_sub_targets')
+            ->where('budget_year', $budgetYear)
+            ->whereIn('round_no', [$budgetYear . '02', $budgetYear . '01', '1st', '2nd'])
+            ->orderBy('round_no', 'desc')
+            ->get()
+            ->groupBy('account_code');
 
         $subAccountsByPlan = [];
         foreach ($mappings as $m) {
@@ -4314,16 +4322,52 @@ class HosFinController extends Controller
             $yBase = $tbSubLookup[$baselinePeriod][$accCode] ?? 0.0;
             $yEst = ($baseMonths > 0) ? ($yBase / (float)$baseMonths) * 12.0 : 0.0;
 
+            // Target for Tab 2 (Simulation Year)
             $targetSubObj = $subTargetsSimRaw->get($accCode);
             $targetSim = $targetSubObj ? floatval($targetSubObj->target_amount) : $yEst;
             $growthRate = $targetSubObj ? floatval($targetSubObj->growth_rate) : (($yEst > 0) ? (($targetSim - $yEst) / $yEst) * 100.0 : 0.0);
+
+            // Target for Tab 1 (Active Budget Year)
+            $subTargetActiveObj = $subTargetsActiveRaw->get($accCode)?->first();
+            $planAnnual = $subTargetActiveObj ? floatval($subTargetActiveObj->target_amount) : 0.0;
+            $planCum = ($planAnnual / 12.0) * $cumMonths;
+            $diffCum = $actualCum - $planCum;
+            $percentCum = ($planCum != 0) ? ($diffCum / abs($planCum)) * 100.0 : 0.0;
+
+            $planMonth = ($planAnnual / 12.0);
+            $diffMonth = $actualMonth - $planMonth;
+            $percentMonth = ($planMonth != 0) ? ($diffMonth / abs($planMonth)) * 100.0 : 0.0;
+
+            $firstDigit = substr($accCode, 0, 1);
+            $isRev = ($firstDigit === '4');
+
+            $statusCum = '-';
+            $statusMonth = '-';
+            if ($planAnnual != 0) {
+                if ($isRev) {
+                    $statusCum = ($diffCum >= 0) ? 'OK' : 'Not OK';
+                    $statusMonth = ($diffMonth >= 0) ? 'OK' : 'Not OK';
+                } else {
+                    $statusCum = ($diffCum <= 0) ? 'OK' : 'Not OK';
+                    $statusMonth = ($diffMonth <= 0) ? 'OK' : 'Not OK';
+                }
+            }
 
             $subAccountsByPlan[$pCode][] = [
                 'account_code' => $accCode,
                 'account_name' => $m->account_name ?: $accCode,
                 'plan_code' => $pCode,
+                'plan_annual' => $planAnnual,
+                'plan_cum' => $planCum,
                 'actual_cum' => $actualCum,
+                'diff_cum' => $diffCum,
+                'percent_cum' => $percentCum,
+                'status_cum' => $statusCum,
+                'plan_month' => $planMonth,
                 'actual_month' => $actualMonth,
+                'diff_month' => $diffMonth,
+                'percent_month' => $percentMonth,
+                'status_month' => $statusMonth,
                 'y_prior' => $yPrior,
                 'y_base_months' => $yBase,
                 'y_base_est' => $yEst,
@@ -4334,8 +4378,8 @@ class HosFinController extends Controller
 
         foreach ($subAccountsByPlan as $pCode => &$subs) {
             usort($subs, function($a, $b) {
-                $valA = max(abs($a['y_base_est']), abs($a['actual_cum']));
-                $valB = max(abs($b['y_base_est']), abs($b['actual_cum']));
+                $valA = max(abs($a['y_base_est']), abs($a['actual_cum']), abs($a['plan_annual']));
+                $valB = max(abs($b['y_base_est']), abs($b['actual_cum']), abs($b['plan_annual']));
                 return $valB <=> $valA;
             });
         }
@@ -4728,6 +4772,43 @@ class HosFinController extends Controller
                     }
                 }
 
+                // 1.1 Insert/Update Sub-Targets (Detailed Accounts)
+                if (!empty($res['sub_targets'])) {
+                    DB::table('hosfin_planfin_sub_targets')
+                        ->where('budget_year', $res['budget_year'])
+                        ->where('round_no', $periodNo)
+                        ->delete();
+
+                    // Pre-fetch clean account names and plan codes from mappings
+                    $accNameLookup = DB::table('hosfin_planfin_mappings')->pluck('account_name', 'account_code')->toArray();
+                    $accPlanLookup = DB::table('hosfin_planfin_mappings')->pluck('plan_code', 'account_code')->toArray();
+
+                    $batchSubTargets = [];
+                    foreach ($res['sub_targets'] as $st) {
+                        $accCode = trim($st['account_code'] ?? '');
+                        if (!$accCode) continue;
+
+                        $cleanName = $accNameLookup[$accCode] ?? ($st['account_name'] ?? null);
+                        $pCode = !empty($st['plan_code']) ? $st['plan_code'] : ($accPlanLookup[$accCode] ?? null);
+
+                        $batchSubTargets[] = [
+                            'budget_year' => $st['budget_year'],
+                            'round_no' => $st['round_no'],
+                            'plan_code' => $pCode,
+                            'account_code' => $accCode,
+                            'account_name' => $cleanName,
+                            'target_amount' => $st['target_amount'],
+                            'baseline_amount' => 0.00,
+                            'growth_rate' => 0.0000,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                    }
+                    foreach (array_chunk($batchSubTargets, 100) as $chunk) {
+                        DB::table('hosfin_planfin_sub_targets')->insert($chunk);
+                    }
+                }
+
                 // 2. Sync Mappings if new accounts found
                 if (!empty($res['mappings'])) {
                     $existingAccs = DB::table('hosfin_planfin_mappings')->pluck('account_code')->toArray();
@@ -4811,25 +4892,55 @@ class HosFinController extends Controller
 
         try {
             DB::transaction(function () use ($budgetYear, $roundNo, $items) {
+                $accNameLookup = DB::table('hosfin_planfin_mappings')->pluck('account_name', 'account_code')->toArray();
+                $accPlanLookup = DB::table('hosfin_planfin_mappings')->pluck('plan_code', 'account_code')->toArray();
+
                 foreach ($items as $item) {
                     $code = trim($item['plan_code'] ?? '');
                     if (!$code) continue;
 
-                    DB::table('hosfin_planfin_targets')->updateOrInsert(
-                        [
-                            'budget_year' => $budgetYear,
-                            'round_no' => $roundNo,
-                            'plan_code' => $code
-                        ],
-                        [
-                            'baseline_amount' => floatval($item['baseline_amount'] ?? 0),
-                            'growth_rate' => floatval($item['growth_rate'] ?? 0),
-                            'target_amount' => floatval($item['target_amount'] ?? 0),
-                            'notes' => $item['notes'] ?? null,
-                            'created_by' => auth()->id(),
-                            'updated_at' => now()
-                        ]
-                    );
+                    // If code is a sub-account (e.g. 4301020105.201)
+                    if (str_contains($code, '.') || strlen($code) > 8) {
+                        $parentPlan = $item['parent_code'] ?? ($accPlanLookup[$code] ?? null);
+                        $cleanName = $accNameLookup[$code] ?? null;
+
+                        DB::table('hosfin_planfin_sub_targets')->updateOrInsert(
+                            [
+                                'budget_year' => $budgetYear,
+                                'round_no' => $roundNo,
+                                'account_code' => $code
+                            ],
+                            [
+                                'plan_code' => $parentPlan,
+                                'account_name' => $cleanName,
+                                'baseline_amount' => floatval($item['baseline_amount'] ?? 0),
+                                'growth_rate' => floatval($item['growth_rate'] ?? 0),
+                                'target_amount' => floatval($item['target_amount'] ?? 0),
+                                'notes' => $item['notes'] ?? null,
+                                'created_by' => auth()->id(),
+                                'updated_at' => now(),
+                                'created_at' => now()
+                            ]
+                        );
+                    } else {
+                        // Parent Category (P-code)
+                        DB::table('hosfin_planfin_targets')->updateOrInsert(
+                            [
+                                'budget_year' => $budgetYear,
+                                'round_no' => $roundNo,
+                                'plan_code' => $code
+                            ],
+                            [
+                                'baseline_amount' => floatval($item['baseline_amount'] ?? 0),
+                                'growth_rate' => floatval($item['growth_rate'] ?? 0),
+                                'target_amount' => floatval($item['target_amount'] ?? 0),
+                                'notes' => $item['notes'] ?? null,
+                                'created_by' => auth()->id(),
+                                'updated_at' => now(),
+                                'created_at' => now()
+                            ]
+                        );
+                    }
                 }
             });
 
@@ -4870,6 +4981,7 @@ class HosFinController extends Controller
         // Data queries
         $categories = DB::table('hosfin_planfin_categories')->orderBy('sort_order')->get();
         $targetsSimRaw = DB::table('hosfin_planfin_targets')->where('budget_year', $targetYear)->get()->keyBy('plan_code');
+        $subTargetsSimRaw = DB::table('hosfin_planfin_sub_targets')->where('budget_year', $targetYear)->get()->keyBy('account_code');
         $targetsBudgetRaw = DB::table('hosfin_planfin_targets')->where('budget_year', $budgetYear)->get()->keyBy('plan_code');
         
         $actualsPeriod = $this->calculatePlanfinActuals($period);
@@ -4990,7 +5102,7 @@ class HosFinController extends Controller
                 foreach ($subMapsByPlan[$code] as $sub) {
                     $subCode = $sub->account_code;
                     $subName = $sub->account_name;
-                    $subTObj = $targetsSimRaw->get($subCode);
+                    $subTObj = $subTargetsSimRaw->get($subCode) ?? $targetsSimRaw->get($subCode);
                     if (!$subTObj) continue;
                     
                     $subTargetAmt = floatval($subTObj->target_amount ?? 0);

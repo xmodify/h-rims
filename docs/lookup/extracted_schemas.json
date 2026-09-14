@@ -34274,5 +34274,115 @@
         }
       ]
     }
+  },
+  "hosfin_planfin_sub_targets": {
+    "columns": {
+      "id": {
+        "type": "bigint(20) unsigned",
+        "nullable": false,
+        "default": null,
+        "extra": "auto_increment"
+      },
+      "budget_year": {
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "round_no": {
+        "type": "varchar(30)",
+        "nullable": false,
+        "default": "1st",
+        "extra": ""
+      },
+      "plan_code": {
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "account_code": {
+        "type": "varchar(30)",
+        "nullable": false,
+        "default": null,
+        "extra": ""
+      },
+      "account_name": {
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "baseline_amount": {
+        "type": "decimal(15,2)",
+        "nullable": true,
+        "default": "0.00",
+        "extra": ""
+      },
+      "growth_rate": {
+        "type": "decimal(8,4)",
+        "nullable": true,
+        "default": "0.0000",
+        "extra": ""
+      },
+      "target_amount": {
+        "type": "decimal(15,2)",
+        "nullable": false,
+        "default": "0.00",
+        "extra": ""
+      },
+      "notes": {
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "created_by": {
+        "type": "bigint(20) unsigned",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "created_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      },
+      "updated_at": {
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "extra": ""
+      }
+    },
+    "indexes": {
+      "PRIMARY": [
+        {
+          "column": "id",
+          "unique": true
+        }
+      ],
+      "uniq_sub_target": [
+        {
+          "column": "budget_year",
+          "unique": true
+        },
+        {
+          "column": "round_no",
+          "unique": true
+        },
+        {
+          "column": "account_code",
+          "unique": true
+        }
+      ],
+      "idx_sub_plan_code": [
+        {
+          "column": "plan_code",
+          "unique": false
+        }
+      ]
+    }
   }
 }

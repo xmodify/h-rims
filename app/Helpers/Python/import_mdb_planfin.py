@@ -31,6 +31,7 @@ def import_planfin(mdb_or_zip_path, target_period_no):
                     
     try:
         targets = []
+        sub_targets = []
         mappings = []
         tb_records = []
         budget_year = int(target_period_no[:4]) if len(target_period_no) >= 4 else 2569
@@ -86,6 +87,32 @@ def import_planfin(mdb_or_zip_path, target_period_no):
                             "plan_code": code,
                             "target_amount": val
                         })
+
+            # 1.1 Extract sub-account targets from hig_est_current
+            try:
+                cur.execute("""
+                    SELECT h.account_code, a.account_title, p.plan_code, h.hig_value 
+                    FROM (hig_est_current h 
+                          LEFT JOIN AccPlan a ON h.account_code = a.account_code)
+                          LEFT JOIN PlaNFin p ON a.plan_id = p.plan_id
+                    WHERE h.period_no = ? AND h.hig_value <> 0
+                """, [target_period_no])
+                for row in cur.fetchall():
+                    acc_c = str(row[0]).strip() if row[0] else ''
+                    acc_t = str(row[1]).strip() if row[1] else ''
+                    p_c = str(row[2]).strip() if row[2] else ''
+                    val = float(row[3] or 0)
+                    if acc_c:
+                        sub_targets.append({
+                            "budget_year": budget_year,
+                            "round_no": str(target_period_no),
+                            "plan_code": p_c,
+                            "account_code": acc_c,
+                            "account_name": acc_t,
+                            "target_amount": val
+                        })
+            except Exception:
+                pass
 
             # 2. Extract mappings from AccPlan
             cur.execute("SELECT a.account_code, a.account_title, p.plan_code, p.plan_title FROM AccPlan a LEFT JOIN PlaNFin p ON a.plan_id = p.plan_id")
@@ -153,25 +180,37 @@ def import_planfin(mdb_or_zip_path, target_period_no):
                         p_dict[pid] = (str(pcode).strip() if pcode else '', str(ptitle).strip() if ptitle else '')
                         
                 acc_map = {}
+                acc_names = {}
                 if "AccPlan" in db.catalog:
                     t_acc = db.parse_table("AccPlan")
-                    for acc, pid in zip(t_acc['account_code'], t_acc['plan_id']):
+                    for acc, atitle, pid in zip(t_acc['account_code'], t_acc['account_title'], t_acc['plan_id']):
                         if acc and pid in p_dict:
                             acc_map[str(acc).strip()] = p_dict[pid][0]
+                            acc_names[str(acc).strip()] = str(atitle).strip() if atitle else ''
 
+                sub_targets = []
                 targets_map = {}
                 if "hig_est_current" in db.catalog:
                     t_hig = db.parse_table("hig_est_current")
                     for acc, val, pno in zip(t_hig['account_code'], t_hig['hig_value'], t_hig['period_no']):
                         if str(pno) == str(target_period_no):
                             acc_c = str(acc).strip() if acc else ''
-                            pcode = acc_map.get(acc_c)
+                            pcode = acc_map.get(acc_c, '')
+                            try:
+                                fval = float(val or 0)
+                            except:
+                                fval = 0.0
                             if pcode:
-                                try:
-                                    fval = float(val or 0)
-                                except:
-                                    fval = 0.0
                                 targets_map[pcode] = targets_map.get(pcode, 0.0) + fval
+                            if acc_c and fval != 0:
+                                sub_targets.append({
+                                    "budget_year": budget_year,
+                                    "round_no": str(target_period_no),
+                                    "plan_code": pcode,
+                                    "account_code": acc_c,
+                                    "account_name": acc_names.get(acc_c, ''),
+                                    "target_amount": fval
+                                })
 
                 if targets_map and sum(targets_map.values()) > 0:
                     rev_codes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13']
@@ -239,6 +278,8 @@ def import_planfin(mdb_or_zip_path, target_period_no):
             "period_no": target_period_no,
             "targets_count": len(targets),
             "targets": targets,
+            "sub_targets_count": len(sub_targets),
+            "sub_targets": sub_targets,
             "mappings_count": len(mappings),
             "mappings": mappings,
             "tb_records_count": len(tb_records),

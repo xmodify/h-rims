@@ -90,8 +90,11 @@ class HosFinReportController extends Controller
             $budgetYear - 3,
         ];
 
+        $hfaServiceDefs = HfaReportController::getServiceDefinitions();
+
         return view('hosfin.reports.index', compact(
             'accounts',
+            'hfaServiceDefs',
             'budgetYear',
             'budgetYearChoices',
             'quarter',

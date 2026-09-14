@@ -150,6 +150,7 @@
     border: 1px solid #cbd5e1;
     padding: 0.3rem 0.6rem;
     background-color: #ffffff;
+    font-family: var(--bs-font-monospace);
     transition: all 0.2s;
   }
   .input-plan70:focus {
@@ -264,10 +265,27 @@
     border: 1px solid #cbd5e1;
     padding: 0.2rem 0.5rem;
     background-color: #ffffff;
+    font-family: var(--bs-font-monospace);
   }
   .input-plan70-sub:focus {
     border-color: #4f46e5;
     box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+    background-color: #faf5ff;
+  }
+  .input-subplan-bg, .input-subplan-nonbg {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: right;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    padding: 0.2rem 0.5rem;
+    background-color: #ffffff;
+    font-family: var(--bs-font-monospace);
+  }
+  .input-subplan-bg:focus, .input-subplan-nonbg:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    background-color: #faf5ff;
   }
   .input-growth-sub {
     width: 75px;
@@ -640,6 +658,7 @@
                                                     @foreach($subAccountsByPlan[$code] as $sub)
                                                         @php
                                                             $share = ($r['actual_cum'] != 0) ? ($sub['actual_cum'] / $r['actual_cum']) * 100 : 0;
+                                                            $hasPlan = ($sub['plan_annual'] ?? 0) != 0;
                                                         @endphp
                                                         <tr class="sub-row-t1 t1_{{ $code }} d-none">
                                                             <td class="text-center font-monospace text-muted ps-2" style="font-size: 0.76rem;">
@@ -648,17 +667,37 @@
                                                             <td class="sub-indent text-secondary" style="font-size: 0.82rem;">
                                                                 <span class="sub-dash"><i class="bi bi-dash-lg"></i></span>{{ $sub['account_name'] }}
                                                             </td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
+                                                            <td class="text-end font-monospace {{ $hasPlan ? 'text-dark' : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                {{ $hasPlan ? number_format($sub['plan_annual'], 2) : '-' }}
+                                                            </td>
+                                                            <td class="text-end font-monospace {{ $hasPlan ? 'text-dark' : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                {{ $hasPlan ? number_format($sub['plan_cum'], 2) : '-' }}
+                                                            </td>
                                                             <td class="text-end font-monospace fw-semibold {{ $sub['actual_cum'] < 0 ? 'text-danger' : 'text-dark' }}" style="font-size: 0.8rem;">
                                                                 {{ number_format($sub['actual_cum'], 2) }}
                                                             </td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
-                                                            <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">
-                                                                {{ number_format($share, 1) }}%
+                                                            <td class="text-end font-monospace {{ $hasPlan ? ($sub['status_cum'] === 'OK' ? 'text-success' : 'text-danger') : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                @if($hasPlan)
+                                                                    {{ ($sub['diff_cum'] > 0 ? '+' : '') . number_format($sub['diff_cum'], 2) }}
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-end font-monospace {{ $hasPlan ? ($sub['status_cum'] === 'OK' ? 'text-success' : 'text-danger') : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                @if($hasPlan)
+                                                                    {{ number_format($sub['percent_cum'], 1) }}%
+                                                                @else
+                                                                    {{ number_format($share, 1) }}%
+                                                                @endif
                                                             </td>
                                                             <td class="text-center">
-                                                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
+                                                                @if($hasPlan && $sub['status_cum'] !== '-')
+                                                                    <span class="badge-status-{{ $sub['status_cum'] === 'OK' ? 'ok' : 'not-ok' }}" style="font-size: 0.65rem; padding: 2px 6px;">
+                                                                        {{ $sub['status_cum'] }}
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -873,6 +912,7 @@
                                                         @php
                                                             $subActualM = $sub['actual_month'] ?? 0;
                                                             $shareM = ($r['actual_month'] != 0) ? ($subActualM / $r['actual_month']) * 100 : 0;
+                                                            $hasPlanM = ($sub['plan_annual'] ?? 0) != 0;
                                                         @endphp
                                                         <tr class="sub-row-t1m t1m_{{ $code }} d-none">
                                                             <td class="text-center font-monospace text-muted ps-2" style="font-size: 0.76rem;">
@@ -881,17 +921,37 @@
                                                             <td class="sub-indent text-secondary" style="font-size: 0.82rem;">
                                                                 <span class="sub-dash"><i class="bi bi-dash-lg"></i></span>{{ $sub['account_name'] }}
                                                             </td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
+                                                            <td class="text-end font-monospace {{ $hasPlanM ? 'text-dark' : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                {{ $hasPlanM ? number_format($sub['plan_annual'], 2) : '-' }}
+                                                            </td>
+                                                            <td class="text-end font-monospace {{ $hasPlanM ? 'text-dark' : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                {{ $hasPlanM ? number_format($sub['plan_month'], 2) : '-' }}
+                                                            </td>
                                                             <td class="text-end font-monospace fw-semibold {{ $subActualM < 0 ? 'text-danger' : 'text-dark' }}" style="font-size: 0.8rem;">
                                                                 {{ number_format($subActualM, 2) }}
                                                             </td>
-                                                            <td class="text-end text-muted font-monospace" style="font-size: 0.76rem;">-</td>
-                                                            <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">
-                                                                {{ number_format($shareM, 1) }}%
+                                                            <td class="text-end font-monospace {{ $hasPlanM ? ($sub['status_month'] === 'OK' ? 'text-success' : 'text-danger') : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                @if($hasPlanM)
+                                                                    {{ ($sub['diff_month'] > 0 ? '+' : '') . number_format($sub['diff_month'], 2) }}
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-end font-monospace {{ $hasPlanM ? ($sub['status_month'] === 'OK' ? 'text-success' : 'text-danger') : 'text-muted' }}" style="font-size: 0.76rem;">
+                                                                @if($hasPlanM)
+                                                                    {{ number_format($sub['percent_month'], 1) }}%
+                                                                @else
+                                                                    {{ number_format($shareM, 1) }}%
+                                                                @endif
                                                             </td>
                                                             <td class="text-center">
-                                                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
+                                                                @if($hasPlanM && $sub['status_month'] !== '-')
+                                                                    <span class="badge-status-{{ $sub['status_month'] === 'OK' ? 'ok' : 'not-ok' }}" style="font-size: 0.65rem; padding: 2px 6px;">
+                                                                        {{ $sub['status_month'] }}
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -1149,7 +1209,7 @@
                                         <th class="text-end" style="width: 135px;">ผลการดำเนินงาน ({{ $baseMonths }} ด.)</th>
                                         <th class="text-end" style="width: 140px;">ประมาณการ ผลดำเนินงานทั้งปี</th>
                                         <th class="text-center" style="width: 100px;">% เติบโต</th>
-                                        <th class="text-end" style="width: 170px; background-color: #f3f0ff;">แผนประมาณการ (แผนต้นปี)</th>
+                                        <th class="text-end" style="width: 185px; min-width: 175px; background-color: #f3f0ff;">แผนประมาณการ ปี {{ $targetSimYear }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1247,9 +1307,10 @@
                                                            oninput="onParentGrowthChange('{{ $code }}')">
                                                 </td>
                                                 <td class="pe-2">
-                                                    <input type="number" step="0.01" class="form-control form-control-sm input-plan70 text-end" 
-                                                           id="target_{{ $code }}" value="{{ number_format($r['target_sim'], 2, '.', '') }}" 
-                                                           oninput="onParentTargetChange('{{ $code }}')">
+                                                    <input type="text" inputmode="decimal" class="form-control form-control-sm input-plan70 text-end" 
+                                                           id="target_{{ $code }}" value="{{ number_format($r['target_sim'], 2) }}" 
+                                                           oninput="handleMoneyInput(this, () => onParentTargetChange('{{ $code }}'))"
+                                                           onblur="handleMoneyBlur(this, () => onParentTargetChange('{{ $code }}'))">
                                                 </td>
                                             @endif
                                         </tr>
@@ -1277,10 +1338,11 @@
                                                                oninput="onSubGrowthChange('{{ $code }}', '{{ $sub['account_code'] }}', this.value)">
                                                     </td>
                                                     <td>
-                                                        <input type="number" step="0.01" class="form-control form-control-sm input-plan70-sub" 
+                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm input-plan70-sub text-end" 
                                                                id="subtarget_{{ $sanitizedCode }}" 
-                                                               value="{{ number_format($sub['target_sim'], 2, '.', '') }}" 
-                                                               oninput="onSubTargetChange('{{ $code }}', '{{ $sub['account_code'] }}', this.value)">
+                                                               value="{{ number_format($sub['target_sim'], 2) }}" 
+                                                               oninput="handleMoneyInput(this, () => onSubTargetChange('{{ $code }}', '{{ $sub['account_code'] }}'))"
+                                                               onblur="handleMoneyBlur(this, () => onSubTargetChange('{{ $code }}', '{{ $sub['account_code'] }}'))">
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -1333,16 +1395,18 @@
                                                                     <td class="text-center font-monospace text-secondary fw-semibold">{{ $item['code'] }}</td>
                                                                     <td class="text-start">{{ $item['name'] }}</td>
                                                                     <td>
-                                                                        <input type="number" step="0.01" class="form-control form-control-sm text-end input-subplan-bg"
+                                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm text-end input-subplan-bg"
                                                                                id="subplan_bg_{{ $item['code'] }}" 
-                                                                               value="{{ number_format($item['budget_amt'], 2, '.', '') }}"
-                                                                               oninput="calcSubPlanTotal('{{ $item['code'] }}')">
+                                                                               value="{{ number_format($item['budget_amt'], 2) }}"
+                                                                               oninput="handleMoneyInput(this, () => calcSubPlanTotal('{{ $item['code'] }}'))"
+                                                                               onblur="handleMoneyBlur(this, () => calcSubPlanTotal('{{ $item['code'] }}'))">
                                                                     </td>
                                                                     <td>
-                                                                        <input type="number" step="0.01" class="form-control form-control-sm text-end input-subplan-nonbg"
+                                                                        <input type="text" inputmode="decimal" class="form-control form-control-sm text-end input-subplan-nonbg"
                                                                                id="subplan_nonbg_{{ $item['code'] }}" 
-                                                                               value="{{ number_format($item['non_budget_amt'], 2, '.', '') }}"
-                                                                               oninput="calcSubPlanTotal('{{ $item['code'] }}')">
+                                                                               value="{{ number_format($item['non_budget_amt'], 2) }}"
+                                                                               oninput="handleMoneyInput(this, () => calcSubPlanTotal('{{ $item['code'] }}'))"
+                                                                               onblur="handleMoneyBlur(this, () => calcSubPlanTotal('{{ $item['code'] }}'))">
                                                                     </td>
                                                                     <td class="text-end font-monospace fw-bold fs-7 text-dark" id="subplan_total_{{ $item['code'] }}">
                                                                         {{ number_format($item['total_amt'], 2) }}
@@ -1644,6 +1708,99 @@
     }
 
     // =========================================================================
+    // Number Formatting & Currency Helpers for Tab 2
+    // =========================================================================
+    function parseNum(val) {
+        if (typeof val === 'number') return isNaN(val) ? 0 : val;
+        if (!val) return 0;
+        const cleaned = String(val).replace(/,/g, '').trim();
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+    }
+
+    function formatNumberWithCommas(val) {
+        if (val === '' || val === null || val === undefined) return '';
+        let str = String(val).replace(/[^\d.-]/g, '');
+        const isNeg = str.startsWith('-');
+        str = str.replace(/-/g, '');
+        if (isNeg) str = '-' + str;
+        
+        const parts = str.split('.');
+        const intPart = parts[0];
+        const isNegative = intPart.startsWith('-');
+        let intDigits = isNegative ? intPart.substring(1) : intPart;
+        
+        if (intDigits.length > 1 && intDigits.startsWith('0')) {
+            intDigits = intDigits.replace(/^0+/, '') || '0';
+        }
+        
+        let formattedInt = (isNegative ? '-' : '') + intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        let res = formattedInt;
+        if (parts.length > 1) {
+            res += '.' + parts.slice(1).join('').substring(0, 2);
+        } else if (str.endsWith('.')) {
+            res += '.';
+        }
+        return res;
+    }
+
+    function handleMoneyInput(inputEl, callback) {
+        const rawVal = inputEl.value;
+        const cursorPosition = inputEl.selectionStart;
+
+        // Count how many valid characters (digits, minus, dot) were before the cursor
+        const validBeforeCursor = rawVal.slice(0, cursorPosition).replace(/[^\d.-]/g, '').length;
+
+        // Format new value
+        const formatted = formatNumberWithCommas(rawVal);
+        inputEl.value = formatted;
+
+        // Reposition cursor in formatted string
+        let newCursor = 0;
+        let validCount = 0;
+        for (let i = 0; i < formatted.length; i++) {
+            if (formatted[i] !== ',') {
+                validCount++;
+            }
+            newCursor = i + 1;
+            if (validCount >= validBeforeCursor) break;
+        }
+        inputEl.setSelectionRange(newCursor, newCursor);
+
+        if (typeof callback === 'function') {
+            callback();
+        }
+    }
+
+    function handleMoneyBlur(inputEl, callback) {
+        const trimmed = inputEl.value.trim();
+        if (trimmed === '' || trimmed === '-' || trimmed === '.') {
+            inputEl.value = '0.00';
+        } else {
+            const num = parseNum(trimmed);
+            inputEl.value = num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        if (typeof callback === 'function') {
+            callback();
+        }
+    }
+
+    // Handle Backspace when cursor is directly after a comma
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && e.target.matches('.input-plan70, .input-plan70-sub, .input-subplan-bg, .input-subplan-nonbg')) {
+            const el = e.target;
+            const pos = el.selectionStart;
+            if (pos === el.selectionEnd && pos > 1 && el.value[pos - 1] === ',') {
+                e.preventDefault();
+                const val = el.value;
+                el.value = val.slice(0, pos - 2) + val.slice(pos);
+                el.setSelectionRange(pos - 2, pos - 2);
+                el.dispatchEvent(new Event('input'));
+            }
+        }
+    });
+
+    // =========================================================================
     // Two-Way Sync Calculations: Sub-accounts <-> Parent Categories
     // =========================================================================
     function onSubGrowthChange(parentCode, subCode, growthVal) {
@@ -1652,20 +1809,22 @@
         const tr = document.querySelector(`tr[data-subcode="${subCode}"]`);
         const base = parseFloat(tr?.getAttribute('data-base')) || 0;
 
-        const growth = parseFloat(growthVal) || 0;
+        const growth = parseNum(growthVal);
         const newTarget = base * (1 + (growth / 100));
-        if (targetInput) targetInput.value = newTarget.toFixed(2);
+        if (targetInput) targetInput.value = newTarget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         syncParentFromSubAccounts(parentCode);
     }
 
     function onSubTargetChange(parentCode, subCode, targetVal) {
         const sanitized = subCode.replace(/\./g, '_');
+        const targetInput = document.getElementById('subtarget_' + sanitized);
         const growthInput = document.getElementById('subgrowth_' + sanitized);
         const tr = document.querySelector(`tr[data-subcode="${subCode}"]`);
         const base = parseFloat(tr?.getAttribute('data-base')) || 0;
 
-        const target = parseFloat(targetVal) || 0;
+        const rawTarget = targetVal !== undefined ? targetVal : (targetInput ? targetInput.value : 0);
+        const target = parseNum(rawTarget);
         if (base > 0) {
             const growth = ((target - base) / base) * 100;
             if (growthInput) growthInput.value = growth.toFixed(1);
@@ -1686,7 +1845,7 @@
             const sanitized = subCode.replace(/\./g, '_');
             const targetInp = document.getElementById('subtarget_' + sanitized);
             if (targetInp) {
-                sumTarget += (parseFloat(targetInp.value) || 0);
+                sumTarget += parseNum(targetInp.value);
             }
         });
 
@@ -1702,7 +1861,7 @@
             growth = ((sumTarget - parentBase) / parentBase) * 100;
         }
 
-        if (parentTargetInp) parentTargetInp.value = sumTarget.toFixed(2);
+        if (parentTargetInp) parentTargetInp.value = sumTarget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         if (parentGrowthInp) parentGrowthInp.value = growth.toFixed(2);
 
         if (dispTargetEl) {
@@ -1728,9 +1887,9 @@
         const tr = document.querySelector(`tr[data-code="${code}"]`);
         const base = parseFloat(tr.getAttribute('data-base')) || 0;
 
-        const growth = parseFloat(growthInput.value) || 0;
+        const growth = parseNum(growthInput?.value || 0);
         const newTarget = base * (1 + (growth / 100));
-        targetInput.value = newTarget.toFixed(2);
+        if (targetInput) targetInput.value = newTarget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         // Pro-rate to sub-accounts
         const subRows = document.querySelectorAll(`tr.sub-row-t2[data-parent="${code}"]`);
@@ -1742,7 +1901,7 @@
             const subGrowthInp = document.getElementById('subgrowth_' + sanitized);
 
             const subTarget = subBase * (1 + (growth / 100));
-            if (subTargetInp) subTargetInp.value = subTarget.toFixed(2);
+            if (subTargetInp) subTargetInp.value = subTarget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (subGrowthInp) subGrowthInp.value = growth.toFixed(1);
         });
 
@@ -1755,13 +1914,13 @@
         const tr = document.querySelector(`tr[data-code="${code}"]`);
         const base = parseFloat(tr.getAttribute('data-base')) || 0;
 
-        const target = parseFloat(targetInput.value) || 0;
+        const target = parseNum(targetInput?.value || 0);
         let growth = 0;
         if (base > 0) {
             growth = ((target - base) / base) * 100;
-            growthInput.value = growth.toFixed(2);
+            if (growthInput) growthInput.value = growth.toFixed(2);
         } else {
-            growthInput.value = '0.00';
+            if (growthInput) growthInput.value = '0.00';
         }
 
         // Pro-rate to sub-accounts
@@ -1776,7 +1935,7 @@
                 const subGrowthInp = document.getElementById('subgrowth_' + sanitized);
 
                 const subTarget = subBase * ratio;
-                if (subTargetInp) subTargetInp.value = subTarget.toFixed(2);
+                if (subTargetInp) subTargetInp.value = subTarget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 if (subGrowthInp) subGrowthInp.value = growth.toFixed(1);
             });
         }
@@ -1786,8 +1945,8 @@
 
     // Operational Sub-Plans Calculations
     function calcSubPlanTotal(code) {
-        const bg = parseFloat(document.getElementById('subplan_bg_' + code)?.value || 0);
-        const nonBg = parseFloat(document.getElementById('subplan_nonbg_' + code)?.value || 0);
+        const bg = parseNum(document.getElementById('subplan_bg_' + code)?.value || 0);
+        const nonBg = parseNum(document.getElementById('subplan_nonbg_' + code)?.value || 0);
         const totalEl = document.getElementById('subplan_total_' + code);
         if (totalEl) {
             totalEl.innerText = (bg + nonBg).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1800,12 +1959,12 @@
 
         revCodes.forEach(c => {
             const inp = document.getElementById('target_' + c);
-            if (inp) sumRev += (parseFloat(inp.value) || 0);
+            if (inp) sumRev += parseNum(inp.value);
         });
 
         expCodes.forEach(c => {
             const inp = document.getElementById('target_' + c);
-            if (inp) sumExp += (parseFloat(inp.value) || 0);
+            if (inp) sumExp += parseNum(inp.value);
         });
 
         const cellP13S = document.getElementById('cell_P13S');
@@ -1824,10 +1983,10 @@
             cellP27S.className = 'text-end font-monospace fw-bold fs-6 ' + (ni >= 0 ? 'text-success' : 'text-danger');
         }
 
-        const p13Val = parseFloat(document.getElementById('target_P13')?.value || 0);
-        const p121Val = parseFloat(document.getElementById('target_P121')?.value || 0);
-        const p24Val = parseFloat(document.getElementById('target_P24')?.value || 0);
-        const p251Val = parseFloat(document.getElementById('target_P251')?.value || 0);
+        const p13Val = parseNum(document.getElementById('target_P13')?.value || 0);
+        const p121Val = parseNum(document.getElementById('target_P121')?.value || 0);
+        const p24Val = parseNum(document.getElementById('target_P24')?.value || 0);
+        const p251Val = parseNum(document.getElementById('target_P251')?.value || 0);
 
         const p29r = sumRev - p13Val - p121Val;
         const p29e = sumExp - p24Val - p251Val;
@@ -1894,8 +2053,8 @@
                     items.push({
                         plan_code: code,
                         baseline_amount: base,
-                        growth_rate: parseFloat(growthInp?.value || 0),
-                        target_amount: parseFloat(targetInp.value || 0)
+                        growth_rate: parseNum(growthInp?.value || 0),
+                        target_amount: parseNum(targetInp.value || 0)
                     });
                 }
             }
@@ -1903,6 +2062,7 @@
 
         // 2. Sub-Accounts
         document.querySelectorAll('#tableSimulator70 tbody tr.sub-row-t2[data-subcode]').forEach(tr => {
+            const parentCode = tr.getAttribute('data-parent');
             const subCode = tr.getAttribute('data-subcode');
             const sanitized = subCode.replace(/\./g, '_');
             const targetInp = document.getElementById('subtarget_' + sanitized);
@@ -1911,9 +2071,10 @@
             if (targetInp) {
                 items.push({
                     plan_code: subCode,
+                    parent_code: parentCode,
                     baseline_amount: base,
-                    growth_rate: parseFloat(growthInp?.value || 0),
-                    target_amount: parseFloat(targetInp.value || 0)
+                    growth_rate: parseNum(growthInp?.value || 0),
+                    target_amount: parseNum(targetInp.value || 0)
                 });
             }
         });
@@ -1924,8 +2085,8 @@
             const bgInp = document.getElementById('subplan_bg_' + code);
             const nonBgInp = document.getElementById('subplan_nonbg_' + code);
             if (bgInp || nonBgInp) {
-                const bg = parseFloat(bgInp?.value || 0);
-                const nonBg = parseFloat(nonBgInp?.value || 0);
+                const bg = parseNum(bgInp?.value || 0);
+                const nonBg = parseNum(nonBgInp?.value || 0);
                 items.push({
                     plan_code: code,
                     baseline_amount: bg,
@@ -1957,7 +2118,6 @@
                 alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่ทราบสาเหตุ'));
             }
         })
-
         .catch(err => {
             spinner.classList.add('d-none');
             alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);

@@ -451,6 +451,7 @@ class CsopExportController extends Controller
         // 3. Generate OPServices & OPDx content
         $opservices_rows = [];
         $opdx_rows = [];
+        $raw_opdx_rows = [];
 
         foreach ($visits as $row) {
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
@@ -470,8 +471,21 @@ class CsopExportController extends Controller
                     continue;
                 }
                 $icd_type = (str_starts_with(strtoupper($diag_code), 'K') || preg_match('/^U[567]/i', $diag_code)) ? 'TT' : 'IT';
-                $clean_diag = str_replace('.', '', $diag_code);
-                $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
+                $clean_diag = str_replace(['.', ' ', '-'], '', strtoupper($diag_code));
+
+                // ปรับรหัส ICD-10 ให้ตรงกับ CHI สำหรับการส่งออก (เช่น M7228 -> M722)
+                $export_diag = $clean_diag;
+                if (!DB::table('lookup_icd10_chi')->where('code', $clean_diag)->exists()) {
+                    if (strlen($clean_diag) === 5) {
+                        $parent4 = substr($clean_diag, 0, 4);
+                        if (DB::table('lookup_icd10_chi')->where('code', $parent4)->exists()) {
+                            $export_diag = $parent4;
+                        }
+                    }
+                }
+
+                $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$export_diag}|";
+                $raw_opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }
             
             $doc_license = !empty($row->doctor_license) ? $row->doctor_license : '-';
@@ -513,6 +527,7 @@ class CsopExportController extends Controller
             'dispensed_rows' => $dispensed_rows,
             'opservices_rows' => $opservices_rows,
             'opdx_rows' => $opdx_rows,
+            'raw_opdx_rows' => $raw_opdx_rows,
             'visits_list' => $visits->toArray(),
             'disp_items' => $disp_items,
             'csop_pttypes' => $csop_pttypes,
@@ -568,6 +583,11 @@ class CsopExportController extends Controller
             $opdx_table[] = explode('|', $row);
         }
 
+        $raw_opdx_table = [];
+        foreach (($data['raw_opdx_rows'] ?? []) as $row) {
+            $raw_opdx_table[] = explode('|', $row);
+        }
+
         // Fetch doctor names by license
         $licenses = [];
         foreach ($opservices_table as $os) {
@@ -600,6 +620,7 @@ class CsopExportController extends Controller
 
         foreach ($visits_info as $row) {
             $errors = ['billtran' => [], 'billdisp' => [], 'opservices' => []];
+            $warnings = ['billtran' => [], 'billdisp' => [], 'opservices' => []];
             
             // Match OPSERVICE row by VN
             $op_row = null;
@@ -700,7 +721,7 @@ class CsopExportController extends Controller
             // 4. OPDX / ICD-10 (S54) checks
             $has_pdx = false;
             $validator = new \App\Services\ClaimValidator();
-            foreach ($opdx_table as $dx) {
+            foreach ($raw_opdx_table as $dx) {
                 if (isset($dx[1]) && $dx[1] == $row->vn) {
                     $dx_code = trim($dx[4] ?? '');
                     $diag_type = trim($dx[2] ?? '');
@@ -710,7 +731,23 @@ class CsopExportController extends Controller
                     if (!empty($dx_code)) {
                         $res = $validator->validateIcd10Chi($dx_code, $diag_type);
                         if (!$res['is_valid']) {
-                            $errors['opservices'][] = "รหัสวินิจฉัย {$dx_code} (ประเภท {$diag_type}) ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                            // ตรวจสอบว่ารหัส 5 หลักมีรหัสแม่ 4 หลักใน CHI หรือไม่ (เช่น M7228 -> M722)
+                            $clean = str_replace(['.', ' ', '-'], '', strtoupper($dx_code));
+                            $is_parent_valid = false;
+                            if (strlen($clean) === 5) {
+                                $parent4 = substr($clean, 0, 4);
+                                if (DB::table('lookup_icd10_chi')->where('code', $parent4)->exists()) {
+                                    $is_parent_valid = true;
+                                }
+                            }
+
+                            if ($is_parent_valid) {
+                                // มีรหัสแม่ 4 หลักใน CHI -> แจ้งเตือนระดับ Warning (ระบบปรับรหัสให้ตอนส่งออก)
+                                $warnings['opservices'][] = "รหัสวินิจฉัย {$dx_code} (ประเภท {$diag_type}) ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                            } else {
+                                // ไม่มีรหัสแม่เลย -> Hard Error
+                                $errors['opservices'][] = "รหัสวินิจฉัย {$dx_code} (ประเภท {$diag_type}) ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                            }
                         }
                     }
                 }
@@ -803,10 +840,13 @@ class CsopExportController extends Controller
                 'vstdate' => $row->vstdate,
                 'billtran_ok' => empty($errors['billtran']),
                 'billtran_err' => implode(', ', $errors['billtran'] ?? []),
+                'billtran_warn' => implode(', ', $warnings['billtran'] ?? []),
                 'billdisp_ok' => empty($errors['billdisp']),
                 'billdisp_err' => implode(', ', $errors['billdisp'] ?? []),
+                'billdisp_warn' => implode(', ', $warnings['billdisp'] ?? []),
                 'opservices_ok' => empty($errors['opservices']),
                 'opservices_err' => implode(', ', $errors['opservices'] ?? []),
+                'opservices_warn' => implode(', ', $warnings['opservices'] ?? []),
             ];
         }
 

@@ -417,99 +417,128 @@ class MainSettingController extends Controller
                     // ==========================================
                     $report = [];
 
-                    // --- 2.1: Import/Sync Lookup (EquipdevAIPN.json) ---
-                    $filePathAIPN = base_path('docs/lookup/EquipdevAIPN.json');
-                    if (file_exists($filePathAIPN)) {
-                        $jsonData = json_decode(file_get_contents($filePathAIPN), true);
-                        if (json_last_error() !== JSON_ERROR_NONE) {
-                            throw new \Exception("ไฟล์ EquipdevAIPN.json รูปแบบไม่ถูกต้อง: " . json_last_error_msg());
+                    // --- 2.1: Import/Sync Lookup (EquipdevAIPN.xlsx) ---
+                    $filePathAIPNXlsx = base_path('docs/lookup/EquipdevAIPN.xlsx');
+
+                    $parseDate = function ($value) {
+                        if (empty($value) || $value === '-' || trim((string)$value) === '') {
+                            return null;
                         }
-
-                        $parseDate = function ($value) {
-                            if (empty($value) || $value === '-' || trim($value) === '') {
-                                return null;
-                            }
-                            $value = trim($value);
-                            if (is_numeric($value)) {
-                                try {
-                                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
-                                } catch (\Exception $e) {}
-                            }
-                            foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
-                                try {
-                                    return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
-                                } catch (\Exception $e) {}
-                            }
+                        $value = trim((string)$value);
+                        if (is_numeric($value)) {
                             try {
-                                return \Carbon\Carbon::parse($value)->format('Y-m-d');
-                            } catch (\Exception $e) {
-                                return null;
-                            }
-                        };
-
-                        $cleanRate = function ($val) {
-                            if ($val === null || $val === '-' || trim($val) === '') {
-                                return null;
-                            }
-                            $val = str_replace(',', '', $val);
-                            return is_numeric($val) ? (float) $val : null;
-                        };
-
-                        // Truncate first to have a clean import preserving historical tiers
-                        DB::table('lookup_sss_equipdev_aipn')->truncate();
-
-                        $batchData = [];
-                        $insertedCount = 0;
-
-                        DB::beginTransaction();
+                                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                            } catch (\Exception $e) {}
+                        }
+                        foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                            try {
+                                return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                            } catch (\Exception $e) {}
+                        }
                         try {
-                            foreach ($jsonData as $row) {
-                                $code = trim($row['code'] ?? '');
-                                if (empty($code)) {
-                                    continue;
+                            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    };
+
+                    $cleanRate = function ($val) {
+                        if ($val === null || $val === '-' || trim((string)$val) === '') {
+                            return null;
+                        }
+                        $val = str_replace(',', '', (string)$val);
+                        return is_numeric($val) ? (float) $val : null;
+                    };
+
+                    if (file_exists($filePathAIPNXlsx)) {
+                        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePathAIPNXlsx);
+                        $reader->setReadDataOnly(true);
+                        $spreadsheet = $reader->load($filePathAIPNXlsx);
+                        $sheet = $spreadsheet->setActiveSheetIndex(0);
+                        $rows = $sheet->toArray(null, true, false, false);
+
+                        if (!empty($rows)) {
+                            $headers = array_map(function($h) { return strtolower(trim((string)$h)); }, $rows[0] ?? []);
+                            $colMap = [
+                                'billgroup' => 0, 'code' => 1, 'unit' => 2, 'rate' => 3, 'rate2' => 4,
+                                'desc' => 5, 'daterev' => 6, 'dateeff' => 7, 'dateexp' => 8,
+                                'lastupd' => 9, 'dtcond' => 10, 'note' => 11
+                            ];
+                            foreach ($headers as $idx => $header) {
+                                if (in_array($header, ['billgrcs', 'billgroup', 'bill_group'])) $colMap['billgroup'] = $idx;
+                                elseif ($header === 'code') $colMap['code'] = $idx;
+                                elseif ($header === 'unit') $colMap['unit'] = $idx;
+                                elseif ($header === 'rate') $colMap['rate'] = $idx;
+                                elseif ($header === 'rate2') $colMap['rate2'] = $idx;
+                                elseif (in_array($header, ['desc', 'description', 'name'])) $colMap['desc'] = $idx;
+                                elseif ($header === 'daterev') $colMap['daterev'] = $idx;
+                                elseif ($header === 'dateeff') $colMap['dateeff'] = $idx;
+                                elseif ($header === 'dateexp') $colMap['dateexp'] = $idx;
+                                elseif ($header === 'lastupd') $colMap['lastupd'] = $idx;
+                                elseif (in_array($header, ['dxcond', 'dtcond'])) $colMap['dtcond'] = $idx;
+                                elseif ($header === 'note') $colMap['note'] = $idx;
+                            }
+
+                            // Truncate first to have a clean import preserving historical tiers
+                            DB::table('lookup_sss_equipdev_aipn')->truncate();
+
+                            $batchData = [];
+                            $insertedCount = 0;
+
+                            DB::beginTransaction();
+                            try {
+                                for ($r = 1; $r < count($rows); $r++) {
+                                    $row = $rows[$r];
+                                    $code = trim((string)($row[$colMap['code']] ?? ''));
+                                    $billgroup = trim((string)($row[$colMap['billgroup']] ?? ''));
+                                    if (empty($code) && empty($billgroup)) {
+                                        continue;
+                                    }
+
+                                    $rate = $cleanRate($row[$colMap['rate']] ?? null);
+                                    $rate2 = $cleanRate($row[$colMap['rate2']] ?? null);
+                                    $daterev = $parseDate($row[$colMap['daterev']] ?? null);
+                                    $dateeff = $parseDate($row[$colMap['dateeff']] ?? null);
+                                    $dateexp = $parseDate($row[$colMap['dateexp']] ?? null);
+
+                                    $batchData[] = [
+                                        'billgroup' => $billgroup ?: null,
+                                        'code' => $code,
+                                        'unit' => trim((string)($row[$colMap['unit']] ?? '')) ?: null,
+                                        'rate' => $rate,
+                                        'rate2' => $rate2,
+                                        'desc' => trim((string)($row[$colMap['desc']] ?? '')) ?: null,
+                                        'daterev' => $daterev,
+                                        'dateeff' => $dateeff,
+                                        'dateexp' => $dateexp,
+                                        'lastupd' => trim((string)($row[$colMap['lastupd']] ?? '')) ?: null,
+                                        'dtcond' => trim((string)($row[$colMap['dtcond']] ?? '')) ?: null,
+                                        'note' => trim((string)($row[$colMap['note']] ?? '')) ?: null,
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ];
+                                    $insertedCount++;
+
+                                    if (count($batchData) >= 500) {
+                                        DB::table('lookup_sss_equipdev_aipn')->insert($batchData);
+                                        $batchData = [];
+                                    }
                                 }
 
-                                $rate = $cleanRate($row['rate'] ?? null);
-                                $rate2 = $cleanRate($row['rate2'] ?? null);
-                                $daterev = $parseDate($row['daterev'] ?? null);
-                                $dateeff = $parseDate($row['dateeff'] ?? null);
-                                $dateexp = $parseDate($row['dateexp'] ?? null);
-
-                                $batchData[] = [
-                                    'billgroup' => $row['billgroup'] ?? null,
-                                    'code' => $code,
-                                    'unit' => $row['unit'] ?? null,
-                                    'rate' => $rate,
-                                    'rate2' => $rate2,
-                                    'desc' => $row['desc'] ?? null,
-                                    'daterev' => $daterev,
-                                    'dateeff' => $dateeff,
-                                    'dateexp' => $dateexp,
-                                    'lastupd' => isset($row['lastupd']) ? trim($row['lastupd']) : null,
-                                    'dtcond' => isset($row['dtcond']) ? trim($row['dtcond']) : null,
-                                    'note' => isset($row['note']) ? trim($row['note']) : null,
-                                    'created_at' => now(),
-                                    'updated_at' => now(),
-                                ];
-                                $insertedCount++;
-
-                                if (count($batchData) >= 500) {
+                                if (!empty($batchData)) {
                                     DB::table('lookup_sss_equipdev_aipn')->insert($batchData);
-                                    $batchData = [];
                                 }
+                                DB::commit();
+                                $report[] = "EquipdevAIPN Excel ($insertedCount รายการ)";
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
                             }
-
-                            if (!empty($batchData)) {
-                                DB::table('lookup_sss_equipdev_aipn')->insert($batchData);
-                            }
-                            DB::commit();
-                            $report[] = "EquipdevAIPN ($insertedCount รายการ)";
-                        } catch (\Throwable $e) {
-                            DB::rollBack();
-                            throw $e;
+                        } else {
+                            $report[] = "EquipdevAIPN Excel (ไม่มีข้อมูลในไฟล์)";
                         }
                     } else {
-                        $report[] = "EquipdevAIPN (ไม่พบไฟล์)";
+                        $report[] = "EquipdevAIPN (ไม่พบไฟล์ EquipdevAIPN.xlsx)";
                     }
 
                     // --- 2.2: Import/Sync Lookup (lookup_nhso_adp_type.json) ---
@@ -665,89 +694,53 @@ class MainSettingController extends Controller
                         $report[] = "subinscl (ไม่พบไฟล์)";
                     }
 
-                    // --- 2.5: Import/Sync Lookup ICD10 CHI (ICD10_CHI.DBF) ---
-                    $filePathIcd10Chi = base_path('docs/lookup/ICD10_CHI.DBF');
-                    if (file_exists($filePathIcd10Chi)) {
-                        $handle = @fopen($filePathIcd10Chi, 'rb');
-                        if ($handle) {
-                            $header = fread($handle, 32);
-                            $header_info = unpack('Cversion/Cyy/Cmm/Cdd/Vnumrec/vhdrsize/vrecsize', $header);
-                            $num_records = $header_info['numrec'];
-                            $header_size = $header_info['hdrsize'];
-                            $record_size = $header_info['recsize'];
+                    // --- 2.5: Import/Sync Lookup ICD10 CHI (ICD-10-TM_CHI.xlsx) ---
+                    $filePathIcd10ChiXlsx = base_path('docs/lookup/ICD-10-TM_CHI.xlsx');
 
-                            $fields = [];
-                            while (true) {
-                                $b = fread($handle, 1);
-                                if (ord($b) === 0x0D) {
-                                    break;
-                                }
-                                $desc = $b . fread($handle, 31);
-                                $field_info = unpack('a11name/a1type/Voffset/Clength/Cdecimal', $desc);
-                                $fields[] = [
-                                    'name' => trim($field_info['name']),
-                                    'type' => $field_info['type'],
-                                    'length' => $field_info['length']
+                    if (file_exists($filePathIcd10ChiXlsx)) {
+                        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePathIcd10ChiXlsx);
+                        $reader->setReadDataOnly(true);
+                        $spreadsheet = $reader->load($filePathIcd10ChiXlsx);
+                        $sheet = $spreadsheet->getActiveSheet();
+                        $excelRows = $sheet->toArray(null, true, false, false);
+
+                        DB::table('lookup_icd10_chi')->truncate();
+                        $batchXlsx = [];
+                        $insertedCountIcd = 0;
+
+                        DB::beginTransaction();
+                        try {
+                            for ($i = 4; $i < count($excelRows); $i++) {
+                                $code = trim((string)($excelRows[$i][1] ?? ''));
+                                if (empty($code)) continue;
+                                $desc = trim((string)($excelRows[$i][2] ?? ''));
+
+                                $batchXlsx[] = [
+                                    'code' => $code,
+                                    'accpdx' => 'Y',
+                                    'code_cat' => null,
+                                    'desc' => $desc ?: null,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
                                 ];
-                            }
+                                $insertedCountIcd++;
 
-                            fseek($handle, $header_size);
-
-                            // Truncate before importing
-                            DB::table('lookup_icd10_chi')->truncate();
-
-                            $batchIcd = [];
-                            $insertedCountIcd = 0;
-
-                            DB::beginTransaction();
-                            try {
-                                for ($i = 0; $i < $num_records; $i++) {
-                                    $record = fread($handle, $record_size);
-                                    if (strlen($record) < $record_size) {
-                                        break;
-                                    }
-                                    if ($record[0] === '*') {
-                                        continue;
-                                    }
-                                    $offset = 1;
-                                    $row = [];
-                                    foreach ($fields as $f) {
-                                        $val = substr($record, $offset, $f['length']);
-                                        $row[$f['name']] = trim(iconv('TIS-620', 'UTF-8//IGNORE', $val));
-                                        $offset += $f['length'];
-                                    }
-
-                                    $batchIcd[] = [
-                                        'code' => $row['CODE'] ?? '',
-                                        'accpdx' => $row['ACCPDX'] ?? null,
-                                        'code_cat' => $row['CODE_CAT'] ?? null,
-                                        'desc' => $row['DESC'] ?? null,
-                                        'created_at' => now(),
-                                        'updated_at' => now()
-                                    ];
-                                    $insertedCountIcd++;
-
-                                    if (count($batchIcd) >= 1000) {
-                                        DB::table('lookup_icd10_chi')->insert($batchIcd);
-                                        $batchIcd = [];
-                                    }
+                                if (count($batchXlsx) >= 1000) {
+                                    DB::table('lookup_icd10_chi')->insert($batchXlsx);
+                                    $batchXlsx = [];
                                 }
-                                if (!empty($batchIcd)) {
-                                    DB::table('lookup_icd10_chi')->insert($batchIcd);
-                                }
-                                DB::commit();
-                                $report[] = "lookup_icd10_chi ($insertedCountIcd รายการ)";
-                            } catch (\Throwable $e) {
-                                DB::rollBack();
-                                fclose($handle);
-                                throw $e;
                             }
-                            fclose($handle);
-                        } else {
-                            $report[] = "lookup_icd10_chi (ไม่สามารถเปิดไฟล์)";
+                            if (!empty($batchXlsx)) {
+                                DB::table('lookup_icd10_chi')->insert($batchXlsx);
+                            }
+                            DB::commit();
+                            $report[] = "lookup_icd10_chi Excel ($insertedCountIcd รายการ)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
                         }
                     } else {
-                        $report[] = "lookup_icd10_chi (ไม่พบไฟล์)";
+                        $report[] = "lookup_icd10_chi (ไม่พบไฟล์ ICD-10-TM_CHI.xlsx)";
                     }
 
                     // --- 2.6: Import/Sync HosFin Detail Mappings (hosfin_dtl_mappings.json) ---

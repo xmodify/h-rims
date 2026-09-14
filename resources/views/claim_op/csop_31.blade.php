@@ -1658,9 +1658,10 @@
                     const auditIssues = [];
                     Object.keys(res.validation || {}).forEach(vn => {
                         const val = res.validation[vn];
-                        const errs = [];
                         const fileErrors = {};
-                        const addErrors = (fileLabel, errStr) => {
+                        const fileWarnings = {};
+
+                        const addItems = (targetMap, fileLabel, errStr) => {
                             if (!errStr) return;
                             const parts = errStr.split(', ');
                             parts.forEach(part => {
@@ -1668,29 +1669,49 @@
                                 if (normalized === 'ไม่พบเลขใบแจ้งหนี้ (InvoiceNo)') {
                                     normalized = 'ไม่พบเลขใบแจ้งหนี้ (InvNo)';
                                 }
-                                if (!fileErrors[normalized]) {
-                                    fileErrors[normalized] = [];
+                                if (!targetMap[normalized]) {
+                                    targetMap[normalized] = [];
                                 }
-                                fileErrors[normalized].push(fileLabel);
+                                targetMap[normalized].push(fileLabel);
                             });
                         };
 
-                        if (!val.billtran_ok) addErrors('BILLTRAN', val.billtran_err);
-                        if (!val.billdisp_ok) addErrors('BILLDISP', val.billdisp_err);
-                        if (!val.opservices_ok) addErrors('OPServices', val.opservices_err);
+                        if (!val.billtran_ok) addItems(fileErrors, 'BILLTRAN', val.billtran_err);
+                        if (!val.billdisp_ok) addItems(fileErrors, 'BILLDISP', val.billdisp_err);
+                        if (!val.opservices_ok) addItems(fileErrors, 'OPServices', val.opservices_err);
 
+                        addItems(fileWarnings, 'BILLTRAN', val.billtran_warn);
+                        addItems(fileWarnings, 'BILLDISP', val.billdisp_warn);
+                        addItems(fileWarnings, 'OPServices', val.opservices_warn);
+
+                        const formattedErrs = [];
                         Object.keys(fileErrors).forEach(msg => {
                             const files = fileErrors[msg].join(', ');
-                            errs.push(`<strong>${files}:</strong> ${msg}`);
+                            formattedErrs.push(`<strong>${files}:</strong> ${msg}`);
                         });
 
-                        if (errs.length > 0) {
+                        const formattedWarns = [];
+                        Object.keys(fileWarnings).forEach(msg => {
+                            const files = fileWarnings[msg].join(', ');
+                            formattedWarns.push(`<strong>${files}:</strong> ${msg}`);
+                        });
+
+                        if (formattedErrs.length > 0) {
                             auditIssues.push({
                                 hn: val.hn,
                                 ptname: val.name,
                                 vstdate: val.vstdate || '-',
-                                message: errs.join('<br>'),
+                                message: formattedErrs.join('<br>'),
                                 severity: 'error'
+                            });
+                        }
+                        if (formattedWarns.length > 0) {
+                            auditIssues.push({
+                                hn: val.hn,
+                                ptname: val.name,
+                                vstdate: val.vstdate || '-',
+                                message: formattedWarns.join('<br>'),
+                                severity: 'warning'
                             });
                         }
                     });
@@ -1895,12 +1916,18 @@
 
                     // Enable/Disable Download button based on validation errors
                     let hasError = false;
+                    let hasWarning = false;
                     let errorCount = 0;
+                    let warningCount = 0;
                     Object.keys(res.validation || {}).forEach(vn => {
                         const val = res.validation[vn];
                         if (!val.billtran_ok || !val.billdisp_ok || !val.opservices_ok) {
                             hasError = true;
                             errorCount++;
+                        }
+                        if (val.billtran_warn || val.billdisp_warn || val.opservices_warn) {
+                            hasWarning = true;
+                            warningCount++;
                         }
                     });
 
@@ -1911,6 +1938,11 @@
                         btnDownload.disabled = true;
                         btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> มีข้อผิดพลาด Pre-Audit (${errorCount} เคส)`;
                         btnDownload.className = 'btn btn-danger px-4';
+                    } else if (hasWarning) {
+                        // ไม่มี Error อื่น แต่มี Warning (เช่น รหัส ICD-10 ที่จะถูกแปลงให้ตรงกับ CHI) -> แสดงปุ่มเหลือง และกดส่งออกได้
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)`;
+                        btnDownload.className = 'btn btn-warning text-dark px-4 fw-bold shadow-sm';
                     } else if (!isCsopLicensed) {
                         btnDownload.disabled = false;
                         btnDownload.innerHTML = `<i class="bi bi-lock-fill me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)`;

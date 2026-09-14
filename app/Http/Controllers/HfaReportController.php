@@ -526,11 +526,17 @@ class HfaReportController extends Controller
 
             @unlink($tempPath);
 
-            $body = $response->json();
-            if ($response->successful() && isset($body['status']) && $body['status'] === 'success') {
+            $body = $response->json() ?: [];
+            Log::info("HFA Service API Response: HTTP " . $response->status() . " Body: " . json_encode($body, JSON_UNESCAPED_UNICODE));
+
+            if ($this->isHfaResponseSuccess($response, $body)) {
+                $msg = $body['message'] ?? ($body['message_th'] ?? 'ส่งข้อมูลบริการ HFA สำเร็จ');
+                if (empty($msg) || $msg === 'success') {
+                    $msg = 'ส่งข้อมูลบริการ HFA สำเร็จ';
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => $body['message'] ?? 'ส่งข้อมูลบริการ HFA สำเร็จ',
+                    'message' => $msg,
                     'data'    => $body
                 ]);
             } else {
@@ -866,11 +872,17 @@ class HfaReportController extends Controller
 
             @unlink($tempPath);
 
-            $body = $response->json();
-            if ($response->successful() && isset($body['status']) && $body['status'] === 'success') {
+            $body = $response->json() ?: [];
+            Log::info("HFA Trial Balance API Response: HTTP " . $response->status() . " Body: " . json_encode($body, JSON_UNESCAPED_UNICODE));
+
+            if ($this->isHfaResponseSuccess($response, $body)) {
+                $msg = $body['message'] ?? ($body['message_th'] ?? 'ส่งข้อมูลงบทดลองเข้าสู่ระบบ HFA สำเร็จ');
+                if (empty($msg) || $msg === 'success') {
+                    $msg = 'ส่งข้อมูลงบทดลองเข้าสู่ระบบ HFA สำเร็จ';
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => $body['message'] ?? 'ส่งข้อมูลงบทดลองเข้า HFA สำเร็จ',
+                    'message' => $msg,
                     'data'    => $body
                 ]);
             } else {
@@ -1036,5 +1048,41 @@ class HfaReportController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Determine if HFA API response indicates success
+     */
+    private function isHfaResponseSuccess($response, $body): bool
+    {
+        if (!$response->successful()) {
+            return false;
+        }
+
+        if (!is_array($body)) {
+            return false;
+        }
+
+        // 1. Explicit error checks
+        if (!empty($body['error'])) {
+            return false;
+        }
+        if (isset($body['status']) && (intval($body['status']) >= 400 || $body['status'] === 'error' || $body['status'] === false)) {
+            return false;
+        }
+
+        // 2. Success indicators in status or message
+        $status = $body['status'] ?? null;
+        if ($status === 'success' || $status === 200 || $status === '200' || $status === true || strtolower(strval($status)) === 'ok' || $status === 'สำเร็จ') {
+            return true;
+        }
+
+        $msg = strval($body['message'] ?? ($body['message_th'] ?? ''));
+        if (str_contains($msg, 'สำเร็จ') || stripos($msg, 'success') !== false) {
+            return true;
+        }
+
+        // 3. Fallback: If HTTP is 200 and no error was flagged
+        return $response->status() === 200;
     }
 }

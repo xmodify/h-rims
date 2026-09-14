@@ -678,6 +678,7 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::get('hosfin/reports/export_excel', [App\Http\Controllers\HosFinReportController::class, 'exportExcel'])->name('hosfin.reports.export_excel');
 
     // HFA (Health Financial Analysis) Routes
+    Route::get('hosfin/reports/hfa/check_token', [App\Http\Controllers\HfaReportController::class, 'checkToken'])->name('hosfin.reports.hfa.check_token');
     Route::post('hosfin/reports/hfa/service/process', [App\Http\Controllers\HfaReportController::class, 'processServiceData'])->name('hosfin.reports.hfa.service.process');
     Route::match(['get', 'post'], 'hosfin/reports/hfa/service/export', [App\Http\Controllers\HfaReportController::class, 'exportServiceExcel'])->name('hosfin.reports.hfa.service.export');
     Route::post('hosfin/reports/hfa/service/send_api', [App\Http\Controllers\HfaReportController::class, 'sendServiceApi'])->name('hosfin.reports.hfa.service.send_api');

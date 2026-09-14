@@ -113,8 +113,26 @@ class HfaReportController extends Controller
 
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
         $month = intval($request->input('month', 8));
+        $customStart = $request->input('start_date');
+        $customEnd = $request->input('end_date');
 
-        list($startDate, $endDate) = self::getMonthDateRange($budgetYear, $month);
+        if ($customStart && $customEnd) {
+            $startDate = $customStart;
+            $endDate = $customEnd;
+            $ts = strtotime($customStart);
+            if ($ts) {
+                $m = intval(date('n', $ts));
+                $y = intval(date('Y', $ts));
+                if (!$request->filled('fiscal_year')) {
+                    $budgetYear = ($m >= 10) ? ($y + 543 + 1) : ($y + 543);
+                }
+                if (!$request->filled('month')) {
+                    $month = $m;
+                }
+            }
+        } else {
+            list($startDate, $endDate) = self::getMonthDateRange($budgetYear, $month);
+        }
 
         try {
             // OPD Statistics (OPV & OPH)
@@ -257,6 +275,12 @@ class HfaReportController extends Controller
             $buddhistYear = $now->year + 543;
             $fetchDateTime = $now->day . ' ' . $thaiMonths[$now->month] . ' ' . $buddhistYear . ' เวลา ' . $now->format('H:i:s') . ' น.';
 
+            $periodCode = $request->input('period');
+            if (!$periodCode) {
+                $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+                $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'ดึงข้อมูลบริการ HFA จาก HOSxP สำเร็จ',
@@ -265,6 +289,7 @@ class HfaReportController extends Controller
                 'period' => [
                     'fiscal_year' => $budgetYear,
                     'month' => $month,
+                    'period_code' => $periodCode,
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'month_name' => $thaiMonths[$month] ?? "เดือน {$month}"
@@ -287,11 +312,32 @@ class HfaReportController extends Controller
     {
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
         $month = intval($request->input('month', 8));
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
         $items = $request->input('items', []);
+
+        if ($startDate) {
+            $ts = strtotime($startDate);
+            if ($ts) {
+                $m = intval(date('n', $ts));
+                $y = intval(date('Y', $ts));
+                if (!$request->filled('fiscal_year')) {
+                    $budgetYear = ($m >= 10) ? ($y + 543 + 1) : ($y + 543);
+                }
+                if (!$request->filled('month')) {
+                    $month = $m;
+                }
+            }
+        }
 
         if (empty($items)) {
             // Pull data if not supplied
-            $subReq = new Request(['fiscal_year' => $budgetYear, 'month' => $month]);
+            $subReq = new Request([
+                'fiscal_year' => $budgetYear,
+                'month' => $month,
+                'start_date' => $startDate,
+                'end_date' => $endDate
+            ]);
             $res = $this->processServiceData($subReq);
             $json = $res->getData(true);
             $items = $json['data'] ?? [];
@@ -343,9 +389,23 @@ class HfaReportController extends Controller
             }
         }
 
-        $filename = "template_ข้อมูลบริการ_ปี{$budgetYear}_เดือน{$month}.xlsx";
+        $periodCode = $request->input('period');
+        if (!$periodCode) {
+            $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+            $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+        } else {
+            $installment = intval(substr($periodCode, -2));
+            $month = ($installment <= 3) ? ($installment + 9) : ($installment - 3);
+        }
+
+        $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        $mShort = $thaiMonthsShort[$month] ?? '';
+        $calYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
+        $monthLabel = "{$mShort}{$calYear}";
+
+        $filename = "ข้อมูลบริการ_งวด_{$periodCode}_({$monthLabel}).xlsx";
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"; filename*=UTF-8\'\'' . rawurlencode($filename));
         header('Cache-Control: max-age=0');
 
         $writer = new Xlsx($spreadsheet);
@@ -360,14 +420,31 @@ class HfaReportController extends Controller
     {
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
         $month = intval($request->input('month', 8));
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
         $items = $request->input('items', []);
 
-        // 1. Get Token from FDH
-        $token = $this->getFdhAccessToken();
+        if ($startDate) {
+            $ts = strtotime($startDate);
+            if ($ts) {
+                $m = intval(date('n', $ts));
+                $y = intval(date('Y', $ts));
+                if (!$request->filled('fiscal_year')) {
+                    $budgetYear = ($m >= 10) ? ($y + 543 + 1) : ($y + 543);
+                }
+                if (!$request->filled('month')) {
+                    $month = $m;
+                }
+            }
+        }
+
+        // 1. Get Token from FDH (เฉพาะบัญชีของผู้ใช้งานปัจจุบันเท่านั้น)
+        $token = $this->getFdhAccessToken($request->input('token'));
         if (!$token) {
+            $userName = Auth::user()->name ?? 'ผู้ใช้งาน';
             return response()->json([
                 'success' => false,
-                'message' => 'ไม่สามารถขอ FDH Access Token ได้ กรุณาตรวจสอบการตั้งค่า FDH User / Pass ในโปรไฟล์'
+                'message' => "ไม่สามารถขอ FDH Access Token ได้ กรุณาตรวจสอบการตั้งค่า FDH User / Pass ในข้อมูลส่วนตัว (Profile) ของคุณ {$userName}"
             ], 400);
         }
 
@@ -405,12 +482,29 @@ class HfaReportController extends Controller
         // 3. Send API to HFA
         $hfaUrl = config('services.hfa.url', 'https://hfa.one.th') . '/hfa_api/open-api/import/service';
         try {
+            $periodCode = $request->input('period');
+            if (!$periodCode) {
+                $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+                $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+            } else {
+                $installment = intval(substr($periodCode, -2));
+                $month = ($installment <= 3) ? ($installment + 9) : ($installment - 3);
+            }
+
+            $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            $mShort = $thaiMonthsShort[$month] ?? '';
+            $calYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
+            $monthLabel = "{$mShort}{$calYear}";
+
+            $uploadFilename = "ข้อมูลบริการ_งวด_{$periodCode}_({$monthLabel}).xlsx";
+
             $response = Http::withOptions(['verify' => false, 'timeout' => 60])
                 ->withToken($token)
-                ->attach('file', fopen($tempPath, 'r'), "template_ข้อมูลบริการ.xlsx")
+                ->attach('file', fopen($tempPath, 'r'), $uploadFilename)
                 ->post($hfaUrl, [
                     'fiscal_year' => strval($budgetYear),
-                    'month'       => strval($month)
+                    'month'       => strval($month),
+                    'period'      => strval($periodCode)
                 ]);
 
             @unlink($tempPath);
@@ -447,7 +541,17 @@ class HfaReportController extends Controller
     public function processTrialBalance(Request $request)
     {
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
-        $month = intval($request->input('month', 8));
+        $periodCode = $request->input('period');
+
+        if ($periodCode && strlen($periodCode) >= 6) {
+            $budgetYear = intval(substr($periodCode, 0, 4));
+            $installment = intval(substr($periodCode, 4, 2));
+            $month = ($installment <= 3) ? ($installment + 9) : ($installment - 3);
+        } else {
+            $month = intval($request->input('month', 8));
+            $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+            $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+        }
 
         // Format period e.g. "2569-08" or "2568-10"
         $periodYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
@@ -460,10 +564,13 @@ class HfaReportController extends Controller
             ->get();
 
         if ($rows->isEmpty()) {
+            $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            $mName = $thaiMonthsShort[$month] ?? "เดือน {$month}";
             return response()->json([
                 'success' => false,
-                'message' => "ไม่พบข้อมูลงบทดลองในงวด {$targetPeriod} กรุณานำเข้างบทดลองในระบบ HosFin ก่อน",
+                'message' => "ไม่พบข้อมูลงบทดลองงวด {$periodCode} ({$targetPeriod} : {$mName} {$periodYear}) กรุณานำเข้าไฟล์จากโปรแกรม HFO ในระบบ HosFin ก่อน",
                 'period'  => $targetPeriod,
+                'period_code' => $periodCode,
                 'data'    => [],
                 'summary' => [
                     'count'    => 0,
@@ -506,8 +613,9 @@ class HfaReportController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "โหลดข้อมูลงบทดลองงวด {$targetPeriod} สำเร็จ (" . count($items) . " บัญชี)",
+            'message' => "โหลดข้อมูลงบทดลองงวด {$periodCode} ({$targetPeriod}) สำเร็จ (" . count($items) . " บัญชี)",
             'period'  => $targetPeriod,
+            'period_code' => $periodCode,
             'fetch_datetime' => $fetchDateTime,
             'data'    => $items,
             'summary' => [
@@ -526,7 +634,17 @@ class HfaReportController extends Controller
     public function exportTrialBalanceExcel(Request $request)
     {
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
-        $month = intval($request->input('month', 8));
+        $periodCode = $request->input('period');
+
+        if ($periodCode && strlen($periodCode) >= 6) {
+            $budgetYear = intval(substr($periodCode, 0, 4));
+            $installment = intval(substr($periodCode, 4, 2));
+            $month = ($installment <= 3) ? ($installment + 9) : ($installment - 3);
+        } else {
+            $month = intval($request->input('month', 8));
+            $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+            $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+        }
 
         $periodYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
         $periodMonth = str_pad($month, 2, '0', STR_PAD_LEFT);
@@ -597,9 +715,14 @@ class HfaReportController extends Controller
             }
         }
 
-        $filename = "template_ข้อมูลการเงิน_งวด_{$targetPeriod}.xlsx";
+        $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        $mShort = $thaiMonthsShort[$month] ?? '';
+        $calYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
+        $monthLabel = "{$mShort}{$calYear}";
+
+        $filename = "ข้อมูลการเงิน_งวด_{$periodCode}_({$monthLabel}).xlsx";
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"; filename*=UTF-8\'\'' . rawurlencode($filename));
         header('Cache-Control: max-age=0');
 
         $writer = new Xlsx($spreadsheet);
@@ -613,7 +736,17 @@ class HfaReportController extends Controller
     public function sendTrialBalanceApi(Request $request)
     {
         $budgetYear = intval($request->input('fiscal_year', HosFinController::getCurrentBudgetYear()));
-        $month = intval($request->input('month', 8));
+        $periodCode = $request->input('period');
+
+        if ($periodCode && strlen($periodCode) >= 6) {
+            $budgetYear = intval(substr($periodCode, 0, 4));
+            $installment = intval(substr($periodCode, 4, 2));
+            $month = ($installment <= 3) ? ($installment + 9) : ($installment - 3);
+        } else {
+            $month = intval($request->input('month', 8));
+            $installment = ($month >= 10) ? ($month - 9) : ($month + 3);
+            $periodCode = "{$budgetYear}" . str_pad($installment, 2, '0', STR_PAD_LEFT);
+        }
 
         $periodYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
         $periodMonth = str_pad($month, 2, '0', STR_PAD_LEFT);
@@ -624,18 +757,21 @@ class HfaReportController extends Controller
             ->get();
 
         if ($rows->isEmpty()) {
+            $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            $mName = $thaiMonthsShort[$month] ?? "เดือน {$month}";
             return response()->json([
                 'success' => false,
-                'message' => "ไม่พบข้อมูลงบทดลองงวด {$targetPeriod} กรุณานำเข้างบทดลองก่อนส่ง API"
+                'message' => "ไม่พบข้อมูลงบทดลองงวด {$periodCode} ({$targetPeriod} : {$mName} {$periodYear}) กรุณานำเข้าไฟล์จากโปรแกรม HFO ในระบบ HosFin ก่อนส่ง API"
             ], 400);
         }
 
-        // 1. Get Token from FDH
-        $token = $this->getFdhAccessToken();
+        // 1. Get Token from FDH (เฉพาะบัญชีของผู้ใช้งานปัจจุบันเท่านั้น)
+        $token = $this->getFdhAccessToken($request->input('token'));
         if (!$token) {
+            $userName = Auth::user()->name ?? 'ผู้ใช้งาน';
             return response()->json([
                 'success' => false,
-                'message' => 'ไม่สามารถขอ FDH Access Token ได้ กรุณาตรวจสอบการตั้งค่า FDH User / Pass ในโปรไฟล์'
+                'message' => "ไม่สามารถขอ FDH Access Token ได้ กรุณาตรวจสอบการตั้งค่า FDH User / Pass ในข้อมูลส่วนตัว (Profile) ของคุณ {$userName}"
             ], 400);
         }
 
@@ -696,12 +832,19 @@ class HfaReportController extends Controller
         // 3. Send API to HFA
         $hfaUrl = config('services.hfa.url', 'https://hfa.one.th') . '/hfa_api/open-api/import/trial_balance';
         try {
+            $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            $mShort = $thaiMonthsShort[$month] ?? '';
+            $calYear = ($month >= 10) ? ($budgetYear - 1) : $budgetYear;
+            $monthLabel = "{$mShort}{$calYear}";
+            $uploadFilename = "ข้อมูลการเงิน_งวด_{$periodCode}_({$monthLabel}).xlsx";
+
             $response = Http::withOptions(['verify' => false, 'timeout' => 90])
                 ->withToken($token)
-                ->attach('file', fopen($tempPath, 'r'), "template_ข้อมูลการเงิน.xlsx")
+                ->attach('file', fopen($tempPath, 'r'), $uploadFilename)
                 ->post($hfaUrl, [
                     'fiscal_year' => strval($budgetYear),
-                    'month'       => strval($month)
+                    'month'       => strval($month),
+                    'period'      => strval($periodCode)
                 ]);
 
             @unlink($tempPath);
@@ -733,31 +876,115 @@ class HfaReportController extends Controller
     }
 
     /**
-     * Helper: Get FDH Access Token from MOPH Account Center
+     * Check FDH Token for the current logged-in user (NO FALLBACK)
      */
-    private function getFdhAccessToken(): ?string
+    public function checkToken(Request $request)
     {
         $userObj = Auth::user();
-        $user = $userObj->fdh_user ?? null;
-        $password = $userObj->fdh_pass ?? null;
-        $secretKey = $userObj->fdh_secretKey ?? null;
-
-        // Fallback: If current user has no credentials, search for a valid user in database
-        if (!$user || !$password || !$secretKey) {
-            $fallbackUser = DB::table('users')
-                ->whereNotNull('fdh_user')->where('fdh_user', '!=', '')
-                ->whereNotNull('fdh_pass')->where('fdh_pass', '!=', '')
-                ->whereNotNull('fdh_secretKey')->where('fdh_secretKey', '!=', '')
-                ->first();
-
-            if ($fallbackUser) {
-                $user = $fallbackUser->fdh_user;
-                $password = $fallbackUser->fdh_pass;
-                $secretKey = $fallbackUser->fdh_secretKey;
-            }
+        if (!$userObj) {
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'has_credentials' => false,
+                'message' => 'กรุณาเข้าสู่ระบบก่อนทำรายการ'
+            ], 401);
         }
 
-        if (!$user || !$password || !$secretKey) {
+        $user = !empty($userObj->fdh_user) ? trim($userObj->fdh_user) : null;
+        $password = !empty($userObj->fdh_pass) ? trim($userObj->fdh_pass) : null;
+        $secretKey = !empty($userObj->fdh_secretKey) ? trim($userObj->fdh_secretKey) : '$jwt@moph#';
+
+        // ต้องใช้บัญชี FDH ของผู้ใช้ที่ล็อกอินอยู่เท่านั้น (ไม่ fallback บัญชีกลางหรือผู้ใช้อื่น)
+        if (!$user || !$password) {
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'has_credentials' => false,
+                'user_name' => $userObj->name ?? 'ไม่ระบุ',
+                'fdh_user' => null,
+                'message' => 'บัญชีผู้ใช้งาน (' . ($userObj->name ?? '-') . ') ยังไม่ได้ตั้งค่า FDH User หรือ FDH Pass ในข้อมูลส่วนตัว (Profile)'
+            ]);
+        }
+
+        $settings = DB::table('main_setting')->pluck('value', 'name')->toArray();
+        $userParts = explode('.', $user);
+        $hcode = (count($userParts) > 1 && is_numeric(end($userParts)))
+            ? end($userParts)
+            : ($settings['hospital_code'] ?? ($settings['hcode'] ?? '10989'));
+
+        $hash = strtoupper(hash_hmac('sha256', $password, $secretKey));
+        $apiUrl = 'https://fdh.moph.go.th/token?Action=get_moph_access_token';
+
+        try {
+            $response = Http::withOptions(['verify' => false, 'timeout' => 15])
+                ->withHeaders([
+                    "Accept" => "application/json",
+                    "Content-Type" => "application/json"
+                ])->post($apiUrl, [
+                    'user'          => $user,
+                    'password_hash' => $hash,
+                    'hospital_code' => $hcode
+                ]);
+
+            if ($response->successful()) {
+                $token = trim($response->body());
+                if (!empty($token) && !str_starts_with($token, '<!DOCTYPE') && !str_contains($token, 'Invalid') && !str_starts_with($token, '{')) {
+                    return response()->json([
+                        'status' => 'success',
+                        'has_token' => true,
+                        'has_credentials' => true,
+                        'token' => $token,
+                        'fdh_user' => $user,
+                        'user_name' => $userObj->name ?? $user,
+                        'token_type' => 'MOPH FDH Token (API)',
+                        'message' => 'ดึง Access Token สำเร็จ'
+                    ]);
+                }
+            }
+
+            $json = $response->json();
+            $msg = $json['Message'] ?? ($json['message'] ?? ($json['error'] ?? 'บัญชี FDH User หรือ รหัสผ่าน (FDH Pass) ไม่ถูกต้อง'));
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'has_credentials' => true,
+                'user_name' => $userObj->name ?? $user,
+                'fdh_user' => $user,
+                'message' => $msg
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("FDH Token check error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'has_token' => false,
+                'has_credentials' => true,
+                'user_name' => $userObj->name ?? $user,
+                'fdh_user' => $user,
+                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ FDH: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Helper: Get FDH Access Token from MOPH Account Center (NO FALLBACK)
+     */
+    private function getFdhAccessToken(?string $customToken = null): ?string
+    {
+        if (!empty($customToken)) {
+            return $customToken;
+        }
+
+        $userObj = Auth::user();
+        if (!$userObj) {
+            return null;
+        }
+
+        // ต้องใช้บัญชี FDH ของผู้ใช้ปัจจุบันเท่านั้น (ไม่ใช้ Fallback บัญชีกลางหรือผู้อื่น)
+        $user = !empty($userObj->fdh_user) ? trim($userObj->fdh_user) : null;
+        $password = !empty($userObj->fdh_pass) ? trim($userObj->fdh_pass) : null;
+        $secretKey = !empty($userObj->fdh_secretKey) ? trim($userObj->fdh_secretKey) : '$jwt@moph#';
+
+        if (!$user || !$password) {
             return null;
         }
 

@@ -128,19 +128,20 @@
             </h5>
 
             <div class="row g-3">
-                <!-- Report Card: รายงานข้อมูลบริการประกอบงบ -> Triggers Modal -->
-                <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+                <!-- Report Card 1: รายงานข้อมูลบริการประกอบงบ -->
+                <div class="col-12 col-lg-6">
                     <div class="card h-100 report-card p-3 shadow-xs" 
-                         style="border-top: 4px solid #3b82f6 !important;"
-                         data-bs-toggle="modal" 
-                         data-bs-target="#serviceDataModal">
+                         style="border-top: 4px solid #3b82f6 !important; cursor: default;">
                         <div class="d-flex align-items-start gap-3 mb-2">
                             <div class="card-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
                                 <i class="bi bi-clipboard2-data-fill"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <div class="d-flex justify-content-end align-items-center mb-1">
-                                    <span class="text-muted small" style="font-size: 0.72rem;">คลิกเพื่อเปิด</span>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge rounded-pill px-2 py-0.5" style="font-size: 0.72rem; background-color: #dbeafe; color: #1d4ed8; font-weight: 600;">
+                                        <i class="bi bi-database-fill-gear me-0.5"></i> HOSxP Source
+                                    </span>
+                                    <span class="text-muted small" style="font-size: 0.72rem;">Hospital Information System</span>
                                 </div>
                                 <h6 class="fw-bold text-dark mb-1 fs-6">รายงานข้อมูลบริการประกอบงบ</h6>
                                 <p class="text-muted small mb-0" style="font-size: 0.82rem; line-height: 1.45;">
@@ -148,17 +149,41 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center pt-2 mt-auto border-top" style="font-size: 0.8rem;">
-                            <span class="text-secondary"><i class="bi bi-window-stack me-1 text-primary"></i> เปิดหน้าต่าง Modal</span>
-                            <span class="fw-bold text-primary d-inline-flex align-items-center gap-1">
-                                คลิกเปิดรายงาน <i class="bi bi-arrow-right-short fs-6"></i>
-                            </span>
+
+                        <!-- Inside Action Links -->
+                        <div class="d-flex flex-column gap-2 pt-2 mt-auto border-top">
+                            <button type="button" 
+                                    class="btn btn-outline-primary btn-sm rounded-3 py-2 px-3 d-flex justify-content-between align-items-center text-start w-100 shadow-none hover-shadow" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#serviceDataModal" 
+                                    style="border-color: #bfdbfe; background-color: #eff6ff;">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="d-flex align-items-center justify-content-center rounded-2" style="width: 32px; height: 32px; background-color: #dbeafe; color: #2563eb;">
+                                        <i class="bi bi-clipboard2-pulse-fill fs-6"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">1. ข้อมูลบริการประกอบงบ (รายเดือน / ไตรมาส)</div>
+                                        <div class="text-muted" style="font-size: 0.73rem;">ประมวลผลดึงข้อมูลสดจาก HOSxP พร้อมส่งออกไฟล์ Excel</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary rounded-pill px-2.5 py-1">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดหน้าต่างรายงาน
+                                </span>
+                            </button>
+
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-3" style="background-color: #f8fafc; border: 1px dashed #cbd5e1; min-height: 48px;">
+                                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.78rem;">
+                                    <i class="bi bi-check2-circle text-success fs-6"></i>
+                                    <span>ตรวจสอบข้อมูลบริการประกอบงบการเงินและคำนวณ SumAdjRW</span>
+                                </div>
+                                <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">HOSxP Live Data</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Report Card 2: ระบบข้อมูลการเงินการคลัง (HFA) -->
-                <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+                <div class="col-12 col-lg-6">
                     <div class="card h-100 report-card p-3 shadow-xs" 
                          style="border-top: 4px solid #0d9488 !important; cursor: default;">
                         <div class="d-flex align-items-start gap-3 mb-2">
@@ -196,7 +221,7 @@
                                     </div>
                                 </div>
                                 <span class="badge rounded-pill px-2.5 py-1" style="background-color: #0d9488; color: #fff;">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิด Modal
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดหน้าต่างรายงาน
                                 </span>
                             </button>
 
@@ -215,7 +240,7 @@
                                     </div>
                                 </div>
                                 <span class="badge bg-primary rounded-pill px-2.5 py-1">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิด Modal
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดหน้าต่างรายงาน
                                 </span>
                             </button>
                         </div>
@@ -406,45 +431,60 @@
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <!-- Filter Controls Bar -->
-            <div class="bg-light px-4 py-3 border-bottom">
-                <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                        <label class="form-label mb-0 fw-bold text-secondary small text-nowrap">ปีงบประมาณ:</label>
-                        <select id="hfa_service_fiscal_year" class="form-select form-select-sm shadow-xs fw-bold text-primary" style="width: 155px; border-color: #cbd5e1;">
-                            @foreach($budgetYearChoices as $byChoice)
-                                <option value="{{ $byChoice }}" {{ $byChoice == $budgetYear ? 'selected' : '' }}>ปีงบประมาณ {{ $byChoice }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+            <!-- Filter Controls Bar: ช่วงวันที่ (ข้อมูลประจำเดือน) แบบรายงานประกอบงบ -->
+            <!-- Filter Section: ปีงบประมาณ & งวดที่ต้องการนำเข้า (แบบ HFA) + ช่วงวันที่คำนวณอัตโนมัติ -->
+            <div class="px-4 py-3 border-bottom" style="background-color: #f8fafc;">
+                <div class="card border-0 shadow-sm rounded-3 p-3" style="background: #ffffff; border-left: 4px solid #0d9488 !important;">
+                    <div class="row g-3 align-items-start">
+                        <!-- Budget Year (Compact Width) -->
+                        <div class="col-12 col-sm-auto" style="width: 140px;">
+                            <label class="form-label fw-bold text-dark mb-1" style="font-size: 0.83rem;">
+                                <i class="bi bi-calendar-check me-1" style="color: #0d9488;"></i>ปีงบประมาณ:
+                            </label>
+                            <select id="hfa_service_fiscal_year" class="form-select form-select-sm fw-bold text-primary shadow-xs" style="border-color: #cbd5e1;">
+                                @foreach($budgetYearChoices as $byChoice)
+                                    <option value="{{ $byChoice }}" {{ $byChoice == $budgetYear ? 'selected' : '' }}>{{ $byChoice }}</option>
+                                @endforeach
+                            </select>
+                            <div id="hfa_fy_hint" class="text-muted mt-1 text-nowrap" style="font-size: 0.71rem;">
+                                (งวด ต.ค.{{ $budgetYear - 1 }} - ก.ย.{{ $budgetYear }})
+                            </div>
+                        </div>
 
-                    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                        <label class="form-label mb-0 fw-bold text-secondary small text-nowrap">เดือน:</label>
-                        <select id="hfa_service_month" class="form-select form-select-sm shadow-xs fw-bold" style="width: 145px; border-color: #cbd5e1;">
-                            @php
-                                $thaiMonthsList = [
-                                    1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
-                                    5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
-                                    9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
-                                ];
-                                $curMonthNum = intval(date('n'));
-                            @endphp
-                            @foreach($thaiMonthsList as $mNum => $mName)
-                                <option value="{{ $mNum }}" {{ $mNum == $curMonthNum ? 'selected' : '' }}>{{ $mNum }}. {{ $mName }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        <!-- Period (Compact Width) -->
+                        <div class="col-12 col-sm-auto" style="width: 230px;">
+                            <label class="form-label fw-bold text-dark mb-1" style="font-size: 0.83rem;">
+                                <i class="bi bi-calendar3 me-1" style="color: #0d9488;"></i>งวดที่ต้องการนำเข้า:
+                            </label>
+                            <select id="hfa_service_period" class="form-select form-select-sm fw-bold shadow-xs" style="border-color: #cbd5e1;">
+                                <!-- Generated dynamically based on selected fiscal year -->
+                            </select>
+                            <div class="mt-1 d-flex align-items-center gap-1.5 flex-wrap" style="font-size: 0.72rem;">
+                                <span class="badge px-2 py-0.5 rounded" style="background-color: #f0fdfa; color: #0d9488; border: 1px solid #ccfbf1;">
+                                    <i class="bi bi-calendar2-range me-1"></i><span id="hfa_period_date_range_label">-</span>
+                                </span>
+                            </div>
+                            <!-- Hidden ISO Date inputs for backend query -->
+                            <input type="hidden" id="hfa_service_start_date" value="{{ $defaultStartDate }}">
+                            <input type="hidden" id="hfa_service_end_date" value="{{ $defaultEndDate }}">
+                        </div>
 
-                    <div class="col-12 col-md-auto">
-                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1.5" id="btnProcessHfaService" style="background-color: #0d9488; border-color: #0d9488; height: 34px;">
-                            <i class="bi bi-play-circle-fill"></i> ประมวลผลจาก HOSxP
-                        </button>
-                    </div>
+                        <!-- Process Button (Placed right beside Period dropdown) -->
+                        <div class="col-12 col-sm-auto">
+                            <label class="form-label d-none d-sm-block mb-1" style="font-size: 0.83rem; visibility: hidden;">&nbsp;</label>
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-1.5" 
+                                    id="btnProcessHfaService" 
+                                    style="height: 33px; font-size: 0.86rem; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); border: none; white-space: nowrap;">
+                                <i class="bi bi-play-circle-fill fs-6"></i> ประมวลผลจาก HOSxP
+                            </button>
+                            <div class="mt-1 d-none d-sm-block" style="font-size: 0.72rem; visibility: hidden;">&nbsp;</div>
+                        </div>
 
-                    <div class="col-12 col-md ms-auto d-flex justify-content-md-end">
-                        <div class="input-group input-group-sm" style="max-width: 260px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="hfaServiceSearch" class="form-control border-start-0 ps-0 shadow-none" placeholder="ค้นหารหัส / สิทธิ / รายการ...">
+                        <!-- Status Message (Right beside button) -->
+                        <div class="col-12 col-md align-self-center mt-1 mt-md-0 ps-md-2">
+                            <div id="hfaServiceStatus" class="small text-muted text-break">
+                                พร้อมประมวลผล
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -532,8 +572,8 @@
             <!-- Modal Footer: ส่งออก Excel, ส่ง API, ปิด -->
             <div class="modal-footer bg-light py-2.5 px-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <span class="text-muted small" id="hfaServiceStatus">
-                        <i class="bi bi-info-circle me-1"></i> กดปุ่ม "ประมวลผลจาก HOSxP" เพื่อดึงข้อมูลบริการทั้ง 54 รายการ
+                    <span class="text-muted small" id="hfaServiceFooterHint">
+                        <i class="bi bi-file-earmark-excel text-success me-1"></i>ชื่อไฟล์ส่งออก: <code id="hfa_export_filename_preview" class="text-teal fw-bold font-monospace" style="color: #0d9488 !important; font-size: 0.88rem;">ข้อมูลบริการ_งวด_xxxxxx_(ดด.ปปปป).xlsx</code>
                     </span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
@@ -574,37 +614,58 @@
                 <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <!-- Filter Controls Bar -->
-            <div class="bg-light px-4 py-3 border-bottom">
-                <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                        <label class="form-label mb-0 fw-bold text-secondary small text-nowrap">ปีงบประมาณ:</label>
-                        <select id="hfa_tb_fiscal_year" class="form-select form-select-sm shadow-xs fw-bold text-primary" style="width: 155px; border-color: #cbd5e1;">
-                            @foreach($budgetYearChoices as $byChoice)
-                                <option value="{{ $byChoice }}" {{ $byChoice == $budgetYear ? 'selected' : '' }}>ปีงบประมาณ {{ $byChoice }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+            <!-- Filter Section: ปีงบประมาณ & งวดที่ต้องการนำเข้า (แบบ HFA) -->
+            <div class="px-4 py-3 border-bottom" style="background-color: #f8fafc;">
+                <div class="card border-0 shadow-sm rounded-3 p-3" style="background: #ffffff; border-left: 4px solid #1e3a8a !important;">
+                    <div class="row g-3 align-items-start">
+                        <!-- Budget Year (Compact Width) -->
+                        <div class="col-12 col-sm-auto" style="width: 140px;">
+                            <label class="form-label fw-bold text-dark mb-1" style="font-size: 0.83rem;">
+                                <i class="bi bi-calendar-check me-1" style="color: #1e3a8a;"></i>ปีงบประมาณ:
+                            </label>
+                            <select id="hfa_tb_fiscal_year" class="form-select form-select-sm fw-bold text-primary shadow-xs" style="border-color: #cbd5e1;">
+                                @foreach($budgetYearChoices as $byChoice)
+                                    <option value="{{ $byChoice }}" {{ $byChoice == $budgetYear ? 'selected' : '' }}>{{ $byChoice }}</option>
+                                @endforeach
+                            </select>
+                            <div id="hfa_tb_fy_hint" class="text-muted mt-1 text-nowrap" style="font-size: 0.71rem;">
+                                (งวด ต.ค.{{ $budgetYear - 1 }} - ก.ย.{{ $budgetYear }})
+                            </div>
+                        </div>
 
-                    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                        <label class="form-label mb-0 fw-bold text-secondary small text-nowrap">เดือน:</label>
-                        <select id="hfa_tb_month" class="form-select form-select-sm shadow-xs fw-bold" style="width: 145px; border-color: #cbd5e1;">
-                            @foreach($thaiMonthsList as $mNum => $mName)
-                                <option value="{{ $mNum }}" {{ $mNum == $curMonthNum ? 'selected' : '' }}>{{ $mNum }}. {{ $mName }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        <!-- Period (Compact Width) -->
+                        <div class="col-12 col-sm-auto" style="width: 230px;">
+                            <label class="form-label fw-bold text-dark mb-1" style="font-size: 0.83rem;">
+                                <i class="bi bi-calendar3 me-1" style="color: #1e3a8a;"></i>งวดที่ต้องการนำเข้า:
+                            </label>
+                            <select id="hfa_tb_period" class="form-select form-select-sm fw-bold shadow-xs" style="border-color: #cbd5e1;">
+                                <!-- Generated dynamically based on selected fiscal year -->
+                            </select>
+                            <div class="mt-1 d-flex align-items-center gap-1.5 flex-wrap" style="font-size: 0.72rem;">
+                                <span class="badge px-2 py-0.5 rounded" style="background-color: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe;">
+                                    <i class="bi bi-calendar2-range me-1"></i><span id="hfa_tb_period_date_range_label">-</span>
+                                </span>
+                            </div>
+                            <!-- Hidden inputs for backend query -->
+                            <input type="hidden" id="hfa_tb_month" value="8">
+                        </div>
 
-                    <div class="col-12 col-md-auto">
-                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1.5" id="btnProcessHfaTb" style="background-color: #1e3a8a; border-color: #1e3a8a; height: 34px;">
-                            <i class="bi bi-play-circle-fill"></i> ดึงข้อมูลงบทดลอง
-                        </button>
-                    </div>
+                        <!-- Process Button (Placed right beside Period dropdown) -->
+                        <div class="col-12 col-sm-auto">
+                            <label class="form-label d-none d-sm-block mb-1" style="font-size: 0.83rem; visibility: hidden;">&nbsp;</label>
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-1.5" 
+                                    id="btnProcessHfaTb" 
+                                    style="height: 33px; font-size: 0.86rem; background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%); border: none; white-space: nowrap;">
+                                <i class="bi bi-play-circle-fill fs-6"></i> ดึงข้อมูลงบทดลอง
+                            </button>
+                            <div class="mt-1 d-none d-sm-block" style="font-size: 0.72rem; visibility: hidden;">&nbsp;</div>
+                        </div>
 
-                    <div class="col-12 col-md ms-auto d-flex justify-content-md-end">
-                        <div class="input-group input-group-sm" style="max-width: 260px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="hfaTbSearch" class="form-control border-start-0 ps-0 shadow-none" placeholder="ค้นหารหัส / ชื่อบัญชี...">
+                        <!-- Status Message (Right beside button) -->
+                        <div class="col-12 col-md align-self-center mt-1 mt-md-0 ps-md-2">
+                            <div id="hfaTbStatus" class="small text-muted text-break">
+                                พร้อมดึงข้อมูลงบทดลอง
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -654,6 +715,17 @@
 
             <!-- Modal Body Table -->
             <div class="modal-body p-3">
+                <!-- Search Box Row (Aligned Right) -->
+                <div class="d-flex justify-content-between align-items-center mb-2.5">
+                    <div class="text-muted small fw-semibold">
+                        <i class="bi bi-table me-1 text-primary"></i>รายการบัญชีมาตรฐาน (803 บัญชี)
+                    </div>
+                    <div class="input-group input-group-sm" style="max-width: 270px;">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" id="hfaTbSearch" class="form-control border-start-0 ps-0 shadow-none" placeholder="ค้นหารหัส / ชื่อบัญชี...">
+                    </div>
+                </div>
+
                 <div class="table-responsive rounded border tb-scroll-container" style="max-height: 440px; overflow-y: auto;">
                     <table class="table table-hover table-service-report mb-0" id="hfaTbTable">
                         <thead style="position: sticky; top: 0; z-index: 5;">
@@ -681,9 +753,14 @@
             <!-- Modal Footer: ส่งออก Excel, ส่ง API, ปิด -->
             <div class="modal-footer bg-light py-2.5 px-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <span class="text-muted small" id="hfaTbStatus">
+                    <div>
+                        <span class="text-muted small" id="hfaTbFooterHint">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i>ชื่อไฟล์ส่งออก: <code id="hfa_tb_export_filename_preview" class="fw-bold font-monospace" style="color: #1e3a8a !important; font-size: 0.88rem;">ข้อมูลการเงิน_งวด_xxxxxx_(ดด.ปปปป).xlsx</code>
+                        </span>
+                    </div>
+                    <div class="text-muted small" style="font-size: 0.76rem;">
                         <i class="bi bi-info-circle me-1"></i> ตรวจสอบงบทดลองก่อนส่ง API (ระบบจะอนุญาตให้ส่งเมื่อเดบิตเท่ากับเครดิตเท่านั้น)
-                    </span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1.5" id="btnExportHfaTbExcel" style="height: 36px;">
@@ -720,25 +797,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         function syncDatepickers() {
-            var startVal = $('#filter_start_date').val();
-            var endVal = $('#filter_end_date').val();
-            if (startVal) {
-                var sParts = startVal.split('-');
-                if (sParts.length === 3) {
-                    $('#filter_start_date_picker').datepicker('setDate', new Date(parseInt(sParts[0]), parseInt(sParts[1]) - 1, parseInt(sParts[2])));
+            var pairs = [
+                { hidden: '#filter_start_date', picker: '#filter_start_date_picker' },
+                { hidden: '#filter_end_date', picker: '#filter_end_date_picker' }
+            ];
+
+            pairs.forEach(function(pair) {
+                var val = $(pair.hidden).val();
+                if (val && $(pair.picker).length) {
+                    var parts = val.split('-');
+                    if (parts.length === 3) {
+                        $(pair.picker).datepicker('setDate', new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+                    }
                 }
-            }
-            if (endVal) {
-                var eParts = endVal.split('-');
-                if (eParts.length === 3) {
-                    $('#filter_end_date_picker').datepicker('setDate', new Date(parseInt(eParts[0]), parseInt(eParts[1]) - 1, parseInt(eParts[2])));
-                }
-            }
+            });
         }
 
         syncDatepickers();
 
         $('#serviceDataModal').on('shown.bs.modal', function () {
+            syncDatepickers();
+        });
+
+        $('#hfaServiceModal').on('shown.bs.modal', function () {
             syncDatepickers();
         });
 
@@ -1200,21 +1281,17 @@ document.addEventListener('DOMContentLoaded', function() {
         applyHfaServiceFilter();
     });
 
-    // Search filter
-    $('#hfaServiceSearch').on('input', function() {
-        applyHfaServiceFilter();
-    });
-
     function applyHfaServiceFilter() {
         const activeCat = $('.hfa-cat-btn.active').data('cat') || 'all';
-        const q = $('#hfaServiceSearch').val().toLowerCase().trim();
+        const searchInput = document.getElementById('hfaServiceSearch');
+        const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
         $('#hfaServiceTable tbody tr.hfa-service-row').each(function() {
             const row = $(this);
             const rowCat = row.data('cat');
-            const code = (row.data('code') || '').toLowerCase();
-            const rights = (row.data('rights') || '').toLowerCase();
-            const label = (row.data('label') || '').toLowerCase();
+            const code = String(row.attr('data-code') || row.data('code') || '').toLowerCase();
+            const rights = String(row.attr('data-rights') || row.data('rights') || '').toLowerCase();
+            const label = String(row.attr('data-label') || row.data('label') || '').toLowerCase();
 
             let matchCat = (activeCat === 'all' || rowCat === activeCat);
             let matchText = (!q || code.includes(q) || rights.includes(q) || label.includes(q));
@@ -1227,12 +1304,143 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function populateHfaServicePeriods(selectedPeriod = null) {
+        const fyEl = document.getElementById('hfa_service_fiscal_year');
+        const periodSelect = document.getElementById('hfa_service_period');
+        const hintEl = document.getElementById('hfa_fy_hint');
+        if (!fyEl || !periodSelect) return;
+
+        const fy = parseInt(fyEl.value) || 2569;
+        const priorYr = fy - 1;
+        if (hintEl) {
+            hintEl.textContent = `(งวดข้อมูล ต.ค.${priorYr} - ก.ย.${fy})`;
+        }
+
+        const thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const periods = [
+            { inst: 1, m: 10, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 2, m: 11, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 3, m: 12, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 4, m: 1,  yr: fy,      ceYr: fy - 543 },
+            { inst: 5, m: 2,  yr: fy,      ceYr: fy - 543 },
+            { inst: 6, m: 3,  yr: fy,      ceYr: fy - 543 },
+            { inst: 7, m: 4,  yr: fy,      ceYr: fy - 543 },
+            { inst: 8, m: 5,  yr: fy,      ceYr: fy - 543 },
+            { inst: 9, m: 6,  yr: fy,      ceYr: fy - 543 },
+            { inst: 10, m: 7, yr: fy,      ceYr: fy - 543 },
+            { inst: 11, m: 8, yr: fy,      ceYr: fy - 543 },
+            { inst: 12, m: 9, yr: fy,      ceYr: fy - 543 }
+        ];
+
+        const now = new Date();
+        const curMonth = now.getMonth() + 1;
+        const curInst = (curMonth >= 10) ? (curMonth - 9) : (curMonth + 3);
+        const defaultPeriodCode = `${fy}${String(curInst).padStart(2, '0')}`;
+
+        periodSelect.innerHTML = '';
+        let targetSelected = selectedPeriod || defaultPeriodCode;
+        let foundSelected = false;
+
+        periods.forEach(p => {
+            const pCode = `${fy}${String(p.inst).padStart(2, '0')}`;
+            const opt = document.createElement('option');
+            opt.value = pCode;
+            opt.dataset.month = p.m;
+            opt.dataset.ceYear = p.ceYr;
+            opt.dataset.fiscalYear = fy;
+            opt.dataset.inst = p.inst;
+            opt.textContent = `${pCode} : ${thaiMonthsShort[p.m]}${p.yr}`;
+            if (pCode === targetSelected) {
+                opt.selected = true;
+                foundSelected = true;
+            }
+            periodSelect.appendChild(opt);
+        });
+
+        if (!foundSelected && periodSelect.options.length) {
+            periodSelect.selectedIndex = periodSelect.options.length - 1;
+        }
+
+        onHfaServicePeriodChange();
+    }
+
+    function onHfaServicePeriodChange() {
+        const periodSelect = document.getElementById('hfa_service_period');
+        if (!periodSelect || !periodSelect.selectedOptions.length) return;
+        const opt = periodSelect.selectedOptions[0];
+        const month = parseInt(opt.dataset.month);
+        const ceYear = parseInt(opt.dataset.ceYear);
+        const padM = String(month).padStart(2, '0');
+        const lastDay = new Date(ceYear, month, 0).getDate();
+
+        const startIso = `${ceYear}-${padM}-01`;
+        const endIso = `${ceYear}-${padM}-${String(lastDay).padStart(2, '0')}`;
+
+        $('#hfa_service_start_date').val(startIso);
+        $('#hfa_service_end_date').val(endIso);
+
+        const thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const thaiYr = ceYear + 543;
+        const rangeText = `1 ${thaiMonthsShort[month]} ${thaiYr} ถึง ${lastDay} ${thaiMonthsShort[month]} ${thaiYr}`;
+        const rangeLabelEl = document.getElementById('hfa_period_date_range_label');
+        if (rangeLabelEl) {
+            rangeLabelEl.textContent = rangeText;
+        }
+
+        const pCode = periodSelect.value;
+        const monthLabel = `${thaiMonthsShort[month]}${thaiYr}`;
+        const fnPreview = document.getElementById('hfa_export_filename_preview');
+        if (fnPreview && pCode) {
+            fnPreview.textContent = `ข้อมูลบริการ_งวด_${pCode}_(${monthLabel}).xlsx`;
+        }
+    }
+
+    $('#hfa_service_fiscal_year').on('change', function() {
+        populateHfaServicePeriods();
+    });
+
+    $('#hfa_service_period').on('change', function() {
+        onHfaServicePeriodChange();
+    });
+
+    // Populate periods on load
+    populateHfaServicePeriods();
+
+    function formatIsoDateToThai(isoDate) {
+        if (!isoDate) return '';
+        const p = isoDate.split('-');
+        if (p.length === 3) {
+            const thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const day = parseInt(p[2]);
+            const m = parseInt(p[1]);
+            const y = parseInt(p[0]) + 543;
+            return `${day} ${thaiMonthsShort[m]} ${y}`;
+        }
+        return isoDate;
+    }
+
     // Process HFA Service Data from HOSxP
     document.getElementById('btnProcessHfaService').addEventListener('click', function() {
         const btn = this;
-        const fiscalYear = document.getElementById('hfa_service_fiscal_year').value;
-        const month = document.getElementById('hfa_service_month').value;
-        const monthName = document.getElementById('hfa_service_month').options[document.getElementById('hfa_service_month').selectedIndex].text;
+        const startDate = document.getElementById('hfa_service_start_date').value;
+        const endDate = document.getElementById('hfa_service_end_date').value;
+        const fiscalYear = document.getElementById('hfa_service_fiscal_year')?.value;
+        const periodSelect = document.getElementById('hfa_service_period');
+        const periodCode = periodSelect?.value;
+
+        if (!startDate || !endDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาระบุงวดที่ต้องการนำเข้า',
+                text: 'กรุณาเลือกงวดข้อมูลที่ต้องการประมวลผล'
+            });
+            return;
+        }
+
+        const dParts = startDate.split('-');
+        const ceYear = parseInt(dParts[0]) || new Date().getFullYear();
+        const month = parseInt(dParts[1]) || (new Date().getMonth() + 1);
+        const dateDesc = `ช่วงวันที่ ${formatIsoDateToThai(startDate)} ถึง ${formatIsoDateToThai(endDate)}`;
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> กำลังดึงข้อมูล...';
@@ -1247,7 +1455,10 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 fiscal_year: fiscalYear,
-                month: month
+                month: month,
+                period: periodCode,
+                start_date: startDate,
+                end_date: endDate
             })
         })
         .then(res => res.json())
@@ -1271,13 +1482,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 const fetchTime = res.fetch_datetime || new Date().toLocaleTimeString('th-TH');
-                document.getElementById('hfaServiceStatus').innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึงข้อมูลสำเร็จ:</span> ปีงบ <b>${fiscalYear}</b> (${monthName}) เวลา <b>${fetchTime}</b>`;
+                const periodLabel = periodSelect?.selectedOptions[0]?.text || periodCode;
+                document.getElementById('hfaServiceStatus').innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึงข้อมูลสำเร็จ:</span> ${dateDesc} <span class="text-muted ms-1">(เมื่อ ${fetchTime})</span>`;
 
                 Swal.fire({
                     icon: 'success',
-                    title: 'ประมวลผลข้อมูลบริการสำเร็จ',
-                    html: `ดึงข้อมูลบริการ 54 รายการ ประจำ<b>${monthName} ปีงบประมาณ ${fiscalYear}</b> เรียบร้อยแล้ว<br><small class="text-muted"><i class="bi bi-clock-history me-1"></i> เวลาที่ดึง: ${fetchTime}</small>`,
-                    timer: 2000,
+                    title: 'ดึงข้อมูลบริการสำเร็จ',
+                    html: `ดึงข้อมูลบริการ 54 รายการ <b>งวด ${periodLabel}</b><br><span class="text-success fw-bold">${dateDesc}</span><br><small class="text-muted"><i class="bi bi-clock-history me-1"></i> ${fetchTime}</small>`,
+                    timer: 2500,
                     showConfirmButton: false
                 });
 
@@ -1306,8 +1518,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Export HFA Service Excel
     document.getElementById('btnExportHfaServiceExcel').addEventListener('click', function() {
-        const fiscalYear = document.getElementById('hfa_service_fiscal_year').value;
-        const month = document.getElementById('hfa_service_month').value;
+        const startDate = document.getElementById('hfa_service_start_date').value;
+        const endDate = document.getElementById('hfa_service_end_date').value;
+        const fiscalYear = document.getElementById('hfa_service_fiscal_year')?.value;
+        const periodCode = document.getElementById('hfa_service_period')?.value;
+
+        if (!startDate || !endDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาระบุช่วงวันที่',
+                text: 'กรุณาเลือกตั้งแต่วันที่ และถึงวันที่ ให้ครบถ้วน'
+            });
+            return;
+        }
+
+        const dParts = startDate.split('-');
+        const ceYear = parseInt(dParts[0]) || new Date().getFullYear();
+        const month = parseInt(dParts[1]) || (new Date().getMonth() + 1);
 
         const items = {};
         document.querySelectorAll('.hfa-service-input').forEach(inp => {
@@ -1319,15 +1546,34 @@ document.addEventListener('DOMContentLoaded', function() {
         submitDownloadForm('{{ url("hosfin/reports/hfa/service/export") }}', {
             fiscal_year: fiscalYear,
             month: month,
+            period: periodCode,
+            start_date: startDate,
+            end_date: endDate,
             items: items
         });
     });
 
     // Send HFA Service API
     document.getElementById('btnSendHfaServiceApi').addEventListener('click', function() {
-        const fiscalYear = document.getElementById('hfa_service_fiscal_year').value;
-        const month = document.getElementById('hfa_service_month').value;
-        const monthName = document.getElementById('hfa_service_month').options[document.getElementById('hfa_service_month').selectedIndex].text;
+        const startDate = document.getElementById('hfa_service_start_date').value;
+        const endDate = document.getElementById('hfa_service_end_date').value;
+        const fiscalYear = document.getElementById('hfa_service_fiscal_year')?.value;
+        const periodSelect = document.getElementById('hfa_service_period');
+        const periodCode = periodSelect ? periodSelect.value : '';
+        const periodLabel = periodSelect && periodSelect.selectedOptions.length ? periodSelect.selectedOptions[0].text : periodCode;
+
+        if (!startDate || !endDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาระบุช่วงวันที่',
+                text: 'กรุณาเลือกตั้งแต่วันที่ และถึงวันที่ ให้ครบถ้วน'
+            });
+            return;
+        }
+
+        const dParts = startDate.split('-');
+        const ceYear = parseInt(dParts[0]) || new Date().getFullYear();
+        const month = parseInt(dParts[1]) || (new Date().getMonth() + 1);
 
         const items = {};
         let filledCount = 0;
@@ -1339,66 +1585,120 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         Swal.fire({
-            title: 'ยืนยันการส่งข้อมูลบริการไปยัง HFA?',
-            html: `ระบบจะทำการส่งข้อมูลบริการ 54 รายการ<br>ประจำ<b>${monthName} ปีงบประมาณ ${fiscalYear}</b><br><small class="text-muted">ไปยัง Open-API: https://hfa.one.th โดยใช้ FDH MOPH Token</small>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#0d9488',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> ยืนยันส่ง API',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังส่งข้อมูลบริการ...',
-                    html: 'ระบบกำลังสร้างไฟล์ Excel และเชื่อมโยง API HFA กรุณารอสักครู่',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+            title: 'กำลังตรวจสอบสิทธิ์และเชื่อมต่อ Token FDH...',
+            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบขอ Access Token จาก FDH ด้วยบัญชีผู้ใช้งานของท่าน',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
 
-                fetch('{{ url("hosfin/reports/hfa/service/send_api") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        fiscal_year: fiscalYear,
-                        month: month,
-                        items: items
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งข้อมูลบริการ HFA สำเร็จ',
-                            html: `<div class="alert alert-success mt-2 text-start small mb-0">${res.message || 'ส่งข้อมูลบริการเข้าสู่ระบบ HFA เรียบร้อยแล้ว'}</div>`,
-                            confirmButtonColor: '#0d9488'
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ส่งข้อมูลไม่สำเร็จ',
-                            html: `<div class="alert alert-danger mt-2 text-start small mb-0">${res.message || 'เซิร์ฟเวอร์ HFA ปฏิเสธคำขอหรือเกิดข้อผิดพลาด'}</div>`,
-                            confirmButtonColor: '#ef4444'
-                        });
-                    }
-                })
-                .catch(err => {
+        fetch('{{ route("hosfin.reports.hfa.check_token") }}')
+            .then(res => res.json())
+            .then(tokenRes => {
+                if (!tokenRes.has_token) {
+                    const errorMsg = tokenRes.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบ FDH User หรือ Password';
                     Swal.fire({
                         icon: 'error',
-                        title: 'การเชื่อมต่อเซิร์ฟเวอร์ขัดข้อง',
-                        text: err.message,
-                        confirmButtonColor: '#ef4444'
+                        title: 'เชื่อมต่อ Token FDH ไม่สำเร็จ',
+                        html: `
+                            <div class="text-start p-3 bg-light rounded border small">
+                                <p class="text-danger fw-bold mb-2"><i class="bi bi-exclamation-octagon-fill me-1"></i> ข้อผิดพลาด:</p>
+                                <p class="mb-2 text-dark">${errorMsg}</p>
+                                <hr class="my-2">
+                                <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> กรุณาตรวจสอบ <b>FDH User, FDH Pass และ FDH Secret Key</b> ในหน้าแก้ไขข้อมูลส่วนตัว (Profile) ของท่าน</p>
+                            </div>
+                        `,
+                        confirmButtonColor: '#dc3545',
+                        confirmButtonText: 'รับทราบ'
                     });
+                    return;
+                }
+
+                Swal.fire({
+                    title: '<span class="fw-bold">ยืนยันส่งข้อมูลบริการเข้าสู่ HFA ผ่าน API?</span>',
+                    html: `
+                        <div class="p-3 bg-light rounded border text-start">
+                            <div class="mb-2"><strong>ประเภทข้อมูล:</strong> <span class="badge text-white" style="background-color: #0d9488;">ข้อมูลบริการ 54 รายการ</span></div>
+                            <div class="mb-2"><strong>งวดที่ต้องการส่ง:</strong> <span class="badge bg-primary fs-6">${periodLabel}</span></div>
+                            <div class="mb-2"><strong>ช่วงวันที่:</strong> <span class="text-dark">${formatIsoDateToThai(startDate)} ถึง ${formatIsoDateToThai(endDate)}</span></div>
+                            <hr class="my-2">
+                            <div class="mb-1"><strong>ผู้ส่งข้อมูล:</strong> <span class="text-dark fw-bold">${tokenRes.user_name || 'ผู้ใช้งาน'}</span></div>
+                            <div class="mb-2"><strong>FDH User:</strong> <span class="text-primary fw-bold font-monospace">${tokenRes.fdh_user || '-'}</span></div>
+                            <div class="text-success small pt-1 border-top">
+                                <i class="bi bi-shield-check me-1"></i> ตรวจสอบ Token FDH ผ่านแล้ว พร้อมส่งข้อมูลไปยัง https://hfa.one.th
+                            </div>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d9488',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> 🚀 ยืนยันส่ง API ทันที',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'กำลังส่งข้อมูลบริการ...',
+                            html: 'ระบบกำลังสร้างไฟล์ Excel และเชื่อมโยง API HFA กรุณารอสักครู่',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        fetch('{{ url("hosfin/reports/hfa/service/send_api") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                fiscal_year: fiscalYear,
+                                month: month,
+                                period: periodCode,
+                                start_date: startDate,
+                                end_date: endDate,
+                                token: tokenRes.token,
+                                items: items
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(res => {
+                            if (res.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'ส่งข้อมูลบริการ HFA สำเร็จ',
+                                    html: `<div class="alert alert-success mt-2 text-start small mb-0">${res.message || 'ส่งข้อมูลบริการเข้าสู่ระบบ HFA เรียบร้อยแล้ว'}</div>`,
+                                    confirmButtonColor: '#0d9488'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ส่งข้อมูลไม่สำเร็จ',
+                                    html: `<div class="alert alert-danger mt-2 text-start small mb-0">${res.message || 'เซิร์ฟเวอร์ HFA ปฏิเสธคำขอหรือเกิดข้อผิดพลาด'}</div>`,
+                                    confirmButtonColor: '#ef4444'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'การเชื่อมต่อเซิร์ฟเวอร์ขัดข้อง',
+                                text: err.message,
+                                confirmButtonColor: '#ef4444'
+                            });
+                        });
+                    }
                 });
-            }
-        });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เชื่อมต่อ Token FDH ไม่สำเร็จ',
+                    text: 'เกิดข้อผิดพลาดในการเชื่อมต่อตรวจสอบ Token: ' + err.message,
+                    confirmButtonColor: '#ef4444'
+                });
+            });
     });
 
     // =============================================================
@@ -1412,8 +1712,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const q = $(this).val().toLowerCase().trim();
         $('#hfaTbTableBody tr.hfa-tb-row').each(function() {
             const row = $(this);
-            const code = (row.data('code') || '').toLowerCase();
-            const name = (row.data('name') || '').toLowerCase();
+            const code = String(row.attr('data-code') || row.data('code') || '').toLowerCase();
+            const name = String(row.attr('data-name') || row.data('name') || '').toLowerCase();
             if (!q || code.includes(q) || name.includes(q)) {
                 row.show();
             } else {
@@ -1422,12 +1722,113 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Trial Balance Periods management
+    function populateHfaTbPeriods(selectedPeriod = null) {
+        const fyEl = document.getElementById('hfa_tb_fiscal_year');
+        const periodSelect = document.getElementById('hfa_tb_period');
+        const hintEl = document.getElementById('hfa_tb_fy_hint');
+        if (!fyEl || !periodSelect) return;
+
+        const fy = parseInt(fyEl.value) || 2569;
+        const priorYr = fy - 1;
+        if (hintEl) {
+            hintEl.textContent = `(งวดข้อมูล ต.ค.${priorYr} - ก.ย.${fy})`;
+        }
+
+        const thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const periods = [
+            { inst: 1, m: 10, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 2, m: 11, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 3, m: 12, yr: priorYr, ceYr: priorYr - 543 },
+            { inst: 4, m: 1,  yr: fy,      ceYr: fy - 543 },
+            { inst: 5, m: 2,  yr: fy,      ceYr: fy - 543 },
+            { inst: 6, m: 3,  yr: fy,      ceYr: fy - 543 },
+            { inst: 7, m: 4,  yr: fy,      ceYr: fy - 543 },
+            { inst: 8, m: 5,  yr: fy,      ceYr: fy - 543 },
+            { inst: 9, m: 6,  yr: fy,      ceYr: fy - 543 },
+            { inst: 10, m: 7, yr: fy,      ceYr: fy - 543 },
+            { inst: 11, m: 8, yr: fy,      ceYr: fy - 543 },
+            { inst: 12, m: 9, yr: fy,      ceYr: fy - 543 }
+        ];
+
+        const now = new Date();
+        const curMonth = now.getMonth() + 1;
+        const curInst = (curMonth >= 10) ? (curMonth - 9) : (curMonth + 3);
+        const defaultPeriodCode = `${fy}${String(curInst).padStart(2, '0')}`;
+
+        periodSelect.innerHTML = '';
+        let targetSelected = selectedPeriod || defaultPeriodCode;
+        let foundSelected = false;
+
+        periods.forEach(p => {
+            const pCode = `${fy}${String(p.inst).padStart(2, '0')}`;
+            const opt = document.createElement('option');
+            opt.value = pCode;
+            opt.dataset.month = p.m;
+            opt.dataset.ceYear = p.ceYr;
+            opt.dataset.fiscalYear = fy;
+            opt.dataset.inst = p.inst;
+            opt.textContent = `${pCode} : ${thaiMonthsShort[p.m]}${p.yr}`;
+            if (pCode === targetSelected) {
+                opt.selected = true;
+                foundSelected = true;
+            }
+            periodSelect.appendChild(opt);
+        });
+
+        if (!foundSelected && periodSelect.options.length) {
+            periodSelect.selectedIndex = periodSelect.options.length - 1;
+        }
+
+        onHfaTbPeriodChange();
+    }
+
+    function onHfaTbPeriodChange() {
+        const periodSelect = document.getElementById('hfa_tb_period');
+        if (!periodSelect || !periodSelect.selectedOptions.length) return;
+        const opt = periodSelect.selectedOptions[0];
+        const month = parseInt(opt.dataset.month);
+        const ceYear = parseInt(opt.dataset.ceYear);
+        const padM = String(month).padStart(2, '0');
+        const lastDay = new Date(ceYear, month, 0).getDate();
+
+        $('#hfa_tb_month').val(month);
+
+        const thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const thaiYr = ceYear + 543;
+        const rangeText = `1 ${thaiMonthsShort[month]} ${thaiYr} ถึง ${lastDay} ${thaiMonthsShort[month]} ${thaiYr}`;
+        const rangeLabelEl = document.getElementById('hfa_tb_period_date_range_label');
+        if (rangeLabelEl) {
+            rangeLabelEl.textContent = rangeText;
+        }
+
+        const pCode = periodSelect.value;
+        const monthLabel = `${thaiMonthsShort[month]}${thaiYr}`;
+        const fnPreview = document.getElementById('hfa_tb_export_filename_preview');
+        if (fnPreview && pCode) {
+            fnPreview.textContent = `ข้อมูลการเงิน_งวด_${pCode}_(${monthLabel}).xlsx`;
+        }
+    }
+
+    $('#hfa_tb_fiscal_year').on('change', function() {
+        populateHfaTbPeriods();
+    });
+
+    $('#hfa_tb_period').on('change', function() {
+        onHfaTbPeriodChange();
+    });
+
+    // Populate TB periods on load
+    populateHfaTbPeriods();
+
     // Process HFA Trial Balance
     document.getElementById('btnProcessHfaTb').addEventListener('click', function() {
         const btn = this;
         const fiscalYear = document.getElementById('hfa_tb_fiscal_year').value;
+        const periodSelect = document.getElementById('hfa_tb_period');
+        const periodCode = periodSelect ? periodSelect.value : '';
+        const periodLabel = periodSelect && periodSelect.selectedOptions.length ? periodSelect.selectedOptions[0].text : periodCode;
         const month = document.getElementById('hfa_tb_month').value;
-        const monthName = document.getElementById('hfa_tb_month').options[document.getElementById('hfa_tb_month').selectedIndex].text;
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> กำลังดึงงบ...';
@@ -1442,6 +1843,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 fiscal_year: fiscalYear,
+                period: periodCode,
                 month: month
             })
         })
@@ -1490,12 +1892,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('hfaTbTableBody').innerHTML = rowsHtml;
 
                 const fetchTime = res.fetch_datetime || new Date().toLocaleTimeString('th-TH');
-                document.getElementById('hfaTbStatus').innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> โหลดงบทดลองสำเร็จ:</span> งวด <b>${res.period}</b> (${summary.count} บัญชี) ${summary.is_balanced ? '<span class="badge bg-success ms-1">งบดุล</span>' : '<span class="badge bg-danger ms-1">งบไม่ดุล</span>'}`;
+                document.getElementById('hfaTbStatus').innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> โหลดงบทดลองสำเร็จ:</span> งวด <b>${res.period_code || res.period}</b> (${summary.count} บัญชี) ${summary.is_balanced ? '<span class="badge bg-success ms-1">งบดุล</span>' : '<span class="badge bg-danger ms-1">งบไม่ดุล</span>'}`;
 
                 Swal.fire({
                     icon: summary.is_balanced ? 'success' : 'warning',
                     title: summary.is_balanced ? 'โหลดข้อมูลงบทดลองสำเร็จ' : 'งบทดลองไม่สมดุล',
-                    html: `โหลดข้อมูลงบทดลองงวด <b>${res.period}</b> จำนวน <b>${summary.count}</b> บัญชี<br>ผลต่างเดบิต-เครดิต: <b>${(summary.net_diff || 0).toFixed(2)}</b> บาท`,
+                    html: `โหลดข้อมูลงบทดลอง <b>งวด ${periodLabel}</b> จำนวน <b>${summary.count}</b> บัญชี<br>ผลต่างเดบิต-เครดิต: <b>${(summary.net_diff || 0).toFixed(2)}</b> บาท`,
                     timer: 2000,
                     showConfirmButton: false
                 });
@@ -1504,17 +1906,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('hfaTbStatus').innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> ${res.message || 'ไม่พบข้อมูลงบทดลอง'}`;
                 document.getElementById('hfaTbTableBody').innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-danger">
-                            <i class="bi bi-exclamation-octagon fs-2 d-block mb-2"></i>
-                            ${res.message || 'ไม่พบข้อมูลงบทดลองสำหรับงวดที่เลือก'}
+                        <td colspan="6" class="text-center py-5 text-danger">
+                            <i class="bi bi-exclamation-octagon fs-2 d-block mb-2 text-danger"></i>
+                            <div class="fw-bold fs-6 mb-1">${res.message || 'ไม่พบข้อมูลงบทดลองสำหรับงวดที่เลือก'}</div>
+                            <div class="text-muted small mb-3">กรุณานำเข้าไฟล์บัญชีหน่วยงาน HFO (.zip) หรือไฟล์ Excel งบทดลอง ในระบบ HosFin ก่อน</div>
+                            <a href="{{ url('hosfin/trial_balance') }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> ไปยังหน้านำเข้าข้อมูลบัญชี HFO / งบทดลอง
+                            </a>
                         </td>
                     </tr>
                 `;
                 Swal.fire({
                     icon: 'warning',
                     title: 'ไม่พบข้อมูลงบทดลอง',
-                    text: res.message || 'ไม่พบข้อมูลงบทดลองในงวดที่เลือก กรุณานำเข้างบทดลองในระบบ HosFin ก่อน',
-                    confirmButtonColor: '#1e3a8a'
+                    html: `<div class="text-start small text-muted mb-2">${res.message || 'ไม่พบข้อมูลงบทดลองในงวดที่เลือก'}</div><div class="alert alert-warning text-start small mb-0"><i class="bi bi-info-circle-fill me-1"></i>กรุณานำเข้าไฟล์บัญชีหน่วยงาน <b>HFO (.zip)</b> หรือไฟล์ <b>Excel งบทดลอง</b> ในระบบ HosFin ก่อนจึงจะสามารถส่งออกหรือส่ง API ได้</div>`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#1e3a8a',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="bi bi-box-arrow-up-right me-1"></i> ไปหน้านำเข้า HosFin (HFO)',
+                    cancelButtonText: 'ปิด'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.open('{{ url("hosfin/trial_balance") }}', '_blank');
+                    }
                 });
             }
         })
@@ -1534,16 +1948,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Export HFA Trial Balance Excel
     document.getElementById('btnExportHfaTbExcel').addEventListener('click', function() {
         const fiscalYear = document.getElementById('hfa_tb_fiscal_year').value;
+        const periodSelect = document.getElementById('hfa_tb_period');
+        const periodCode = periodSelect ? periodSelect.value : '';
         const month = document.getElementById('hfa_tb_month').value;
 
-        window.location.href = `{{ url("hosfin/reports/hfa/tb/export") }}?fiscal_year=${fiscalYear}&month=${month}`;
+        window.location.href = `{{ url("hosfin/reports/hfa/tb/export") }}?fiscal_year=${fiscalYear}&period=${periodCode}&month=${month}`;
     });
 
     // Send HFA Trial Balance API
     document.getElementById('btnSendHfaTbApi').addEventListener('click', function() {
         const fiscalYear = document.getElementById('hfa_tb_fiscal_year').value;
+        const periodSelect = document.getElementById('hfa_tb_period');
+        const periodCode = periodSelect ? periodSelect.value : '';
+        const periodLabel = periodSelect && periodSelect.selectedOptions.length ? periodSelect.selectedOptions[0].text : periodCode;
         const month = document.getElementById('hfa_tb_month').value;
-        const monthName = document.getElementById('hfa_tb_month').options[document.getElementById('hfa_tb_month').selectedIndex].text;
 
         if (!window.hfaTbLoadedData || window.hfaTbLoadedData.length === 0) {
             Swal.fire({
@@ -1567,65 +1985,116 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         Swal.fire({
-            title: 'ยืนยันการส่งข้อมูลงบทดลองไปยัง HFA?',
-            html: `ระบบจะทำการส่งข้อมูลงบทดลอง 803 บัญชี<br>ประจำ<b>${monthName} ปีงบประมาณ ${fiscalYear}</b><br><span class="badge bg-success my-2">งบดุลสมบูรณ์ (เดบิต = เครดิต)</span><br><small class="text-muted">ไปยัง Open-API: https://hfa.one.th โดยใช้ FDH MOPH Token</small>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#1e3a8a',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> ยืนยันส่ง API',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังส่งข้อมูลงบทดลอง...',
-                    html: 'ระบบกำลังเตรียมไฟล์ Excel งบทดลองและเชื่อมโยง API HFA กรุณารอสักครู่',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+            title: 'กำลังตรวจสอบสิทธิ์และเชื่อมต่อ Token FDH...',
+            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบขอ Access Token จาก FDH ด้วยบัญชีผู้ใช้งานของท่าน',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
 
-                fetch('{{ url("hosfin/reports/hfa/tb/send_api") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        fiscal_year: fiscalYear,
-                        month: month
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งข้อมูลงบทดลองสำเร็จ',
-                            html: `<div class="alert alert-success mt-2 text-start small mb-0">${res.message || 'ส่งข้อมูลงบทดลองเข้าสู่ระบบ HFA เรียบร้อยแล้ว'}</div>`,
-                            confirmButtonColor: '#1e3a8a'
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ส่งข้อมูลไม่สำเร็จ',
-                            html: `<div class="alert alert-danger mt-2 text-start small mb-0">${res.message || 'เซิร์ฟเวอร์ HFA ปฏิเสธคำขอหรือเกิดข้อผิดพลาด'}</div>`,
-                            confirmButtonColor: '#ef4444'
-                        });
-                    }
-                })
-                .catch(err => {
+        fetch('{{ route("hosfin.reports.hfa.check_token") }}')
+            .then(res => res.json())
+            .then(tokenRes => {
+                if (!tokenRes.has_token) {
+                    const errorMsg = tokenRes.message || 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบ FDH User หรือ Password';
                     Swal.fire({
                         icon: 'error',
-                        title: 'การเชื่อมต่อเซิร์ฟเวอร์ขัดข้อง',
-                        text: err.message,
-                        confirmButtonColor: '#ef4444'
+                        title: 'เชื่อมต่อ Token FDH ไม่สำเร็จ',
+                        html: `
+                            <div class="text-start p-3 bg-light rounded border small">
+                                <p class="text-danger fw-bold mb-2"><i class="bi bi-exclamation-octagon-fill me-1"></i> ข้อผิดพลาด:</p>
+                                <p class="mb-2 text-dark">${errorMsg}</p>
+                                <hr class="my-2">
+                                <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> กรุณาตรวจสอบ <b>FDH User, FDH Pass และ FDH Secret Key</b> ในหน้าแก้ไขข้อมูลส่วนตัว (Profile) ของท่าน</p>
+                            </div>
+                        `,
+                        confirmButtonColor: '#dc3545',
+                        confirmButtonText: 'รับทราบ'
                     });
+                    return;
+                }
+
+                Swal.fire({
+                    title: '<span class="fw-bold">ยืนยันส่งข้อมูลงบทดลองเข้าสู่ HFA ผ่าน API?</span>',
+                    html: `
+                        <div class="p-3 bg-light rounded border text-start">
+                            <div class="mb-2"><strong>ประเภทข้อมูล:</strong> <span class="badge text-white" style="background-color: #1e3a8a;">งบทดลอง 803 บัญชี</span> <span class="badge bg-success ms-1"><i class="bi bi-check-circle me-1"></i>งบดุลสมบูรณ์</span></div>
+                            <div class="mb-2"><strong>งวดที่ต้องการส่ง:</strong> <span class="badge bg-primary fs-6">${periodLabel}</span></div>
+                            <hr class="my-2">
+                            <div class="mb-1"><strong>ผู้ส่งข้อมูล:</strong> <span class="text-dark fw-bold">${tokenRes.user_name || 'ผู้ใช้งาน'}</span></div>
+                            <div class="mb-2"><strong>FDH User:</strong> <span class="text-primary fw-bold font-monospace">${tokenRes.fdh_user || '-'}</span></div>
+                            <div class="text-success small pt-1 border-top">
+                                <i class="bi bi-shield-check me-1"></i> ตรวจสอบ Token FDH ผ่านแล้ว พร้อมส่งข้อมูลไปยัง https://hfa.one.th
+                            </div>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#1e3a8a',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> 🚀 ยืนยันส่ง API ทันที',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'กำลังส่งข้อมูลงบทดลอง...',
+                            html: 'ระบบกำลังเตรียมไฟล์ Excel งบทดลองและเชื่อมโยง API HFA กรุณารอสักครู่',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        fetch('{{ url("hosfin/reports/hfa/tb/send_api") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                fiscal_year: fiscalYear,
+                                period: periodCode,
+                                month: month,
+                                token: tokenRes.token
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(res => {
+                            if (res.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'ส่งข้อมูลงบทดลองสำเร็จ',
+                                    html: `<div class="alert alert-success mt-2 text-start small mb-0">${res.message || 'ส่งข้อมูลงบทดลองเข้าสู่ระบบ HFA เรียบร้อยแล้ว'}</div>`,
+                                    confirmButtonColor: '#1e3a8a'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'ส่งข้อมูลไม่สำเร็จ',
+                                    html: `<div class="alert alert-danger mt-2 text-start small mb-0">${res.message || 'เซิร์ฟเวอร์ HFA ปฏิเสธคำขอหรือเกิดข้อผิดพลาด'}</div>`,
+                                    confirmButtonColor: '#ef4444'
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'การเชื่อมต่อเซิร์ฟเวอร์ขัดข้อง',
+                                text: err.message,
+                                confirmButtonColor: '#ef4444'
+                            });
+                        });
+                    }
                 });
-            }
-        });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เชื่อมต่อ Token FDH ไม่สำเร็จ',
+                    text: 'เกิดข้อผิดพลาดในการเชื่อมต่อตรวจสอบ Token: ' + err.message,
+                    confirmButtonColor: '#ef4444'
+                });
+            });
     });
 });
 </script>

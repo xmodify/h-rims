@@ -1374,18 +1374,18 @@
                     const btnDownload = document.getElementById('btn-download-aipn');
                     const isAipnLicensed = @json($is_aipn_licensed);
 
-                    if (errorCount > 0) {
-                        btnDownload.disabled = true;
-                        btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> มีข้อผิดพลาด Pre-Audit (${errorCount} เคส)`;
-                        btnDownload.className = 'btn btn-danger px-4';
-                    } else if (!isAipnLicensed) {
+                    if (!isAipnLicensed) {
                         btnDownload.disabled = false;
                         btnDownload.innerHTML = `<i class="bi bi-lock-fill me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
                         btnDownload.className = 'btn btn-outline-danger px-4 fw-bold';
+                    } else if (errorCount > 0) {
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip) (พบ ${errorCount} ข้อผิดพลาด)`;
+                        btnDownload.className = 'btn btn-warning text-dark fw-bold px-4 shadow-sm';
                     } else {
                         btnDownload.disabled = false;
                         btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
-                        btnDownload.className = 'btn btn-success px-4';
+                        btnDownload.className = 'btn btn-success px-4 shadow-sm';
                     }
                 } else {
                     Swal.fire({

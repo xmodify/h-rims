@@ -1680,10 +1680,14 @@ class SssExportController extends Controller
             ->leftJoin('ward as w', 'w.ward', '=', 'a.ward')
             ->leftJoin('spclty as sp', 'sp.spclty', '=', 'a.spclty')
             ->leftJoin('doctor as doc', 'doc.code', '=', 'a.dx_doctor')
+            ->leftJoin('iptdiag as id', function($join) {
+                $join->on('id.an', '=', 'a.an')->where('id.diagtype', '=', 1);
+            })
             ->select('a.an', 'a.hn', 'pt.pname', 'pt.fname', 'pt.lname', 'pt.cid', 'pt.birthday', 'pt.sex', 'pt.marrystatus as marry_status', 'pt.nationality',
                      'i.regdate', 'i.regtime', 'i.dchdate', 'i.dchtime', 'i.dchstts as dch_status', 'i.dchtype as dch_type',
                      'i.bw as weight', 'w.name as ward_name', 'sp.name as spclty_name', 'doc.name as doctor_name',
                      'p.name as pttype_name', 'a.pdx', 'a.income', 'a.rcpt_money',
+                     DB::raw("IF(id.an IS NOT NULL, 'Y', 'N') as dch_sum"),
                      DB::raw("COALESCE(NULLIF(ip.auth_code, ''), NULLIF(vp.auth_code, '')) as auth_code"))
             ->where('a.an', $an)
             ->first();

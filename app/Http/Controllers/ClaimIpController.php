@@ -2694,12 +2694,18 @@ class ClaimIpController extends Controller
 
             // 3. Lab Catalog Check
             $opd_items = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income
+                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
                 FROM opitemrece o
                 WHERE o.an = ? AND o.income IN ('06', '07')
             ", [$row->an]);
             if (!empty($opd_items)) {
                 foreach ($opd_items as $item) {
+                    $qty = (float)$item->qty;
+                    $unitprice = (float)$item->unitprice;
+                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
+                    if ($charge_amt <= 0 || $qty <= 0) {
+                        continue;
+                    }
                     $lab = DB::table('labcat_chi')
                         ->where('lccode', $item->icode)
                         ->orWhere('cscode', $item->icode)
@@ -2716,12 +2722,18 @@ class ClaimIpController extends Controller
 
             // 4. Drug Catalog Check
             $opd_drugs = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income
+                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
                 FROM opitemrece o
                 WHERE o.an = ? AND o.income IN ('03', '04')
             ", [$row->an]);
             if (!empty($opd_drugs)) {
                 foreach ($opd_drugs as $item) {
+                    $qty = (float)$item->qty;
+                    $unitprice = (float)$item->unitprice;
+                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
+                    if ($charge_amt <= 0 || $qty <= 0) {
+                        continue;
+                    }
                     $drug = DB::table('drugcat_chi')
                         ->where('hospdrugcode', $item->icode)
                         ->first();
@@ -2729,7 +2741,9 @@ class ClaimIpController extends Controller
                         $c_errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
                     } else {
                         if (empty($drug->tmtid)) {
-                            $c_errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                            if ((int)$drug->productcat < 3) {
+                                $c_errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
+                            }
                         }
                     }
                 }

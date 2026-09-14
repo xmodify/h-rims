@@ -466,12 +466,29 @@ class HfaReportController extends Controller
         } else {
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('NewTemp');
+            $sheet->setCellValue('B1', 'RawServ (ตารางข้อมูลบริการ)');
+            $sheet->setCellValue('B2', 'Code_SerV');
+            $sheet->setCellValue('C2', 'SerV_Type');
+            $sheet->setCellValue('D2', 'Item');
+            $sheet->setCellValue('E2', 'Rights');
+            $sheet->setCellValue('F2', 'Amount');
+
             $defs = self::getServiceDefinitions();
             $r = 3;
             foreach ($defs as $code => $def) {
                 $val = floatval(str_replace(',', '', $items[$code] ?? 0));
                 $sheet->setCellValue('B' . $r, $code);
-                $sheet->setCellValue('F' . $r, $val);
+                $sheet->setCellValue('C' . $r, $def['type']);
+                $sheet->setCellValue('D' . $r, $def['item']);
+                $sheet->setCellValue('E' . $r, $def['rights']);
+                if (str_starts_with($code, 'IPS')) {
+                    $sheet->setCellValue('F' . $r, $val);
+                    $sheet->getStyle('F' . $r)->getNumberFormat()->setFormatCode('#,##0.0000');
+                } else {
+                    $sheet->setCellValue('F' . $r, intval($val));
+                    $sheet->getStyle('F' . $r)->getNumberFormat()->setFormatCode('#,##0');
+                }
                 $r++;
             }
         }
@@ -690,7 +707,7 @@ class HfaReportController extends Controller
         } else {
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('TrialBalance');
+            $sheet->setTitle('Sheet1');
             $sheet->setCellValue('A1', 'รหัสบัญชี');
             $sheet->setCellValue('B1', 'ชื่อบัญชี');
             $sheet->setCellValue('C1', 'ยอดยกมา');
@@ -806,7 +823,7 @@ class HfaReportController extends Controller
         } else {
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('TrialBalance');
+            $sheet->setTitle('Sheet1');
             $sheet->setCellValue('A1', 'รหัสบัญชี');
             $sheet->setCellValue('B1', 'ชื่อบัญชี');
             $sheet->setCellValue('C1', 'ยอดยกมา');

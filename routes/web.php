@@ -671,6 +671,11 @@ Route::middleware(['auth', 'rims_license:hosfin'])->group(function () {
     Route::post('hosfin/planfin/save_target', [App\Http\Controllers\HosFinController::class, 'savePlanfinTarget'])->name('hosfin.planfin.save_target');
     Route::get('hosfin/planfin/mappings', [App\Http\Controllers\HosFinController::class, 'getPlanfinMappings'])->name('hosfin.planfin.mappings');
     Route::get('hosfin/planfin/export_excel', [App\Http\Controllers\HosFinController::class, 'exportPlanfinExcel'])->name('hosfin.planfin.export_excel');
+
+    // Reports Hub & Service Data Routes
+    Route::get('hosfin/reports', [App\Http\Controllers\HosFinReportController::class, 'index'])->name('hosfin.reports');
+    Route::post('hosfin/reports/process_service_data', [App\Http\Controllers\HosFinReportController::class, 'processServiceData'])->name('hosfin.reports.process_service_data');
+    Route::get('hosfin/reports/export_excel', [App\Http\Controllers\HosFinReportController::class, 'exportExcel'])->name('hosfin.reports.export_excel');
 });
 
 

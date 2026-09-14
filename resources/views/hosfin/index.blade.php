@@ -326,6 +326,12 @@
                            title="ระบบบริหารและติดตามแผนเงินบำรุง (PlanFin)">
                             <i class="bi bi-graph-up-arrow"></i> PlanFin
                         </a>
+
+                        <a href="{{ url('hosfin/reports') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
+                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #8b5cf6; color: #7c3aed; transition: all 0.25s ease;"
+                           title="ศูนย์รวมรายงานการเงินและข้อมูลบริการ (Reports Hub)">
+                            <i class="bi bi-file-earmark-bar-graph"></i> รายงาน
+                        </a>
                     </div>
                 </div>
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Models\HosfinGlAccount;
 use App\Models\HosfinGlJournal;
 use App\Models\HosfinGlJournalItem;
@@ -157,6 +158,13 @@ class HosfinGlSyncController extends Controller
         $journals = $request->input('journals', []);
 
         $recordsCount = count($accounts) + count($subledgers) + count($journals);
+        $currentHospcode = $this->getCurrentHospcode();
+
+        // 0. Manage sync session cache for voucher tracking
+        $cacheKey = "hosfin_gl_sync_vouchers_{$currentHospcode}";
+        if ($syncType === 'metadata') {
+            Cache::put($cacheKey, [], now()->addMinutes(30));
+        }
 
         DB::beginTransaction();
         try {
@@ -295,10 +303,36 @@ class HosfinGlSyncController extends Controller
                         }
                     }
                 }
+
+                // Collect received voucher_nos into session cache
+                $chunkVouchers = [];
+                foreach ($journals as $j) {
+                    $vNo = trim($j['voucher_no'] ?? '');
+                    if ($vNo !== '') {
+                        $chunkVouchers[] = $vNo;
+                    }
+                }
+                if (!empty($chunkVouchers)) {
+                    $cached = Cache::get($cacheKey, []);
+                    $merged = array_unique(array_merge($cached, $chunkVouchers));
+                    Cache::put($cacheKey, $merged, now()->addMinutes(30));
+                }
             }
 
             // 4. Automatic Recalculations & Pre-aggregations (run on finalize, full, or when not chunk)
+            $prunedCount = 0;
             if ($syncType === 'finalize' || $syncType === 'full') {
+                // Auto-Prune: Remove orphaned journals deleted in Access GL
+                $activeVouchers = $request->input('active_vouchers', []);
+                if (empty($activeVouchers)) {
+                    $activeVouchers = Cache::get($cacheKey, []);
+                }
+
+                if (!empty($activeVouchers) && count($activeVouchers) >= 10) {
+                    $prunedCount = $this->pruneOrphanedJournals($activeVouchers);
+                    Cache::forget($cacheKey);
+                }
+
                 $this->recalculateSummaries();
             }
 
@@ -306,12 +340,13 @@ class HosfinGlSyncController extends Controller
 
             $duration = round(microtime(true) - $startTime, 2);
 
+            $prunedNote = $prunedCount > 0 ? " [Auto-pruned {$prunedCount} deleted vouchers]" : "";
             // Log success
             HosfinGlSyncLog::create([
                 'sync_type'        => $syncType,
                 'records_count'    => $recordsCount,
                 'status'           => 'success',
-                'message'          => "Synced successfully: $recordsCount records processed.",
+                'message'          => "Synced successfully: $recordsCount records processed.{$prunedNote}",
                 'agent_ip'         => $agentIp,
                 'agent_version'    => $agentVersion,
                 'duration_seconds' => $duration,
@@ -319,8 +354,9 @@ class HosfinGlSyncController extends Controller
 
             return response()->json([
                 'success'         => true,
-                'message'         => 'GL Data Synced Successfully',
+                'message'         => "GL Data Synced Successfully{$prunedNote}",
                 'records_count'   => $recordsCount,
+                'pruned_count'    => $prunedCount,
                 'duration_seconds'=> $duration,
             ]);
 
@@ -345,6 +381,48 @@ class HosfinGlSyncController extends Controller
                 'message' => 'Failed to sync GL data: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Auto-Prune orphaned journals that no longer exist in Access GL
+     *
+     * @param array $activeVouchers List of active voucher_no strings from the latest sync
+     * @return int Number of pruned journals
+     */
+    protected function pruneOrphanedJournals(array $activeVouchers): int
+    {
+        if (empty($activeVouchers) || count($activeVouchers) < 10) {
+            return 0;
+        }
+
+        $activeMap = array_flip($activeVouchers);
+
+        $existing = DB::table('hosfin_gl_journals')
+            ->where('voucher_no', 'like', 'GL-%')
+            ->select('id', 'voucher_no')
+            ->get();
+
+        $orphanIds = [];
+        $orphanVoucherNos = [];
+
+        foreach ($existing as $row) {
+            if (!isset($activeMap[$row->voucher_no])) {
+                $orphanIds[] = $row->id;
+                $orphanVoucherNos[] = $row->voucher_no;
+            }
+        }
+
+        $count = count($orphanIds);
+        if ($count > 0) {
+            Log::warning("HosfinGlSync: Auto-pruning {$count} orphaned journals deleted in Access GL. Samples: " . implode(', ', array_slice($orphanVoucherNos, 0, 20)));
+
+            foreach (array_chunk($orphanIds, 500) as $chunkIds) {
+                DB::table('hosfin_gl_journal_items')->whereIn('journal_id', $chunkIds)->delete();
+                DB::table('hosfin_gl_journals')->whereIn('id', $chunkIds)->delete();
+            }
+        }
+
+        return $count;
     }
 
     /**

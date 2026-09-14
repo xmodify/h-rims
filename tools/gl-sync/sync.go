@@ -55,9 +55,10 @@ type SyncRequest struct {
 	SyncType     string               `json:"sync_type"`
 	AgentVersion string               `json:"agent_version"`
 	Hospcode     string               `json:"hospcode,omitempty"`
-	Accounts     []AccountPayload     `json:"accounts,omitempty"`
-	Subledgers   []SubledgerPayload   `json:"subledgers,omitempty"`
-	Journals     []JournalPayload     `json:"journals,omitempty"`
+	Accounts       []AccountPayload     `json:"accounts,omitempty"`
+	Subledgers     []SubledgerPayload   `json:"subledgers,omitempty"`
+	Journals       []JournalPayload     `json:"journals,omitempty"`
+	ActiveVouchers []string             `json:"active_vouchers,omitempty"`
 }
 
 func extractHospcode(token string) string {
@@ -477,9 +478,10 @@ func runSyncJob(cfg *Config, logFn func(level, msg string)) error {
 	// 4. Finalize
 	logFn("INFO", "กำลังประมวลผลคำนวณยอดสรุปหนี้สิน AP, ลูกหนี้ AR และต้นทุนบน Server...")
 	finalizeReq := &SyncRequest{
-		SyncType:     "finalize",
-		AgentVersion: "2.0.0",
-		Hospcode:     extractHospcode(cfg.ApiToken),
+		SyncType:       "finalize",
+		AgentVersion:   "2.1.0",
+		Hospcode:       extractHospcode(cfg.ApiToken),
+		ActiveVouchers: journalOrder,
 	}
 	finResp, err := postToAPI(cfg.ApiUrl, cfg.ApiToken, finalizeReq)
 	if err != nil {

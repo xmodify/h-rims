@@ -397,17 +397,23 @@
                 <div class="col-md-3 col-sm-6 col-12">
                     <div class="planfin-card p-3 h-100" style="border-top: 4px solid #10b981 !important;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">รวมรายได้จริงสะสม (P13S)</span>
+                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">
+                                รวมรายได้จริงสะสม (P13S)
+                            </span>
                             <i class="bi bi-wallet2 text-success fs-5"></i>
                         </div>
                         <h4 class="mb-1 fw-black text-dark" style="font-size: 1.35rem;">
                             {{ number_format($kpiActualRevenue, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                         </h4>
                         <div class="d-flex justify-content-between small text-muted" style="font-size: 0.74rem;">
-                            <span>แผนสะสม: {{ number_format($kpiPlanRevenue, 2) }}</span>
+                            <span>แผนสะสม ({{ $cumMonths }} ด.): {{ number_format($kpiPlanRevenue, 2) }}</span>
                             <span class="{{ $kpiActualRevenue >= $kpiPlanRevenue ? 'text-success fw-bold' : 'text-danger fw-bold' }}">
                                 {{ $kpiPlanRevenue > 0 ? number_format((($kpiActualRevenue - $kpiPlanRevenue) / $kpiPlanRevenue) * 100, 2) : 0 }}%
                             </span>
+                        </div>
+                        <div class="mt-1 pt-1 border-top d-flex justify-content-between align-items-center" style="font-size: 0.70rem; border-color: #f1f5f9 !important;">
+                            <span class="text-secondary"><i class="bi bi-calendar-range text-success me-1"></i>สะสม: ต.ค. - {{ explode(' ', $selectedPeriodLabel)[0] }}</span>
+                            <span class="badge bg-light text-secondary border px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $cumMonths }} เดือน</span>
                         </div>
                     </div>
                 </div>
@@ -416,17 +422,23 @@
                 <div class="col-md-3 col-sm-6 col-12">
                     <div class="planfin-card p-3 h-100" style="border-top: 4px solid #ef4444 !important;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">รวมค่าใช้จ่ายจริงสะสม (P26S)</span>
+                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">
+                                รวมค่าใช้จ่ายจริงสะสม (P26S)
+                            </span>
                             <i class="bi bi-receipt text-danger fs-5"></i>
                         </div>
                         <h4 class="mb-1 fw-black text-dark" style="font-size: 1.35rem;">
                             {{ number_format($kpiActualExpense, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                         </h4>
                         <div class="d-flex justify-content-between small text-muted" style="font-size: 0.74rem;">
-                            <span>แผนสะสม: {{ number_format($kpiPlanExpense, 2) }}</span>
+                            <span>แผนสะสม ({{ $cumMonths }} ด.): {{ number_format($kpiPlanExpense, 2) }}</span>
                             <span class="{{ $kpiActualExpense <= $kpiPlanExpense ? 'text-success fw-bold' : 'text-danger fw-bold' }}">
                                 {{ $kpiPlanExpense > 0 ? number_format((($kpiActualExpense - $kpiPlanExpense) / $kpiPlanExpense) * 100, 2) : 0 }}%
                             </span>
+                        </div>
+                        <div class="mt-1 pt-1 border-top d-flex justify-content-between align-items-center" style="font-size: 0.70rem; border-color: #f1f5f9 !important;">
+                            <span class="text-secondary"><i class="bi bi-calendar-range text-danger me-1"></i>สะสม: ต.ค. - {{ explode(' ', $selectedPeriodLabel)[0] }}</span>
+                            <span class="badge bg-light text-secondary border px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $cumMonths }} เดือน</span>
                         </div>
                     </div>
                 </div>
@@ -435,16 +447,17 @@
                 <div class="col-md-3 col-sm-6 col-12">
                     <div class="planfin-card p-3 h-100" style="border-top: 4px solid {{ $kpiActualNetIncome >= 0 ? '#10b981' : '#f59e0b' }} !important;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">รายได้สูง (ต่ำ) กว่าค่าใช้จ่ายสุทธิ (P27S)</span>
+                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">รายได้สูง(ต่ำ)กว่าจ่ายสุทธิสะสม (P27S)</span>
                             <i class="bi bi-bar-chart-fill {{ $kpiActualNetIncome >= 0 ? 'text-success' : 'text-warning' }} fs-5"></i>
                         </div>
                         <h4 class="mb-1 fw-black {{ $kpiActualNetIncome >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.35rem;">
                             {{ $kpiActualNetIncome >= 0 ? '+' : '' }}{{ number_format($kpiActualNetIncome, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                         </h4>
-                        <div class="small" style="font-size: 0.74rem;">
+                        <div class="d-flex justify-content-between align-items-center small" style="font-size: 0.74rem;">
                             <span class="badge {{ $kpiActualNetIncome >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} rounded-pill px-2">
-                                {{ $kpiActualNetIncome >= 0 ? 'เกินดุล' : 'ขาดดุล' }}
+                                {{ $kpiActualNetIncome >= 0 ? 'เกินดุลสะสม' : 'ขาดดุลสะสม' }}
                             </span>
+                            <span class="text-muted" style="font-size: 0.70rem;">ถึง {{ explode(' ', $selectedPeriodLabel)[0] }}</span>
                         </div>
                     </div>
                 </div>
@@ -453,14 +466,14 @@
                 <div class="col-md-3 col-sm-6 col-12">
                     <div class="planfin-card p-3 h-100" style="border-top: 4px solid #6366f1 !important;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">EBITDA (P29)</span>
+                            <span class="small text-muted fw-bold" style="font-size: 0.78rem;">EBITDA สะสม (P29)</span>
                             <i class="bi bi-shield-check text-primary fs-5" style="color: #6366f1 !important;"></i>
                         </div>
                         <h4 class="mb-1 fw-black text-primary" style="font-size: 1.35rem; color: #4f46e5 !important;">
                             {{ number_format($kpiActualEBITDA, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                         </h4>
                         <div class="small text-muted" style="font-size: 0.74rem;">
-                            วงเงินที่ลงทุนด้วยเงินบำรุงได้ (20%): <strong class="text-dark">{{ number_format($kpiCapInvestment, 2) }}</strong> บ.
+                            วงเงินลงทุนบำรุงได้ (20%): <strong class="text-dark">{{ number_format($kpiCapInvestment, 2) }}</strong> บ.
                         </div>
                     </div>
                 </div>
@@ -667,24 +680,28 @@
                                                             </span>
                                                         </td>
                                                         <td class="text-center text-nowrap">
-                                                            @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
-                                                                <div class="d-inline-flex align-items-center gap-1">
+                                                            <div class="d-inline-flex align-items-center gap-1">
+                                                                @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
                                                                     <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
                                                                             onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
                                                                             title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดใช้จริง HOSxP และปริมาณคนไข้"
                                                                             style="font-size: 0.72rem;">
                                                                         <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
                                                                     </button>
-                                                                    <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
-                                                                            onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
-                                                                            title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
-                                                                            style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
-                                                                        <span style="font-size: 0.75rem;">🤖</span>
-                                                                    </button>
-                                                                </div>
-                                                            @else
-                                                                <span class="text-muted" style="font-size: 0.72rem;">-</span>
-                                                            @endif
+                                                                @endif
+                                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs"
+                                                                        onclick="openMatrixCategoryTrend('{{ $code }}')"
+                                                                        title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของหมวด {{ $code }}"
+                                                                        style="font-size: 0.72rem;">
+                                                                    <i class="bi bi-graph-up text-primary"></i>
+                                                                </button>
+                                                                <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                        onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}', 'tracking')"
+                                                                        title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
+                                                                        style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                                    <span style="font-size: 0.75rem;">🤖</span>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     @endif
                                                 </tr>
@@ -692,8 +709,8 @@
                                                 @if($hasSubs)
                                                     @foreach($subAccountsByPlan[$code] as $sub)
                                                         @php
-                                                            $share = ($r['actual_cum'] != 0) ? ($sub['actual_cum'] / $r['actual_cum']) * 100 : 0;
-                                                            $hasPlan = ($sub['plan_annual'] ?? 0) != 0;
+                                                             $share = ($r['actual_cum'] != 0) ? ($sub['actual_cum'] / $r['actual_cum']) * 100 : 0;
+                                                             $hasPlan = ($sub['plan_annual'] ?? 0) != 0;
                                                         @endphp
                                                         <tr class="sub-row-t1 t1_{{ $code }} d-none">
                                                             <td class="text-center font-monospace text-muted ps-2" style="font-size: 0.76rem;">
@@ -734,6 +751,14 @@
                                                                     <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
                                                                 @endif
                                                             </td>
+                                                            <td class="text-center text-nowrap">
+                                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs" 
+                                                                        onclick="openMatrixSubTrend('{{ $sub['account_code'] }}')" 
+                                                                        title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของรหัส {{ $sub['account_code'] }}"
+                                                                        style="font-size: 0.70rem;">
+                                                                    <i class="bi bi-graph-up text-primary me-0.5"></i> <span style="font-size: 0.68rem;">แนวโน้ม</span>
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     @endforeach
                                                 @endif
@@ -753,14 +778,17 @@
                                     <div class="col-md-3 col-sm-6 col-12">
                                         <div class="planfin-card h-100 shadow-xs" style="padding: 18px 22px !important; border-top: 4px solid #10b981 !important; border-radius: 14px;">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small text-muted fw-bold" style="font-size: 0.78rem;">รายได้ประจำเดือน (P13S)</span>
+                                                <span class="small text-muted fw-bold d-flex align-items-center flex-wrap gap-1" style="font-size: 0.78rem;">
+                                                    รายได้ (P13S)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $selectedPeriodLabel }}</span>
+                                                </span>
                                                 <i class="bi bi-wallet2 text-success fs-5"></i>
                                             </div>
                                             <h4 class="mb-2 fw-black text-dark" style="font-size: 1.30rem;">
                                                 {{ number_format($kpiMonthActualRev, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                                             </h4>
                                             <div class="d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.74rem;">
-                                                <span>แผนเดือน: {{ number_format($kpiMonthPlanRev, 2) }}</span>
+                                                <span>แผนเดือนนี้: {{ number_format($kpiMonthPlanRev, 2) }}</span>
                                                 <span class="{{ $kpiMonthActualRev >= $kpiMonthPlanRev ? 'text-success fw-bold' : 'text-danger fw-bold' }}">
                                                     {{ $kpiMonthPlanRev > 0 ? (($kpiMonthActualRev >= $kpiMonthPlanRev ? '+' : '') . number_format((($kpiMonthActualRev - $kpiMonthPlanRev) / $kpiMonthPlanRev) * 100, 2) . '%') : '0%' }}
                                                 </span>
@@ -772,14 +800,17 @@
                                     <div class="col-md-3 col-sm-6 col-12">
                                         <div class="planfin-card h-100 shadow-xs" style="padding: 18px 22px !important; border-top: 4px solid #ef4444 !important; border-radius: 14px;">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small text-muted fw-bold" style="font-size: 0.78rem;">ค่าใช้จ่ายประจำเดือน (P26S)</span>
+                                                <span class="small text-muted fw-bold d-flex align-items-center flex-wrap gap-1" style="font-size: 0.78rem;">
+                                                    ค่าใช้จ่าย (P26S)
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $selectedPeriodLabel }}</span>
+                                                </span>
                                                 <i class="bi bi-receipt text-danger fs-5"></i>
                                             </div>
                                             <h4 class="mb-2 fw-black text-dark" style="font-size: 1.30rem;">
                                                 {{ number_format($kpiMonthActualExp, 2) }} <span class="small text-muted fw-normal" style="font-size: 0.75rem;">บาท</span>
                                             </h4>
                                             <div class="d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.74rem;">
-                                                <span>แผนเดือน: {{ number_format($kpiMonthPlanExp, 2) }}</span>
+                                                <span>แผนเดือนนี้: {{ number_format($kpiMonthPlanExp, 2) }}</span>
                                                 <span class="{{ $kpiMonthActualExp <= $kpiMonthPlanExp ? 'text-success fw-bold' : 'text-danger fw-bold' }}">
                                                     {{ $kpiMonthPlanExp > 0 ? (($kpiMonthActualExp > $kpiMonthPlanExp ? '+' : '') . number_format((($kpiMonthActualExp - $kpiMonthPlanExp) / $kpiMonthPlanExp) * 100, 2) . '%') : '0%' }}
                                                 </span>
@@ -791,7 +822,10 @@
                                     <div class="col-md-3 col-sm-6 col-12">
                                         <div class="planfin-card h-100 shadow-xs" style="padding: 18px 22px !important; border-top: 4px solid {{ $kpiMonthActualNet >= 0 ? '#10b981' : '#ef4444' }} !important; border-radius: 14px;">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small text-muted fw-bold" style="font-size: 0.78rem;">สุทธิประจำเดือน (P27S)</span>
+                                                <span class="small text-muted fw-bold d-flex align-items-center flex-wrap gap-1" style="font-size: 0.78rem;">
+                                                    สุทธิ (P27S)
+                                                    <span class="badge bg-primary-subtle text-primary border rounded-pill px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $selectedPeriodLabel }}</span>
+                                                </span>
                                                 <i class="bi bi-bar-chart-fill {{ $kpiMonthActualNet >= 0 ? 'text-success' : 'text-danger' }} fs-5"></i>
                                             </div>
                                             <h4 class="mb-2 fw-black {{ $kpiMonthActualNet >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.30rem;">
@@ -801,7 +835,7 @@
                                                 <span class="badge {{ $kpiMonthActualNet >= 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' }} rounded-pill px-2.5 py-0.5">
                                                     {{ $kpiMonthActualNet >= 0 ? '✓ เกินดุล' : '⚠ ขาดดุล' }}
                                                 </span>
-                                                <span class="text-muted">ผลดำเนินงานเดือนนี้</span>
+                                                <span class="text-muted">ผลงานงวด {{ explode(' ', $selectedPeriodLabel)[0] }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -810,7 +844,10 @@
                                     <div class="col-md-3 col-sm-6 col-12">
                                         <div class="planfin-card h-100 shadow-xs" style="padding: 18px 22px !important; border-top: 4px solid #6366f1 !important; border-radius: 14px;">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small text-muted fw-bold" style="font-size: 0.78rem;">EBITDA ประจำเดือน (P29)</span>
+                                                <span class="small text-muted fw-bold d-flex align-items-center flex-wrap gap-1" style="font-size: 0.78rem;">
+                                                    EBITDA (P29)
+                                                    <span class="badge bg-indigo-subtle text-indigo border rounded-pill px-1.5 py-0.5" style="font-size: 0.68rem;">{{ $selectedPeriodLabel }}</span>
+                                                </span>
                                                 <i class="bi bi-shield-check text-primary fs-5" style="color: #6366f1 !important;"></i>
                                             </div>
                                             <h4 class="mb-2 fw-black text-primary" style="font-size: 1.30rem; color: #4f46e5 !important;">
@@ -942,24 +979,28 @@
                                                             </span>
                                                         </td>
                                                         <td class="text-center text-nowrap">
-                                                            @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
-                                                                <div class="d-inline-flex align-items-center gap-1">
+                                                            <div class="d-inline-flex align-items-center gap-1">
+                                                                @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
                                                                     <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
                                                                             onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
                                                                             title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดใช้จริง HOSxP และปริมาณคนไข้"
                                                                             style="font-size: 0.72rem;">
                                                                         <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
                                                                     </button>
-                                                                    <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
-                                                                            onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
-                                                                            title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
-                                                                            style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
-                                                                        <span style="font-size: 0.75rem;">🤖</span>
-                                                                    </button>
-                                                                </div>
-                                                            @else
-                                                                <span class="text-muted" style="font-size: 0.72rem;">-</span>
-                                                            @endif
+                                                                @endif
+                                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs"
+                                                                        onclick="openMatrixCategoryTrend('{{ $code }}')"
+                                                                        title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของหมวด {{ $code }}"
+                                                                        style="font-size: 0.72rem;">
+                                                                    <i class="bi bi-graph-up text-primary"></i>
+                                                                </button>
+                                                                <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                        onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}', 'tracking')"
+                                                                        title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
+                                                                        style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                                    <span style="font-size: 0.75rem;">🤖</span>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     @endif
                                                 </tr>
@@ -1009,6 +1050,14 @@
                                                                 @else
                                                                     <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">ย่อย</span>
                                                                 @endif
+                                                            </td>
+                                                            <td class="text-center text-nowrap">
+                                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs" 
+                                                                        onclick="openMatrixSubTrend('{{ $sub['account_code'] }}')" 
+                                                                        title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของรหัส {{ $sub['account_code'] }}"
+                                                                        style="font-size: 0.70rem;">
+                                                                    <i class="bi bi-graph-up text-primary me-0.5"></i> <span style="font-size: 0.68rem;">แนวโน้ม</span>
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -1274,12 +1323,13 @@
                                     <tr class="text-center">
                                         <th style="width: 115px; min-width: 110px;">รหัสรายการ</th>
                                         <th class="text-start">รายการ</th>
-                                        <th class="text-end" style="width: 130px;">แผนทั้งปี {{ $budgetYear }}</th>
-                                        <th class="text-end" style="width: 135px;">แผนสะสม ({{ $baseMonths }} ด.)</th>
-                                        <th class="text-end" style="width: 135px;">ผลการดำเนินงาน ({{ $baseMonths }} ด.)</th>
-                                        <th class="text-end" style="width: 140px;">ประมาณการ ผลดำเนินงานทั้งปี</th>
-                                        <th class="text-center" style="width: 100px;">% เติบโต</th>
-                                        <th class="text-end" style="width: 185px; min-width: 175px; background-color: #f3f0ff;">แผนประมาณการ ปี {{ $targetSimYear }}</th>
+                                        <th class="text-end" style="width: 125px;">แผนทั้งปี {{ $budgetYear }}</th>
+                                        <th class="text-end" style="width: 125px;">แผนสะสม ({{ $baseMonths }} ด.)</th>
+                                        <th class="text-end" style="width: 125px;">ผลการดำเนินงาน ({{ $baseMonths }} ด.)</th>
+                                        <th class="text-end" style="width: 135px;">ประมาณการ ผลดำเนินงานทั้งปี</th>
+                                        <th class="text-center" style="width: 95px;">% เติบโต</th>
+                                        <th class="text-end" style="width: 175px; min-width: 165px; background-color: #f3f0ff;">แผนประมาณการ ปี {{ $targetSimYear }}</th>
+                                        <th class="text-center" style="width: 115px; min-width: 105px;">วิเคราะห์ / ย้อนหลัง</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1295,12 +1345,6 @@
                                             elseif ($r['type'] === 'revenue') $rowClass = 'row-revenue';
                                             elseif ($r['type'] === 'expense') $rowClass = 'row-expense';
                                         @endphp
-
-                                        
-
-                                        
-
-                                        
 
                                         <tr class="{{ $rowClass }}" data-code="{{ $code }}" data-type="{{ $r['type'] }}" data-base="{{ $r['y_base_est'] }}">
                                             <td class="text-center text-nowrap">
@@ -1346,13 +1390,37 @@
 
                                             @if($isCalculated)
                                                 @if($code === 'P28')
-                                                    <td colspan="2" class="text-center fw-bold py-2" id="simStatusBadge">
+                                                    <td colspan="3" class="text-center fw-bold py-2" id="simStatusBadge">
                                                         🟢 เกินดุล
                                                     </td>
                                                 @else
                                                     <td class="text-center text-muted">-</td>
                                                     <td class="text-end font-monospace fw-bold fs-6 pe-3" id="cell_{{ $code }}">
                                                         {{ number_format($r['target_sim'], 2) }}
+                                                    </td>
+                                                    <td class="text-center text-nowrap">
+                                                        <div class="d-inline-flex align-items-center gap-1">
+                                                            @if(in_array($code, ['P13S', 'P26S', 'P27S', 'P29']))
+                                                                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
+                                                                        onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                        title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดจริง HOSxP และปริมาณคนไข้"
+                                                                        style="font-size: 0.72rem;">
+                                                                    <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
+                                                                </button>
+                                                            @endif
+                                                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs"
+                                                                    onclick="openMatrixCategoryTrend('{{ $code }}')"
+                                                                    title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของหมวด {{ $code }}"
+                                                                    style="font-size: 0.72rem;">
+                                                                <i class="bi bi-graph-up text-primary"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                    onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}', 'planning')"
+                                                                    title="ถามน้องมีตังค์ (RiMS AI) แนะนำการตั้งงบประมาณ"
+                                                                    style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                                <span style="font-size: 0.75rem;">🤖</span>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 @endif
                                             @elseif($hasSubs)
@@ -1370,6 +1438,30 @@
                                                         {{ number_format($r['target_sim'], 2) }}
                                                     </div>
                                                 </td>
+                                                <td class="text-center text-nowrap">
+                                                    <div class="d-inline-flex align-items-center gap-1">
+                                                        @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10']))
+                                                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
+                                                                    onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                    title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดจริง HOSxP และปริมาณคนไข้"
+                                                                    style="font-size: 0.72rem;">
+                                                                <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
+                                                            </button>
+                                                        @endif
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs"
+                                                                onclick="openMatrixCategoryTrend('{{ $code }}')"
+                                                                title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของหมวด {{ $code }}"
+                                                                style="font-size: 0.72rem;">
+                                                            <i class="bi bi-graph-up text-primary"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}', 'planning')"
+                                                                title="ถามน้องมีตังค์ (RiMS AI) แนะนำการตั้งงบประมาณ"
+                                                                style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                            <span style="font-size: 0.75rem;">🤖</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             @else
                                                 <!-- หมวดที่ไม่มีผังย่อย: อนุญาตให้คีย์ได้โดยตรง -->
                                                 <td class="text-center">
@@ -1382,6 +1474,30 @@
                                                            id="target_{{ $code }}" value="{{ number_format($r['target_sim'], 2) }}" 
                                                            oninput="handleMoneyInput(this, () => onParentTargetChange('{{ $code }}'))"
                                                            onblur="handleMoneyBlur(this, () => onParentTargetChange('{{ $code }}'))">
+                                                </td>
+                                                <td class="text-center text-nowrap">
+                                                    <div class="d-inline-flex align-items-center gap-1">
+                                                        @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10']))
+                                                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
+                                                                    onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                    title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดจริง HOSxP และปริมาณคนไข้"
+                                                                    style="font-size: 0.72rem;">
+                                                                <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
+                                                            </button>
+                                                        @endif
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-1.5 py-0.5 shadow-xs"
+                                                                onclick="openMatrixCategoryTrend('{{ $code }}')"
+                                                                title="คลิกเพื่อดูกราฟเส้นแนวโน้ม 12 เดือนของหมวด {{ $code }}"
+                                                                style="font-size: 0.72rem;">
+                                                            <i class="bi bi-graph-up text-primary"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}', 'planning')"
+                                                                title="ถามน้องมีตังค์ (RiMS AI) แนะนำการตั้งงบประมาณ"
+                                                                style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                            <span style="font-size: 0.75rem;">🤖</span>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             @endif
                                         </tr>
@@ -1415,6 +1531,14 @@
                                                                value="{{ number_format($sub['target_sim'], 2) }}" 
                                                                oninput="handleMoneyInput(this, () => onSubTargetChange('{{ $code }}', '{{ $sub['account_code'] }}'))"
                                                                onblur="handleMoneyBlur(this, () => onSubTargetChange('{{ $code }}', '{{ $sub['account_code'] }}'))">
+                                                    </td>
+                                                    <td class="text-center text-nowrap">
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5 shadow-xs"
+                                                                onclick="openMatrixSubTrend('{{ $sub['account_code'] }}')"
+                                                                title="ดูกราฟแนวโน้ม 12 เดือนของผังบัญชี {{ $sub['account_code'] }}"
+                                                                style="font-size: 0.70rem;">
+                                                            <i class="bi bi-graph-up text-primary me-0.5"></i> แนวโน้ม
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -2042,7 +2166,7 @@
             <div class="modal-body p-0" style="background-color: #f8fafc;">
                 <div class="row g-0">
                     <!-- LEFT COLUMN: Search & Checkbox List (Sidebar) -->
-                    <div class="col-lg-4 col-xl-3 bg-white border-end d-flex flex-column" style="min-width: 320px; max-width: 380px;">
+                    <div class="col-lg-4 col-xl-3 bg-white border-end d-flex flex-column" style="min-width: 360px; max-width: 440px;">
                         <!-- Search & Quick Filters Header -->
                         <div class="p-3 border-bottom bg-slate-50">
                             <!-- Search Input -->
@@ -2054,6 +2178,22 @@
                                        placeholder="ค้นหารหัส, ชื่อหมวด/บัญชี..." oninput="onMatrixSearchInput(this.value)">
                                 <button class="btn btn-outline-secondary bg-white border-start-0" type="button" onclick="clearMatrixSearch()" title="ล้างการค้นหา">
                                     <i class="bi bi-x-lg text-muted"></i>
+                                </button>
+                            </div>
+
+                            <!-- Quick Type Filter Buttons (ทั้งหมด / รายได้ / ค่าใช้จ่าย) -->
+                            <div class="d-flex align-items-center gap-1 mb-2">
+                                <button type="button" class="btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn fw-bold bg-primary text-white shadow-2xs" 
+                                        id="btnMatrixFilter_all" onclick="setMatrixFilterType('all')" style="font-size: 0.70rem;">
+                                    ทั้งหมด
+                                </button>
+                                <button type="button" class="btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn text-success bg-white border border-success-subtle shadow-2xs" 
+                                        id="btnMatrixFilter_revenue" onclick="setMatrixFilterType('revenue')" style="font-size: 0.70rem;">
+                                    <i class="bi bi-arrow-down-left me-0.5"></i> หมวดรายได้
+                                </button>
+                                <button type="button" class="btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn text-danger bg-white border border-danger-subtle shadow-2xs" 
+                                        id="btnMatrixFilter_expense" onclick="setMatrixFilterType('expense')" style="font-size: 0.70rem;">
+                                    <i class="bi bi-arrow-up-right me-0.5"></i> หมวดค่าใช้จ่าย
                                 </button>
                             </div>
 
@@ -3359,7 +3499,7 @@
         }, 300);
     }
 
-    function openPlanfinAiModal(planCode, planName) {
+    function openPlanfinAiModal(planCode, planName, mode = 'tracking') {
         const modalEl = document.getElementById('modalPlanfinAi');
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
@@ -3376,7 +3516,9 @@
             body: JSON.stringify({
                 plan_code: planCode,
                 budget_year: {{ $budgetYear }},
-                period: '{{ $selectedPeriod }}'
+                target_year: {{ $targetSimYear }},
+                period: '{{ $selectedPeriod }}',
+                mode: mode
             })
         })
         .then(res => res.json())
@@ -3398,6 +3540,18 @@
             answerBox.innerHTML = `<div class="alert alert-danger mb-0">เกิดข้อผิดพลาดในการเชื่อมต่อ: ${err.message}</div>`;
             answerBox.classList.remove('d-none');
         });
+    }
+
+    function openMatrixCategoryTrend(code) {
+        matrixSelectedKeys.clear();
+        matrixSelectedKeys.add(code);
+        openMatrixChartModal('category');
+    }
+
+    function openMatrixSubTrend(accountCode) {
+        matrixSubSelectedKeys.clear();
+        matrixSubSelectedKeys.add(accountCode);
+        openMatrixChartModal('sub');
     }
 
     // =========================================================================
@@ -3606,11 +3760,34 @@
         }, 150);
     }
 
+    let matrixFilterType = 'all'; // 'all' | 'revenue' | 'expense'
+
+    function setMatrixFilterType(type) {
+        matrixFilterType = type;
+        
+        ['all', 'revenue', 'expense'].forEach(t => {
+            const btn = document.getElementById('btnMatrixFilter_' + t);
+            if (!btn) return;
+            if (t === type) {
+                if (t === 'all') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn fw-bold bg-primary text-white shadow-2xs';
+                else if (t === 'revenue') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn fw-bold bg-success text-white shadow-2xs';
+                else if (t === 'expense') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn fw-bold bg-danger text-white shadow-2xs';
+            } else {
+                if (t === 'all') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn text-secondary bg-white border shadow-2xs';
+                else if (t === 'revenue') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn text-success bg-white border border-success-subtle shadow-2xs';
+                else if (t === 'expense') btn.className = 'btn btn-xs rounded-pill px-2.5 py-0.5 matrix-type-btn text-danger bg-white border border-danger-subtle shadow-2xs';
+            }
+        });
+
+        applyMatrixListFilters();
+    }
+
     function switchMatrixChartMode(newMode) {
         if (currentMatrixMode === newMode) return;
         currentMatrixMode = newMode;
         const searchInp = document.getElementById('matrixSearchInput');
         if (searchInp) searchInp.value = '';
+        setMatrixFilterType('all');
         updateMatrixModeUI();
         renderMatrixChecklist();
         renderMatrixTrendsChart();
@@ -3647,6 +3824,15 @@
         }
     }
 
+    const planCodeOrder = {
+        'P04': 1, 'P05': 2, 'P06': 3, 'P61': 4, 'P07': 5, 'P08': 6, 'P09': 7,
+        'P10': 8, 'P11': 9, 'P12': 10, 'P121': 11, 'P13': 12, 'P13S': 13,
+        'P14': 14, 'P15': 15, 'P151': 16, 'P16': 17, 'P17': 18, 'P18': 19,
+        'P19': 20, 'P20': 21, 'P21': 22, 'P22': 23, 'P23': 24, 'P24': 25,
+        'P241': 26, 'P25': 27, 'P251': 28, 'P26S': 29, 'P27S': 30,
+        'P29': 31, 'P29-R': 32, 'P29-E': 33
+    };
+
     function renderMatrixChecklist() {
         const container = document.getElementById('matrixChecklistContainer');
         const isCat = (currentMatrixMode === 'category');
@@ -3661,8 +3847,21 @@
         let colorIdx = 0;
 
         const items = Object.values(dataObj);
-        if (!isCat) {
-            items.sort((a, b) => (b.total || 0) - (a.total || 0));
+        if (isCat) {
+            items.sort((a, b) => {
+                const orderA = planCodeOrder[a.code] || 999;
+                const orderB = planCodeOrder[b.code] || 999;
+                return orderA - orderB;
+            });
+        } else {
+            items.sort((a, b) => {
+                const orderA = planCodeOrder[a.plan_code] || 999;
+                const orderB = planCodeOrder[b.plan_code] || 999;
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+                return (a.account_code || '').localeCompare(b.account_code || '');
+            });
         }
 
         items.forEach(item => {
@@ -3671,30 +3870,38 @@
             const color = matrixPalette[colorIdx % matrixPalette.length];
             colorIdx++;
 
-            const badgeColor = item.type === 'revenue' 
+            // Precise Type and Badge assignment (P26S is Total Expense -> Red, P13S is Total Revenue -> Green)
+            let itemType = item.type;
+            if (key === 'P26S' || key === 'P29-E') {
+                itemType = 'expense';
+            } else if (key === 'P13S' || key === 'P29-R') {
+                itemType = 'revenue';
+            }
+
+            const badgeColor = itemType === 'revenue' 
                 ? 'bg-success-subtle text-success border-success-subtle' 
-                : (item.type === 'summary' ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-danger-subtle text-danger border-danger-subtle');
+                : (itemType === 'expense' 
+                    ? 'bg-danger-subtle text-danger border-danger-subtle' 
+                    : 'bg-primary-subtle text-primary border-primary-subtle');
 
             const name = isCat ? item.name : item.account_name;
-            const codeBadge = isCat ? key : `<span class="font-monospace">${key}</span>`;
-            const totalFmt = Number(item.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const codeBadge = isCat 
+                ? key 
+                : (item.plan_code ? `<span class="badge bg-slate-100 text-secondary border px-1 py-0 font-monospace me-1" style="font-size: 0.65rem;">${item.plan_code}</span><span class="font-monospace">${key}</span>` : `<span class="font-monospace">${key}</span>`);
 
             html += `
                 <div class="matrix-check-item p-2 rounded-2 mb-1 border transition-all ${isChecked ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}" 
-                     data-key="${key}" data-type="${item.type}" data-name="${(name + ' ' + key).toLowerCase()}" style="font-size: 0.76rem; cursor: pointer;"
+                     data-key="${key}" data-type="${itemType}" data-plan="${item.plan_code || ''}" data-name="${(name + ' ' + key + ' ' + (item.plan_code || '')).toLowerCase()}" style="font-size: 0.78rem; cursor: pointer;"
                      onclick="toggleMatrixItemClick('${key}', event)">
                     <div class="d-flex align-items-center gap-2">
                         <input class="form-check-input mt-0 flex-shrink-0" type="checkbox" id="chkMatrix_${key.replace(/[^a-zA-Z0-9]/g, '_')}" 
                                value="${key}" ${isChecked ? 'checked' : ''} onchange="onMatrixCheckItem('${key}', this.checked)" onclick="event.stopPropagation()">
                         <span class="rounded-circle flex-shrink-0" style="width: 10px; height: 10px; background-color: ${color}; display: inline-block;"></span>
                         <div class="flex-grow-1 text-truncate">
-                            <div class="d-flex align-items-center gap-1.5">
-                                <span class="badge ${badgeColor} border px-1.5 py-0 font-monospace" style="font-size: 0.65rem;">${codeBadge}</span>
-                                <strong class="text-dark text-truncate" title="${name}">${name}</strong>
+                            <div class="d-flex align-items-center gap-1.5 text-truncate">
+                                <span class="badge ${badgeColor} border px-1.5 py-0.5 font-monospace flex-shrink-0" style="font-size: 0.68rem;">${codeBadge}</span>
+                                <span class="text-dark fw-bold text-truncate" title="${name}">${name}</span>
                             </div>
-                        </div>
-                        <div class="text-end font-monospace text-muted flex-shrink-0" style="font-size: 0.70rem;">
-                            ${totalFmt} บ.
                         </div>
                     </div>
                 </div>
@@ -3702,6 +3909,7 @@
         });
 
         container.innerHTML = html || '<div class="text-center text-muted py-4">ไม่พบข้อมูล</div>';
+        applyMatrixListFilters();
     }
 
     function toggleMatrixItemClick(key, e) {
@@ -3739,23 +3947,44 @@
         renderMatrixTrendsChart();
     }
 
-    function onMatrixSearchInput(kw) {
-        const clean = kw.trim().toLowerCase();
+    function applyMatrixListFilters() {
+        const searchKw = (document.getElementById('matrixSearchInput')?.value || '').trim().toLowerCase();
+        
+        let visibleCount = 0;
         document.querySelectorAll('.matrix-check-item').forEach(el => {
-            const str = el.getAttribute('data-name') || '';
-            if (!clean || str.includes(clean)) {
+            const itemType = el.getAttribute('data-type');
+            const searchStr = el.getAttribute('data-name') || '';
+            
+            const matchType = (matrixFilterType === 'all' || itemType === matrixFilterType);
+            const matchSearch = (!searchKw || searchStr.includes(searchKw));
+            
+            if (matchType && matchSearch) {
                 el.classList.remove('d-none');
+                visibleCount++;
             } else {
                 el.classList.add('d-none');
             }
         });
+
+        const totalCountEl = document.getElementById('matrixListTotalCount');
+        if (totalCountEl) {
+            const isCat = (currentMatrixMode === 'category');
+            const total = Object.keys(isCat ? matrixCategoryData : matrixSubAccountData).length;
+            totalCountEl.textContent = (searchKw || matrixFilterType !== 'all') 
+                ? `แสดง ${visibleCount.toLocaleString()} / ${total.toLocaleString()} รายการ`
+                : `ทั้งหมด ${total.toLocaleString()} รายการ`;
+        }
+    }
+
+    function onMatrixSearchInput(kw) {
+        applyMatrixListFilters();
     }
 
     function clearMatrixSearch() {
         const inp = document.getElementById('matrixSearchInput');
         if (inp) {
             inp.value = '';
-            onMatrixSearchInput('');
+            applyMatrixListFilters();
         }
     }
 
@@ -3763,7 +3992,7 @@
         const isCat = (currentMatrixMode === 'category');
         const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
         
-        // Only affect visible items from search filter
+        // Only affect visible items from search and category filter
         document.querySelectorAll('.matrix-check-item:not(.d-none)').forEach(el => {
             const key = el.getAttribute('data-key');
             const chk = el.querySelector('input[type="checkbox"]');
@@ -3774,31 +4003,6 @@
                 el.classList.remove('bg-white');
             } else {
                 selectedSet.delete(key);
-                el.classList.remove('bg-indigo-50', 'border-indigo-200');
-                el.classList.add('bg-white');
-            }
-        });
-
-        document.getElementById('matrixSelectedCount').textContent = selectedSet.size.toLocaleString();
-        renderMatrixTrendsChart();
-    }
-
-    function matrixFilterByType(type) {
-        const isCat = (currentMatrixMode === 'category');
-        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
-        selectedSet.clear();
-
-        document.querySelectorAll('.matrix-check-item').forEach(el => {
-            const itemType = el.getAttribute('data-type');
-            const key = el.getAttribute('data-key');
-            const chk = el.querySelector('input[type="checkbox"]');
-            const match = (itemType === type);
-            if (chk) chk.checked = match;
-            if (match) {
-                selectedSet.add(key);
-                el.classList.add('bg-indigo-50', 'border-indigo-200');
-                el.classList.remove('bg-white');
-            } else {
                 el.classList.remove('bg-indigo-50', 'border-indigo-200');
                 el.classList.add('bg-white');
             }
@@ -3844,8 +4048,21 @@
         const isSingle = (selectedSet.size === 1);
 
         const items = Object.values(dataObj);
-        if (!isCat) {
-            items.sort((a, b) => (b.total || 0) - (a.total || 0));
+        if (isCat) {
+            items.sort((a, b) => {
+                const orderA = planCodeOrder[a.code] || 999;
+                const orderB = planCodeOrder[b.code] || 999;
+                return orderA - orderB;
+            });
+        } else {
+            items.sort((a, b) => {
+                const orderA = planCodeOrder[a.plan_code] || 999;
+                const orderB = planCodeOrder[b.plan_code] || 999;
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+                return (a.account_code || '').localeCompare(b.account_code || '');
+            });
         }
 
         items.forEach(item => {

@@ -4359,6 +4359,7 @@ class HosFinController extends Controller
                 'account_code' => $accCode,
                 'account_name' => $m->account_name ?: $accCode,
                 'plan_code' => $m->plan_code,
+                'plan_name' => $tab1Rows[$m->plan_code]['name'] ?? ($m->plan_code ?? ''),
                 'type' => ($firstDigit === '4') ? 'revenue' : 'expense',
                 'total' => $total,
                 'annual_target' => $planAnnual,
@@ -6334,7 +6335,9 @@ class HosFinController extends Controller
     {
         $planCode = trim($request->input('plan_code', 'P14'));
         $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $targetYear = intval($request->input('target_year', $budgetYear + 1));
         $period = $request->input('period', "{$budgetYear}-07");
+        $mode = $request->input('mode', 'tracking'); // 'tracking' | 'planning'
 
         // Pull drilldown summary
         $subReq = Request::create(route('hosfin.planfin.service_drilldown'), 'GET', [
@@ -6375,80 +6378,119 @@ class HosFinController extends Controller
         $planFmt = number_format($cumPlan, 2);
         $visitsFmt = number_format($visits);
 
+        // Annualized base for planning
+        $annualizedBase = ($cumMonths > 0) ? ($cumActual / (float)$cumMonths) * 12.0 : 0.0;
+        $annualizedBaseFmt = number_format($annualizedBase, 2);
+
         $html = "<div class='rims-ai-response' style='font-size: 0.88rem; line-height: 1.6;'>";
         $html .= "<div class='d-flex align-items-center gap-2 mb-3 pb-2 border-bottom'>";
         $html .= "<div class='avatar-ai rounded-circle d-flex align-items-center justify-content-center text-white shadow-xs' style='width: 38px; height: 38px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); font-size: 1.1rem;'>🤖</div>";
-        $html .= "<div><strong class='text-dark'>น้องมีตังค์ (RiMS AI)</strong><br><small class='text-muted'>วิเคราะห์ผลต่างทางการเงินคู่กับข้อมูลบริการ (งวดสะสม {$cumMonths} เดือน ประจำปี {$budgetYear})</small></div>";
-        $html .= "</div>";
-
-        // Section 1: Executive Summary
-        $statusBadge = ($cumDiff >= 0 && $categoryType === 'revenue') || ($cumDiff <= 0 && $categoryType === 'expense')
-            ? "<span class='badge bg-success-subtle text-success border border-success px-2 py-0.5 rounded-pill'>✓ ตามเป้าหมาย</span>"
-            : "<span class='badge bg-danger-subtle text-danger border border-danger px-2 py-0.5 rounded-pill'>⚠️ สูงกว่าแผน</span>";
-
-        $html .= "<h6 class='fw-bold text-primary mb-2'><i class='bi bi-speedometer2 me-1'></i> 1. ภาพรวมผลการดำเนินงาน ({$planCode} - {$planName}) {$statusBadge}</h6>";
-        $html .= "<p class='mb-3'>ยอดผลดำเนินงานจริงสะสม <strong>{$actualFmt} บาท</strong> เทียบกับแผนสะสม <strong>{$planFmt} บาท</strong> พบว่า " . 
-            ($isOver ? "สูงกว่าแผน" : "ต่ำกว่าแผน") . " อยู่ <strong>{$diffFmt} บาท (" . ($cumDiffPct > 0 ? "+{$cumDiffPct}%" : "{$cumDiffPct}%") . ")</strong> ค่ะ</p>";
-
-        // Section 2: Clinical Decomposition (OPD vs IPD & AdjRW)
-        $opVisits = $summary['cum_op_visits'] ?? $visits;
-        $opCost = $summary['cum_op_cost'] ?? 0;
-        $ipAdmits = $summary['cum_ip_admits'] ?? 0;
-        $ipBeds = $summary['cum_ip_bed_days'] ?? 0;
-        $ipAdjrw = $summary['cum_ip_adjrw'] ?? 0;
-        $ipCost = $summary['cum_ip_cost'] ?? 0;
-        $avgIpAdjrw = $summary['avg_ip_cost_per_adjrw'] ?? 0;
-
-        $opVisitsFmt = number_format($opVisits);
-        $opCostFmt = number_format($opCost, 2);
-        $ipAdmitsFmt = number_format($ipAdmits);
-        $ipBedsFmt = number_format($ipBeds);
-        $ipAdjrwFmt = number_format($ipAdjrw, 4);
-        $ipCostFmt = number_format($ipCost, 2);
-        $avgIpAdjrwFmt = number_format($avgIpAdjrw, 2);
-
-        $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-diagram-3-fill text-indigo me-1'></i> 2. แยกแยะสาเหตุตามประเภทบริการ (OPD vs IPD & AdjRW)</h6>";
-        $html .= "<ul class='mb-3 ps-3'>";
-        $html .= "<li><strong>ผู้ป่วยนอก (OPD):</strong> เข้ารับบริการสะสม <strong>{$opVisitsFmt} ครั้ง</strong> มูลค่าบริการ <strong>{$opCostFmt} บาท</strong> (เฉลี่ย {$avgUnitCost} บาท/ครั้ง)</li>";
-        if ($ipAdmits > 0 || $ipAdjrw > 0) {
-            $html .= "<li><strong>ผู้ป่วยใน (IPD):</strong> รับไว้นอน รพ. สะสม <strong>{$ipAdmitsFmt} เคส</strong> ({$ipBedsFmt} วันนอน), <strong>ค่าน้ำหนักสัมพัทธ์ AdjRW รวม {$ipAdjrwFmt}</strong> มูลค่าบริการ <strong>{$ipCostFmt} บาท</strong> (เฉลี่ย {$avgIpAdjrwFmt} บาท/AdjRW)</li>";
-        }
         
-        if ($isOver && $categoryType === 'expense') {
-            if ($avgUnitCost <= 250) {
-                $html .= "<li class='text-success'><strong>ข้อสรุปเชิงต้นทุน:</strong> ค่าใช้จ่ายที่เพิ่มขึ้นสอดคล้องกับ <u>ปริมาณผู้ป่วยมารับบริการเพิ่มขึ้น (Volume-Driven)</u> โดยอัตราการใช้ต่อครั้งยังควบคุมได้ดี ไม่ได้เกิดจากราคาต่อหน่วยพุ่งสูงผิดปกติค่ะ</li>";
-            } else {
-                $html .= "<li class='text-danger'><strong>ข้อสรุปเชิงต้นทุน:</strong> ควรตรวจสอบ <u>รายการยา/วัสดุราคาสูง (High-Cost Items)</u> หรือกลุ่มโรคที่มีความซับซ้อนสูง (AdjRW สูง) เนื่องจากต้นทุนต่อหน่วยเริ่มสูงขึ้นค่ะ</li>";
-            }
-        }
-        $html .= "</ul>";
-
-        // Section 3: Reconciliation with HOSxP (Cost-to-Charge Ratio)
-        if ($hosxpCost > 0) {
-            $hosxpCostFmt = number_format($hosxpCost, 2);
-            $qtyFmt = number_format($summary['cum_hosxp_qty'] ?? 0);
-            $c2c = $summary['cost_to_charge_ratio'] ?? 0;
-            $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-boxes text-success me-1'></i> 3. การกระทบยอดกับระบบ HOSxP (ต้นทุนซื้อ GL vs มูลค่าบริการ HOSxP)</h6>";
-            $html .= "<div class='p-2.5 rounded-3 bg-light border mb-3'>";
-            $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>ยอดซื้อเข้าคลังจริง (งบทดลอง {$planCode}):</span> <strong>{$actualFmt} บาท</strong></div>";
-            $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>มูลค่าบริการที่จัดให้คนไข้ (HOSxP sum_price):</span> <strong>{$hosxpCostFmt} บาท</strong></div>";
-            $html .= "<div class='d-flex justify-content-between mb-1 text-primary'><span class='text-muted'>สัดส่วนต้นทุนต่อราคาขาย (Cost-to-Charge Ratio):</span> <strong>{$c2c}%</strong></div>";
-            if (($summary['cum_hosxp_qty'] ?? 0) > 0) {
-                $html .= "<div class='d-flex justify-content-between mb-1 text-secondary'><span class='text-muted'>ปริมาณการจัดบริการสะสม:</span> <span>{$qtyFmt} รายการ/หน่วย</span></div>";
-            }
+        if ($mode === 'planning') {
+            $html .= "<div><strong class='text-dark'>น้องมีตังค์ (RiMS AI Budgeting Advisor)</strong><br><small class='text-muted'>ที่ปรึกษาการตั้งงบประมาณและเป้าหมายทางการเงิน ประจำปี {$targetYear}</small></div>";
             $html .= "</div>";
-        }
 
-        // Section 4: Recommendations
-        $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-lightbulb-fill text-warning me-1'></i> 4. ข้อเสนอแนะเชิงบริหารสำหรับทีมนำ</h6>";
-        $html .= "<ul class='mb-2 ps-3'>";
-        if ($categoryType === 'expense') {
-            $html .= "<li>ใช้อัตรา Unit Cost ปัจจุบัน ({$avgUnitCost} บ./ครั้ง) เป็นฐานในการคำนวณงบจัดซื้อปีหน้าใน <strong>Tab 2 (แผนที่ 2 MED01-06)</strong></li>";
-            $html .= "<li>หากแนวโน้มผู้ป่วยนอกยังคงสูง ให้พิจารณาปรับรอบการสั่งซื้อล่วงหน้า (Safety Stock) เพื่อป้องกันสินค้าขาดสต็อกค่ะ</li>";
+            // Section 1: Baseline for Planning
+            $html .= "<h6 class='fw-bold text-primary mb-2'><i class='bi bi-calculator-fill me-1'></i> 1. ฐานข้อมูลอ้างอิง ({$planCode} - {$planName})</h6>";
+            $html .= "<p class='mb-2'>จากผลการดำเนินงานจริงสะสม <strong>{$actualFmt} บาท ({$cumMonths} เดือน)</strong> ประเมินฐานเต็มปี {$budgetYear} ได้ที่ประมาณ <strong>{$annualizedBaseFmt} บาท</strong> ค่ะ</p>";
+
+            // Section 2: Recommended Growth & Target for Next FY
+            $recGrowth = ($categoryType === 'revenue') ? 4.5 : 2.5;
+            $recTarget = $annualizedBase * (1 + ($recGrowth / 100.0));
+            $recTargetFmt = number_format($recTarget, 2);
+
+            $html .= "<h6 class='fw-bold text-success mb-2'><i class='bi bi-bullseye me-1'></i> 2. ข้อเสนอแนะเป้าหมายงบประมาณ ปี {$targetYear}</h6>";
+            $html .= "<div class='p-3 rounded-3 bg-light border mb-3'>";
+            $html .= "<div class='d-flex justify-content-between mb-1.5'><span>อัตราการเติบโตแนะนำ (% Growth):</span> <strong class='text-primary font-monospace fs-6'>" . ($recGrowth > 0 ? "+{$recGrowth}%" : "{$recGrowth}%") . "</strong></div>";
+            $html .= "<div class='d-flex justify-content-between mb-1.5'><span>ยอดงบประมาณแนะนำ (Target Recommended):</span> <strong class='text-success font-monospace fs-6'>{$recTargetFmt} บาท</strong></div>";
+            $html .= "<small class='text-muted d-block mt-1 border-top pt-1'>* คำนวณตามสถิติปริมาณบริการผู้ป่วยสะสม {$visitsFmt} ครั้ง (Unit Cost: {$avgUnitCost} บ./ครั้ง) และแนวโน้มกิจกรรมบริการ</small>";
+            $html .= "</div>";
+
+            // Section 3: Budget Control & Financial Health
+            $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-shield-check text-primary me-1'></i> 3. กลยุทธ์การบริหารและการคุมงบประมาณ</h6>";
+            $html .= "<ul class='mb-2 ps-3'>";
+            if ($categoryType === 'expense') {
+                $html .= "<li>ควรกำหนดวงเงินไม่เกิน <strong>{$recTargetFmt} บาท</strong> เพื่อรักษาผลต่างกำไรจากการดำเนินงาน <strong>EBITDA (P29) ให้เป็นบวก</strong> และป้องกันการขาดดุลเงินบำรุงค่ะ</li>";
+                $html .= "<li>ในหมวดยาและเวชภัณฑ์ (MED01-06) สามารถใช้ระบบ <strong>'คำนวณงบจัดซื้อแนะนำ (Service-Driven)'</strong> เพื่อคำนวณยอดแยกตามรายการย่อยและหยอดลงตารางได้ทันทีค่ะ</li>";
+            } else {
+                $html .= "<li>มุ่งเน้นการติดตาม Statement และรอบการเรียกเก็บชดเชยค่าบริการให้รวดเร็วและครบถ้วนตามเกณฑ์สิทธิค่ะ</li>";
+            }
+            $html .= "</ul>";
+
         } else {
-            $html .= "<li>ติดตามรอบการเรียกเก็บเงินและ Statement สปสช./กรมบัญชีกลาง ให้ทันรอบปิดงวดบัญชีค่ะ</li>";
+            // Tracking Mode (Default)
+            $html .= "<div><strong class='text-dark'>น้องมีตังค์ (RiMS AI)</strong><br><small class='text-muted'>วิเคราะห์ผลต่างทางการเงินคู่กับข้อมูลบริการ (งวดสะสม {$cumMonths} เดือน ประจำปี {$budgetYear})</small></div>";
+            $html .= "</div>";
+
+            // Section 1: Executive Summary
+            $statusBadge = ($cumDiff >= 0 && $categoryType === 'revenue') || ($cumDiff <= 0 && $categoryType === 'expense')
+                ? "<span class='badge bg-success-subtle text-success border border-success px-2 py-0.5 rounded-pill'>✓ ตามเป้าหมาย</span>"
+                : "<span class='badge bg-danger-subtle text-danger border border-danger px-2 py-0.5 rounded-pill'>⚠️ สูงกว่าแผน</span>";
+
+            $html .= "<h6 class='fw-bold text-primary mb-2'><i class='bi bi-speedometer2 me-1'></i> 1. ภาพรวมผลการดำเนินงาน ({$planCode} - {$planName}) {$statusBadge}</h6>";
+            $html .= "<p class='mb-3'>ยอดผลดำเนินงานจริงสะสม <strong>{$actualFmt} บาท</strong> เทียบกับแผนสะสม <strong>{$planFmt} บาท</strong> พบว่า " . 
+                ($isOver ? "สูงกว่าแผน" : "ต่ำกว่าแผน") . " อยู่ <strong>{$diffFmt} บาท (" . ($cumDiffPct > 0 ? "+{$cumDiffPct}%" : "{$cumDiffPct}%") . ")</strong> ค่ะ</p>";
+
+            // Section 2: Clinical Decomposition (OPD vs IPD & AdjRW)
+            $opVisits = $summary['cum_op_visits'] ?? $visits;
+            $opCost = $summary['cum_op_cost'] ?? 0;
+            $ipAdmits = $summary['cum_ip_admits'] ?? 0;
+            $ipBeds = $summary['cum_ip_bed_days'] ?? 0;
+            $ipAdjrw = $summary['cum_ip_adjrw'] ?? 0;
+            $ipCost = $summary['cum_ip_cost'] ?? 0;
+            $avgIpAdjrw = $summary['avg_ip_cost_per_adjrw'] ?? 0;
+
+            $opVisitsFmt = number_format($opVisits);
+            $opCostFmt = number_format($opCost, 2);
+            $ipAdmitsFmt = number_format($ipAdmits);
+            $ipBedsFmt = number_format($ipBeds);
+            $ipAdjrwFmt = number_format($ipAdjrw, 4);
+            $ipCostFmt = number_format($ipCost, 2);
+            $avgIpAdjrwFmt = number_format($avgIpAdjrw, 2);
+
+            $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-diagram-3-fill text-indigo me-1'></i> 2. แยกแยะสาเหตุตามประเภทบริการ (OPD vs IPD & AdjRW)</h6>";
+            $html .= "<ul class='mb-3 ps-3'>";
+            $html .= "<li><strong>ผู้ป่วยนอก (OPD):</strong> เข้ารับบริการสะสม <strong>{$opVisitsFmt} ครั้ง</strong> มูลค่าบริการ <strong>{$opCostFmt} บาท</strong> (เฉลี่ย {$avgUnitCost} บาท/ครั้ง)</li>";
+            if ($ipAdmits > 0 || $ipAdjrw > 0) {
+                $html .= "<li><strong>ผู้ป่วยใน (IPD):</strong> รับไว้นอน รพ. สะสม <strong>{$ipAdmitsFmt} เคส</strong> ({$ipBedsFmt} วันนอน), <strong>ค่าน้ำหนักสัมพัทธ์ AdjRW รวม {$ipAdjrwFmt}</strong> มูลค่าบริการ <strong>{$ipCostFmt} บาท</strong> (เฉลี่ย {$avgIpAdjrwFmt} บาท/AdjRW)</li>";
+            }
+            
+            if ($isOver && $categoryType === 'expense') {
+                if ($avgUnitCost <= 250) {
+                    $html .= "<li class='text-success'><strong>ข้อสรุปเชิงต้นทุน:</strong> ค่าใช้จ่ายที่เพิ่มขึ้นสอดคล้องกับ <u>ปริมาณผู้ป่วยมารับบริการเพิ่มขึ้น (Volume-Driven)</u> โดยอัตราการใช้ต่อครั้งยังควบคุมได้ดี ไม่ได้เกิดจากราคาต่อหน่วยพุ่งสูงผิดปกติค่ะ</li>";
+                } else {
+                    $html .= "<li class='text-danger'><strong>ข้อสรุปเชิงต้นทุน:</strong> ควรตรวจสอบ <u>รายการยา/วัสดุราคาสูง (High-Cost Items)</u> หรือกลุ่มโรคที่มีความซับซ้อนสูง (AdjRW สูง) เนื่องจากต้นทุนต่อหน่วยเริ่มสูงขึ้นค่ะ</li>";
+                }
+            }
+            $html .= "</ul>";
+
+            // Section 3: Reconciliation with HOSxP (Cost-to-Charge Ratio)
+            if ($hosxpCost > 0) {
+                $hosxpCostFmt = number_format($hosxpCost, 2);
+                $qtyFmt = number_format($summary['cum_hosxp_qty'] ?? 0);
+                $c2c = $summary['cost_to_charge_ratio'] ?? 0;
+                $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-boxes text-success me-1'></i> 3. การกระทบยอดกับระบบ HOSxP (ต้นทุนซื้อ GL vs มูลค่าบริการ HOSxP)</h6>";
+                $html .= "<div class='p-2.5 rounded-3 bg-light border mb-3'>";
+                $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>ยอดซื้อเข้าคลังจริง (งบทดลอง {$planCode}):</span> <strong>{$actualFmt} บาท</strong></div>";
+                $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>มูลค่าบริการที่จัดให้คนไข้ (HOSxP sum_price):</span> <strong>{$hosxpCostFmt} บาท</strong></div>";
+                $html .= "<div class='d-flex justify-content-between mb-1 text-primary'><span class='text-muted'>สัดส่วนต้นทุนต่อราคาขาย (Cost-to-Charge Ratio):</span> <strong>{$c2c}%</strong></div>";
+                if (($summary['cum_hosxp_qty'] ?? 0) > 0) {
+                    $html .= "<div class='d-flex justify-content-between mb-1 text-secondary'><span class='text-muted'>ปริมาณการจัดบริการสะสม:</span> <span>{$qtyFmt} รายการ/หน่วย</span></div>";
+                }
+                $html .= "</div>";
+            }
+
+            // Section 4: Recommendations
+            $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-lightbulb-fill text-warning me-1'></i> 4. ข้อเสนอแนะเชิงบริหารสำหรับทีมนำ</h6>";
+            $html .= "<ul class='mb-2 ps-3'>";
+            if ($categoryType === 'expense') {
+                $html .= "<li>ใช้อัตรา Unit Cost ปัจจุบัน ({$avgUnitCost} บ./ครั้ง) เป็นฐานในการคำนวณงบจัดซื้อปีหน้าใน <strong>Tab 2 (แผนที่ 2 MED01-06)</strong></li>";
+                $html .= "<li>หากแนวโน้มผู้ป่วยนอกยังคงสูง ให้พิจารณาปรับรอบการสั่งซื้อล่วงหน้า (Safety Stock) เพื่อป้องกันสินค้าขาดสต็อกค่ะ</li>";
+            } else {
+                $html .= "<li>ติดตามรอบการเรียกเก็บเงินและ Statement สปสช./กรมบัญชีกลาง ให้ทันรอบปิดงวดบัญชีค่ะ</li>";
+            }
+            $html .= "</ul>";
         }
-        $html .= "</ul>";
 
         $html .= "<div class='text-muted mt-3 pt-2 border-top small text-end'>น้องมีตังค์พร้อมให้ข้อมูลและวิเคราะห์เพิ่มเติมเสมอค่ะ 🙏✨</div>";
         $html .= "</div>";

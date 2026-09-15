@@ -605,26 +605,86 @@ class HfaReportController extends Controller
             ]);
         }
 
+        $templatePath = self::getHfaFinanceTemplatePath();
+        $templateCodes = [];
+        $templateNames = [];
+
+        if ($templatePath && file_exists($templatePath)) {
+            $spreadsheet = IOFactory::load($templatePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestRow();
+
+            for ($r = 2; $r <= $highestRow; $r++) {
+                $code = trim(strval($sheet->getCell('A' . $r)->getValue()));
+                $name = trim(strval($sheet->getCell('B' . $r)->getValue()));
+                if ($code !== '') {
+                    $templateCodes[$code] = $r;
+                    $templateNames[$code] = $name;
+                }
+            }
+        }
+
+        // Aggregate & Roll up hospital sub-accounts into standard codes
+        $mappedData = [];
+        foreach ($rows as $r) {
+            $code = trim($r->account_code);
+            $mappedCode = !empty($templateCodes) ? self::mapToHfaTemplateCode($code, $templateCodes) : $code;
+            if (!$mappedCode) {
+                $mappedCode = $code;
+            }
+
+            if (!isset($mappedData[$mappedCode])) {
+                $mappedData[$mappedCode] = [
+                    'account_code' => $mappedCode,
+                    'account_name' => $templateNames[$mappedCode] ?? ($r->account_name ?? ''),
+                    'debit_bf'     => 0.0,
+                    'credit_bf'    => 0.0,
+                    'debit_month'  => 0.0,
+                    'credit_month' => 0.0,
+                    'debit_net'    => 0.0,
+                    'credit_net'   => 0.0,
+                ];
+            }
+
+            $mappedData[$mappedCode]['debit_bf'] += floatval($r->debit_bf);
+            $mappedData[$mappedCode]['credit_bf'] += floatval($r->credit_bf);
+            $mappedData[$mappedCode]['debit_month'] += floatval($r->debit_month);
+            $mappedData[$mappedCode]['credit_month'] += floatval($r->credit_month);
+            $mappedData[$mappedCode]['debit_net'] += floatval($r->debit_net);
+            $mappedData[$mappedCode]['credit_net'] += floatval($r->credit_net);
+        }
+
         $sumDr = 0;
         $sumCr = 0;
         $items = [];
-        foreach ($rows as $r) {
-            $dr = floatval($r->debit_month);
-            $cr = floatval($r->credit_month);
-            $bf = floatval($r->debit_bf) - floatval($r->credit_bf);
-            $cf = floatval($r->debit_net) - floatval($r->credit_net);
+        ksort($mappedData);
 
-            $sumDr += $dr;
-            $sumCr += $cr;
+        foreach ($mappedData as $code => $item) {
+            $dr = $item['debit_month'];
+            $cr = $item['credit_month'];
+            $firstChar = substr($code, 0, 1);
+            if (in_array($firstChar, ['2', '3', '4'])) {
+                $bf = $item['credit_bf'] - $item['debit_bf'];
+                $cf = $item['credit_net'] - $item['debit_net'];
+            } else {
+                $bf = $item['debit_bf'] - $item['credit_bf'];
+                $cf = $item['debit_net'] - $item['credit_net'];
+            }
 
-            $items[] = [
-                'account_code' => $r->account_code,
-                'account_name' => $r->account_name,
-                'bf'           => $bf,
-                'debit'        => $dr,
-                'credit'       => $cr,
-                'cf'           => $cf
-            ];
+            // Include active accounts (with balance or transaction)
+            if ($bf != 0 || $dr != 0 || $cr != 0 || $cf != 0) {
+                $sumDr += $dr;
+                $sumCr += $cr;
+
+                $items[] = [
+                    'account_code' => $code,
+                    'account_name' => $item['account_name'],
+                    'bf'           => $bf,
+                    'debit'        => $dr,
+                    'credit'       => $cr,
+                    'cf'           => $cf
+                ];
+            }
         }
 
         $netDiff = round($sumDr - $sumCr, 2);
@@ -649,6 +709,156 @@ class HfaReportController extends Controller
                 'is_balanced' => $isBalanced
             ]
         ]);
+    }
+
+    /**
+     * Locate the HFA Finance Excel Template path safely (handles Linux/Windows encoding)
+     */
+    public static function getHfaFinanceTemplatePath(): ?string
+    {
+        $templatePath = base_path('docs/template_ข้อมูลการเงิน.xlsx');
+        if (file_exists($templatePath)) {
+            return $templatePath;
+        }
+        $matches = glob(base_path('docs/*ข้อมูลการเงิน*.xlsx'));
+        if (!empty($matches) && file_exists($matches[0])) {
+            return $matches[0];
+        }
+        return null;
+    }
+
+    /**
+     * Map account code to HFA standard template code (803 accounts)
+     * Automatically rolls up hospital-specific sub-accounts (e.g. .10101 -> .101)
+     */
+    public static function mapToHfaTemplateCode(string $code, array $templateCodes): ?string
+    {
+        $code = trim($code);
+        if (isset($templateCodes[$code])) {
+            return $code;
+        }
+        $dotPos = strrpos($code, '.');
+        if ($dotPos !== false) {
+            $main = substr($code, 0, $dotPos);
+            $sub = substr($code, $dotPos + 1);
+            if (strlen($sub) > 3) {
+                $candidate = $main . '.' . substr($sub, 0, 3);
+                if (isset($templateCodes[$candidate])) {
+                    return $candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generate HFA Trial Balance Spreadsheet with 803 standard accounts & normal balances
+     */
+    public static function generateHfaTrialBalanceSpreadsheet(iterable $rows): Spreadsheet
+    {
+        $templatePath = self::getHfaFinanceTemplatePath();
+        if ($templatePath && file_exists($templatePath)) {
+            $spreadsheet = IOFactory::load($templatePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestRow();
+
+            $templateCodes = [];
+            for ($r = 2; $r <= $highestRow; $r++) {
+                $code = trim(strval($sheet->getCell('A' . $r)->getValue()));
+                if ($code !== '') {
+                    $templateCodes[$code] = $r;
+                }
+            }
+
+            // Aggregate & Roll up hospital sub-accounts into standard codes
+            $mappedData = [];
+            foreach ($rows as $r) {
+                $mappedCode = self::mapToHfaTemplateCode($r->account_code, $templateCodes);
+                if (!$mappedCode) continue;
+
+                if (!isset($mappedData[$mappedCode])) {
+                    $mappedData[$mappedCode] = [
+                        'debit_bf'     => 0.0,
+                        'credit_bf'    => 0.0,
+                        'debit_month'  => 0.0,
+                        'credit_month' => 0.0,
+                        'debit_net'    => 0.0,
+                        'credit_net'   => 0.0,
+                    ];
+                }
+                $mappedData[$mappedCode]['debit_bf'] += floatval($r->debit_bf);
+                $mappedData[$mappedCode]['credit_bf'] += floatval($r->credit_bf);
+                $mappedData[$mappedCode]['debit_month'] += floatval($r->debit_month);
+                $mappedData[$mappedCode]['credit_month'] += floatval($r->credit_month);
+                $mappedData[$mappedCode]['debit_net'] += floatval($r->debit_net);
+                $mappedData[$mappedCode]['credit_net'] += floatval($r->credit_net);
+            }
+
+            // Fill template according to HFA normal balance rules
+            for ($r = 2; $r <= $highestRow; $r++) {
+                $code = trim(strval($sheet->getCell('A' . $r)->getValue()));
+                if (isset($mappedData[$code])) {
+                    $item = $mappedData[$code];
+                    $firstChar = substr($code, 0, 1);
+
+                    // Normal Balance:
+                    // Category 2 (หนี้สิน), 3 (ส่วนของทุน), 4 (รายได้): Normal balance is Credit (CR - DR)
+                    // Category 1 (สินทรัพย์), 5 (ค่าใช้จ่าย): Normal balance is Debit (DR - CR)
+                    if (in_array($firstChar, ['2', '3', '4'])) {
+                        $bf = $item['credit_bf'] - $item['debit_bf'];
+                        $cf = $item['credit_net'] - $item['debit_net'];
+                    } else {
+                        $bf = $item['debit_bf'] - $item['credit_bf'];
+                        $cf = $item['debit_net'] - $item['credit_net'];
+                    }
+
+                    $sheet->setCellValue('C' . $r, $bf);
+                    $sheet->setCellValue('D' . $r, $item['debit_month']);
+                    $sheet->setCellValue('E' . $r, $item['credit_month']);
+                    $sheet->setCellValue('F' . $r, $cf);
+                } else {
+                    $sheet->setCellValue('C' . $r, 0.00);
+                    $sheet->setCellValue('D' . $r, 0.00);
+                    $sheet->setCellValue('E' . $r, 0.00);
+                    $sheet->setCellValue('F' . $r, 0.00);
+                }
+            }
+
+            return $spreadsheet;
+        }
+
+        // Fallback if template file is absent
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Sheet1');
+        $sheet->setCellValue('A1', 'รหัสบัญชี');
+        $sheet->setCellValue('B1', 'ชื่อบัญชี');
+        $sheet->setCellValue('C1', 'ยอดยกมา');
+        $sheet->setCellValue('D1', 'เดบิต');
+        $sheet->setCellValue('E1', 'เครดิต');
+        $sheet->setCellValue('F1', 'ยอดยกไป');
+
+        $r = 2;
+        foreach ($rows as $item) {
+            $firstChar = substr(trim($item->account_code), 0, 1);
+            if (in_array($firstChar, ['2', '3', '4'])) {
+                $bf = floatval($item->credit_bf) - floatval($item->debit_bf);
+                $cf = floatval($item->credit_net) - floatval($item->debit_net);
+            } else {
+                $bf = floatval($item->debit_bf) - floatval($item->credit_bf);
+                $cf = floatval($item->debit_net) - floatval($item->credit_net);
+            }
+
+            $sheet->setCellValueExplicit('A' . $r, $item->account_code, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('B' . $r, $item->account_name);
+            $sheet->setCellValue('C' . $r, $bf);
+            $sheet->setCellValue('D' . $r, floatval($item->debit_month));
+            $sheet->setCellValue('E' . $r, floatval($item->credit_month));
+            $sheet->setCellValue('F' . $r, $cf);
+            $r++;
+        }
+
+        return $spreadsheet;
     }
 
     /**
@@ -678,65 +888,7 @@ class HfaReportController extends Controller
             ->orderBy('account_code')
             ->get();
 
-        $templatePath = base_path('docs/template_ข้อมูลการเงิน.xlsx');
-        if (file_exists($templatePath)) {
-            $spreadsheet = IOFactory::load($templatePath);
-            $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
-
-            // Map rows by account code
-            $tbMap = [];
-            foreach ($rows as $r) {
-                $tbMap[trim($r->account_code)] = $r;
-            }
-
-            for ($r = 2; $r <= $highestRow; $r++) {
-                $code = trim($sheet->getCell('A' . $r)->getValue());
-                if (isset($tbMap[$code])) {
-                    $item = $tbMap[$code];
-                    $bf = floatval($item->debit_bf) - floatval($item->credit_bf);
-                    $dr = floatval($item->debit_month);
-                    $cr = floatval($item->credit_month);
-                    $cf = floatval($item->debit_net) - floatval($item->credit_net);
-
-                    $sheet->setCellValue('C' . $r, $bf);
-                    $sheet->setCellValue('D' . $r, $dr);
-                    $sheet->setCellValue('E' . $r, $cr);
-                    $sheet->setCellValue('F' . $r, $cf);
-                } else {
-                    $sheet->setCellValue('C' . $r, 0.00);
-                    $sheet->setCellValue('D' . $r, 0.00);
-                    $sheet->setCellValue('E' . $r, 0.00);
-                    $sheet->setCellValue('F' . $r, 0.00);
-                }
-            }
-        } else {
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Sheet1');
-            $sheet->setCellValue('A1', 'รหัสบัญชี');
-            $sheet->setCellValue('B1', 'ชื่อบัญชี');
-            $sheet->setCellValue('C1', 'ยอดยกมา');
-            $sheet->setCellValue('D1', 'เดบิต');
-            $sheet->setCellValue('E1', 'เครดิต');
-            $sheet->setCellValue('F1', 'ยอดยกไป');
-
-            $r = 2;
-            foreach ($rows as $item) {
-                $bf = floatval($item->debit_bf) - floatval($item->credit_bf);
-                $dr = floatval($item->debit_month);
-                $cr = floatval($item->credit_month);
-                $cf = floatval($item->debit_net) - floatval($item->credit_net);
-
-                $sheet->setCellValueExplicit('A' . $r, $item->account_code, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                $sheet->setCellValue('B' . $r, $item->account_name);
-                $sheet->setCellValue('C' . $r, $bf);
-                $sheet->setCellValue('D' . $r, $dr);
-                $sheet->setCellValue('E' . $r, $cr);
-                $sheet->setCellValue('F' . $r, $cf);
-                $r++;
-            }
-        }
+        $spreadsheet = self::generateHfaTrialBalanceSpreadsheet($rows);
 
         $thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         $mShort = $thaiMonthsShort[$month] ?? '';
@@ -800,55 +952,7 @@ class HfaReportController extends Controller
 
         // 2. Generate Excel in temporary file
         $tempPath = tempnam(sys_get_temp_dir(), 'hfa_tb_') . '.xlsx';
-        $templatePath = base_path('docs/template_ข้อมูลการเงิน.xlsx');
-        if (file_exists($templatePath)) {
-            $spreadsheet = IOFactory::load($templatePath);
-            $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
-
-            $tbMap = [];
-            foreach ($rows as $r) {
-                $tbMap[trim($r->account_code)] = $r;
-            }
-
-            for ($r = 2; $r <= $highestRow; $r++) {
-                $code = trim($sheet->getCell('A' . $r)->getValue());
-                if (isset($tbMap[$code])) {
-                    $item = $tbMap[$code];
-                    $sheet->setCellValue('C' . $r, floatval($item->debit_bf) - floatval($item->credit_bf));
-                    $sheet->setCellValue('D' . $r, floatval($item->debit_month));
-                    $sheet->setCellValue('E' . $r, floatval($item->credit_month));
-                    $sheet->setCellValue('F' . $r, floatval($item->debit_net) - floatval($item->credit_net));
-                } else {
-                    $sheet->setCellValue('C' . $r, 0.00);
-                    $sheet->setCellValue('D' . $r, 0.00);
-                    $sheet->setCellValue('E' . $r, 0.00);
-                    $sheet->setCellValue('F' . $r, 0.00);
-                }
-            }
-        } else {
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Sheet1');
-            $sheet->setCellValue('A1', 'รหัสบัญชี');
-            $sheet->setCellValue('B1', 'ชื่อบัญชี');
-            $sheet->setCellValue('C1', 'ยอดยกมา');
-            $sheet->setCellValue('D1', 'เดบิต');
-            $sheet->setCellValue('E1', 'เครดิต');
-            $sheet->setCellValue('F1', 'ยอดยกไป');
-
-            $r = 2;
-            foreach ($rows as $item) {
-                $sheet->setCellValueExplicit('A' . $r, $item->account_code, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                $sheet->setCellValue('B' . $r, $item->account_name);
-                $sheet->setCellValue('C' . $r, floatval($item->debit_bf) - floatval($item->credit_bf));
-                $sheet->setCellValue('D' . $r, floatval($item->debit_month));
-                $sheet->setCellValue('E' . $r, floatval($item->credit_month));
-                $sheet->setCellValue('F' . $r, floatval($item->debit_net) - floatval($item->credit_net));
-                $r++;
-            }
-        }
-
+        $spreadsheet = self::generateHfaTrialBalanceSpreadsheet($rows);
         $writer = new Xlsx($spreadsheet);
         $writer->save($tempPath);
 

@@ -4212,6 +4212,10 @@ class HosFinController extends Controller
             $yBaseMonths = $actualsBaseline[$code] ?? 0.0;
             $yBaseEst = ($baseMonths > 0) ? ($yBaseMonths / (float)$baseMonths) * 12.0 : 0.0;
 
+            // Target for active budget year (e.g. 2569) to compare against
+            $planAnnual = floatval($tab1Rows[$code]['annual_target'] ?? ($planTargets[$code] ?? 0.0));
+            $planCumBase = ($baseMonths > 0) ? ($planAnnual / 12.0) * $baseMonths : 0.0;
+
             // Saved target for simulation year
             $targetSimObj = $targetsSimRaw->get($code);
             $targetSim = $targetSimObj ? floatval($targetSimObj->target_amount) : $yBaseEst;
@@ -4222,6 +4226,8 @@ class HosFinController extends Controller
                 'name' => $name,
                 'type' => $type,
                 'sort_order' => $cat->sort_order,
+                'plan_annual' => $planAnnual,
+                'plan_cum' => $planCumBase,
                 'y_prior' => $yPrior,
                 'y_base_months' => $yBaseMonths,
                 'y_base_est' => $yBaseEst,
@@ -4239,9 +4245,21 @@ class HosFinController extends Controller
         foreach ($revCodes as $c) { $tab2_p13s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
         foreach ($expCodes as $c) { $tab2_p26s_sim += ($tab2Rows[$c]['target_sim'] ?? 0); }
 
-        if (isset($tab2Rows['P13S'])) $tab2Rows['P13S']['target_sim'] = $tab2_p13s_sim;
-        if (isset($tab2Rows['P26S'])) $tab2Rows['P26S']['target_sim'] = $tab2_p26s_sim;
-        if (isset($tab2Rows['P27S'])) $tab2Rows['P27S']['target_sim'] = $tab2_p13s_sim - $tab2_p26s_sim;
+        if (isset($tab2Rows['P13S'])) {
+            $tab2Rows['P13S']['target_sim'] = $tab2_p13s_sim;
+            $tab2Rows['P13S']['plan_annual'] = floatval($tab1Rows['P13S']['annual_target'] ?? 0.0);
+            $tab2Rows['P13S']['plan_cum'] = ($baseMonths > 0) ? ($tab2Rows['P13S']['plan_annual'] / 12.0) * $baseMonths : 0.0;
+        }
+        if (isset($tab2Rows['P26S'])) {
+            $tab2Rows['P26S']['target_sim'] = $tab2_p26s_sim;
+            $tab2Rows['P26S']['plan_annual'] = floatval($tab1Rows['P26S']['annual_target'] ?? 0.0);
+            $tab2Rows['P26S']['plan_cum'] = ($baseMonths > 0) ? ($tab2Rows['P26S']['plan_annual'] / 12.0) * $baseMonths : 0.0;
+        }
+        if (isset($tab2Rows['P27S'])) {
+            $tab2Rows['P27S']['target_sim'] = $tab2_p13s_sim - $tab2_p26s_sim;
+            $tab2Rows['P27S']['plan_annual'] = ($tab2Rows['P13S']['plan_annual'] ?? 0.0) - ($tab2Rows['P26S']['plan_annual'] ?? 0.0);
+            $tab2Rows['P27S']['plan_cum'] = ($tab2Rows['P13S']['plan_cum'] ?? 0.0) - ($tab2Rows['P26S']['plan_cum'] ?? 0.0);
+        }
 
         $tab2_p29r_sim = $tab2_p13s_sim - ($tab2Rows['P13']['target_sim'] ?? 0) - ($tab2Rows['P121']['target_sim'] ?? 0);
         $tab2_p29e_sim = $tab2_p26s_sim - ($tab2Rows['P24']['target_sim'] ?? 0) - ($tab2Rows['P251']['target_sim'] ?? 0);
@@ -4249,7 +4267,11 @@ class HosFinController extends Controller
 
         if (isset($tab2Rows['P29-R'])) $tab2Rows['P29-R']['target_sim'] = $tab2_p29r_sim;
         if (isset($tab2Rows['P29-E'])) $tab2Rows['P29-E']['target_sim'] = $tab2_p29e_sim;
-        if (isset($tab2Rows['P29'])) $tab2Rows['P29']['target_sim'] = $tab2_p29_sim;
+        if (isset($tab2Rows['P29'])) {
+            $tab2Rows['P29']['target_sim'] = $tab2_p29_sim;
+            $tab2Rows['P29']['plan_annual'] = floatval($tab1Rows['P29']['annual_target'] ?? 0.0);
+            $tab2Rows['P29']['plan_cum'] = ($baseMonths > 0) ? ($tab2Rows['P29']['plan_annual'] / 12.0) * $baseMonths : 0.0;
+        }
 
         // Executive KPI Metrics for Tab 1
         $kpiActualRevenue = $tab1Rows['P13S']['actual_cum'] ?? 0;
@@ -4396,6 +4418,7 @@ class HosFinController extends Controller
             $subTargetActiveObj = $subTargetsActiveRaw->get($accCode)?->first();
             $planAnnual = $subTargetActiveObj ? floatval($subTargetActiveObj->target_amount) : 0.0;
             $planCum = ($planAnnual / 12.0) * $cumMonths;
+            $planCumBase = ($baseMonths > 0) ? ($planAnnual / 12.0) * $baseMonths : 0.0;
             $diffCum = $actualCum - $planCum;
             $percentCum = ($planCum != 0) ? ($diffCum / abs($planCum)) * 100.0 : 0.0;
 
@@ -4424,6 +4447,7 @@ class HosFinController extends Controller
                 'plan_code' => $pCode,
                 'plan_annual' => $planAnnual,
                 'plan_cum' => $planCum,
+                'plan_cum_base' => $planCumBase,
                 'actual_cum' => $actualCum,
                 'diff_cum' => $diffCum,
                 'percent_cum' => $percentCum,
@@ -4454,10 +4478,18 @@ class HosFinController extends Controller
         foreach ($subAccountsByPlan as $pCode => $subs) {
             if (count($subs) > 0 && isset($tab2Rows[$pCode])) {
                 $sumSubTarget = 0.0;
+                $sumSubPlan = 0.0;
+                $sumSubPlanCum = 0.0;
                 foreach ($subs as $sub) {
                     $sumSubTarget += floatval($sub['target_sim']);
+                    $sumSubPlan += floatval($sub['plan_annual'] ?? 0.0);
+                    $sumSubPlanCum += floatval($sub['plan_cum_base'] ?? 0.0);
                 }
                 $tab2Rows[$pCode]['target_sim'] = $sumSubTarget;
+                if ($sumSubPlan > 0) {
+                    $tab2Rows[$pCode]['plan_annual'] = $sumSubPlan;
+                    $tab2Rows[$pCode]['plan_cum'] = $sumSubPlanCum;
+                }
                 $pBase = floatval($tab2Rows[$pCode]['y_base_est']);
                 if ($pBase > 0) {
                     $tab2Rows[$pCode]['growth_rate'] = (($sumSubTarget - $pBase) / $pBase) * 100.0;
@@ -5109,22 +5141,23 @@ class HosFinController extends Controller
         $headers1 = [
             'A7' => 'รหัสรายการ',
             'B7' => 'รายการ / ผังบัญชี',
-            'C7' => "ผลการดำเนินงาน ปี {$priorYear}",
-            'D7' => "ผลการดำเนินงาน ({$baseMonths} ด.)",
-            'E7' => "ประมาณการ ผลดำเนินงานทั้งปี",
-            'F7' => "% เติบโต",
-            'G7' => "แผนประมาณการ (แผนต้นปี {$targetYear})"
+            'C7' => "แผนทั้งปี {$budgetYear}",
+            'D7' => "แผนสะสม ({$baseMonths} ด.)",
+            'E7' => "ผลการดำเนินงาน ({$baseMonths} ด.)",
+            'F7' => "ประมาณการ ผลดำเนินงานทั้งปี",
+            'G7' => "% เติบโต",
+            'H7' => "แผนประมาณการ (แผนต้นปี {$targetYear})"
         ];
         foreach ($headers1 as $cell => $text) {
             $sheet1->setCellValue($cell, $text);
         }
-        $sheet1->getStyle('A7:G7')->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
-        $sheet1->getStyle('A7:G7')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
-        $sheet1->getStyle('A7:G7')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        $sheet1->getStyle('A7:H7')->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
+        $sheet1->getStyle('A7:H7')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
+        $sheet1->getStyle('A7:H7')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
         $sheet1->getStyle('A7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet1->getStyle('C7:E7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-        $sheet1->getStyle('F7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet1->getStyle('G7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet1->getStyle('C7:F7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        $sheet1->getStyle('G7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet1->getStyle('H7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
 
         $currRow = 8;
         foreach ($categories as $cat) {
@@ -5141,26 +5174,48 @@ class HosFinController extends Controller
             elseif ($code === 'P27S') $targetAmt = $p27s_sim;
             elseif ($code === 'P29') $targetAmt = $p29_sim;
 
+            $tBudgetObj = $targetsBudgetRaw->get($code);
+            $planAnnual = $tBudgetObj ? floatval($tBudgetObj->target_amount) : 0;
+            if ($code === 'P13S') {
+                $planAnnual = 0;
+                foreach ($revCodes as $c) { $planAnnual += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+            } elseif ($code === 'P26S') {
+                $planAnnual = 0;
+                foreach ($expCodes as $c) { $planAnnual += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+            } elseif ($code === 'P27S') {
+                $planRev = 0; foreach ($revCodes as $c) { $planRev += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+                $planExp = 0; foreach ($expCodes as $c) { $planExp += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+                $planAnnual = $planRev - $planExp;
+            } elseif ($code === 'P29') {
+                $planRev = 0; foreach ($revCodes as $c) { $planRev += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+                $planExp = 0; foreach ($expCodes as $c) { $planExp += floatval($targetsBudgetRaw->get($c)?->target_amount ?? 0); }
+                $p29r = $planRev - floatval($targetsBudgetRaw->get('P13')?->target_amount ?? 0) - floatval($targetsBudgetRaw->get('P121')?->target_amount ?? 0);
+                $p29e = $planExp - floatval($targetsBudgetRaw->get('P24')?->target_amount ?? 0) - floatval($targetsBudgetRaw->get('P251')?->target_amount ?? 0);
+                $planAnnual = $p29r - $p29e;
+            }
+            $planCum = ($baseMonths > 0) ? ($planAnnual / 12.0) * $baseMonths : 0;
+
             $sheet1->setCellValue("A{$currRow}", $code);
             $sheet1->setCellValue("B{$currRow}", $name);
-            $sheet1->setCellValue("C{$currRow}", floatval($actualsPriorYear[$code] ?? 0));
-            $sheet1->setCellValue("D{$currRow}", $baseMonthsAmt);
-            $sheet1->setCellValue("E{$currRow}", $baseEstAmt);
-            $sheet1->setCellValue("F{$currRow}", $growthRate / 100);
-            $sheet1->setCellValue("G{$currRow}", $targetAmt);
+            $sheet1->setCellValue("C{$currRow}", $planAnnual);
+            $sheet1->setCellValue("D{$currRow}", $planCum);
+            $sheet1->setCellValue("E{$currRow}", $baseMonthsAmt);
+            $sheet1->setCellValue("F{$currRow}", $baseEstAmt);
+            $sheet1->setCellValue("G{$currRow}", $growthRate / 100);
+            $sheet1->setCellValue("H{$currRow}", $targetAmt);
 
             $sheet1->getStyle("A{$currRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            $sheet1->getStyle("C{$currRow}:E{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet1->getStyle("F{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
-            $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet1->getStyle("C{$currRow}:F{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
+            $sheet1->getStyle("H{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
 
             if (in_array($code, ['P13S', 'P26S', 'P27S', 'P29'])) {
-                $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFont()->setBold(true);
-                $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
-                if ($code === 'P13S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFD1FAE5');
-                elseif ($code === 'P26S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFFEE2E2');
-                elseif ($code === 'P27S') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFCCFBF1');
-                elseif ($code === 'P29') $sheet1->getStyle("A{$currRow}:G{$currRow}")->getFill()->getStartColor()->setARGB('FFE0E7FF');
+                $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFont()->setBold(true);
+                $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+                if ($code === 'P13S') $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFill()->getStartColor()->setARGB('FFD1FAE5');
+                elseif ($code === 'P26S') $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFill()->getStartColor()->setARGB('FFFEE2E2');
+                elseif ($code === 'P27S') $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFill()->getStartColor()->setARGB('FFCCFBF1');
+                elseif ($code === 'P29') $sheet1->getStyle("A{$currRow}:H{$currRow}")->getFill()->getStartColor()->setARGB('FFE0E7FF');
             }
             $currRow++;
 
@@ -5177,28 +5232,33 @@ class HosFinController extends Controller
                     $subBaseAmt = floatval($subTObj->baseline_amount ?? 0);
                     $subEstAmt = ($baseMonths > 0) ? ($subBaseAmt / $baseMonths) * 12 : 0;
 
+                    $subTBudgetObj = DB::table('hosfin_planfin_sub_targets')->where('budget_year', $budgetYear)->where('account_code', $subCode)->first();
+                    $subPlanAnnual = $subTBudgetObj ? floatval($subTBudgetObj->target_amount) : 0;
+                    $subPlanCum = ($baseMonths > 0) ? ($subPlanAnnual / 12.0) * $baseMonths : 0;
+
                     $sheet1->setCellValue("A{$currRow}", $subCode);
                     $sheet1->setCellValue("B{$currRow}", "   - " . $subName);
-                    $sheet1->setCellValue("C{$currRow}", 0);
-                    $sheet1->setCellValue("D{$currRow}", $subBaseAmt);
-                    $sheet1->setCellValue("E{$currRow}", $subEstAmt);
-                    $sheet1->setCellValue("F{$currRow}", $subGrowth / 100);
-                    $sheet1->setCellValue("G{$currRow}", $subTargetAmt);
+                    $sheet1->setCellValue("C{$currRow}", $subPlanAnnual);
+                    $sheet1->setCellValue("D{$currRow}", $subPlanCum);
+                    $sheet1->setCellValue("E{$currRow}", $subBaseAmt);
+                    $sheet1->setCellValue("F{$currRow}", $subEstAmt);
+                    $sheet1->setCellValue("G{$currRow}", $subGrowth / 100);
+                    $sheet1->setCellValue("H{$currRow}", $subTargetAmt);
 
                     $sheet1->getStyle("A{$currRow}")->getFont()->setSize(9)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF64748B'));
                     $sheet1->getStyle("B{$currRow}")->getFont()->setSize(9)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF475569'));
                     $sheet1->getStyle("A{$currRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                    $sheet1->getStyle("C{$currRow}:E{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
-                    $sheet1->getStyle("F{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
-                    $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
-                    $sheet1->getStyle("C{$currRow}:G{$currRow}")->getFont()->setSize(9);
+                    $sheet1->getStyle("C{$currRow}:F{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet1->getStyle("G{$currRow}")->getNumberFormat()->setFormatCode('+0.0%;-0.0%;0.0%');
+                    $sheet1->getStyle("H{$currRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet1->getStyle("C{$currRow}:H{$currRow}")->getFont()->setSize(9);
                     $currRow++;
                 }
             }
         }
 
-        $sheet1->getStyle("A7:G" . ($currRow - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setARGB('FFE2E8F0');
-        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+        $sheet1->getStyle("A7:H" . ($currRow - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setARGB('FFE2E8F0');
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as $col) {
             $sheet1->getColumnDimension($col)->setAutoSize(true);
         }
 

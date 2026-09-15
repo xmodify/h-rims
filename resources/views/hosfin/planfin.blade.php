@@ -1274,7 +1274,8 @@
                                     <tr class="text-center">
                                         <th style="width: 115px; min-width: 110px;">รหัสรายการ</th>
                                         <th class="text-start">รายการ</th>
-                                        <th class="text-end" style="width: 130px;">ผลการดำเนินงาน ปี {{ $priorYear }}</th>
+                                        <th class="text-end" style="width: 130px;">แผนทั้งปี {{ $budgetYear }}</th>
+                                        <th class="text-end" style="width: 135px;">แผนสะสม ({{ $baseMonths }} ด.)</th>
                                         <th class="text-end" style="width: 135px;">ผลการดำเนินงาน ({{ $baseMonths }} ด.)</th>
                                         <th class="text-end" style="width: 140px;">ประมาณการ ผลดำเนินงานทั้งปี</th>
                                         <th class="text-center" style="width: 100px;">% เติบโต</th>
@@ -1338,7 +1339,8 @@
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="text-end font-monospace text-muted">{{ number_format($r['y_prior'], 2) }}</td>
+                                            <td class="text-end font-monospace text-muted">{{ number_format($r['plan_annual'] ?? 0, 2) }}</td>
+                                            <td class="text-end font-monospace text-muted">{{ number_format($r['plan_cum'] ?? 0, 2) }}</td>
                                             <td class="text-end font-monospace text-muted">{{ number_format($r['y_base_months'], 2) }}</td>
                                             <td class="text-end font-monospace fw-semibold">{{ number_format($r['y_base_est'], 2) }}</td>
 
@@ -1397,7 +1399,8 @@
                                                     <td class="sub-indent text-secondary" style="font-size: 0.82rem;">
                                                         <span class="sub-dash"><i class="bi bi-dash-lg"></i></span>{{ $sub['account_name'] }}
                                                     </td>
-                                                    <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">{{ number_format($sub['y_prior'], 2) }}</td>
+                                                    <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">{{ number_format($sub['plan_annual'] ?? 0, 2) }}</td>
+                                                    <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">{{ number_format($sub['plan_cum_base'] ?? 0, 2) }}</td>
                                                     <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">{{ number_format($sub['y_base_months'], 2) }}</td>
                                                     <td class="text-end font-monospace text-muted" style="font-size: 0.76rem;">{{ number_format($sub['y_base_est'], 2) }}</td>
                                                     <td class="text-center">

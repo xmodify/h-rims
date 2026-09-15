@@ -127,6 +127,7 @@ class ImportCsController extends Controller
                                     // Parse date and time
                                     $dttran = null;
                                     $time_raw = '';
+                                    $dttran_time = null;
                                     if (!empty($dttran_raw)) {
                                         $dt_parts = explode(' ', trim($dttran_raw));
                                         if (isset($dt_parts[0])) {
@@ -141,6 +142,7 @@ class ImportCsController extends Controller
                                         }
                                         if (isset($dt_parts[1])) {
                                             $time_raw = trim($dt_parts[1]);
+                                            $dttran_time = $time_raw;
                                         }
                                     }
 

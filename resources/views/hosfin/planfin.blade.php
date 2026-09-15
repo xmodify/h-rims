@@ -295,6 +295,19 @@
     border: 1px solid #cbd5e1;
     padding: 0.2rem 0.3rem;
   }
+  .btn-outline-indigo {
+    color: #4f46e5;
+    border-color: #6366f1;
+    background-color: #ffffff;
+  }
+  .btn-outline-indigo:hover {
+    color: #ffffff;
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+  }
+  .text-indigo {
+    color: #4f46e5 !important;
+  }
 </style>
 
 <div class="container-fluid pt-2 pb-4 px-lg-5" style="background-color: #f8fafc;">
@@ -1020,6 +1033,18 @@
                                         (คอลัมน์สีฟ้าไฮไลต์ <strong>{{ $selectedPeriodLabel }}</strong> คืองวดเดือนที่กำลังเลือกติดตาม)
                                     </div>
                                     <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-xs fw-bold d-inline-flex align-items-center gap-1.5" 
+                                                id="btnOpenMatrixCategoryChart" onclick="openMatrixChartModal('category')" 
+                                                title="ดูกราฟเส้นแนวโน้ม 12 เดือนของหมวดหลัก" style="font-size: 0.78rem;">
+                                            <i class="bi bi-graph-up-arrow text-primary"></i>
+                                            <span>กราฟหมวดหลัก</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-indigo rounded-pill px-3 py-1 shadow-xs fw-bold d-inline-flex align-items-center gap-1.5" 
+                                                id="btnOpenMatrixSubChart" onclick="openMatrixChartModal('sub')" 
+                                                title="ดูกราฟเส้นแนวโน้ม 12 เดือนของผังบัญชีย่อย" style="font-size: 0.78rem;">
+                                            <i class="bi bi-bar-chart-steps text-indigo"></i>
+                                            <span>กราฟผังบัญชีย่อย</span>
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-primary text-white rounded-pill px-3 py-1 shadow-xs fw-bold d-inline-flex align-items-center gap-1.5 active" 
                                                 id="btnToggleMatrixPlan" onclick="toggleMatrixPlanSubtext(this)" style="font-size: 0.78rem;">
                                             <i class="bi bi-toggle-on fs-5 text-white" id="iconToggleMatrixPlan"></i>
@@ -1959,6 +1984,161 @@
                     <i class="bi bi-shield-check text-success me-1"></i> วิเคราะห์จากฐานข้อมูลจริง 100%
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 5: กราฟแนวโน้ม 12 เดือน (หมวดหลัก และ ผังบัญชีย่อย) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalMatrixTrendsChart" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-lg-down" style="max-width: 95vw; width: 95vw;">
+        <div class="modal-content rounded-4 border-0 shadow-2xl overflow-hidden">
+            <!-- Modal Header with Gradient and Mode Switch -->
+            <div class="modal-header py-2.5 px-3 px-md-4 text-white" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 bg-white bg-opacity-20 text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 40px; height: 40px;">
+                        <i class="bi bi-graph-up-arrow fs-5" id="matrixModalHeaderIcon"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="modal-title fw-black mb-0 text-white" id="matrixModalTitle" style="font-size: 1.12rem; letter-spacing: -0.01em;">
+                                📈 กราฟแนวโน้ม 12 เดือน: หมวดหลัก
+                            </h5>
+                            <span class="badge rounded-pill bg-warning text-dark fw-bold px-2 py-0.5" style="font-size: 0.72rem;">
+                                ปีงบประมาณ {{ $budgetYear }}
+                            </span>
+                        </div>
+                        <div class="small text-white-50" style="font-size: 0.73rem;">
+                            เปรียบเทียบแนวโน้มผลดำเนินงานจริงรายเดือน 12 งวด (ต.ค. {{ substr($budgetYear - 1, -2) }} – ก.ย. {{ substr($budgetYear, -2) }})
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode Switch Nav (หมวดหลัก vs ผังบัญชีย่อย) -->
+                <div class="d-flex align-items-center gap-2 ms-auto me-3">
+                    <div class="p-1 rounded-pill d-inline-flex shadow-xs" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.25);">
+                        <button type="button" class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" 
+                                id="btnMatrixModeCategory" onclick="switchMatrixChartMode('category')"
+                                style="font-size: 0.78rem; background-color: #4f46e5; color: #ffffff;">
+                            <i class="bi bi-collection me-1"></i> หมวดหลัก ({{ count($matrixCategoryLookup ?? []) }})
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" 
+                                id="btnMatrixModeSub" onclick="switchMatrixChartMode('sub')"
+                                style="font-size: 0.78rem; background-color: transparent; color: #cbd5e1;">
+                            <i class="bi bi-list-nested me-1"></i> ผังบัญชีย่อย ({{ count($matrixSubLookup ?? []) }})
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body (Two-Column Layout) -->
+            <div class="modal-body p-0" style="background-color: #f8fafc;">
+                <div class="row g-0">
+                    <!-- LEFT COLUMN: Search & Checkbox List (Sidebar) -->
+                    <div class="col-lg-4 col-xl-3 bg-white border-end d-flex flex-column" style="min-width: 320px; max-width: 380px;">
+                        <!-- Search & Quick Filters Header -->
+                        <div class="p-3 border-bottom bg-slate-50">
+                            <!-- Search Input -->
+                            <div class="input-group input-group-sm mb-2 shadow-2xs">
+                                <span class="input-group-text bg-white border-end-0 text-muted">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" id="matrixSearchInput" class="form-control border-start-0 ps-0" 
+                                       placeholder="ค้นหารหัส, ชื่อหมวด/บัญชี..." oninput="onMatrixSearchInput(this.value)">
+                                <button class="btn btn-outline-secondary bg-white border-start-0" type="button" onclick="clearMatrixSearch()" title="ล้างการค้นหา">
+                                    <i class="bi bi-x-lg text-muted"></i>
+                                </button>
+                            </div>
+
+                            <!-- Selection Counter & Reset Action -->
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="small text-muted" style="font-size: 0.74rem;">
+                                    เลือกแล้ว: <strong class="text-primary font-monospace fs-6" id="matrixSelectedCount">0</strong> 
+                                    <span class="text-muted" id="matrixListTotalCount" style="font-size: 0.70rem;">/ {{ count($matrixCategoryLookup ?? []) }} รายการ</span>
+                                </div>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-0.5 shadow-2xs" onclick="matrixSelectAll(false)" title="ยกเลิกการเลือกทั้งหมดเพื่อเริ่มเลือกใหม่" style="font-size: 0.70rem;">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างที่เลือก
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable Checkbox List -->
+                        <div class="p-2 overflow-y-auto" id="matrixChecklistContainer" style="max-height: calc(85vh - 210px); min-height: 420px;">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Interactive Multi Line Chart Area -->
+                    <div class="col-lg-8 col-xl-9 p-3 p-md-4 d-flex flex-column">
+                        <!-- Top Chart KPI Metric Summary Strip -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 p-2.5 rounded-3 bg-white border shadow-xs">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div>
+                                    <span class="small text-muted" style="font-size: 0.72rem;">รวมผลจริงทั้งปี:</span>
+                                    <div class="fw-black text-dark font-monospace" id="matrixChartSumTotal" style="font-size: 1.10rem;">
+                                        0.00 บ.
+                                    </div>
+                                </div>
+                                <div class="border-start ps-3">
+                                    <span class="small text-muted" style="font-size: 0.72rem;">รวมแผนทั้งปี:</span>
+                                    <div class="fw-bold text-primary font-monospace" id="matrixChartPlanTotal" style="font-size: 1.05rem;">
+                                        0.00 บ.
+                                    </div>
+                                </div>
+                                <div class="border-start ps-3">
+                                    <span class="small text-muted" style="font-size: 0.72rem;">ผลต่าง (จริง - แผน):</span>
+                                    <div class="fw-bold font-monospace" id="matrixChartDiffTotal" style="font-size: 1.05rem;">
+                                        0.00 บ.
+                                    </div>
+                                </div>
+                                <div class="border-start ps-3 d-none d-xl-block">
+                                    <span class="small text-muted" style="font-size: 0.72rem;">เฉลี่ยจริงต่องวด (12 เดือน):</span>
+                                    <div class="fw-bold text-secondary font-monospace" id="matrixChartMonthlyAvg" style="font-size: 0.92rem;">
+                                        0.00 บ.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Chart Action (Clean, No extra buttons) -->
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-xs fw-bold d-inline-flex align-items-center gap-1.5" 
+                                        onclick="downloadMatrixChartPng()" title="บันทึกภาพกราฟเป็นไฟล์ PNG" style="font-size: 0.78rem;">
+                                    <i class="bi bi-camera me-1"></i> บันทึกภาพกราฟ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chart Canvas Container -->
+                        <div class="bg-white rounded-3 border p-3 shadow-xs position-relative flex-grow-1 d-flex flex-column justify-content-center" style="min-height: 480px;">
+                            <div id="matrixChartEmptyState" class="position-absolute top-50 start-50 translate-middle text-center text-muted p-4" style="max-width: 440px;">
+                                <div class="rounded-circle bg-slate-50 d-inline-flex align-items-center justify-content-center mb-3 shadow-2xs" style="width: 64px; height: 64px; border: 2px dashed #cbd5e1;">
+                                    <i class="bi bi-graph-up-arrow fs-2 text-primary opacity-75"></i>
+                                </div>
+                                <div class="fw-bold fs-6 text-dark mb-1">ยังไม่ได้เลือกรายการเพื่อดูกราฟ</div>
+                                <div class="small text-secondary" style="line-height: 1.6;">
+                                    กรุณาติ๊กเลือกหมวดหลักหรือผังบัญชีย่อยจากแถบเมนูด้านซ้าย<br>
+                                    เพื่อแสดงกราฟเส้นแนวโน้ม 12 เดือน (ผลจริงคู่กับแผน)
+                                </div>
+                            </div>
+                            <div style="height: 460px; width: 100%;">
+                                <canvas id="canvasMatrixTrendsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center border-top">
+                <div class="small text-muted" style="font-size: 0.74rem;">
+                    <i class="bi bi-info-circle text-primary me-1"></i>
+                    <strong>เส้นทึบ</strong> = ผลดำเนินงานจริงตามงบทดลอง 12 งวด | <strong>เส้นประ</strong> = แผนเป้าหมายงวดรายเดือน (1/12) | ชี้ที่จุดบนกราฟเพื่อดูยอดเงินเปรียบเทียบ ผลจริง vs แผน
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
@@ -3322,6 +3502,499 @@
 
     function consultAiForProcurement() {
         openPlanfinAiModal('P14', 'ต้นทุนยาและแผนจัดซื้อยา');
+    }
+
+    // =========================================================================
+    // SMART PLANFIN: 12-MONTH MATRIX TRENDS CHART MODAL (CATEGORIES & SUB-ACCOUNTS)
+    // =========================================================================
+    const matrixPeriods = @json(array_column($periodOptions, 'period'));
+    const matrixPeriodLabels = @json(array_map(function($opt) { return explode(' ', $opt['label'])[0]; }, $periodOptions));
+    const matrixCategoryData = @json($matrixCategoryLookup ?? []);
+    const matrixSubAccountData = @json($matrixSubLookup ?? []);
+
+    const matrixPalette = [
+        '#2563eb', '#059669', '#7c3aed', '#0891b2', '#db2777', '#4f46e5', '#16a34a',
+        '#9333ea', '#0284c7', '#ca8a04', '#e11d48', '#475569', '#0d9488', '#b91c1c'
+    ];
+    const matrixPlanPalette = [
+        '#ea580c', '#d97706', '#ca8a04', '#f59e0b', '#c2410c', '#b45309', '#e11d48'
+    ];
+
+    let currentMatrixMode = 'category'; // 'category' | 'sub'
+    let matrixSelectedKeys = new Set(); // Default empty: หน้าล้าง ให้ผู้ใช้เลือกแสดงเอง
+    let matrixSubSelectedKeys = new Set(); // Default empty: หน้าล้าง ให้ผู้ใช้เลือกแสดงเอง
+    let matrixChartInstance = null;
+
+    // Inline plugin to render crisp compact numbers on chart points
+    const matrixDataLabelsPlugin = {
+        id: 'matrixDataLabelsPlugin',
+        afterDatasetsDraw(chart) {
+            // Automatically show labels when 1 or 2 items selected (<= 4 lines)
+            if (chart.data.datasets.length > 4) return;
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.font = 'bold 9.5px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            chart.data.datasets.forEach((dataset, datasetIdx) => {
+                const meta = chart.getDatasetMeta(datasetIdx);
+                if (meta.hidden) return;
+                const isPlan = dataset.isPlan;
+
+                meta.data.forEach((element, pointIdx) => {
+                    const val = dataset.data[pointIdx];
+                    if (val === null || val === undefined || isNaN(val)) return;
+
+                    let text = '';
+                    const absVal = Math.abs(val);
+                    if (absVal >= 1000000) {
+                        text = (val / 1000000).toFixed(2) + 'M';
+                    } else if (absVal >= 1000) {
+                        text = (val / 1000).toFixed(1) + 'k';
+                    } else {
+                        text = Number(val).toLocaleString(undefined, {maximumFractionDigits: 0});
+                    }
+
+                    const x = element.x;
+                    // Actual placed above point, Plan placed below point
+                    const y = isPlan ? (element.y + 14) : (element.y - 13);
+
+                    const metrics = ctx.measureText(text);
+                    const boxW = metrics.width + 7;
+                    const boxH = 14;
+
+                    // Subtle pill background
+                    ctx.fillStyle = isPlan ? 'rgba(255, 247, 237, 0.96)' : 'rgba(255, 255, 255, 0.96)';
+                    ctx.strokeStyle = dataset.borderColor;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(x - (boxW / 2), y - (boxH / 2), boxW, boxH, 4);
+                    } else {
+                        ctx.rect(x - (boxW / 2), y - (boxH / 2), boxW, boxH);
+                    }
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Label text
+                    ctx.fillStyle = isPlan ? '#9a3412' : '#1e40af';
+                    ctx.fillText(text, x, y);
+                });
+            });
+            ctx.restore();
+        }
+    };
+
+    function openMatrixChartModal(mode = 'category') {
+        currentMatrixMode = mode;
+        const modalEl = document.getElementById('modalMatrixTrendsChart');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        
+        // Update header buttons
+        updateMatrixModeUI();
+
+        // Render checklist and chart
+        renderMatrixChecklist();
+        modal.show();
+
+        setTimeout(() => {
+            renderMatrixTrendsChart();
+        }, 150);
+    }
+
+    function switchMatrixChartMode(newMode) {
+        if (currentMatrixMode === newMode) return;
+        currentMatrixMode = newMode;
+        const searchInp = document.getElementById('matrixSearchInput');
+        if (searchInp) searchInp.value = '';
+        updateMatrixModeUI();
+        renderMatrixChecklist();
+        renderMatrixTrendsChart();
+    }
+
+    function updateMatrixModeUI() {
+        const btnCat = document.getElementById('btnMatrixModeCategory');
+        const btnSub = document.getElementById('btnMatrixModeSub');
+        const titleEl = document.getElementById('matrixModalTitle');
+        const iconEl = document.getElementById('matrixModalHeaderIcon');
+
+        if (currentMatrixMode === 'category') {
+            btnCat.style.backgroundColor = '#4f46e5';
+            btnCat.style.color = '#ffffff';
+            btnCat.classList.add('shadow-xs');
+
+            btnSub.style.backgroundColor = 'transparent';
+            btnSub.style.color = '#cbd5e1';
+            btnSub.classList.remove('shadow-xs');
+
+            titleEl.innerHTML = '📈 กราฟแนวโน้ม 12 เดือน: <span class="text-warning">หมวดหลัก</span>';
+            iconEl.className = 'bi bi-graph-up-arrow fs-5 text-white';
+        } else {
+            btnSub.style.backgroundColor = '#4f46e5';
+            btnSub.style.color = '#ffffff';
+            btnSub.classList.add('shadow-xs');
+
+            btnCat.style.backgroundColor = 'transparent';
+            btnCat.style.color = '#cbd5e1';
+            btnCat.classList.remove('shadow-xs');
+
+            titleEl.innerHTML = '📊 กราฟแนวโน้ม 12 เดือน: <span class="text-warning">ผังบัญชีย่อย</span>';
+            iconEl.className = 'bi bi-bar-chart-steps fs-5 text-white';
+        }
+    }
+
+    function renderMatrixChecklist() {
+        const container = document.getElementById('matrixChecklistContainer');
+        const isCat = (currentMatrixMode === 'category');
+        const dataObj = isCat ? matrixCategoryData : matrixSubAccountData;
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        const totalCount = Object.keys(dataObj).length;
+        
+        document.getElementById('matrixListTotalCount').textContent = `ทั้งหมด ${totalCount.toLocaleString()} รายการ`;
+        document.getElementById('matrixSelectedCount').textContent = selectedSet.size.toLocaleString();
+
+        let html = '';
+        let colorIdx = 0;
+
+        const items = Object.values(dataObj);
+        if (!isCat) {
+            items.sort((a, b) => (b.total || 0) - (a.total || 0));
+        }
+
+        items.forEach(item => {
+            const key = isCat ? item.code : item.account_code;
+            const isChecked = selectedSet.has(key);
+            const color = matrixPalette[colorIdx % matrixPalette.length];
+            colorIdx++;
+
+            const badgeColor = item.type === 'revenue' 
+                ? 'bg-success-subtle text-success border-success-subtle' 
+                : (item.type === 'summary' ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-danger-subtle text-danger border-danger-subtle');
+
+            const name = isCat ? item.name : item.account_name;
+            const codeBadge = isCat ? key : `<span class="font-monospace">${key}</span>`;
+            const totalFmt = Number(item.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            html += `
+                <div class="matrix-check-item p-2 rounded-2 mb-1 border transition-all ${isChecked ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}" 
+                     data-key="${key}" data-type="${item.type}" data-name="${(name + ' ' + key).toLowerCase()}" style="font-size: 0.76rem; cursor: pointer;"
+                     onclick="toggleMatrixItemClick('${key}', event)">
+                    <div class="d-flex align-items-center gap-2">
+                        <input class="form-check-input mt-0 flex-shrink-0" type="checkbox" id="chkMatrix_${key.replace(/[^a-zA-Z0-9]/g, '_')}" 
+                               value="${key}" ${isChecked ? 'checked' : ''} onchange="onMatrixCheckItem('${key}', this.checked)" onclick="event.stopPropagation()">
+                        <span class="rounded-circle flex-shrink-0" style="width: 10px; height: 10px; background-color: ${color}; display: inline-block;"></span>
+                        <div class="flex-grow-1 text-truncate">
+                            <div class="d-flex align-items-center gap-1.5">
+                                <span class="badge ${badgeColor} border px-1.5 py-0 font-monospace" style="font-size: 0.65rem;">${codeBadge}</span>
+                                <strong class="text-dark text-truncate" title="${name}">${name}</strong>
+                            </div>
+                        </div>
+                        <div class="text-end font-monospace text-muted flex-shrink-0" style="font-size: 0.70rem;">
+                            ${totalFmt} บ.
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html || '<div class="text-center text-muted py-4">ไม่พบข้อมูล</div>';
+    }
+
+    function toggleMatrixItemClick(key, e) {
+        if (e.target.tagName.toLowerCase() === 'input') return;
+        const isCat = (currentMatrixMode === 'category');
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        const chk = document.getElementById('chkMatrix_' + key.replace(/[^a-zA-Z0-9]/g, '_'));
+        const newChecked = !selectedSet.has(key);
+        if (chk) chk.checked = newChecked;
+        onMatrixCheckItem(key, newChecked);
+    }
+
+    function onMatrixCheckItem(key, isChecked) {
+        const isCat = (currentMatrixMode === 'category');
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        if (isChecked) {
+            selectedSet.add(key);
+        } else {
+            selectedSet.delete(key);
+        }
+        document.getElementById('matrixSelectedCount').textContent = selectedSet.size.toLocaleString();
+        
+        // Highlight row
+        const itemRow = document.querySelector(`.matrix-check-item[data-key="${key}"]`);
+        if (itemRow) {
+            if (isChecked) {
+                itemRow.classList.add('bg-indigo-50', 'border-indigo-200');
+                itemRow.classList.remove('bg-white');
+            } else {
+                itemRow.classList.remove('bg-indigo-50', 'border-indigo-200');
+                itemRow.classList.add('bg-white');
+            }
+        }
+
+        renderMatrixTrendsChart();
+    }
+
+    function onMatrixSearchInput(kw) {
+        const clean = kw.trim().toLowerCase();
+        document.querySelectorAll('.matrix-check-item').forEach(el => {
+            const str = el.getAttribute('data-name') || '';
+            if (!clean || str.includes(clean)) {
+                el.classList.remove('d-none');
+            } else {
+                el.classList.add('d-none');
+            }
+        });
+    }
+
+    function clearMatrixSearch() {
+        const inp = document.getElementById('matrixSearchInput');
+        if (inp) {
+            inp.value = '';
+            onMatrixSearchInput('');
+        }
+    }
+
+    function matrixSelectAll(isChecked) {
+        const isCat = (currentMatrixMode === 'category');
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        
+        // Only affect visible items from search filter
+        document.querySelectorAll('.matrix-check-item:not(.d-none)').forEach(el => {
+            const key = el.getAttribute('data-key');
+            const chk = el.querySelector('input[type="checkbox"]');
+            if (chk) chk.checked = isChecked;
+            if (isChecked) {
+                selectedSet.add(key);
+                el.classList.add('bg-indigo-50', 'border-indigo-200');
+                el.classList.remove('bg-white');
+            } else {
+                selectedSet.delete(key);
+                el.classList.remove('bg-indigo-50', 'border-indigo-200');
+                el.classList.add('bg-white');
+            }
+        });
+
+        document.getElementById('matrixSelectedCount').textContent = selectedSet.size.toLocaleString();
+        renderMatrixTrendsChart();
+    }
+
+    function matrixFilterByType(type) {
+        const isCat = (currentMatrixMode === 'category');
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        selectedSet.clear();
+
+        document.querySelectorAll('.matrix-check-item').forEach(el => {
+            const itemType = el.getAttribute('data-type');
+            const key = el.getAttribute('data-key');
+            const chk = el.querySelector('input[type="checkbox"]');
+            const match = (itemType === type);
+            if (chk) chk.checked = match;
+            if (match) {
+                selectedSet.add(key);
+                el.classList.add('bg-indigo-50', 'border-indigo-200');
+                el.classList.remove('bg-white');
+            } else {
+                el.classList.remove('bg-indigo-50', 'border-indigo-200');
+                el.classList.add('bg-white');
+            }
+        });
+
+        document.getElementById('matrixSelectedCount').textContent = selectedSet.size.toLocaleString();
+        renderMatrixTrendsChart();
+    }
+
+    function renderMatrixTrendsChart() {
+        const canvas = document.getElementById('canvasMatrixTrendsChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        if (matrixChartInstance) {
+            matrixChartInstance.destroy();
+        }
+
+        const isCat = (currentMatrixMode === 'category');
+        const dataObj = isCat ? matrixCategoryData : matrixSubAccountData;
+        const selectedSet = isCat ? matrixSelectedKeys : matrixSubSelectedKeys;
+        const emptyState = document.getElementById('matrixChartEmptyState');
+
+        if (selectedSet.size === 0) {
+            if (emptyState) emptyState.classList.remove('d-none');
+            document.getElementById('matrixChartSumTotal').textContent = '0.00 บ.';
+            const planEl = document.getElementById('matrixChartPlanTotal');
+            if (planEl) planEl.textContent = '0.00 บ.';
+            const diffEl = document.getElementById('matrixChartDiffTotal');
+            if (diffEl) { diffEl.textContent = '0.00 บ.'; diffEl.className = 'fw-bold font-monospace'; }
+            const avgEl = document.getElementById('matrixChartMonthlyAvg');
+            if (avgEl) avgEl.textContent = '0.00 บ.';
+            return;
+        } else {
+            if (emptyState) emptyState.classList.add('d-none');
+        }
+
+        // Build datasets
+        const datasets = [];
+        let grandActualTotal = 0;
+        let grandPlanTotal = 0;
+        let colorIdx = 0;
+        const isSingle = (selectedSet.size === 1);
+
+        const items = Object.values(dataObj);
+        if (!isCat) {
+            items.sort((a, b) => (b.total || 0) - (a.total || 0));
+        }
+
+        items.forEach(item => {
+            const key = isCat ? item.code : item.account_code;
+            if (!selectedSet.has(key)) return;
+
+            // When single item: Actual is Royal Blue (#2563eb), Plan is Vivid Amber/Orange (#ea580c)!
+            // When multiple items: Actual takes unique color from matrixPalette, Plan takes warm accent!
+            const actualColor = isSingle ? '#2563eb' : matrixPalette[colorIdx % matrixPalette.length];
+            const planColor = isSingle ? '#ea580c' : (matrixPlanPalette[colorIdx % matrixPlanPalette.length] || '#ea580c');
+            colorIdx++;
+
+            const actualPoints = matrixPeriods.map(p => Number(item.series[p] || 0));
+            const actualTotal = Number(item.total || 0);
+            grandActualTotal += actualTotal;
+
+            const planAnnual = Number(item.annual_target || 0);
+            grandPlanTotal += planAnnual;
+
+            const name = isCat ? `${item.code} - ${item.name}` : `${item.account_code} ${item.account_name}`;
+
+            // 1. เส้นผลการดำเนินงานจริง (Actual - เส้นทึบ สีน้ำเงิน มี Fill สวยงาม)
+            datasets.push({
+                label: `[ผลจริง] ${name}`,
+                rawName: name,
+                isPlan: false,
+                data: actualPoints,
+                borderColor: actualColor,
+                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                borderWidth: isSingle ? 2.8 : 2.2,
+                borderDash: [],
+                fill: true,
+                tension: 0.35,
+                pointRadius: isSingle ? 4.5 : 3.5,
+                pointHoverRadius: 6.5,
+                pointBackgroundColor: actualColor,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                order: 1
+            });
+
+            // 2. เส้นแผนเป้าหมาย (Plan - เส้นประ สีส้มอำพัน/ทอง แยกสีชัดเจน)
+            const planPoints = matrixPeriods.map(p => {
+                if (item.plan_series && item.plan_series[p] !== undefined) {
+                    return Number(item.plan_series[p] || 0);
+                }
+                return Number(item.plan_monthly || (planAnnual / 12.0) || 0);
+            });
+
+            datasets.push({
+                label: `[แผน] ${name}`,
+                rawName: name,
+                isPlan: true,
+                data: planPoints,
+                borderColor: planColor,
+                backgroundColor: 'transparent',
+                borderWidth: 2.2,
+                borderDash: [6, 4], // เส้นประ
+                fill: false,
+                tension: 0.0,
+                pointRadius: isSingle ? 4 : 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: planColor,
+                pointBorderWidth: 2,
+                order: 2
+            });
+        });
+
+        // Summary stats
+        document.getElementById('matrixChartSumTotal').textContent = Number(grandActualTotal).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.';
+        const planTotalEl = document.getElementById('matrixChartPlanTotal');
+        if (planTotalEl) {
+            planTotalEl.textContent = Number(grandPlanTotal).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.';
+        }
+
+        const diffTotal = grandActualTotal - grandPlanTotal;
+        const diffEl = document.getElementById('matrixChartDiffTotal');
+        if (diffEl) {
+            const prefix = diffTotal > 0 ? '+' : '';
+            diffEl.textContent = prefix + Number(diffTotal).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.';
+            diffEl.className = 'fw-bold font-monospace ' + (diffTotal >= 0 ? 'text-success' : 'text-danger');
+        }
+
+        const monthlyAvg = grandActualTotal / 12.0;
+        const monthlyAvgEl = document.getElementById('matrixChartMonthlyAvg');
+        if (monthlyAvgEl) {
+            monthlyAvgEl.textContent = Number(monthlyAvg).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.';
+        }
+
+        matrixChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: matrixPeriodLabels,
+                datasets: datasets
+            },
+            plugins: [matrixDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: datasets.length <= 16,
+                        position: 'top',
+                        labels: {
+                            font: { size: 10, weight: 'bold' },
+                            boxWidth: 16,
+                            padding: 8
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const val = Number(context.parsed.y || 0);
+                                const isPlan = context.dataset.isPlan;
+                                const icon = isPlan ? '┄ ' : '● ';
+                                return ` ${icon}${context.dataset.label}: ${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { font: { size: 11, weight: 'bold' } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.06)' },
+                        ticks: {
+                            font: { size: 10 },
+                            callback: function(val) {
+                                if (Math.abs(val) >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                                if (Math.abs(val) >= 1000) return (val / 1000).toFixed(0) + 'k';
+                                return val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function downloadMatrixChartPng() {
+        if (!matrixChartInstance) return;
+        const link = document.createElement('a');
+        link.download = `TrendChart_${currentMatrixMode}_${Date.now()}.png`;
+        link.href = matrixChartInstance.toBase64Image();
+        link.click();
     }
 
     // Init Recalculate on load & Sub-tab state

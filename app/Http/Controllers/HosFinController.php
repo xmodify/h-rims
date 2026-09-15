@@ -4281,7 +4281,7 @@ class HosFinController extends Controller
             ->orderBy('account_code')
             ->get();
 
-        $neededPeriods = array_values(array_unique([$selectedPeriod, $baselinePeriod, "{$priorYear}-09"]));
+        $neededPeriods = array_values(array_unique(array_merge($yearPeriodList, [$selectedPeriod, $baselinePeriod, "{$priorYear}-09"])));
         $tbSubRows = DB::table('hosfin_trial_balance as t')
             ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
             ->whereIn('t.acc_period', $neededPeriods)
@@ -4311,6 +4311,71 @@ class HosFinController extends Controller
             ->orderBy('round_no', 'desc')
             ->get()
             ->groupBy('account_code');
+
+        // Build 12-month lookup for Sub-Accounts (for interactive chart modal)
+        $matrixSubLookup = [];
+        foreach ($mappings as $m) {
+            $accCode = $m->account_code;
+            $series = [];
+            $total = 0.0;
+            foreach ($yearPeriodList as $p) {
+                $val = floatval($tbSubLookupMonthly[$p][$accCode] ?? 0.0);
+                $series[$p] = $val;
+                $total += $val;
+            }
+
+            $subTargetActiveObj = $subTargetsActiveRaw->get($accCode)?->first();
+            $planAnnual = $subTargetActiveObj ? floatval($subTargetActiveObj->target_amount) : 0.0;
+            $planMonthly = $planAnnual / 12.0;
+            $planSeries = [];
+            foreach ($yearPeriodList as $p) {
+                $planSeries[$p] = $planMonthly;
+            }
+
+            $firstDigit = substr($accCode, 0, 1);
+            $matrixSubLookup[$accCode] = [
+                'account_code' => $accCode,
+                'account_name' => $m->account_name ?: $accCode,
+                'plan_code' => $m->plan_code,
+                'type' => ($firstDigit === '4') ? 'revenue' : 'expense',
+                'total' => $total,
+                'annual_target' => $planAnnual,
+                'plan_monthly' => $planMonthly,
+                'series' => $series,
+                'plan_series' => $planSeries
+            ];
+        }
+
+        // Build 12-month lookup for Categories (for interactive chart modal)
+        $matrixCategoryLookup = [];
+        foreach ($tab1Rows as $code => $r) {
+            if ($code === 'P28') continue;
+            $series = [];
+            $total = 0.0;
+            foreach ($yearPeriodList as $p) {
+                $val = floatval($matrixLookup[$code][$p] ?? 0.0);
+                $series[$p] = $val;
+                $total += $val;
+            }
+
+            $annualTarget = floatval($r['annual_target'] ?? 0);
+            $planMonthly = $annualTarget / 12.0;
+            $planSeries = [];
+            foreach ($yearPeriodList as $p) {
+                $planSeries[$p] = $planMonthly;
+            }
+
+            $matrixCategoryLookup[$code] = [
+                'code' => $code,
+                'name' => $r['name'],
+                'type' => $r['type'],
+                'total' => $total,
+                'annual_target' => $annualTarget,
+                'plan_monthly' => $planMonthly,
+                'series' => $series,
+                'plan_series' => $planSeries
+            ];
+        }
 
         $subAccountsByPlan = [];
         foreach ($mappings as $m) {
@@ -4569,6 +4634,8 @@ class HosFinController extends Controller
             'kpiMonthActualNet',
             'kpiMonthActualEbitda',
             'matrixLookup',
+            'matrixCategoryLookup',
+            'matrixSubLookup',
             'kpiCapInvestment',
             'kpiTab2CapInvestment',
             'tab2_p29_sim',

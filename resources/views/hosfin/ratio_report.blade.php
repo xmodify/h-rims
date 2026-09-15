@@ -483,8 +483,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+<script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
 <script>
     // Selected budget year change
     document.getElementById('select_budget_year').addEventListener('change', function() {

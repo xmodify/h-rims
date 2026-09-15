@@ -1735,8 +1735,8 @@
     </div>
 </div>
 
-<!-- Chart.js CDN for Dual-Axis Trend Graphs -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Local Vendor (ใช้งานแบบ Offline / Intranet 100%) -->
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
 
 <!-- ========================================================================= -->
 <!-- MODAL 3: ข้อมูลบริการและต้นทุนการใช้จริง HOSxP เทียบงบทดลอง (Service Drilldown) -->

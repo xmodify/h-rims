@@ -539,7 +539,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 1. Chart.js Monthly Cost Trend Stacked Bar Chart

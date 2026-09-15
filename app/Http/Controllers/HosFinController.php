@@ -5362,23 +5362,1094 @@ class HosFinController extends Controller
     }
 
     /**
-     * Get PlanFin Account Mappings list for Modal
+     * Map Plan Code to HOSxP drg_chrgitem_id list & clinical service rights
      */
-    public function getPlanfinMappings(Request $request)
+    protected static function getPlanfinClinicalMapping(string $planCode): array
     {
-        $mappings = DB::table('hosfin_planfin_mappings')
-            ->orderBy('plan_code')
-            ->orderBy('account_code')
+        $map = [
+            'P14' => [
+                'drg_ids' => [3, 4],
+                'drg_label' => 'หมวด 3, 4 (ยาใน รพ. และยากลับบ้าน)',
+                'drg_full_names' => 'หมวด 3 (ยาและสารอาหารทางเส้นเลือดที่ใช้ใน รพ.), หมวด 4 (ยาที่นำไปใช้ต่อที่บ้าน)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่ายาเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => true
+            ],
+            'P15' => [
+                'drg_ids' => [5, 10],
+                'drg_label' => 'หมวด 5, 10 (เวชภัณฑ์มิใช่ยา & วัสดุการแพทย์)',
+                'drg_full_names' => 'หมวด 5 (เวชภัณฑ์ที่ไม่ใช่ยา), หมวด 10 (อุปกรณ์ของใช้และเครื่องมือทางการแพทย์)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าเวชภัณฑ์เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'P151' => [
+                'drg_ids' => [13],
+                'drg_label' => 'หมวด 13 (บริการทางทันตกรรม)',
+                'drg_full_names' => 'หมวด 13 (บริการทางทันตกรรม)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าทันตกรรมเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'P16' => [
+                'drg_ids' => [7],
+                'drg_label' => 'หมวด 7 (ตรวจทางเทคนิคการแพทย์/Lab)',
+                'drg_full_names' => 'หมวด 7 (ตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่า Lab เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'MED01' => [
+                'drg_ids' => [3, 4],
+                'plan_code' => 'P14',
+                'drg_label' => 'หมวด 3, 4 (ยาใน รพ. และยากลับบ้าน)',
+                'drg_full_names' => 'หมวด 3 (ยาและสารอาหารทางเส้นเลือดที่ใช้ใน รพ.), หมวด 4 (ยาที่นำไปใช้ต่อที่บ้าน)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่ายาเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => true
+            ],
+            'MED02' => [
+                'drg_ids' => [5],
+                'plan_code' => 'P15',
+                'drg_label' => 'หมวด 5 (เวชภัณฑ์ที่ไม่ใช่ยา)',
+                'drg_full_names' => 'หมวด 5 (เวชภัณฑ์ที่ไม่ใช่ยา)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าเวชภัณฑ์เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'MED03' => [
+                'drg_ids' => [10],
+                'plan_code' => 'P15',
+                'drg_label' => 'หมวด 10 (อุปกรณ์ของใช้และเครื่องมือแพทย์)',
+                'drg_full_names' => 'หมวด 10 (อุปกรณ์ของใช้และเครื่องมือทางการแพทย์)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าวัสดุแพทย์เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'MED04' => [
+                'drg_ids' => [7],
+                'plan_code' => 'P16',
+                'drg_label' => 'หมวด 7 (ตรวจทางเทคนิคการแพทย์/Lab)',
+                'drg_full_names' => 'หมวด 7 (ตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่า Lab เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'MED05' => [
+                'drg_ids' => [8],
+                'plan_code' => 'P15',
+                'drg_label' => 'หมวด 8 (ตรวจทางรังสีวิทยา/X-Ray)',
+                'drg_full_names' => 'หมวด 8 (ตรวจวินิจฉัยและรักษาทางรังสีวิทยา)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าเอกซเรย์เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'MED06' => [
+                'drg_ids' => [13],
+                'plan_code' => 'P151',
+                'drg_label' => 'หมวด 13 (บริการทางทันตกรรม)',
+                'drg_full_names' => 'หมวด 13 (บริการทางทันตกรรม)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าทันตกรรมเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'P04' => [
+                'drg_ids' => [],
+                'service_right' => 'UC',
+                'drg_label' => 'สิทธิหลักประกันสุขภาพถ้วนหน้า (UC)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก UC (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit UC (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code IN ('UCS', 'WEL')"
+            ],
+            'P05' => [
+                'drg_ids' => [],
+                'service_right' => 'EMS',
+                'drg_label' => 'บริการการแพทย์ฉุกเฉิน (EMS 1669)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยฉุกเฉิน EMS (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อเคส EMS (บาท/ครั้ง)',
+                'pttype_where' => "1=1" // ดึงตรงจาก opitemrece ร่วมกับ hrims.lookup_icode.ems = 'Y'
+            ],
+            'P06' => [
+                'drg_ids' => [],
+                'service_right' => 'GOF',
+                'drg_label' => 'สิทธิเบิกต้นสังกัด / หน่วยงานอื่น (รัฐวิสาหกิจ/องค์กร)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก เบิกต้นสังกัด/หน่วยงานอื่น (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit เบิกต้นสังกัด (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code IN ('BFC', 'GOF', 'WVO', 'BMT', 'KKT', 'SRT', 'PVT')"
+            ],
+            'P61' => [
+                'drg_ids' => [],
+                'service_right' => 'LGO',
+                'drg_label' => 'สิทธิเบิกจ่ายตรง อปท. / กทม. / พัทยา',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก อปท. (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit อปท. (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code IN ('LGO', 'BKK', 'PTY')"
+            ],
+            'P07' => [
+                'drg_ids' => [],
+                'service_right' => 'OFC',
+                'drg_label' => 'สิทธิเบิกจ่ายตรงกรมบัญชีกลาง',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก จ่ายตรงกรมบัญชีกลาง (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit จ่ายตรง (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code = 'OFC'"
+            ],
+            'P08' => [
+                'drg_ids' => [],
+                'service_right' => 'SSS',
+                'drg_label' => 'สิทธิประกันสังคม (SSS)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก ปกส. (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit ปกส. (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code IN ('SSS', 'SSI')"
+            ],
+            'P09' => [
+                'drg_ids' => [],
+                'service_right' => 'FWF',
+                'drg_label' => 'สิทธิแรงงานต่างด้าว (FWF)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอก ต่างด้าว (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit ต่างด้าว (บาท/ครั้ง)',
+                'pttype_where' => "p.hipdata_code IN ('FWF', 'NRH', 'NRD')"
+            ],
+            'P10' => [
+                'drg_ids' => [],
+                'service_right' => 'PAY',
+                'drg_label' => 'ชำระเงินเองและบริการอื่น ๆ (เงินสดทุกสิทธิ/พรบ./บุคคลไร้สิทธิ)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยชำระเงินเอง/พรบ./อื่นๆ (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'pttype_where' => "({TABLE}.paid_money > 0 OR p.hipdata_code IN ('A1', 'CSH', 'A9', 'INS', 'STP'))"
+            ],
+            'P13S' => [
+                'drg_ids' => [],
+                'service_right' => 'ALL',
+                'drg_label' => 'รวมรายได้ทุกสิทธิการรักษา',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวมทุกสิทธิ (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit รวม (บาท/ครั้ง)',
+                'pttype_where' => "1=1"
+            ],
+            'P26S' => [
+                'drg_ids' => [3, 4, 5, 7, 8, 10, 13],
+                'drg_label' => 'หมวด 3, 4 (ยา), หมวด 5, 10 (เวชภัณฑ์), หมวด 7 (Lab), หมวด 8 (X-Ray), หมวด 13 (ทันตกรรม)',
+                'drg_full_names' => 'หมวด 3, 4 (ยา), หมวด 5, 10 (เวชภัณฑ์/วัสดุการแพทย์), หมวด 7 (Lab), หมวด 8 (X-Ray), หมวด 13 (ทันตกรรม)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าใช้จ่ายเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'P27S' => [
+                'drg_ids' => [],
+                'service_right' => 'NET',
+                'drg_label' => 'รายได้สูง (ต่ำ) กว่าค่าใช้จ่ายสุทธิ (Net Margin)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ผลต่างเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'pttype_where' => "1=1"
+            ],
+            'P29-R' => [
+                'drg_ids' => [],
+                'service_right' => 'ALL',
+                'drg_label' => 'รวมรายได้ (ไม่รวมรายได้อื่นและงบลงทุน)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+                'unit_cost_label' => 'รายได้เฉลี่ยต่อ Visit รวม (บาท/ครั้ง)',
+                'pttype_where' => "1=1"
+            ],
+            'P29-E' => [
+                'drg_ids' => [3, 4, 5, 7, 8, 10, 13],
+                'drg_label' => 'หมวด 3, 4 (ยา), หมวด 5, 10 (เวชภัณฑ์), หมวด 7 (Lab), หมวด 8 (X-Ray), หมวด 13 (ทันตกรรม)',
+                'drg_full_names' => 'หมวด 3, 4 (ยา), หมวด 5, 10 (เวชภัณฑ์/วัสดุการแพทย์), หมวด 7 (Lab), หมวด 8 (X-Ray), หมวด 13 (ทันตกรรม)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+                'unit_cost_label' => 'ค่าใช้จ่ายเฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'is_drug' => false
+            ],
+            'P29' => [
+                'drg_ids' => [],
+                'service_right' => 'EBITDA',
+                'drg_label' => 'EBITDA (กำไรก่อนหักค่าเสื่อมราคาและค่าตัดจำหน่าย)',
+                'service_metric' => 'op_visits',
+                'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+                'unit_cost_label' => 'EBITDA เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+                'pttype_where' => "1=1"
+            ],
+        ];
+
+        return $map[$planCode] ?? [
+            'drg_ids' => [],
+            'service_right' => null,
+            'drg_label' => 'หมวดทั่วไป',
+            'service_metric' => 'op_visits',
+            'service_metric_label' => 'ผู้ป่วยนอกรวม (ครั้ง/เดือน)',
+            'unit_cost_label' => (str_starts_with($planCode, 'P0') || $planCode === 'P13S' || str_starts_with($planCode, 'P6') || str_starts_with($planCode, 'P10') || str_starts_with($planCode, 'P11') || str_starts_with($planCode, 'P12') || str_starts_with($planCode, 'P13'))
+                ? 'รายได้เฉลี่ยต่อ Visit (บาท/ครั้ง)'
+                : 'เฉลี่ยต่อ Visit (บาท/ครั้ง)',
+            'pttype_where' => "1=1"
+        ];
+    }
+
+    /**
+     * Smart PlanFin: Service & Clinical Utilization Drill-down Endpoint
+     */
+    public function planfin_service_drilldown(Request $request)
+    {
+        $planCode = trim($request->input('plan_code', 'P15'));
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        if ($budgetYear <= 0) $budgetYear = 2569;
+        $selectedPeriod = $request->input('period', "{$budgetYear}-07");
+
+        $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
+        $expCodes = ['P14','P15','P151','P16','P17','P18','P19','P20','P21','P22','P23','P24','P241','P25','P251'];
+
+        // Category information
+        $category = DB::table('hosfin_planfin_categories')->where('plan_code', $planCode)->first();
+        $planName = $category ? $category->plan_name : $planCode;
+
+        $isSummaryRow = in_array($planCode, ['P13S', 'P26S', 'P27S', 'P29-R', 'P29-E', 'P29']) || ($category && $category->category_type === 'summary');
+        if ($planCode === 'P13S' || $planCode === 'P29-R') {
+            $categoryType = 'revenue';
+        } elseif ($planCode === 'P26S' || $planCode === 'P29-E') {
+            $categoryType = 'expense';
+        } elseif ($planCode === 'P27S' || $planCode === 'P29') {
+            $categoryType = 'revenue'; // Net margin: positive is surplus/favorable like revenue
+        } else {
+            $categoryType = $category ? $category->category_type : (str_starts_with($planCode, 'P0') ? 'revenue' : 'expense');
+        }
+
+        $clinicalMapping = self::getPlanfinClinicalMapping($planCode);
+        $drgIds = $clinicalMapping['drg_ids'] ?? [];
+
+        // Build 12 fiscal periods
+        $fiscalMonths = [];
+        for ($cm = 1; $cm <= 12; $cm++) {
+            $m = ($cm <= 3) ? ($cm + 9) : ($cm - 3);
+            $y = ($m >= 10) ? ($budgetYear - 1) : $budgetYear;
+            $ceYear = $y - 543;
+            $p = sprintf('%04d-%02d', $y, $m);
+            $ym = sprintf('%04d-%02d', $ceYear, $m);
+            $label = self::getThaiMonthName($m) . ' ' . substr((string)$y, -2);
+            $startDate = sprintf('%04d-%02d-01', $ceYear, $m);
+            $endDate = date('Y-m-t', strtotime($startDate));
+
+            $fiscalMonths[$cm] = [
+                'cum_months' => $cm,
+                'period' => $p,
+                'ym' => $ym,
+                'year' => $y,
+                'month' => $m,
+                'label' => $label,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ];
+        }
+
+        $fiscalStart = $fiscalMonths[1]['start_date'];
+        $fiscalEnd = $fiscalMonths[12]['end_date'];
+        $periodList = array_column($fiscalMonths, 'period');
+
+        // 1. Fetch GL Financial Actuals from hosfin_trial_balance
+        $tbSummaryByPeriod = [];
+        if ($isSummaryRow) {
+            $query = DB::table('hosfin_trial_balance as t')
+                ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+                ->whereIn('t.acc_period', $periodList);
+
+            if ($planCode === 'P13S') {
+                $query->whereIn('m.plan_code', $revCodes);
+            } elseif ($planCode === 'P26S') {
+                $query->whereIn('m.plan_code', $expCodes);
+            } elseif ($planCode === 'P29-R') {
+                $query->whereIn('m.plan_code', array_diff($revCodes, ['P13', 'P121']));
+            } elseif ($planCode === 'P29-E') {
+                $query->whereIn('m.plan_code', array_diff($expCodes, ['P24', 'P251']));
+            } else {
+                $query->whereIn('m.plan_code', array_merge($revCodes, $expCodes));
+            }
+
+            $tbRawRows = $query->select(
+                't.acc_period',
+                'm.plan_code',
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
+                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
+            )
+            ->groupBy('t.acc_period', 'm.plan_code')
             ->get();
 
-        if ($mappings->isEmpty()) {
-            $path = base_path('docs/lookup/hosfin_planfin_mappings.json');
-            if (file_exists($path)) {
-                $mappings = json_decode(file_get_contents($path), true);
+            foreach ($periodList as $p) {
+                $tbSummaryByPeriod[$p] = ['rev' => 0.0, 'exp' => 0.0, 'amount' => 0.0];
+            }
+            foreach ($tbRawRows as $r) {
+                $p = $r->acc_period;
+                if (!isset($tbSummaryByPeriod[$p])) continue;
+                if (in_array($r->plan_code, $revCodes)) {
+                    $tbSummaryByPeriod[$p]['rev'] += floatval($r->rev);
+                }
+                if (in_array($r->plan_code, $expCodes)) {
+                    $tbSummaryByPeriod[$p]['exp'] += floatval($r->exp);
+                }
+            }
+
+            foreach ($periodList as $p) {
+                $revVal = $tbSummaryByPeriod[$p]['rev'];
+                $expVal = $tbSummaryByPeriod[$p]['exp'];
+                if ($planCode === 'P13S' || $planCode === 'P29-R') {
+                    $tbSummaryByPeriod[$p]['amount'] = $revVal;
+                } elseif ($planCode === 'P26S' || $planCode === 'P29-E') {
+                    $tbSummaryByPeriod[$p]['amount'] = $expVal;
+                } elseif ($planCode === 'P27S' || $planCode === 'P29') {
+                    $tbSummaryByPeriod[$p]['amount'] = $revVal - $expVal;
+                }
+            }
+            $tbRaw = collect();
+        } else {
+            $tbRaw = DB::table('hosfin_trial_balance as t')
+                ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
+                ->whereIn('t.acc_period', $periodList)
+                ->where('m.plan_code', $planCode)
+                ->select(
+                    't.acc_period',
+                    DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
+                    DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
+                )
+                ->groupBy('t.acc_period')
+                ->get()
+                ->keyBy('acc_period');
+        }
+
+        // 2. Fetch Annual Target for this category
+        $allTargets = DB::table('hosfin_planfin_targets')
+            ->where('budget_year', $budgetYear)
+            ->orderBy('round_no', 'desc')
+            ->pluck('target_amount', 'plan_code');
+
+        if ($planCode === 'P13S') {
+            $annualTarget = floatval($allTargets['P13S'] ?? 0);
+            if ($annualTarget == 0) {
+                foreach ($revCodes as $c) { $annualTarget += floatval($allTargets[$c] ?? 0); }
+            }
+        } elseif ($planCode === 'P26S') {
+            $annualTarget = floatval($allTargets['P26S'] ?? 0);
+            if ($annualTarget == 0) {
+                foreach ($expCodes as $c) { $annualTarget += floatval($allTargets[$c] ?? 0); }
+            }
+        } elseif ($planCode === 'P27S') {
+            $targetRev = floatval($allTargets['P13S'] ?? 0);
+            if ($targetRev == 0) { foreach ($revCodes as $c) { $targetRev += floatval($allTargets[$c] ?? 0); } }
+            $targetExp = floatval($allTargets['P26S'] ?? 0);
+            if ($targetExp == 0) { foreach ($expCodes as $c) { $targetExp += floatval($allTargets[$c] ?? 0); } }
+            $annualTarget = floatval($allTargets['P27S'] ?? ($targetRev - $targetExp));
+        } elseif ($planCode === 'P29-R') {
+            $annualTarget = floatval($allTargets['P29-R'] ?? (floatval($allTargets['P13S'] ?? 0) - floatval($allTargets['P13'] ?? 0) - floatval($allTargets['P121'] ?? 0)));
+        } elseif ($planCode === 'P29-E') {
+            $annualTarget = floatval($allTargets['P29-E'] ?? (floatval($allTargets['P26S'] ?? 0) - floatval($allTargets['P24'] ?? 0) - floatval($allTargets['P251'] ?? 0)));
+        } elseif ($planCode === 'P29') {
+            $annualTarget = floatval($allTargets['P29'] ?? 0);
+        } else {
+            $annualTarget = floatval($allTargets[$planCode] ?? 0);
+        }
+        $monthlyPlan = $annualTarget / 12.0;
+
+        // 3. Fetch HOSxP Clinical Usage / Service Volume
+        $opUsageByYm = [];
+        $ipUsageByYm = [];
+        $isDrug = ($planCode === 'P14' || $planCode === 'MED01' || in_array(3, $drgIds) || in_array(4, $drgIds));
+
+        if ($planCode === 'P27S' || $planCode === 'P29') {
+            // Net margin: calculate (HOSxP Revenue - HOSxP Clinical Expenses)
+            try {
+                // OPD & IPD Revenue from vn_stat & an_stat
+                $opRows = DB::connection('hosxp')->select("
+                    SELECT 
+                        DATE_FORMAT(v.vstdate, '%Y-%m') as ym,
+                        COUNT(v.vn) as op_visits,
+                        COUNT(DISTINCT v.hn) as op_patients,
+                        SUM(COALESCE(v.income, 0)) as total_income
+                    FROM vn_stat v
+                    WHERE v.vstdate BETWEEN ? AND ?
+                    GROUP BY DATE_FORMAT(v.vstdate, '%Y-%m')
+                ", [$fiscalStart, $fiscalEnd]);
+
+                $ipRows = DB::connection('hosxp')->select("
+                    SELECT 
+                        DATE_FORMAT(COALESCE(a.dchdate, a.regdate), '%Y-%m') as ym,
+                        COUNT(a.an) as ip_admits,
+                        COUNT(DISTINCT a.hn) as ip_patients,
+                        SUM(COALESCE(a.admdate, 0)) as ip_bed_days,
+                        SUM(COALESCE(i.adjrw, 0)) as ip_adjrw,
+                        SUM(COALESCE(a.income, 0)) as total_income
+                    FROM an_stat a
+                    LEFT JOIN ipt i ON i.an = a.an
+                    WHERE (a.dchdate BETWEEN ? AND ? OR (a.dchdate IS NULL AND a.regdate BETWEEN ? AND ?))
+                    GROUP BY DATE_FORMAT(COALESCE(a.dchdate, a.regdate), '%Y-%m')
+                ", [$fiscalStart, $fiscalEnd, $fiscalStart, $fiscalEnd]);
+
+                // Clinical Expenses from opitemrece
+                $hosxpExpRows = DB::connection('hosxp')->select("
+                    SELECT 
+                        DATE_FORMAT(o.rxdate, '%Y-%m') as ym,
+                        CASE WHEN (o.an IS NOT NULL AND o.an != '') THEN 'IPD' ELSE 'OPD' END as pt_type,
+                        SUM(COALESCE(o.sum_price, 0)) as total_charge,
+                        SUM(COALESCE(o.qty, 0)) as total_qty
+                    FROM opitemrece o
+                    LEFT JOIN income i ON i.income = o.income
+                    WHERE o.rxdate BETWEEN ? AND ?
+                      AND i.drg_chrgitem_id IN (3, 4, 5, 7, 8, 10, 13)
+                    GROUP BY DATE_FORMAT(o.rxdate, '%Y-%m'), pt_type
+                ", [$fiscalStart, $fiscalEnd]);
+
+                $opExpMap = [];
+                $ipExpMap = [];
+                foreach ($hosxpExpRows as $hr) {
+                    if ($hr->pt_type === 'IPD') {
+                        $ipExpMap[$hr->ym] = floatval($hr->total_charge);
+                    } else {
+                        $opExpMap[$hr->ym] = floatval($hr->total_charge);
+                    }
+                }
+
+                foreach ($opRows as $r) {
+                    $rev = floatval($r->total_income);
+                    $exp = floatval($opExpMap[$r->ym] ?? 0.0);
+                    $netMargin = $rev - $exp;
+                    $opUsageByYm[$r->ym] = [
+                        'visits' => intval($r->op_visits),
+                        'patients' => intval($r->op_patients),
+                        'cost' => $netMargin,
+                        'charge' => $rev,
+                        'qty' => floatval($r->op_visits)
+                    ];
+                }
+
+                foreach ($ipRows as $r) {
+                    $rev = floatval($r->total_income);
+                    $exp = floatval($ipExpMap[$r->ym] ?? 0.0);
+                    $netMargin = $rev - $exp;
+                    $ipUsageByYm[$r->ym] = [
+                        'admits' => intval($r->ip_admits),
+                        'patients' => intval($r->ip_patients),
+                        'bed_days' => floatval($r->ip_bed_days),
+                        'adjrw' => round(floatval($r->ip_adjrw), 4),
+                        'cost' => $netMargin,
+                        'charge' => $rev,
+                        'qty' => floatval($r->ip_admits)
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Smart PlanFin P27S HOSxP query error: " . $e->getMessage());
+            }
+        } elseif ($categoryType === 'revenue') {
+            try {
+                if ($planCode === 'P05') {
+                    // EMS (1669): ไม่ใช้ hipdata_code แต่ดึงจาก opitemrece ร่วมกับ hrims.lookup_icode li.ems = 'Y' (ตามแบบ Debtor 1102050101.109)
+                    $emsRows = DB::connection('hosxp')->select("
+                        SELECT 
+                            DATE_FORMAT(op.vstdate, '%Y-%m') as ym,
+                            COUNT(DISTINCT op.vn) as op_visits,
+                            COUNT(DISTINCT op.hn) as op_patients,
+                            SUM(COALESCE(op.sum_price, 0)) as total_income
+                        FROM opitemrece op
+                        INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = 'Y'
+                        WHERE op.vstdate BETWEEN ? AND ?
+                        GROUP BY DATE_FORMAT(op.vstdate, '%Y-%m')
+                    ", [$fiscalStart, $fiscalEnd]);
+
+                    foreach ($emsRows as $r) {
+                        $cost = floatval($r->total_income);
+                        $opUsageByYm[$r->ym] = [
+                            'visits' => intval($r->op_visits),
+                            'patients' => intval($r->op_patients),
+                            'cost' => $cost,
+                            'charge' => $cost,
+                            'qty' => floatval($r->op_visits)
+                        ];
+                    }
+                } else {
+                    // ฝั่งรายได้สิทธิอื่นๆ: สรุปบริการและมูลค่าบริการจาก vn_stat (OPD) และ an_stat (IPD) ตามสิทธิการรักษา
+                    $ptWhere = $clinicalMapping['pttype_where'] ?? '1=1';
+                    $ptWhereOp = str_replace(['{TABLE}', 'v.', 'a.'], ['v', 'v.', 'v.'], $ptWhere);
+                    $ptWhereIp = str_replace(['{TABLE}', 'v.', 'a.'], ['a', 'a.', 'a.'], $ptWhere);
+
+                    // 3.1 สรุปบริการผู้ป่วยนอก (OPD) จาก vn_stat
+                    $opRows = DB::connection('hosxp')->select("
+                        SELECT 
+                            DATE_FORMAT(v.vstdate, '%Y-%m') as ym,
+                            COUNT(v.vn) as op_visits,
+                            COUNT(DISTINCT v.hn) as op_patients,
+                            SUM(COALESCE(v.income, 0)) as total_income,
+                            SUM(COALESCE(v.uc_money, 0)) as total_uc,
+                            SUM(COALESCE(v.paid_money, 0)) as total_paid,
+                            SUM(CASE 
+                                WHEN p.hipdata_code IN ('A9', 'INS', 'STP') THEN COALESCE(v.uc_money, v.income)
+                                ELSE COALESCE(v.paid_money, 0)
+                            END) as p10_calc_cost
+                        FROM vn_stat v
+                        LEFT JOIN pttype p ON p.pttype = v.pttype
+                        WHERE v.vstdate BETWEEN ? AND ?
+                          AND ({$ptWhereOp})
+                        GROUP BY DATE_FORMAT(v.vstdate, '%Y-%m')
+                    ", [$fiscalStart, $fiscalEnd]);
+
+                    foreach ($opRows as $r) {
+                        $cost = ($planCode === 'P10') ? floatval($r->p10_calc_cost) : (($planCode === 'P13S' || $planCode === 'P29-R') ? floatval($r->total_income) : (floatval($r->total_uc) > 0 ? floatval($r->total_uc) : floatval($r->total_income)));
+                        $opUsageByYm[$r->ym] = [
+                            'visits' => intval($r->op_visits),
+                            'patients' => intval($r->op_patients),
+                            'cost' => $cost,
+                            'charge' => floatval($r->total_income),
+                            'uc_money' => floatval($r->total_uc),
+                            'paid_money' => floatval($r->total_paid),
+                            'qty' => floatval($r->op_visits)
+                        ];
+                    }
+
+                    // 3.2 สรุปบริการผู้ป่วยใน (IPD) จาก an_stat + ipt (ดึง AdjRW รวม)
+                    $ipRows = DB::connection('hosxp')->select("
+                        SELECT 
+                            DATE_FORMAT(COALESCE(a.dchdate, a.regdate), '%Y-%m') as ym,
+                            COUNT(a.an) as ip_admits,
+                            COUNT(DISTINCT a.hn) as ip_patients,
+                            SUM(COALESCE(a.admdate, 0)) as ip_bed_days,
+                            SUM(COALESCE(i.adjrw, 0)) as ip_adjrw,
+                            SUM(COALESCE(a.income, 0)) as total_income,
+                            SUM(COALESCE(a.uc_money, 0)) as total_uc,
+                            SUM(COALESCE(a.paid_money, 0)) as total_paid,
+                            SUM(CASE 
+                                WHEN p.hipdata_code IN ('A9', 'INS', 'STP') THEN COALESCE(a.uc_money, a.income)
+                                ELSE COALESCE(a.paid_money, 0)
+                            END) as p10_calc_cost
+                        FROM an_stat a
+                        LEFT JOIN ipt i ON i.an = a.an
+                        LEFT JOIN pttype p ON p.pttype = a.pttype
+                        WHERE (a.dchdate BETWEEN ? AND ? OR (a.dchdate IS NULL AND a.regdate BETWEEN ? AND ?))
+                          AND ({$ptWhereIp})
+                        GROUP BY DATE_FORMAT(COALESCE(a.dchdate, a.regdate), '%Y-%m')
+                    ", [$fiscalStart, $fiscalEnd, $fiscalStart, $fiscalEnd]);
+
+                    foreach ($ipRows as $r) {
+                        $cost = ($planCode === 'P10') ? floatval($r->p10_calc_cost) : (($planCode === 'P13S' || $planCode === 'P29-R') ? floatval($r->total_income) : (floatval($r->total_uc) > 0 ? floatval($r->total_uc) : floatval($r->total_income)));
+                        $ipUsageByYm[$r->ym] = [
+                            'admits' => intval($r->ip_admits),
+                            'patients' => intval($r->ip_patients),
+                            'bed_days' => floatval($r->ip_bed_days),
+                            'adjrw' => round(floatval($r->ip_adjrw), 4),
+                            'cost' => $cost,
+                            'charge' => floatval($r->total_income),
+                            'uc_money' => floatval($r->total_uc),
+                            'paid_money' => floatval($r->total_paid),
+                            'qty' => floatval($r->ip_admits)
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Smart PlanFin revenue HOSxP query error: " . $e->getMessage());
+            }
+        } else {
+            // ฝั่งค่าใช้จ่าย: ใช้ opitemrece + drg_chrgitem เพื่อดูการเบิกใช้ยา/เวชภัณฑ์จากคลัง แยก OPD และ IPD
+            if (!empty($drgIds)) {
+                try {
+                    $hosxpRows = DB::connection('hosxp')->select("
+                        SELECT 
+                            DATE_FORMAT(o.rxdate, '%Y-%m') as ym,
+                            CASE WHEN (o.an IS NOT NULL AND o.an != '') THEN 'IPD' ELSE 'OPD' END as pt_type,
+                            SUM(COALESCE(o.sum_price, 0)) as total_charge,
+                            SUM(COALESCE(o.cost, 0) * COALESCE(o.qty, 0)) as drug_cost_calc,
+                            SUM(COALESCE(o.qty, 0)) as total_qty,
+                            COUNT(o.icode) as total_items
+                        FROM opitemrece o
+                        LEFT JOIN income i ON i.income = o.income
+                        LEFT JOIN drg_chrgitem d ON d.drg_chrgitem_id = i.drg_chrgitem_id
+                        WHERE o.rxdate BETWEEN ? AND ?
+                          AND d.drg_chrgitem_id IN (" . implode(',', $drgIds) . ")
+                        GROUP BY DATE_FORMAT(o.rxdate, '%Y-%m'), pt_type
+                    ", [$fiscalStart, $fiscalEnd]);
+
+                    foreach ($hosxpRows as $hr) {
+                        if ($hr->pt_type === 'IPD') {
+                            $ipUsageByYm[$hr->ym]['cost'] = floatval($hr->total_charge);
+                            $ipUsageByYm[$hr->ym]['charge'] = floatval($hr->total_charge);
+                            $ipUsageByYm[$hr->ym]['drug_cost'] = floatval($hr->drug_cost_calc);
+                            $ipUsageByYm[$hr->ym]['qty'] = floatval($hr->total_qty);
+                        } else {
+                            $opUsageByYm[$hr->ym]['cost'] = floatval($hr->total_charge);
+                            $opUsageByYm[$hr->ym]['charge'] = floatval($hr->total_charge);
+                            $opUsageByYm[$hr->ym]['drug_cost'] = floatval($hr->drug_cost_calc);
+                            $opUsageByYm[$hr->ym]['qty'] = floatval($hr->total_qty);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Smart PlanFin HOSxP drg_chrgitem query error: " . $e->getMessage());
+                }
+            }
+
+            // จำนวนผู้ป่วยนอกและผู้ป่วยในทั่วไป (พร้อม AdjRW)
+            try {
+                $vRows = DB::connection('hosxp')->select("
+                    SELECT 
+                        DATE_FORMAT(vstdate, '%Y-%m') as ym,
+                        COUNT(vn) as op_visits,
+                        COUNT(DISTINCT hn) as op_patients
+                    FROM ovst
+                    WHERE vstdate BETWEEN ? AND ?
+                      AND (an IS NULL OR an = '')
+                    GROUP BY DATE_FORMAT(vstdate, '%Y-%m')
+                ", [$fiscalStart, $fiscalEnd]);
+
+                foreach ($vRows as $vr) {
+                    $opUsageByYm[$vr->ym]['visits'] = intval($vr->op_visits);
+                    $opUsageByYm[$vr->ym]['patients'] = intval($vr->op_patients);
+                }
+
+                $bRows = DB::connection('hosxp')->select("
+                    SELECT 
+                        DATE_FORMAT(i.regdate, '%Y-%m') as ym,
+                        COUNT(i.an) as ip_admits,
+                        SUM(COALESCE(a.admdate, 0)) as ip_bed_days,
+                        SUM(COALESCE(i.adjrw, 0)) as ip_adjrw
+                    FROM ipt i
+                    LEFT JOIN an_stat a ON a.an = i.an
+                    WHERE i.regdate BETWEEN ? AND ?
+                    GROUP BY DATE_FORMAT(i.regdate, '%Y-%m')
+                ", [$fiscalStart, $fiscalEnd]);
+
+                foreach ($bRows as $br) {
+                    $ipUsageByYm[$br->ym]['admits'] = intval($br->ip_admits);
+                    $ipUsageByYm[$br->ym]['bed_days'] = floatval($br->ip_bed_days);
+                    $ipUsageByYm[$br->ym]['adjrw'] = round(floatval($br->ip_adjrw), 4);
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Smart PlanFin HOSxP service volume query error: " . $e->getMessage());
             }
         }
 
-        return response()->json($mappings);
+        // 5. Assemble Monthly Series
+        $series = [];
+        $cumGlActual = 0.0;
+        $cumGlPlan = 0.0;
+        // OPD Cumulatives
+        $cumOpVisits = 0;
+        $cumOpCost = 0.0;
+        $cumOpCharge = 0.0;
+        // IPD Cumulatives
+        $cumIpAdmits = 0;
+        $cumIpBedDays = 0;
+        $cumIpAdjrw = 0.0;
+        $cumIpCost = 0.0;
+        $cumIpCharge = 0.0;
+        // Total HOSxP Cumulatives
+        $cumHosxpCost = 0.0;
+        $cumHosxpCharge = 0.0;
+        $cumHosxpQty = 0.0;
+
+        $pParts = explode('-', $selectedPeriod);
+        $sMonth = intval($pParts[1] ?? 7);
+        $selectedCumLimit = ($sMonth >= 10) ? ($sMonth - 9) : ($sMonth + 3);
+
+        foreach ($fiscalMonths as $cm => $fm) {
+            $p = $fm['period'];
+            $ym = $fm['ym'];
+
+            if ($isSummaryRow) {
+                $glAmt = floatval($tbSummaryByPeriod[$p]['amount'] ?? 0.0);
+            } else {
+                $tbItem = $tbRaw->get($p);
+                $glAmt = 0.0;
+                if ($tbItem) {
+                    $glAmt = ($categoryType === 'revenue') ? floatval($tbItem->rev) : floatval($tbItem->exp);
+                }
+            }
+
+            // OPD Data
+            $opData = $opUsageByYm[$ym] ?? [];
+            $opVisits = intval($opData['visits'] ?? 0);
+            $opCost = floatval($opData['cost'] ?? 0.0);
+            $opCharge = floatval($opData['charge'] ?? 0.0);
+            $opUnitCost = ($opVisits > 0) ? round($opCost / $opVisits, 2) : 0.0;
+
+            // IPD Data
+            $ipData = $ipUsageByYm[$ym] ?? [];
+            $ipAdmits = intval($ipData['admits'] ?? 0);
+            $ipBedDays = floatval($ipData['bed_days'] ?? 0.0);
+            $ipAdjrw = floatval($ipData['adjrw'] ?? 0.0);
+            $ipCost = floatval($ipData['cost'] ?? 0.0);
+            $ipCharge = floatval($ipData['charge'] ?? 0.0);
+            $ipCostPerAdjrw = ($ipAdjrw > 0) ? round($ipCost / $ipAdjrw, 2) : 0.0;
+            $ipCostPerAdmit = ($ipAdmits > 0) ? round($ipCost / $ipAdmits, 2) : 0.0;
+
+            // Total HOSxP
+            $hCost = $opCost + $ipCost;
+            $hCharge = $opCharge + $ipCharge;
+            $hQty = floatval(($opData['qty'] ?? 0) + ($ipData['qty'] ?? 0));
+
+            $unitCostGl = ($opVisits > 0) ? round($glAmt / $opVisits, 2) : 0.0;
+            $unitCostHosxp = ($opVisits > 0) ? round($hCost / $opVisits, 2) : 0.0;
+            $unitCostBedDay = ($ipBedDays > 0) ? round($glAmt / $ipBedDays, 2) : 0.0;
+
+            if ($cm <= $selectedCumLimit) {
+                $cumGlActual += $glAmt;
+                $cumGlPlan += $monthlyPlan;
+                $cumOpVisits += $opVisits;
+                $cumOpCost += $opCost;
+                $cumOpCharge += $opCharge;
+                $cumIpAdmits += $ipAdmits;
+                $cumIpBedDays += $ipBedDays;
+                $cumIpAdjrw += $ipAdjrw;
+                $cumIpCost += $ipCost;
+                $cumIpCharge += $ipCharge;
+                $cumHosxpCost += $hCost;
+                $cumHosxpCharge += $hCharge;
+                $cumHosxpQty += $hQty;
+            }
+
+            $series[] = [
+                'period' => $p,
+                'label' => $fm['label'],
+                'cum_months' => $cm,
+                'is_selected' => ($p === $selectedPeriod),
+                'gl_amount' => $glAmt,
+                'gl_plan' => $monthlyPlan,
+                'gl_diff' => $glAmt - $monthlyPlan,
+                // OPD Breakdown
+                'op_visits' => $opVisits,
+                'op_cost' => $opCost,
+                'op_charge' => $opCharge,
+                'op_unit_cost' => $opUnitCost,
+                // IPD Breakdown
+                'ip_admits' => $ipAdmits,
+                'ip_bed_days' => $ipBedDays,
+                'ip_adjrw' => round($ipAdjrw, 4),
+                'ip_cost' => $ipCost,
+                'ip_charge' => $ipCharge,
+                'ip_cost_per_adjrw' => $ipCostPerAdjrw,
+                'ip_cost_per_admit' => $ipCostPerAdmit,
+                // Total HOSxP
+                'hosxp_cost' => $hCost,
+                'hosxp_charge' => $hCharge,
+                'hosxp_qty' => $hQty,
+                'unit_cost_gl' => $unitCostGl,
+                'unit_cost_hosxp' => $unitCostHosxp,
+                'unit_cost_bed_day' => $unitCostBedDay
+            ];
+        }
+
+        $cumDiff = $cumGlActual - $cumGlPlan;
+        $cumDiffPct = ($cumGlPlan != 0) ? round(($cumDiff / $cumGlPlan) * 100, 2) : 0.0;
+        $avgUnitCostVisit = ($cumOpVisits > 0) ? round($cumGlActual / $cumOpVisits, 2) : 0.0;
+        $avgHosxpUnitCost = ($cumOpVisits > 0) ? round($cumHosxpCost / $cumOpVisits, 2) : 0.0;
+        $avgCostPerItem = ($cumHosxpQty > 0) ? round($cumHosxpCost / $cumHosxpQty, 2) : 0.0;
+        $costToCharge = ($cumHosxpCost > 0) ? round(($cumGlActual / $cumHosxpCost) * 100, 1) : 0.0;
+        $stockEst = $cumGlActual - $cumHosxpCost; // purchase minus consumed
+
+        return response()->json([
+            'success' => true,
+            'plan_code' => $planCode,
+            'plan_name' => $planName,
+            'category_type' => $categoryType,
+            'selected_period' => $selectedPeriod,
+            'budget_year' => $budgetYear,
+            'cum_months' => $selectedCumLimit,
+            'clinical_mapping' => $clinicalMapping,
+            'summary' => [
+                'cum_gl_actual' => $cumGlActual,
+                'cum_gl_plan' => $cumGlPlan,
+                'cum_gl_diff' => $cumDiff,
+                'cum_gl_diff_percent' => $cumDiffPct,
+                // OPD Summary
+                'cum_op_visits' => $cumOpVisits,
+                'cum_op_cost' => $cumOpCost,
+                'cum_op_charge' => $cumOpCharge,
+                'avg_op_unit_cost' => ($cumOpVisits > 0) ? round($cumOpCost / $cumOpVisits, 2) : 0.0,
+                // IPD Summary
+                'cum_ip_admits' => $cumIpAdmits,
+                'cum_ip_bed_days' => $cumIpBedDays,
+                'cum_ip_adjrw' => round($cumIpAdjrw, 4),
+                'cum_ip_cost' => $cumIpCost,
+                'cum_ip_charge' => $cumIpCharge,
+                'avg_ip_cost_per_adjrw' => ($cumIpAdjrw > 0) ? round($cumIpCost / $cumIpAdjrw, 2) : 0.0,
+                'avg_ip_cost_per_admit' => ($cumIpAdmits > 0) ? round($cumIpCost / $cumIpAdmits, 2) : 0.0,
+                // Overall HOSxP
+                'cum_hosxp_cost' => $cumHosxpCost,
+                'cum_hosxp_charge' => $cumHosxpCharge,
+                'cum_hosxp_qty' => $cumHosxpQty,
+                'cum_visits' => $cumOpVisits,
+                'cum_bed_days' => $cumIpBedDays,
+                'avg_unit_cost_visit' => $avgUnitCostVisit,
+                'avg_hosxp_unit_cost' => $avgHosxpUnitCost,
+                'avg_cost_per_item' => $avgCostPerItem,
+                'cost_to_charge_ratio' => $costToCharge,
+                'stock_movement_estimate' => $stockEst,
+                'is_drug' => $isDrug,
+                'is_revenue' => ($categoryType === 'revenue'),
+            ],
+            'series' => $series
+        ]);
+    }
+
+    /**
+     * Smart PlanFin: "น้องมีตังค์ (RiMS AI)" Variance & Procurement Advisor
+     */
+    public function planfin_ai_analyze(Request $request)
+    {
+        $planCode = trim($request->input('plan_code', 'P14'));
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $period = $request->input('period', "{$budgetYear}-07");
+
+        // Pull drilldown summary
+        $subReq = Request::create(route('hosfin.planfin.service_drilldown'), 'GET', [
+            'plan_code' => $planCode,
+            'budget_year' => $budgetYear,
+            'period' => $period
+        ]);
+        $drilldownRes = $this->planfin_service_drilldown($subReq)->getData(true);
+
+        if (!($drilldownRes['success'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถรวบรวมข้อมูลสำหรับให้น้องมีตังค์วิเคราะห์ได้'
+            ]);
+        }
+
+        $summary = $drilldownRes['summary'];
+        $planName = $drilldownRes['plan_name'];
+        $categoryType = $drilldownRes['category_type'];
+        $mapping = $drilldownRes['clinical_mapping'];
+        $cumMonths = $drilldownRes['cum_months'];
+
+        $cumActual = $summary['cum_gl_actual'];
+        $cumPlan = $summary['cum_gl_plan'];
+        $cumDiff = $summary['cum_gl_diff'];
+        $cumDiffPct = $summary['cum_gl_diff_percent'];
+        $visits = $summary['cum_visits'];
+        $hosxpCost = $summary['cum_hosxp_cost'];
+        $avgUnitCost = $summary['avg_unit_cost_visit'];
+        $avgHosxpCost = $summary['avg_hosxp_unit_cost'];
+        $stockMove = $summary['stock_movement_estimate'];
+
+        // Narrative Synthesis
+        $isOver = ($cumDiff > 0);
+        $diffAbs = abs($cumDiff);
+        $diffFmt = number_format($diffAbs, 2);
+        $actualFmt = number_format($cumActual, 2);
+        $planFmt = number_format($cumPlan, 2);
+        $visitsFmt = number_format($visits);
+
+        $html = "<div class='rims-ai-response' style='font-size: 0.88rem; line-height: 1.6;'>";
+        $html .= "<div class='d-flex align-items-center gap-2 mb-3 pb-2 border-bottom'>";
+        $html .= "<div class='avatar-ai rounded-circle d-flex align-items-center justify-content-center text-white shadow-xs' style='width: 38px; height: 38px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); font-size: 1.1rem;'>🤖</div>";
+        $html .= "<div><strong class='text-dark'>น้องมีตังค์ (RiMS AI)</strong><br><small class='text-muted'>วิเคราะห์ผลต่างทางการเงินคู่กับข้อมูลบริการ (งวดสะสม {$cumMonths} เดือน ประจำปี {$budgetYear})</small></div>";
+        $html .= "</div>";
+
+        // Section 1: Executive Summary
+        $statusBadge = ($cumDiff >= 0 && $categoryType === 'revenue') || ($cumDiff <= 0 && $categoryType === 'expense')
+            ? "<span class='badge bg-success-subtle text-success border border-success px-2 py-0.5 rounded-pill'>✓ ตามเป้าหมาย</span>"
+            : "<span class='badge bg-danger-subtle text-danger border border-danger px-2 py-0.5 rounded-pill'>⚠️ สูงกว่าแผน</span>";
+
+        $html .= "<h6 class='fw-bold text-primary mb-2'><i class='bi bi-speedometer2 me-1'></i> 1. ภาพรวมผลการดำเนินงาน ({$planCode} - {$planName}) {$statusBadge}</h6>";
+        $html .= "<p class='mb-3'>ยอดผลดำเนินงานจริงสะสม <strong>{$actualFmt} บาท</strong> เทียบกับแผนสะสม <strong>{$planFmt} บาท</strong> พบว่า " . 
+            ($isOver ? "สูงกว่าแผน" : "ต่ำกว่าแผน") . " อยู่ <strong>{$diffFmt} บาท (" . ($cumDiffPct > 0 ? "+{$cumDiffPct}%" : "{$cumDiffPct}%") . ")</strong> ค่ะ</p>";
+
+        // Section 2: Clinical Decomposition (OPD vs IPD & AdjRW)
+        $opVisits = $summary['cum_op_visits'] ?? $visits;
+        $opCost = $summary['cum_op_cost'] ?? 0;
+        $ipAdmits = $summary['cum_ip_admits'] ?? 0;
+        $ipBeds = $summary['cum_ip_bed_days'] ?? 0;
+        $ipAdjrw = $summary['cum_ip_adjrw'] ?? 0;
+        $ipCost = $summary['cum_ip_cost'] ?? 0;
+        $avgIpAdjrw = $summary['avg_ip_cost_per_adjrw'] ?? 0;
+
+        $opVisitsFmt = number_format($opVisits);
+        $opCostFmt = number_format($opCost, 2);
+        $ipAdmitsFmt = number_format($ipAdmits);
+        $ipBedsFmt = number_format($ipBeds);
+        $ipAdjrwFmt = number_format($ipAdjrw, 4);
+        $ipCostFmt = number_format($ipCost, 2);
+        $avgIpAdjrwFmt = number_format($avgIpAdjrw, 2);
+
+        $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-diagram-3-fill text-indigo me-1'></i> 2. แยกแยะสาเหตุตามประเภทบริการ (OPD vs IPD & AdjRW)</h6>";
+        $html .= "<ul class='mb-3 ps-3'>";
+        $html .= "<li><strong>ผู้ป่วยนอก (OPD):</strong> เข้ารับบริการสะสม <strong>{$opVisitsFmt} ครั้ง</strong> มูลค่าบริการ <strong>{$opCostFmt} บาท</strong> (เฉลี่ย {$avgUnitCost} บาท/ครั้ง)</li>";
+        if ($ipAdmits > 0 || $ipAdjrw > 0) {
+            $html .= "<li><strong>ผู้ป่วยใน (IPD):</strong> รับไว้นอน รพ. สะสม <strong>{$ipAdmitsFmt} เคส</strong> ({$ipBedsFmt} วันนอน), <strong>ค่าน้ำหนักสัมพัทธ์ AdjRW รวม {$ipAdjrwFmt}</strong> มูลค่าบริการ <strong>{$ipCostFmt} บาท</strong> (เฉลี่ย {$avgIpAdjrwFmt} บาท/AdjRW)</li>";
+        }
+        
+        if ($isOver && $categoryType === 'expense') {
+            if ($avgUnitCost <= 250) {
+                $html .= "<li class='text-success'><strong>ข้อสรุปเชิงต้นทุน:</strong> ค่าใช้จ่ายที่เพิ่มขึ้นสอดคล้องกับ <u>ปริมาณผู้ป่วยมารับบริการเพิ่มขึ้น (Volume-Driven)</u> โดยอัตราการใช้ต่อครั้งยังควบคุมได้ดี ไม่ได้เกิดจากราคาต่อหน่วยพุ่งสูงผิดปกติค่ะ</li>";
+            } else {
+                $html .= "<li class='text-danger'><strong>ข้อสรุปเชิงต้นทุน:</strong> ควรตรวจสอบ <u>รายการยา/วัสดุราคาสูง (High-Cost Items)</u> หรือกลุ่มโรคที่มีความซับซ้อนสูง (AdjRW สูง) เนื่องจากต้นทุนต่อหน่วยเริ่มสูงขึ้นค่ะ</li>";
+            }
+        }
+        $html .= "</ul>";
+
+        // Section 3: Reconciliation with HOSxP (Cost-to-Charge Ratio)
+        if ($hosxpCost > 0) {
+            $hosxpCostFmt = number_format($hosxpCost, 2);
+            $qtyFmt = number_format($summary['cum_hosxp_qty'] ?? 0);
+            $c2c = $summary['cost_to_charge_ratio'] ?? 0;
+            $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-boxes text-success me-1'></i> 3. การกระทบยอดกับระบบ HOSxP (ต้นทุนซื้อ GL vs มูลค่าบริการ HOSxP)</h6>";
+            $html .= "<div class='p-2.5 rounded-3 bg-light border mb-3'>";
+            $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>ยอดซื้อเข้าคลังจริง (งบทดลอง {$planCode}):</span> <strong>{$actualFmt} บาท</strong></div>";
+            $html .= "<div class='d-flex justify-content-between mb-1'><span class='text-muted'>มูลค่าบริการที่จัดให้คนไข้ (HOSxP sum_price):</span> <strong>{$hosxpCostFmt} บาท</strong></div>";
+            $html .= "<div class='d-flex justify-content-between mb-1 text-primary'><span class='text-muted'>สัดส่วนต้นทุนต่อราคาขาย (Cost-to-Charge Ratio):</span> <strong>{$c2c}%</strong></div>";
+            if (($summary['cum_hosxp_qty'] ?? 0) > 0) {
+                $html .= "<div class='d-flex justify-content-between mb-1 text-secondary'><span class='text-muted'>ปริมาณการจัดบริการสะสม:</span> <span>{$qtyFmt} รายการ/หน่วย</span></div>";
+            }
+            $html .= "</div>";
+        }
+
+        // Section 4: Recommendations
+        $html .= "<h6 class='fw-bold text-dark mb-2'><i class='bi bi-lightbulb-fill text-warning me-1'></i> 4. ข้อเสนอแนะเชิงบริหารสำหรับทีมนำ</h6>";
+        $html .= "<ul class='mb-2 ps-3'>";
+        if ($categoryType === 'expense') {
+            $html .= "<li>ใช้อัตรา Unit Cost ปัจจุบัน ({$avgUnitCost} บ./ครั้ง) เป็นฐานในการคำนวณงบจัดซื้อปีหน้าใน <strong>Tab 2 (แผนที่ 2 MED01-06)</strong></li>";
+            $html .= "<li>หากแนวโน้มผู้ป่วยนอกยังคงสูง ให้พิจารณาปรับรอบการสั่งซื้อล่วงหน้า (Safety Stock) เพื่อป้องกันสินค้าขาดสต็อกค่ะ</li>";
+        } else {
+            $html .= "<li>ติดตามรอบการเรียกเก็บเงินและ Statement สปสช./กรมบัญชีกลาง ให้ทันรอบปิดงวดบัญชีค่ะ</li>";
+        }
+        $html .= "</ul>";
+
+        $html .= "<div class='text-muted mt-3 pt-2 border-top small text-end'>น้องมีตังค์พร้อมให้ข้อมูลและวิเคราะห์เพิ่มเติมเสมอค่ะ 🙏✨</div>";
+        $html .= "</div>";
+
+        return response()->json([
+            'success' => true,
+            'answer_html' => $html,
+            'summary' => $summary
+        ]);
+    }
+
+    /**
+     * Smart PlanFin: Service-Driven Procurement Calculator (Tab 2)
+     */
+    public function planfin_calculate_procurement(Request $request)
+    {
+        $targetYear = intval($request->input('target_year', 2570));
+        $budgetYear = intval($request->input('budget_year', 2569));
+        $baselinePeriod = $request->input('baseline_period', "{$budgetYear}-07");
+
+        $opGrowth = floatval($request->input('op_growth_rate', 5.0)); // e.g. 5%
+        $ipGrowth = floatval($request->input('ip_growth_rate', 3.0)); // e.g. 3%
+        $safetyBuffer = floatval($request->input('safety_buffer_rate', 5.0)); // e.g. 5%
+
+        $pParts = explode('-', $baselinePeriod);
+        $bMonth = intval($pParts[1] ?? 7);
+        $baseMonths = ($bMonth >= 10) ? ($bMonth - 9) : ($bMonth + 3);
+        if ($baseMonths <= 0 || $baseMonths > 12) $baseMonths = 10;
+
+        // Baseline actuals from GL
+        $actualsBaseline = $this->calculatePlanfinActuals($baselinePeriod);
+
+        // Sub-account baseline actuals for precise MED01 - MED06 mapping
+        $subActuals = DB::table('hosfin_trial_balance')
+            ->where('acc_period', $baselinePeriod)
+            ->select(
+                'account_code',
+                DB::raw("(COALESCE(debit_net, 0) - COALESCE(credit_net, 0)) as actual_amt")
+            )
+            ->get()
+            ->keyBy('account_code');
+
+        // Procurement Items master definition matching hospital GL mapping
+        $procureItems = [
+            'MED01' => [
+                'plan_code' => 'P14',
+                'account_codes' => ['5104030205.101'],
+                'name' => 'ยา (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+            'MED02' => [
+                'plan_code' => 'P15',
+                'account_codes' => ['5104030205.102'],
+                'name' => 'วัสดุเภสัชกรรม (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+            'MED03' => [
+                'plan_code' => 'P15',
+                'account_codes' => ['5104030205.103', '5104030205.10301'],
+                'name' => 'วัสดุการแพทย์ทั่วไป (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+            'MED04' => [
+                'plan_code' => 'P16',
+                'account_codes' => ['5104030205.104'],
+                'name' => 'วัสดุวิทยาศาสตร์และการแพทย์ (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+            'MED05' => [
+                'plan_code' => 'P15',
+                'account_codes' => ['5104030205.118'],
+                'name' => 'วัสดุเอกซเรย์ (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+            'MED06' => [
+                'plan_code' => 'P151',
+                'account_codes' => ['5104030205.117'],
+                'name' => 'วัสดุทันตกรรม (รวมสนับสนุน รพ.สต.ในเครือข่าย)',
+                'growth' => $opGrowth
+            ],
+        ];
+
+        $results = [];
+        $totalRecommended = 0.0;
+
+        foreach ($procureItems as $medCode => $info) {
+            $pCode = $info['plan_code'];
+            
+            // Calculate base from exact sub-accounts if available
+            $subSum = 0.0;
+            foreach ($info['account_codes'] as $ac) {
+                if (isset($subActuals[$ac])) {
+                    $subSum += floatval($subActuals[$ac]->actual_amt);
+                }
+            }
+
+            $yBaseMonths = ($subSum > 0) ? $subSum : ($actualsBaseline[$pCode] ?? 0.0);
+            $yBaseAnnual = ($baseMonths > 0) ? ($yBaseMonths / (float)$baseMonths) * 12.0 : 0.0;
+
+            // Suggested = Annual Base * (1 + Growth%) * (1 + Safety%)
+            $multiplier = (1.0 + ($info['growth'] / 100.0)) * (1.0 + ($safetyBuffer / 100.0));
+            $recommended = round($yBaseAnnual * $multiplier, 2);
+            $totalRecommended += $recommended;
+
+            $results[$medCode] = [
+                'code' => $medCode,
+                'name' => $info['name'],
+                'plan_code' => $pCode,
+                'base_annual' => round($yBaseAnnual, 2),
+                'growth_rate' => $info['growth'],
+                'safety_rate' => $safetyBuffer,
+                'recommended_total' => $recommended,
+                'recommended_budget' => 0.0, // standard non-budget funded
+                'recommended_non_budget' => $recommended
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'target_year' => $targetYear,
+            'budget_year' => $budgetYear,
+            'base_months' => $baseMonths,
+            'op_growth_rate' => $opGrowth,
+            'ip_growth_rate' => $ipGrowth,
+            'safety_buffer_rate' => $safetyBuffer,
+            'total_recommended' => $totalRecommended,
+            'items' => $results
+        ]);
     }
 }
 

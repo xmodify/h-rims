@@ -561,12 +561,13 @@
                                             <tr class="text-center">
                                                 <th style="width: 115px; min-width: 110px;">รหัสรายการ</th>
                                                 <th class="text-start">รายการ</th>
-                                                <th class="text-end" style="width: 140px;">แผนทั้งปี</th>
-                                                <th class="text-end" style="width: 140px;">แผนสะสม ({{ $cumMonths }} ด.)</th>
-                                                <th class="text-end" style="width: 150px;">ผลดำเนินงานจริง</th>
-                                                <th class="text-end" style="width: 130px;">ผลต่าง</th>
-                                                <th class="text-end" style="width: 90px;">ร้อยละ</th>
-                                                <th class="text-center" style="width: 95px;">สถานะ</th>
+                                                <th class="text-end" style="width: 135px;">แผนทั้งปี</th>
+                                                <th class="text-end" style="width: 135px;">แผนสะสม ({{ $cumMonths }} ด.)</th>
+                                                <th class="text-end" style="width: 145px;">ผลดำเนินงานจริง</th>
+                                                <th class="text-end" style="width: 125px;">ผลต่าง</th>
+                                                <th class="text-end" style="width: 85px;">ร้อยละ</th>
+                                                <th class="text-center" style="width: 90px;">สถานะ</th>
+                                                <th class="text-center" style="width: 105px; min-width: 100px;">วิเคราะห์ / AI</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -634,6 +635,7 @@
                                                                 {{ ($tab1Rows['P29']['actual_cum'] ?? 0) > 0 ? 'OK' : 'Not OK' }}
                                                             </span>
                                                         </td>
+                                                        <td class="text-center text-muted" style="font-size: 0.75rem;">-</td>
                                                     @else
                                                         <td class="text-end font-monospace">{{ number_format($r['annual_target'], 2) }}</td>
                                                         <td class="text-end font-monospace">{{ number_format($r['plan_cum'], 2) }}</td>
@@ -650,6 +652,26 @@
                                                             <span class="badge-status-{{ $r['status'] === 'OK' ? 'ok' : 'not-ok' }}">
                                                                 {{ $r['status'] }}
                                                             </span>
+                                                        </td>
+                                                        <td class="text-center text-nowrap">
+                                                            @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
+                                                                <div class="d-inline-flex align-items-center gap-1">
+                                                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
+                                                                            onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                            title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดใช้จริง HOSxP และปริมาณคนไข้"
+                                                                            style="font-size: 0.72rem;">
+                                                                        <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                            onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                            title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
+                                                                            style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                                        <span style="font-size: 0.75rem;">🤖</span>
+                                                                    </button>
+                                                                </div>
+                                                            @else
+                                                                <span class="text-muted" style="font-size: 0.72rem;">-</span>
+                                                            @endif
                                                         </td>
                                                     @endif
                                                 </tr>
@@ -814,12 +836,13 @@
                                             <tr class="text-center">
                                                 <th style="width: 115px; min-width: 110px;">รหัสรายการ</th>
                                                 <th class="text-start">รายการ</th>
-                                                <th class="text-end" style="width: 140px;">แผนทั้งปี</th>
-                                                <th class="text-end" style="width: 140px;">แผนงวดเดือนนี้</th>
-                                                <th class="text-end" style="width: 150px;">ผลดำเนินงานจริง</th>
-                                                <th class="text-end" style="width: 130px;">ผลต่าง</th>
-                                                <th class="text-end" style="width: 90px;">ร้อยละ</th>
-                                                <th class="text-center" style="width: 95px;">สถานะ</th>
+                                                <th class="text-end" style="width: 135px;">แผนทั้งปี</th>
+                                                <th class="text-end" style="width: 135px;">แผนงวดเดือนนี้</th>
+                                                <th class="text-end" style="width: 145px;">ผลดำเนินงานจริง</th>
+                                                <th class="text-end" style="width: 125px;">ผลต่าง</th>
+                                                <th class="text-end" style="width: 85px;">ร้อยละ</th>
+                                                <th class="text-center" style="width: 90px;">สถานะ</th>
+                                                <th class="text-center" style="width: 105px; min-width: 100px;">วิเคราะห์ / AI</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -887,6 +910,7 @@
                                                                 {{ ($tab1MonthlyRows['P29']['actual_month'] ?? 0) > 0 ? 'OK' : 'Not OK' }}
                                                             </span>
                                                         </td>
+                                                        <td class="text-center text-muted" style="font-size: 0.75rem;">-</td>
                                                     @else
                                                         <td class="text-end font-monospace">{{ number_format($r['annual_target'], 2) }}</td>
                                                         <td class="text-end font-monospace">{{ number_format($r['plan_month'], 2) }}</td>
@@ -903,6 +927,26 @@
                                                             <span class="badge-status-{{ $r['status_month'] === 'OK' ? 'ok' : 'not-ok' }}">
                                                                 {{ $r['status_month'] }}
                                                             </span>
+                                                        </td>
+                                                        <td class="text-center text-nowrap">
+                                                            @if(in_array($code, ['P14', 'P15', 'P151', 'P16', 'P04', 'P05', 'P06', 'P61', 'P07', 'P08', 'P09', 'P10', 'P13S', 'P26S', 'P27S']))
+                                                                <div class="d-inline-flex align-items-center gap-1">
+                                                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-bold"
+                                                                            onclick="openServiceDrilldownModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                            title="คลิกเพื่อดูกราฟเทียบงบทดลอง vs ยอดใช้จริง HOSxP และปริมาณคนไข้"
+                                                                            style="font-size: 0.72rem;">
+                                                                        <i class="bi bi-bar-chart-line-fill text-primary"></i> <span>เทียบ</span>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-outline-indigo rounded-circle p-1 shadow-xs"
+                                                                            onclick="openPlanfinAiModal('{{ $code }}', '{{ addslashes($r['name']) }}')"
+                                                                            title="ถามน้องมีตังค์ (RiMS AI) วิเคราะห์ผลต่าง"
+                                                                            style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-color: #a5b4fc; background: #eef2ff;">
+                                                                        <span style="font-size: 0.75rem;">🤖</span>
+                                                                    </button>
+                                                                </div>
+                                                            @else
+                                                                <span class="text-muted" style="font-size: 0.72rem;">-</span>
+                                                            @endif
                                                         </td>
                                                     @endif
                                                 </tr>
@@ -1367,6 +1411,90 @@
                                 </div>
                             </div>
 
+                            <!-- Smart Procurement Calculator Banner -->
+                            <div class="card border-0 shadow-xs rounded-3 mb-3" style="background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%); border: 1px solid #c7d2fe !important;">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-2 border-bottom" style="border-color: rgba(99, 102, 241, 0.15) !important;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge rounded-circle p-2 text-white shadow-xs" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                                                <i class="bi bi-magic fs-6"></i>
+                                            </span>
+                                            <div>
+                                                <strong class="text-dark" style="font-size: 0.88rem;">🎯 Smart Procurement Calculator: คำนวณงบจัดซื้อยา/เวชภัณฑ์/Lab จากประมาณการบริการปี {{ $targetSimYear }}</strong>
+                                                <div class="text-muted small" style="font-size: 0.74rem;">
+                                                    เชื่อมโยงอัตโนมัติจากฐาน HOSxP (มาตรฐาน <code>drg_chrgitem</code> 16 แฟ้ม) และ Unit Cost อัตราการใช้จริง
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <span class="badge bg-white text-indigo border border-indigo-subtle px-2.5 py-1 rounded-pill shadow-xs" style="font-size: 0.72rem;">
+                                                <i class="bi bi-check2-circle text-success me-1"></i> drg_chrgitem หมวด 3, 4, 5, 7, 8, 10, 13
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="d-flex align-items-center justify-content-between bg-white px-2.5 py-1.5 rounded-2 border shadow-2xs">
+                                                <label class="small text-muted fw-bold mb-0" style="font-size: 0.76rem;">คาดการณ์ผู้ป่วยนอก (OPD):</label>
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <input type="number" id="calcOpGrowth" value="5.0" step="0.5" class="form-control form-control-sm text-end fw-bold px-1 py-0.5" style="width: 58px; font-size: 0.8rem;">
+                                                    <span class="small text-muted fw-bold">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="d-flex align-items-center justify-content-between bg-white px-2.5 py-1.5 rounded-2 border shadow-2xs">
+                                                <label class="small text-muted fw-bold mb-0" style="font-size: 0.76rem;">คาดการณ์วันนอน (IPD):</label>
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <input type="number" id="calcIpGrowth" value="3.0" step="0.5" class="form-control form-control-sm text-end fw-bold px-1 py-0.5" style="width: 58px; font-size: 0.8rem;">
+                                                    <span class="small text-muted fw-bold">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="d-flex align-items-center justify-content-between bg-white px-2.5 py-1.5 rounded-2 border shadow-2xs">
+                                                <label class="small text-muted fw-bold mb-0" style="font-size: 0.76rem;">เผื่อสำรอง Safety Stock:</label>
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <input type="number" id="calcSafetyBuffer" value="5.0" step="0.5" class="form-control form-control-sm text-end fw-bold px-1 py-0.5" style="width: 58px; font-size: 0.8rem;">
+                                                    <span class="small text-muted fw-bold">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6 d-flex gap-1.5">
+                                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold flex-fill shadow-xs d-inline-flex align-items-center justify-content-center gap-1"
+                                                    id="btnRunProcureCalc" onclick="runSmartProcurementCalc()" style="font-size: 0.78rem; background: #4f46e5; border-color: #4338ca;">
+                                                <span class="spinner-border spinner-border-sm d-none" id="calcProcureSpinner"></span>
+                                                <i class="bi bi-cpu me-0.5" id="calcProcureIcon"></i>
+                                                <span>คำนวณงบแนะนำ</span>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-indigo btn-sm rounded-pill px-2.5 fw-bold bg-white shadow-xs"
+                                                    onclick="consultAiForProcurement()" title="ปรึกษาน้องมีตังค์ประเมินงบประมาณ" style="font-size: 0.78rem;">
+                                                <span>🤖 AI</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Procurement Recommendation Summary Result Box (hidden by default) -->
+                                    <div id="boxProcurementResult" class="d-none mt-3 pt-2.5 border-top" style="border-color: rgba(99, 102, 241, 0.2) !important;">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                            <div class="small fw-bold text-indigo" style="font-size: 0.82rem;">
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i> ยอดประมาณการจัดซื้อแนะนำรวม (แผนที่ 2): 
+                                                <span id="txtTotalProcureRecommended" class="fw-black fs-6 text-dark ms-1">0.00</span> บาท
+                                            </div>
+                                            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm d-inline-flex align-items-center gap-1"
+                                                    onclick="applyProcurementToSubplans()" style="font-size: 0.76rem;">
+                                                <i class="bi bi-arrow-down-circle-fill"></i>
+                                                <span>นำยอดที่คำนวณได้ หยอดลงในตารางแผนที่ 2 และแผนหลัก</span>
+                                            </button>
+                                        </div>
+                                        <div class="row g-2" id="gridProcurementResultItems">
+                                            <!-- Dynamically filled with MED01 - MED06 pills -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="accordion accordion-flush rounded-3 border" id="accordionSubPlans">
                                 @foreach($subPlansData as $pKey => $pDef)
                                     <div class="accordion-item">
@@ -1576,6 +1704,260 @@
                 </div>
             </div>
             <div class="modal-footer bg-light border-0 py-2">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN for Dual-Axis Trend Graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ========================================================================= -->
+<!-- MODAL 3: ข้อมูลบริการและต้นทุนการใช้จริง HOSxP เทียบงบทดลอง (Service Drilldown) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalPlanfinServiceDrilldown" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 1680px; width: 94vw; margin: 1.25rem auto;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header text-white py-2.5 px-3 px-md-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-1.5 bg-white bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                        <i class="bi bi-bar-chart-fill fs-6"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0" id="drilldownModalTitle" style="font-size: 0.95rem;">
+                            📊 ข้อมูลบริการและการใช้จริง HOSxP เทียบงบทดลอง
+                        </h6>
+                        <div class="small text-white-50" id="drilldownModalSubtitle" style="font-size: 0.72rem;">
+                            เปรียบเทียบยอดซื้อเข้า (GL) vs ยอดใช้จริง (HOSxP drg_chrgitem) vs ปริมาณคนไข้
+                        </div>
+                    </div>
+                    <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1 ms-2 font-monospace" id="drilldownPlanCodeBadge" style="font-size: 0.75rem;">
+                        -
+                    </span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-2.5 p-md-3" style="background-color: #f8fafc;">
+                <!-- Loading Skeleton -->
+                <div id="drilldownLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-2" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                    <div class="text-secondary fw-bold" style="font-size: 0.85rem;">กำลังรวบรวมข้อมูลจาก HOSxP (drg_chrgitem) และงบทดลอง...</div>
+                </div>
+
+                <!-- Content Container (hidden while loading) -->
+                <div id="drilldownContent" class="d-none">
+                    <!-- KPI Cards Row -->
+                    <div class="row g-2 mb-3">
+                        <!-- KPI 1: บัญชี GL (ซื้อจริง / รายได้จริง) -->
+                        <div class="col-xl-3 col-md-6 col-12">
+                            <div class="planfin-card-mini p-2.5 bg-white h-100 border-start border-4 border-primary rounded-2 shadow-xs">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted fw-semibold" style="font-size: 0.72rem;" id="lblDrillGlActual">ยอดจริง/งบทดลอง (GL สะสม)</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5" style="font-size: 0.65rem;">บัญชี GL</span>
+                                </div>
+                                <div class="d-flex align-items-baseline gap-1 my-0.5">
+                                    <h5 class="mb-0 fw-black text-dark" id="kpiDrillGlActual" style="font-size: 1.15rem;">0.00</h5>
+                                    <span class="small text-muted" style="font-size: 0.7rem;">บ.</span>
+                                </div>
+                                <div class="small" id="kpiDrillGlDiff" style="font-size: 0.7rem;">แผนสะสม: 0.00</div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 2: รวมบริการ HOSxP & อัตราส่วน -->
+                        <div class="col-xl-3 col-md-6 col-12">
+                            <div class="planfin-card-mini p-2.5 bg-white h-100 border-start border-4 rounded-2 shadow-xs" style="border-left-color: #8b5cf6 !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted fw-semibold" style="font-size: 0.72rem;" id="lblDrillHosxpCost">รวมบริการ HOSxP (OPD+IPD)</span>
+                                    <span class="badge px-1.5 py-0.5" style="font-size: 0.65rem; background-color: #f3e8ff; color: #7c3aed;">รวมทั้งสิ้น</span>
+                                </div>
+                                <div class="d-flex align-items-baseline gap-1 my-0.5">
+                                    <h5 class="mb-0 fw-black" id="kpiDrillHosxpCost" style="font-size: 1.15rem; color: #7c3aed;">0.00</h5>
+                                    <span class="small text-muted" style="font-size: 0.7rem;">บ.</span>
+                                    <span class="badge ms-auto font-monospace px-1.5 py-0.5 border" id="kpiDrillHosxpCharge" style="font-size: 0.68rem;">เทียบ GL: 0.00 บ.</span>
+                                </div>
+                                <div class="small text-muted d-flex justify-content-between" style="font-size: 0.7rem;">
+                                    <span id="kpiDrillHosxpAvgVisit">เฉลี่ย/Visit: <strong class="text-info">0.00</strong> บ./ครั้ง</span>
+                                    <span id="kpiDrillStockMove">เฉลี่ย/AdjRW: <strong class="text-primary">0.00</strong> บ.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 3: ผู้ป่วยนอก OPD -->
+                        <div class="col-xl-3 col-md-6 col-12">
+                            <div class="planfin-card-mini p-2.5 bg-white h-100 border-start border-4 border-info rounded-2 shadow-xs">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted fw-semibold" style="font-size: 0.72rem;" id="lblDrillOpVisits">ผู้ป่วยนอก OPD สะสม (Visits)</span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-1.5 py-0.5" style="font-size: 0.65rem;">OPD</span>
+                                </div>
+                                <div class="d-flex align-items-baseline gap-1 my-0.5">
+                                    <h5 class="mb-0 fw-black text-info" id="kpiDrillOpVisits" style="font-size: 1.15rem;">0</h5>
+                                    <span class="small text-muted" style="font-size: 0.7rem;">ครั้ง</span>
+                                </div>
+                                <div class="small text-muted d-flex justify-content-end" style="font-size: 0.7rem;">
+                                    <span>มูลค่า: <strong class="text-dark" id="kpiDrillOpCost">0.00</strong> บ.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 4: ผู้ป่วยใน IPD & AdjRW -->
+                        <div class="col-xl-3 col-md-6 col-12">
+                            <div class="planfin-card-mini p-2.5 bg-white h-100 border-start border-4 rounded-2 shadow-xs" style="border-left-color: #f59e0b !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted fw-semibold" style="font-size: 0.72rem;" id="lblDrillIpAdmits">ผู้ป่วยใน IPD & AdjRW สะสม</span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1.5 py-0.5" style="font-size: 0.65rem;">IPD</span>
+                                </div>
+                                <div class="d-flex align-items-baseline gap-1 my-0.5">
+                                    <h5 class="mb-0 fw-black text-warning-emphasis" id="kpiDrillIpAdmits" style="font-size: 1.15rem;">0</h5>
+                                    <span class="small text-muted" style="font-size: 0.7rem;">AN (ครั้ง)</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning-subtle ms-auto font-monospace px-2 py-0.5" style="font-size: 0.72rem;">
+                                        AdjRW รวม: <strong id="kpiDrillIpAdjrw" class="text-dark">0.0000</strong>
+                                    </span>
+                                </div>
+                                <div class="small text-muted d-flex justify-content-between" style="font-size: 0.7rem;">
+                                    <span id="kpiDrillIpBedDays">วันนอน: 0 วัน</span>
+                                    <span>มูลค่า: <strong class="text-dark" id="kpiDrillIpCost">0.00</strong> บ.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dual-Axis Interactive Chart Card -->
+                    <div class="card border-0 shadow-xs rounded-3 mb-3 bg-white">
+                        <div class="card-header bg-transparent border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span class="fw-bold text-dark small" style="font-size: 0.82rem;">
+                                <i class="bi bi-graph-up-arrow text-primary me-1"></i> กราฟแนวโน้มรายเดือน: แยกบริการ OPD (ฟ้า) vs IPD (ม่วง) vs ยอดจริง GL (เขียว/แดง)
+                            </span>
+                            <span class="badge bg-light text-secondary border px-2 py-0.5" id="lblDrillPeriodRange" style="font-size: 0.72rem;">
+                                12 งวดปีงบประมาณ
+                            </span>
+                        </div>
+                        <div class="card-body py-2.5 px-3">
+                            <div style="height: 240px; width: 100%;">
+                                <canvas id="chartPlanfinDrilldown"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Detail Table -->
+                    <div class="table-responsive rounded-3 border bg-white mb-3">
+                        <table class="table table-hover table-sm align-middle mb-0 text-nowrap w-100" id="tableDrilldownDetail" style="font-size: 0.74rem;">
+                            <thead class="table-light">
+                                <tr class="text-center" style="border-bottom: 2px solid #cbd5e1;">
+                                    <th rowspan="2" class="align-middle bg-slate-100" style="width: 7%;">งวดเดือน</th>
+                                    <th colspan="3" class="text-center bg-primary-subtle text-primary fw-bold" style="border-right: 1px solid #cbd5e1;">
+                                        <i class="bi bi-journal-text me-1"></i> งบการเงิน GL (บาท)
+                                    </th>
+                                    <th rowspan="2" class="align-middle fw-bold text-center" style="width: 10%; line-height: 1.25; border-right: 2px solid #cbd5e1; background-color: #f5f3ff; color: #6366f1;">
+                                        รวมบริการ<br>HOSxP (บาท)
+                                    </th>
+                                    <th colspan="3" class="text-center bg-info-subtle text-info-emphasis fw-bold" style="border-right: 1px solid #cbd5e1;">
+                                        <i class="bi bi-person-walking me-1"></i> ผู้ป่วยนอก OPD
+                                    </th>
+                                    <th colspan="5" class="text-center bg-warning-subtle text-warning-emphasis fw-bold">
+                                        <i class="bi bi-hospital me-1"></i> ผู้ป่วยใน IPD
+                                    </th>
+                                </tr>
+                                <tr class="small text-muted text-center" style="font-size: 0.71rem;">
+                                    <!-- GL -->
+                                    <th class="text-end" style="width: 7.5%;">แผนงวด</th>
+                                    <th class="text-end" id="thDrillGlAmount" style="width: 8%;">ยอดจริง GL</th>
+                                    <th class="text-end" style="width: 7.5%; border-right: 1px solid #cbd5e1;">ผลต่าง</th>
+                                    
+                                    <!-- OPD -->
+                                    <th class="text-end" style="width: 6.5%;">Visits (ครั้ง)</th>
+                                    <th class="text-end" style="width: 8%;">มูลค่า OPD (บ.)</th>
+                                    <th class="text-end" style="width: 7%; border-right: 1px solid #cbd5e1;">เฉลี่ย/Visit</th>
+                                    
+                                    <!-- IPD -->
+                                    <th class="text-end" style="width: 6%;">AN (ครั้ง)</th>
+                                    <th class="text-end" style="width: 5.5%;">วันนอน</th>
+                                    <th class="text-end fw-bold text-dark" style="width: 6.5%; background-color: #fef3c7;">AdjRW</th>
+                                    <th class="text-end" style="width: 8%;">มูลค่า IPD (บ.)</th>
+                                    <th class="text-end" style="width: 7.5%; border-right: 1px solid #cbd5e1;">เฉลี่ย/AdjRW</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyDrilldownDetail">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                            <tfoot class="table-light fw-bold border-top" id="footDrilldownDetail">
+                                <!-- Populated dynamically with cumulative totals -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-indigo btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs"
+                            onclick="triggerAiFromDrilldown()">
+                        <span>🤖</span>
+                        <span>ให้น้องมีตังค์ (RiMS AI) วิเคราะห์หมวดนี้</span>
+                    </button>
+                </div>
+
+                <!-- Footer HOSxP Data Source & drg_chrgitem Mapping Info (แสดงเฉพาะหมวดที่มี drg_chrgitem) -->
+                <div class="d-flex align-items-center gap-2 d-none" id="drilldownFooterSourceBox">
+                    <div class="px-2.5 py-1 rounded-pill border bg-white shadow-xs d-flex align-items-center gap-1.5" style="font-size: 0.74rem;">
+                        <i class="bi bi-database-fill-check" style="color: #4f46e5;"></i>
+                        <span class="text-muted fw-semibold">แหล่งข้อมูล HOSxP:</span>
+                        <span class="badge rounded-pill font-monospace fw-bold" id="lblDrilldownSourceTag" 
+                              style="background-color: #e0e7ff !important; color: #3730a3 !important; border: 1px solid #a5b4fc !important; font-size: 0.73rem;">
+                            drg_chrgitem
+                        </span>
+                        <span class="text-dark fw-bold" id="lblDrilldownSourceDetail">
+                            -
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 4: ผู้ช่วยอัจฉริยะ "น้องมีตังค์ (RiMS AI)" -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalPlanfinAi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header text-white py-2.5 px-3 px-md-4" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-1.5 bg-white bg-opacity-20 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;">
+                        🤖
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0" style="font-size: 0.95rem;">
+                            น้องมีตังค์ (RiMS AI) - ผู้ช่วยวิเคราะห์แผนเงินบำรุง
+                        </h6>
+                        <div class="small text-white-50" style="font-size: 0.72rem;">
+                            ระบบวิเคราะห์ผลต่างทางการเงินและข้อมูลบริการ (Intelligent Variance & Procurement Advisor)
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4" style="background: #fafafa;">
+                <!-- Loading State -->
+                <div id="aiLoadingContainer" class="text-center py-5">
+                    <div class="spinner-grow text-indigo mb-2" role="status" style="width: 2.2rem; height: 2.2rem; color: #6366f1;"></div>
+                    <div class="text-dark fw-bold" style="font-size: 0.88rem;">น้องมีตังค์กำลังประมวลผลข้อมูล...</div>
+                    <div class="text-muted small" style="font-size: 0.76rem;">กระทบยอดงบทดลอง, HOSxP drg_chrgitem, และสถิติคนไข้</div>
+                </div>
+
+                <!-- Answer Container -->
+                <div id="aiAnswerContainer" class="d-none bg-white p-3 p-md-4 rounded-3 border shadow-xs">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2 d-flex justify-content-between align-items-center">
+                <div class="small text-muted" style="font-size: 0.74rem;">
+                    <i class="bi bi-shield-check text-success me-1"></i> วิเคราะห์จากฐานข้อมูลจริง 100%
+                </div>
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>
         </div>
@@ -2376,6 +2758,570 @@
         if (mappingsDataTable) {
             mappingsDataTable.search('').column(3).search('').draw();
         }
+    }
+
+    // =========================================================================
+    // SMART PLANFIN: CLINICAL DRILLDOWN, DUAL-AXIS CHART & RI-MS AI
+    // =========================================================================
+    let drilldownChartInstance = null;
+    let currentDrilldownData = null;
+    let latestProcurementResults = null;
+
+    function openServiceDrilldownModal(planCode, planName) {
+        const modalEl = document.getElementById('modalPlanfinServiceDrilldown');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        
+        document.getElementById('drilldownPlanCodeBadge').textContent = planCode;
+        document.getElementById('drilldownModalTitle').innerHTML = `📊 ข้อมูลบริการและการใช้จริง HOSxP: <span class="text-warning">${planCode} - ${planName}</span>`;
+        document.getElementById('drilldownLoading').classList.remove('d-none');
+        document.getElementById('drilldownContent').classList.add('d-none');
+        
+        modal.show();
+
+        const url = `{{ url('hosfin/planfin/service_drilldown') }}?plan_code=${encodeURIComponent(planCode)}&budget_year={{ $budgetYear }}&period={{ $selectedPeriod }}`;
+        
+        fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถโหลดข้อมูลได้'));
+                    return;
+                }
+                currentDrilldownData = data;
+                renderDrilldownData(data);
+                document.getElementById('drilldownLoading').classList.add('d-none');
+                document.getElementById('drilldownContent').classList.remove('d-none');
+            })
+            .catch(err => {
+                console.error('Drilldown fetch error:', err);
+                document.getElementById('drilldownLoading').innerHTML = `
+                    <div class="text-danger py-4">
+                        <i class="bi bi-exclamation-triangle fs-2 mb-2 d-block"></i>
+                        เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}
+                    </div>
+                `;
+            });
+    }
+
+    function renderDrilldownData(data) {
+        const sum = data.summary;
+        const mapping = data.clinical_mapping || {};
+        const isRev = (data.category_type === 'revenue' || sum.is_revenue === true);
+
+        // Update Modal Title and Subtitle dynamically
+        const modalTitle = isRev 
+            ? `📊 ข้อมูลบริการและรายได้จริง HOSxP: <span class="text-warning">${data.plan_code} - ${data.plan_name}</span>`
+            : `📊 ข้อมูลบริการและการใช้จริง HOSxP: <span class="text-warning">${data.plan_code} - ${data.plan_name}</span>`;
+        document.getElementById('drilldownModalTitle').innerHTML = modalTitle;
+
+        const modalSubtitle = isRev 
+            ? `เปรียบเทียบรายได้จริง (GL) vs มูลค่าบริการ OPD & IPD (${mapping.drg_label || 'แยกตามสิทธิการรักษา'}) vs ปริมาณคนไข้`
+            : (mapping.drg_ids && mapping.drg_ids.length > 0
+                ? `เปรียบเทียบยอดซื้อเข้า (GL) vs ยอดใช้จริง (HOSxP drg_chrgitem หมวด ${mapping.drg_ids.join(', ')}) vs ปริมาณคนไข้`
+                : `เปรียบเทียบยอดซื้อเข้า (GL) vs ยอดเบิกใช้จริง OPD & IPD vs ปริมาณคนไข้`);
+        document.getElementById('drilldownModalSubtitle').textContent = modalSubtitle;
+
+        // Update Footer Data Source Information (แสดงเฉพาะฝั่งต้นทุน/ค่าใช้จ่ายที่มีการจับคู่ drg_chrgitem)
+        const footerSourceBox = document.getElementById('drilldownFooterSourceBox');
+        const sourceTagEl = document.getElementById('lblDrilldownSourceTag');
+        const sourceDetailEl = document.getElementById('lblDrilldownSourceDetail');
+        if (footerSourceBox && sourceTagEl && sourceDetailEl) {
+            if (!isRev && mapping.drg_ids && mapping.drg_ids.length > 0 && !['P26S', 'P29-E'].includes(data.plan_code)) {
+                footerSourceBox.classList.remove('d-none');
+                sourceTagEl.className = 'badge rounded-pill font-monospace fw-bold';
+                sourceTagEl.style.cssText = 'background-color: #e0e7ff !important; color: #3730a3 !important; border: 1px solid #a5b4fc !important; font-size: 0.73rem;';
+                sourceTagEl.innerHTML = `<i class="bi bi-tag-fill me-1" style="color: #4f46e5;"></i>drg_chrgitem หมวด ${mapping.drg_ids.join(', ')}`;
+                const detailText = mapping.drg_full_names || mapping.drg_label || '';
+                sourceDetailEl.innerHTML = detailText;
+                sourceDetailEl.setAttribute('title', detailText);
+            } else {
+                // ฝั่งรายได้, หมวดสรุปภาพรวม (P26S), หรือหมวดค่าใช้จ่ายทั่วไป ไม่ต้องแสดง
+                footerSourceBox.classList.add('d-none');
+            }
+        }
+
+        // KPI Labels & Headers
+        const isNetMargin = (data.plan_code === 'P27S' || data.plan_code === 'P29');
+        if (document.getElementById('lblDrillGlActual')) {
+            if (isNetMargin) {
+                document.getElementById('lblDrillGlActual').textContent = 'รายได้สูง(ต่ำ)กว่าค่าใช้จ่าย (GL สะสม)';
+            } else {
+                document.getElementById('lblDrillGlActual').textContent = isRev ? 'รายได้จริง/งบทดลอง (GL สะสม)' : 'ยอดซื้อเข้า/งบทดลอง (GL สะสม)';
+            }
+        }
+        if (document.getElementById('lblDrillHosxpCost')) {
+            if (isNetMargin) {
+                document.getElementById('lblDrillHosxpCost').textContent = 'ส่วนต่างสุทธิ HOSxP (รายได้-ค่าใช้จ่าย)';
+            } else {
+                document.getElementById('lblDrillHosxpCost').textContent = isRev ? 'รวมรายได้ HOSxP (OPD+IPD)' : 'รวมมูลค่าบริการ HOSxP';
+            }
+        }
+        if (document.getElementById('lblDrillOpVisits')) {
+            document.getElementById('lblDrillOpVisits').textContent = mapping.service_metric_label ? mapping.service_metric_label.replace('(ครั้ง/เดือน)', 'OPD สะสม (Visits)') : (isRev ? 'ผู้ป่วยนอก OPD สะสม (Visits)' : 'ผู้ป่วยนอก OPD สะสม (Visits)');
+        }
+        if (document.getElementById('lblDrillIpAdmits')) {
+            document.getElementById('lblDrillIpAdmits').textContent = isRev ? 'ผู้ป่วยใน IPD & AdjRW สะสม' : 'ผู้ป่วยใน IPD & AdjRW สะสม';
+        }
+
+        // Table Column Header for GL
+        if (document.getElementById('thDrillGlAmount')) {
+            if (isNetMargin) {
+                document.getElementById('thDrillGlAmount').textContent = 'ผลสุทธิ GL';
+            } else {
+                document.getElementById('thDrillGlAmount').textContent = isRev ? 'ยอดจริง GL' : 'ซื้อจริง GL';
+            }
+        }
+
+        // KPI 1: GL Actual
+        document.getElementById('kpiDrillGlActual').textContent = Number(sum.cum_gl_actual || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const diffSign = sum.cum_gl_diff > 0 ? '+' : '';
+        const diffColor = sum.cum_gl_diff > 0 ? (isRev ? 'text-success fw-bold' : 'text-danger fw-bold') : (isRev ? 'text-danger fw-bold' : 'text-success fw-bold');
+        document.getElementById('kpiDrillGlDiff').innerHTML = `แผนสะสม: ${Number(sum.cum_gl_plan || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} | <span class="${diffColor}">ต่าง ${diffSign}${Number(sum.cum_gl_diff || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sum.cum_gl_diff_percent}%)</span>`;
+
+        // KPI 2: OPD
+        document.getElementById('kpiDrillOpVisits').textContent = Number(sum.cum_op_visits || 0).toLocaleString();
+        document.getElementById('kpiDrillOpCost').textContent = Number(sum.cum_op_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // KPI 3: IPD & AdjRW
+        document.getElementById('kpiDrillIpAdmits').textContent = Number(sum.cum_ip_admits || 0).toLocaleString();
+        document.getElementById('kpiDrillIpAdjrw').textContent = Number(sum.cum_ip_adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4});
+        document.getElementById('kpiDrillIpBedDays').textContent = `วันนอน: ${Number(sum.cum_ip_bed_days || 0).toLocaleString()} วัน`;
+        document.getElementById('kpiDrillIpCost').textContent = Number(sum.cum_ip_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // KPI 4: HOSxP Total & Ratios
+        document.getElementById('kpiDrillHosxpCost').textContent = Number(sum.cum_hosxp_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        // Badge เทียบ GL
+        const glVsHosxp = Number(sum.cum_gl_actual || 0) - Number(sum.cum_hosxp_cost || 0);
+        const signGlVs = glVsHosxp >= 0 ? '+' : '';
+        const badgeColorClass = isRev 
+            ? (glVsHosxp >= 0 ? 'bg-success-subtle text-success border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border-warning-subtle')
+            : (glVsHosxp >= 0 ? 'bg-primary-subtle text-primary border-primary-subtle' : 'bg-danger-subtle text-danger border-danger-subtle');
+        const badgeEl = document.getElementById('kpiDrillHosxpCharge');
+        if (badgeEl) {
+            badgeEl.className = `badge ms-auto font-monospace px-1.5 py-0.5 border ${badgeColorClass}`;
+            badgeEl.innerHTML = `เทียบ GL: <strong>${signGlVs}${Number(glVsHosxp).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บ.`;
+        }
+
+        // บรรทัดล่างของ Card รวมบริการ HOSxP: เฉลี่ย/Visit และ เฉลี่ย/AdjRW
+        const avgVisit = Number(sum.avg_op_unit_cost || sum.avg_unit_cost_visit || 0);
+        const avgAdjrw = Number(sum.avg_ip_cost_per_adjrw || 0);
+        const avgVisitEl = document.getElementById('kpiDrillHosxpAvgVisit');
+        if (avgVisitEl) {
+            avgVisitEl.innerHTML = `เฉลี่ย/Visit: <strong class="text-info">${avgVisit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บ./ครั้ง`;
+        }
+        document.getElementById('kpiDrillStockMove').innerHTML = `เฉลี่ย/AdjRW: <strong class="text-primary">${avgAdjrw.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บ.`;
+
+        // Render Detail Table rows
+        const tbody = document.getElementById('bodyDrilldownDetail');
+        let htmlRows = '';
+        data.series.forEach(item => {
+            const isSelected = item.is_selected;
+            const rowStyle = isSelected ? 'background-color: #eff6ff; font-weight: bold;' : '';
+            const diffColor = item.gl_diff > 0 ? (isRev ? 'text-success' : 'text-danger') : (isRev ? 'text-danger' : 'text-success');
+            const diffSign = item.gl_diff > 0 ? '+' : '';
+
+            htmlRows += `
+                <tr style="${rowStyle}">
+                    <td class="text-center font-monospace">${item.label} ${isSelected ? '<span class="badge bg-primary rounded-pill" style="font-size: 0.65rem;">งวดนี้</span>' : ''}</td>
+                    
+                    <!-- GL -->
+                    <td class="text-end font-monospace text-muted">${Number(item.gl_plan || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace fw-semibold text-dark">${Number(item.gl_amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace ${diffColor}" style="border-right: 1px solid #e2e8f0;">${diffSign}${Number(item.gl_diff || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    
+                    <!-- HOSxP Total (Moved here right after GL!) -->
+                    <td class="text-end font-monospace fw-bold text-primary" style="background-color: ${isSelected ? '#e0e7ff' : '#f5f3ff'}; border-right: 2px solid #cbd5e1;">${Number(item.hosxp_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+
+                    <!-- OPD -->
+                    <td class="text-end font-monospace">${Number(item.op_visits || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace text-info">${Number(item.op_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace text-secondary" style="border-right: 1px solid #e2e8f0;">${Number(item.op_unit_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    
+                    <!-- IPD -->
+                    <td class="text-end font-monospace">${Number(item.ip_admits || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace">${Number(item.ip_bed_days || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace fw-bold text-dark" style="background-color: ${isSelected ? '#fef3c7' : '#fffbeb'};">${Number(item.ip_adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                    <td class="text-end font-monospace" style="color: #8b5cf6;">${Number(item.ip_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace text-secondary">${Number(item.ip_cost_per_adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = htmlRows;
+
+        // Render Summary Cumulative Footer
+        const tfoot = document.getElementById('footDrilldownDetail');
+        if (tfoot) {
+            const cumDiffColor = sum.cum_gl_diff > 0 ? (isRev ? 'text-success' : 'text-danger') : (isRev ? 'text-danger' : 'text-success');
+            const cumDiffSign = sum.cum_gl_diff > 0 ? '+' : '';
+            tfoot.innerHTML = `
+                <tr class="table-light">
+                    <td class="text-center font-monospace">รวมสะสม (${data.cum_months} ด.)</td>
+                    <td class="text-end font-monospace text-muted">${Number(sum.cum_gl_plan || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace text-dark">${Number(sum.cum_gl_actual || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace ${cumDiffColor}" style="border-right: 1px solid #cbd5e1;">${cumDiffSign}${Number(sum.cum_gl_diff || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    
+                    <!-- HOSxP Total -->
+                    <td class="text-end font-monospace text-primary fw-bold" style="background-color: #f5f3ff; border-right: 2px solid #cbd5e1;">${Number(sum.cum_hosxp_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+
+                    <!-- OPD -->
+                    <td class="text-end font-monospace">${Number(sum.cum_op_visits || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace text-info">${Number(sum.cum_op_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace text-secondary" style="border-right: 1px solid #cbd5e1;">${Number(sum.avg_op_unit_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    
+                    <!-- IPD -->
+                    <td class="text-end font-monospace">${Number(sum.cum_ip_admits || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace">${Number(sum.cum_ip_bed_days || 0).toLocaleString()}</td>
+                    <td class="text-end font-monospace text-dark" style="background-color: #fef3c7;">${Number(sum.cum_ip_adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
+                    <td class="text-end font-monospace" style="color: #8b5cf6;">${Number(sum.cum_ip_cost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end font-monospace text-secondary">${Number(sum.avg_ip_cost_per_adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        }
+
+        // Render Dual-Axis Chart
+        renderDrilldownChart(data.series, mapping, sum, isRev, isNetMargin);
+    }
+
+    function renderDrilldownChart(series, mapping, sum, isRev, isNetMargin = false) {
+        if (typeof isNetMargin === 'undefined') isNetMargin = false;
+        const canvas = document.getElementById('chartPlanfinDrilldown');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (drilldownChartInstance) {
+            drilldownChartInstance.destroy();
+        }
+
+        const labels = series.map(s => s.label);
+        const glActuals = series.map(s => s.gl_amount);
+        const glPlans = series.map(s => s.gl_plan);
+        const opCosts = series.map(s => s.op_cost);
+        const ipCosts = series.map(s => s.ip_cost);
+        const opVisits = series.map(s => s.op_visits);
+        const ipAdjrw = series.map(s => s.ip_adjrw);
+
+        drilldownChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: isRev ? 'ผู้ป่วยนอก OPD สิทธิ (ครั้ง)' : 'ผู้ป่วยนอก OPD (ครั้ง)',
+                        data: opVisits,
+                        backgroundColor: 'rgba(99, 102, 241, 0.18)',
+                        borderColor: 'rgba(99, 102, 241, 0.45)',
+                        borderWidth: 1,
+                        yAxisID: 'yVisits',
+                        order: 5
+                    },
+                    {
+                        type: 'bar',
+                        label: 'ผู้ป่วยใน IPD (AdjRW)',
+                        data: ipAdjrw,
+                        backgroundColor: 'rgba(245, 158, 11, 0.28)',
+                        borderColor: 'rgba(245, 158, 11, 0.6)',
+                        borderWidth: 1,
+                        yAxisID: 'yAdjrw',
+                        order: 6
+                    },
+                    {
+                        type: 'line',
+                        label: isNetMargin ? 'ผลสุทธิ GL (บาท)' : (isRev ? 'รายได้จริง GL (บาท)' : 'ซื้อจริง GL (บาท)'),
+                        data: glActuals,
+                        borderColor: isRev ? '#16a34a' : '#dc2626',
+                        backgroundColor: isRev ? '#16a34a' : '#dc2626',
+                        borderWidth: 2.5,
+                        tension: 0.2,
+                        pointRadius: 4,
+                        yAxisID: 'yMoney',
+                        order: 1
+                    },
+                    {
+                        type: 'line',
+                        label: isNetMargin ? 'ส่วนต่างสุทธิ OPD (บาท)' : (isRev ? 'รายได้ OPD (บาท)' : 'มูลค่า OPD (บาท)'),
+                        data: opCosts,
+                        borderColor: '#0284c7',
+                        backgroundColor: '#0284c7',
+                        borderWidth: 2,
+                        borderDash: [5, 4],
+                        tension: 0.2,
+                        pointRadius: 3,
+                        yAxisID: 'yMoney',
+                        order: 2
+                    },
+                    {
+                        type: 'line',
+                        label: isNetMargin ? 'ส่วนต่างสุทธิ IPD (บาท)' : (isRev ? 'รายได้ IPD (บาท)' : 'มูลค่า IPD (บาท)'),
+                        data: ipCosts,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: '#8b5cf6',
+                        borderWidth: 2,
+                        borderDash: [5, 4],
+                        tension: 0.2,
+                        pointRadius: 3,
+                        yAxisID: 'yMoney',
+                        order: 3
+                    },
+                    {
+                        type: 'line',
+                        label: 'แผนงวด (บาท)',
+                        data: glPlans,
+                        borderColor: '#94a3b8',
+                        backgroundColor: '#94a3b8',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        pointRadius: 0,
+                        yAxisID: 'yMoney',
+                        order: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 10, weight: 'bold' },
+                            boxWidth: 12
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let val = context.parsed.y;
+                                if (context.dataset.yAxisID === 'yMoney') {
+                                    return `${label}: ${Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+                                } else if (context.dataset.yAxisID === 'yAdjrw') {
+                                    return `${label}: ${Number(val).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})} แต้ม`;
+                                } else {
+                                    return `${label}: ${Number(val).toLocaleString()} ครั้ง`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    yMoney: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'ยอดเงิน (บาท)',
+                            font: { size: 10, weight: 'bold' }
+                        },
+                        ticks: {
+                            callback: function(v) { return (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k'); },
+                            font: { size: 10 }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    },
+                    yVisits: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'OPD (ครั้ง)',
+                            font: { size: 10, weight: 'bold' }
+                        },
+                        ticks: {
+                            font: { size: 10 }
+                        },
+                        grid: { drawOnChartArea: false }
+                    },
+                    yAdjrw: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'IPD (AdjRW)',
+                            font: { size: 10, weight: 'bold' }
+                        },
+                        ticks: {
+                            font: { size: 10 }
+                        },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+
+    function triggerAiFromDrilldown() {
+        if (!currentDrilldownData) return;
+        // Close drilldown modal and open AI modal
+        const dModalEl = document.getElementById('modalPlanfinServiceDrilldown');
+        const dModal = bootstrap.Modal.getInstance(dModalEl);
+        if (dModal) dModal.hide();
+
+        setTimeout(() => {
+            openPlanfinAiModal(currentDrilldownData.plan_code, currentDrilldownData.plan_name);
+        }, 300);
+    }
+
+    function openPlanfinAiModal(planCode, planName) {
+        const modalEl = document.getElementById('modalPlanfinAi');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        document.getElementById('aiLoadingContainer').classList.remove('d-none');
+        document.getElementById('aiAnswerContainer').classList.add('d-none');
+        modal.show();
+
+        fetch(`{{ url('hosfin/planfin/ai_analyze') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                plan_code: planCode,
+                budget_year: {{ $budgetYear }},
+                period: '{{ $selectedPeriod }}'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('aiLoadingContainer').classList.add('d-none');
+            const answerBox = document.getElementById('aiAnswerContainer');
+            if (data.success && data.answer_html) {
+                answerBox.innerHTML = data.answer_html;
+                answerBox.classList.remove('d-none');
+            } else {
+                answerBox.innerHTML = `<div class="alert alert-danger mb-0">${data.message || 'ไม่สามารถวิเคราะห์ข้อมูลได้'}</div>`;
+                answerBox.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            console.error('AI error:', err);
+            document.getElementById('aiLoadingContainer').classList.add('d-none');
+            const answerBox = document.getElementById('aiAnswerContainer');
+            answerBox.innerHTML = `<div class="alert alert-danger mb-0">เกิดข้อผิดพลาดในการเชื่อมต่อ: ${err.message}</div>`;
+            answerBox.classList.remove('d-none');
+        });
+    }
+
+    // =========================================================================
+    // SMART PROCUREMENT CALCULATOR (TAB 2)
+    // =========================================================================
+    function runSmartProcurementCalc() {
+        const opGrowth = parseFloat(document.getElementById('calcOpGrowth').value) || 0;
+        const ipGrowth = parseFloat(document.getElementById('calcIpGrowth').value) || 0;
+        const safetyBuffer = parseFloat(document.getElementById('calcSafetyBuffer').value) || 0;
+
+        const spinner = document.getElementById('calcProcureSpinner');
+        const icon = document.getElementById('calcProcureIcon');
+        const btn = document.getElementById('btnRunProcureCalc');
+
+        if (spinner) spinner.classList.remove('d-none');
+        if (icon) icon.classList.add('d-none');
+        if (btn) btn.disabled = true;
+
+        fetch(`{{ url('hosfin/planfin/calculate_procurement') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                target_year: {{ $targetSimYear }},
+                budget_year: {{ $budgetYear }},
+                baseline_period: '{{ $selectedPeriod }}',
+                op_growth_rate: opGrowth,
+                ip_growth_rate: ipGrowth,
+                safety_buffer_rate: safetyBuffer
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (spinner) spinner.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+            if (btn) btn.disabled = false;
+
+            if (!data.success) {
+                alert('เกิดข้อผิดพลาด: ' + (data.message || 'คำนวณไม่สำเร็จ'));
+                return;
+            }
+
+            latestProcurementResults = data;
+            document.getElementById('boxProcurementResult').classList.remove('d-none');
+            document.getElementById('txtTotalProcureRecommended').textContent = Number(data.total_recommended || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            const grid = document.getElementById('gridProcurementResultItems');
+            let itemsHtml = '';
+            for (const [code, item] of Object.entries(data.items)) {
+                itemsHtml += `
+                    <div class="col-md-4 col-sm-6">
+                        <div class="p-2 rounded-2 bg-white border shadow-2xs">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge rounded-pill bg-light text-secondary border font-monospace" style="font-size: 0.72rem;">${code}</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">ฐานปีนี้: ${Number(item.base_annual).toLocaleString(undefined, {maximumFractionDigits: 0})} บ.</small>
+                            </div>
+                            <div class="small fw-semibold text-truncate mb-1" style="font-size: 0.76rem;" title="${item.name}">${item.name}</div>
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="small text-muted" style="font-size: 0.68rem;">แนะนำ:</span>
+                                <strong class="text-primary font-monospace" style="font-size: 0.88rem;">${Number(item.recommended_total).toLocaleString(undefined, {minimumFractionDigits: 2})}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            grid.innerHTML = itemsHtml;
+        })
+        .catch(err => {
+            console.error('Procurement calc error:', err);
+            if (spinner) spinner.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+            if (btn) btn.disabled = false;
+            alert('เกิดข้อผิดพลาดในการคำนวณ: ' + err.message);
+        });
+    }
+
+    function applyProcurementToSubplans() {
+        if (!latestProcurementResults || !latestProcurementResults.items) {
+            alert('กรุณากดคำนวณงบแนะนำก่อนนำไปหยอดในตาราง');
+            return;
+        }
+
+        let updatedCount = 0;
+        for (const [code, item] of Object.entries(latestProcurementResults.items)) {
+            const inputEl = document.getElementById('subplan_nonbg_' + code);
+            if (inputEl) {
+                inputEl.value = Number(item.recommended_non_budget).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                calcSubPlanTotal(code);
+                updatedCount++;
+            }
+
+            // If it maps to primary plan category (e.g. MED01 -> P15, MED04 -> P17), update main simulator input
+            const pCode = item.plan_code;
+            const mainInput = document.getElementById('target_' + pCode);
+            if (mainInput && (code === 'MED01' || code === 'MED04' || code === 'MED06')) {
+                mainInput.value = Number(item.recommended_total).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                onTargetSimChange(pCode);
+            }
+        }
+
+        alert(`✓ นำตัวเลขงบจัดซื้อแนะนำหยอดลงในตารางแผนปฏิบัติการย่อย (แผนที่ 2) สำเร็จเรียบร้อย (${updatedCount} รายการ) ระบบได้คำนวณผลรวมให้เรียบร้อยแล้วค่ะ!`);
+    }
+
+    function consultAiForProcurement() {
+        openPlanfinAiModal('P14', 'ต้นทุนยาและแผนจัดซื้อยา');
     }
 
     // Init Recalculate on load & Sub-tab state

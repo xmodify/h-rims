@@ -674,7 +674,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Breakdown Pill Box: 3 Rows -->
+                                <!-- Breakdown Pill Box: 2 Rows -->
                                 <div class="p-2 rounded-3 my-1.5" style="background: rgba(255, 255, 255, 0.9); border: 1px dashed #93c5fd;">
                                     <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
                                          style="cursor: pointer;" 
@@ -687,7 +687,7 @@
                                             {{ number_format($arMedical ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
                                         </span>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                    <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
                                          style="cursor: pointer;" 
                                          onclick="event.stopPropagation(); openArModal();" 
                                          title="ลูกหนี้เงินยืมทดรองราชการ (รอส่งใบสำคัญล้างหนี้)">
@@ -696,17 +696,6 @@
                                         </span>
                                         <span class="font-monospace fw-bold text-dark text-nowrap ms-1" style="font-size: 0.78rem;">
                                             {{ number_format($arAdvances ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
-                                         style="cursor: pointer;" 
-                                         onclick="event.stopPropagation(); openArModal();" 
-                                         title="ลูกหนี้ตรวจสุขภาพ, สิ่งส่งตรวจ, รายได้ค้างรับสุทธิ">
-                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
-                                            <i class="bi bi-box-seam-fill text-secondary me-1 flex-shrink-0"></i> <span class="text-truncate">ลูกหนี้บริการอื่น:</span>
-                                        </span>
-                                        <span class="font-monospace fw-bold text-secondary text-nowrap ms-1" style="font-size: 0.78rem;">
-                                            {{ number_format($arOtherServices ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
                                         </span>
                                     </div>
                                 </div>

@@ -611,18 +611,32 @@
 
                 const hasMatchingEdc = hosxpList.some(code => ktbList.includes(code));
 
-                let displayEdcHosxp = '-';
-                if (hosxpList.length > 1) {
-                    displayEdcHosxp = hosxpList.map(code => ktbList.includes(code) ? `<span class="text-success fw-bold" title="ตรงกับไฟล์นำเข้า KTB">${code} <i class="bi bi-check-circle-fill"></i></span>` : `<span class="text-muted">${code}</span>`).join(', ');
-                } else if (hosxpList.length === 1) {
-                    displayEdcHosxp = ktbList.includes(hosxpList[0]) ? `<span class="text-success fw-bold">${hosxpList[0]}</span>` : hosxpList[0];
+                // 1. KTB EDC (แหล่งข้อมูลหลักสำหรับส่งออก)
+                let displayEdcKtb = '-';
+                if (ktbList.length > 0) {
+                    displayEdcKtb = `<span class="text-success fw-bold" id="modal-edc-ktb-text" ${ktbList.length > 1 ? `title="ประวัติรูดบัตรทั้งหมด: ${ktbList.join(', ')}"` : ''}>${ktbList[0]} <i class="bi bi-check-circle-fill text-success" title="ไฟล์นำเข้า KTB พร้อมส่ง"></i></span>`;
+                } else {
+                    displayEdcKtb = `<span class="text-muted" id="modal-edc-ktb-text">-</span>`;
                 }
 
-                const primaryEdcKtb = ktbList.length > 0 ? ktbList[0] : '-';
-                const edcKtbTooltip = ktbList.length > 1 ? `title="ประวัติรูดบัตรทั้งหมด: ${ktbList.join(', ')}"` : '';
+                // 2. HOSxP EDC
+                let displayEdcHosxp = '-';
+                if (hosxpList.length > 0) {
+                    if (ktbList.length > 0) {
+                        displayEdcHosxp = hosxpList.map(code => ktbList.includes(code)
+                            ? `<span class="text-success fw-bold" title="ตรงกับไฟล์นำเข้า KTB">${code} <i class="bi bi-check-circle-fill"></i></span>`
+                            : `<span class="text-muted" title="ไม่ตรงกับ KTB">${code}</span>`
+                        ).join(', ');
+                    } else {
+                        // มีใน HOSxP แต่ไม่มีใน KTB -> แสดงสีเหลืองเตือน
+                        displayEdcHosxp = hosxpList.map(code => `<span class="text-warning fw-bold" title="พบใน HOSxP แต่ยังไม่มีในไฟล์นำเข้า KTB">${code} <i class="bi bi-exclamation-circle-fill"></i></span>`).join(', ');
+                    }
+                } else {
+                    displayEdcHosxp = `<span class="text-muted">-</span>`;
+                }
 
-                // แสดงปุ่มอัปเดต EDC เฉพาะกรณีที่มีเลขทั้ง 2 ฝั่งแล้วไม่ตรงกันเลย (Mismatch จริงๆ)
-                const showEdcBtn = (edcHosxp !== '' && edcKtb !== '' && !hasMatchingEdc);
+                // แสดงปุ่มอัปเดต EDC เฉพาะกรณีที่ไม่มีใน KTB หรือเลขไม่ตรงกัน
+                const showEdcBtn = (ktbList.length === 0 || (hosxpList.length > 0 && !hasMatchingEdc));
 
                 let edcKtbBtnHtml = '';
                 if (showEdcBtn) {
@@ -679,16 +693,16 @@
                           <tr><th class="text-muted">ชดเชย OFC</th><td class="text-success fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
-                          <tr><th class="text-muted">EDC (HOSxP)</th><td class="fw-bold text-secondary">${displayEdcHosxp}</td></tr>
                           <tr>
                             <th class="text-muted" style="vertical-align: middle;">EDC (นำเข้า KTB)</th>
                             <td>
                               <div class="d-flex align-items-center justify-content-between gap-1">
-                                <span class="fw-bold text-secondary" id="modal-edc-ktb-text" ${edcKtbTooltip}>${primaryEdcKtb}</span>
+                                ${displayEdcKtb}
                                 ${edcKtbBtnHtml}
                               </div>
                             </td>
                           </tr>
+                          <tr><th class="text-muted">EDC (HOSxP)</th><td>${displayEdcHosxp}</td></tr>
                         </table>
                       </div>
                     </div>

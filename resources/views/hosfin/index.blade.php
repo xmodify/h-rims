@@ -591,7 +591,7 @@
                                     <div>
                                         <div class="d-flex align-items-center gap-1.5">
                                             <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
-                                                ลูกหนี้ค่ารักษาพยาบาล (AR)
+                                                ลูกหนี้ทั้งหมด (AR)
                                             </span>
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ number_format($arAccountCount ?? 0) }} ผังบัญชี
@@ -2485,7 +2485,7 @@
                     <div class="kpi-sub">ค้างจ่าย {{ number_format($apUnpaidCount ?? 0) }} บิล ({{ $apTotalVendorsCount ?? 0 }} บริษัท)</div>
                 </td>
                 <td>
-                    <div class="kpi-title"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษาพยาบาล (AR)</div>
+                    <div class="kpi-title"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ทั้งหมด (AR)</div>
                     <div class="kpi-value text-dark">
                         {{ number_format($arOutstandingSum ?? 0, 2) }} <small class="text-muted fw-normal" style="font-size: 7.5pt;">บาท</small>
                     </div>
@@ -2620,7 +2620,7 @@
                             <small class="text-muted" id="hosFinSnapApDesc">{{ ($apUnpaidSum ?? 0) > 0 ? 'ค้างจ่าย ' . number_format($apUnpaidCount ?? 0) . ' บิล (' . ($apTotalVendorsCount ?? 0) . ' บริษัท)' : '0 บิล (ยังไม่นำเข้าบิล AP)' }}</small>
                         </div>
                         <div class="col-md-3 border-end">
-                            <span class="text-muted small fw-bold"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ค่ารักษา (AR)</span>
+                            <span class="text-muted small fw-bold"><i class="bi bi-people text-warning me-1"></i> ลูกหนี้ทั้งหมด (AR)</span>
                             <h6 class="fw-bold text-dark mb-0 mt-1" id="hosFinSnapAr">{{ number_format($arOutstandingSum ?? 0, 2) }} บาท</h6>
                             <small class="text-muted" id="hosFinSnapArDesc">จาก {{ number_format($arAccountCount ?? 0) }} ผังบัญชี</small>
                         </div>

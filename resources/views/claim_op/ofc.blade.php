@@ -693,6 +693,7 @@
                           <tr><th class="text-muted">ชดเชย OFC</th><td class="text-success fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
+                          <tr><th class="text-muted">EDC (HOSxP)</th><td>${displayEdcHosxp}</td></tr>
                           <tr>
                             <th class="text-muted" style="vertical-align: middle;">EDC (นำเข้า KTB)</th>
                             <td>
@@ -702,7 +703,6 @@
                               </div>
                             </td>
                           </tr>
-                          <tr><th class="text-muted">EDC (HOSxP)</th><td>${displayEdcHosxp}</td></tr>
                         </table>
                       </div>
                     </div>

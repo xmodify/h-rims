@@ -722,6 +722,7 @@ class HosFinController extends Controller
         $apOther = 0;
 
         $arOutstandingSum = 0;
+        $arCurrentBalance = 0;
         $arTotalOb = 0;
         $arTotalBilled = 0;
         $arTotalCollected = 0;
@@ -872,6 +873,16 @@ class HosFinController extends Controller
             $arOutstandingSum = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
                 ->where('fiscal_month', '<=', $latestFm)
                 ->sum('outstanding_balance');
+            
+            $arCurrentBalance = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->sum('outstanding_balance');
+            if ($arCurrentBalance == 0 && isset($arTotals->net_outstanding)) {
+                $arCurrentBalance = (float)$arTotals->net_outstanding;
+            }
+            if ($arCurrentBalance == 0 && isset($arEndingBalance) && $arEndingBalance > 0) {
+                $arCurrentBalance = $arEndingBalance;
+            }
+
             $arAccountCount = $periodArAccountCount > 0 ? $periodArAccountCount : (int)($arTotals->total_accounts ?? 0);
 
             $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
@@ -1036,6 +1047,7 @@ class HosFinController extends Controller
             'arAdvances' => $arAdvances ?? 0,
             'arOtherServices' => $arOtherServices ?? 0,
             'arOutstandingSum' => $arOutstandingSum,
+            'arCurrentBalance' => $arCurrentBalance ?? $arOutstandingSum ?? 0,
             'arTotalOb' => $arTotalOb,
             'arTotalBilled' => $arTotalBilled,
             'arTotalCollected' => $arTotalCollected,

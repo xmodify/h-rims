@@ -712,10 +712,17 @@
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-between pt-1.5 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
-                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
-                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
-                                    </span>
+                                    @if(isset($arCurrentBalance) && $arCurrentBalance > 0)
+                                        <span class="badge bg-primary text-white shadow-xs rounded-pill px-2 py-0.5 d-inline-flex align-items-center" style="font-size: 0.68rem; font-weight: 600;" title="ยอดลูกหนี้คงค้างจริงในระบบ GL ณ ปัจจุบัน">
+                                            <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
+                                            ลูกหนี้ปัจจุบัน: {{ number_format($arCurrentBalance, 2) }} บ.
+                                        </span>
+                                    @else
+                                        <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
+                                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                            ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                                        </span>
+                                    @endif
                                     <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.72rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
                             </div>

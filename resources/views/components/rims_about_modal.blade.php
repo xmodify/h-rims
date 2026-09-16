@@ -31,11 +31,11 @@
                         <i class="bi bi-award-fill text-success fs-2"></i>
                     </div>
                     <h4 class="fw-black text-dark mb-0 font-monospace" style="letter-spacing: 0.5px;">RiMS</h4>
-                    <div class="text-success fw-bold small mt-0.5 mb-2" style="font-size: 0.82rem;">
+                    <div class="text-success fw-bold small mt-0.5 mb-1" style="font-size: 0.85rem;">
                         Revenue Intelligent Management System
                     </div>
-                    <p class="text-muted small mb-0 px-2" style="font-size: 0.80rem; line-height: 1.55;">
-                        ระบบอัจฉริยะเพื่อการบริหารจัดการรายได้ ลูกหนี้ค่ารักษาพยาบาล และการเงินการคลังโรงพยาบาล (HosFin Analytics)
+                    <p class="text-secondary small mb-0 px-2 fw-medium" style="font-size: 0.82rem; line-height: 1.55;">
+                        ระบบอัจฉริยะเพื่อการบริหารจัดการรายได้และการเงินการคลังโรงพยาบาล
                     </p>
                 </div>
 
@@ -43,8 +43,11 @@
                 <div class="card border-0 shadow-xs rounded-3 bg-white p-3 mb-3" style="border: 1px solid #e2e8f0 !important;">
                     <div class="d-flex flex-column gap-2.5" style="font-size: 0.82rem;">
                         <div class="d-flex justify-content-between align-items-start border-bottom pb-2">
-                            <span class="text-muted fw-semibold">ชื่อผลงาน / ซอฟต์แวร์:</span>
-                            <span class="fw-bold text-dark text-end ms-2">RiMS</span>
+                            <span class="text-muted fw-semibold text-nowrap">ชื่อผลงาน / ซอฟต์แวร์:</span>
+                            <span class="fw-bold text-dark text-end ms-2">
+                                RiMS : Revenue Intelligent Management System<br>
+                                <small class="text-muted fw-normal" style="font-size: 0.74rem;">(ระบบอัจฉริยะเพื่อการบริหารจัดการรายได้และการเงินการคลังโรงพยาบาล)</small>
+                            </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
                             <span class="text-muted fw-semibold">ผู้พัฒนา / ผู้สร้างสรรค์:</span>

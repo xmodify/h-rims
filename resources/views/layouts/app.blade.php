@@ -148,10 +148,20 @@
         .nav-version-badge {
             font-size: 0.7rem;
             background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(255, 255, 255, 0.85);
             padding: 4px 10px;
             border-radius: 20px;
             font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            user-select: none;
+        }
+        .nav-version-badge:hover {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         }
 
         .nav-license-badge {
@@ -162,6 +172,14 @@
             margin-left: 8px;
             display: inline-flex;
             align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+        }
+        .nav-license-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            filter: brightness(1.1);
         }
         .nav-license-badge.license-active {
             background: rgba(46, 204, 113, 0.2);
@@ -177,6 +195,28 @@
             background: rgba(241, 196, 15, 0.2);
             color: #f1c40f;
             border: 1px solid rgba(241, 196, 15, 0.4);
+        }
+
+        .app-footer {
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .app-footer .footer-brand {
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.3px;
+        }
+        .app-footer a.about-link {
+            color: #0d9488;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .app-footer a.about-link:hover {
+            color: #047857;
+            text-decoration: underline;
         }
 
         /* Dash Card Tokens */
@@ -1186,24 +1226,24 @@
                             @php
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
-                            <div class="nav-version-badge">
+                            <div class="nav-version-badge" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="คลิกเพื่อดูข้อมูลระบบและลิขสิทธิ์">
                                 V.69-09-16 12.30
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
-                                    <div class="nav-license-badge license-active" title="ลิขสิทธิ์ถูกต้อง">
+                                    <div class="nav-license-badge license-active" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="ลิขสิทธิ์ถูกต้อง (คลิกดูรายละเอียด)">
                                         <i class="bi bi-patch-check-fill me-1"></i> Active
                                     </div>
                                 @elseif($licenseInfo['status'] === 'expired')
-                                    <div class="nav-license-badge license-expired" title="ลิขสิทธิ์หมดอายุ">
+                                    <div class="nav-license-badge license-expired" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="ลิขสิทธิ์หมดอายุ (คลิกดูรายละเอียด)">
                                         <i class="bi bi-exclamation-triangle-fill me-1"></i> Expired ({{ \App\Services\LicenseVerificationService::formatThaiShortDate($licenseInfo['expires_at']) }})
                                     </div>
                                 @elseif($licenseInfo['status'] === 'pending')
-                                    <div class="nav-license-badge license-pending" title="รอการอนุมัติ">
+                                    <div class="nav-license-badge license-pending" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="รอการอนุมัติ (คลิกดูรายละเอียด)">
                                         <i class="bi bi-hourglass-split me-1"></i> Pending
                                     </div>
                                 @else
-                                    <div class="nav-license-badge license-expired" title="{{ $licenseInfo['message'] ?? 'ลิขสิทธิ์มีปัญหา' }}">
+                                    <div class="nav-license-badge license-expired" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="{{ $licenseInfo['message'] ?? 'ลิขสิทธิ์มีปัญหา' }} (คลิกดูรายละเอียด)">
                                         <i class="bi bi-shield-slash-fill me-1"></i> Locked
                                     </div>
                                 @endif
@@ -1333,6 +1373,26 @@
             @endif
             @yield('content')
         </main>
+
+        @if(!request('embed'))
+        <!-- App Global Footer -->
+        <footer class="app-footer py-3 border-top bg-white mt-auto">
+            <div class="container-fluid px-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                    <div class="text-center text-md-start">
+                        <span class="footer-brand">RiMS</span> <span class="text-secondary small">: Revenue Intelligent Management System</span>
+                        <span class="text-muted small ms-1 d-none d-lg-inline">| พัฒนาโดย <strong>นายศิริฤกษ์ คณาดี</strong></span>
+                    </div>
+                    <div class="text-center text-md-end small text-muted">
+                        <span>&copy; 2024 - {{ date('Y') }} RiMS. สงวนลิขสิทธิ์ตาม พ.ร.บ. ลิขสิทธิ์</span>
+                        <a href="javascript:void(0)" class="about-link ms-2 d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#rimsAboutModal">
+                            <i class="bi bi-patch-check-fill text-success"></i> ข้อมูลลิขสิทธิ์
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        @endif
     </div>
 
     <!-- jQuery -->
@@ -2284,6 +2344,9 @@
         @auth
             @include('components.ai_settings_modal')
         @endauth
+
+        <!-- RiMS About & Copyright Modal -->
+        @include('components.rims_about_modal')
 
         <!-- AI Chatbot Floating Widget (RiMS Copilot - Prototype on HosFin) -->
         @auth

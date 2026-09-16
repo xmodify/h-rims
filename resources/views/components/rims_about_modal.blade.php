@@ -85,7 +85,7 @@
             <!-- Modal Footer -->
             <div class="modal-footer bg-white border-top py-2.5 px-4 d-flex justify-content-between align-items-center">
                 <small class="text-muted font-monospace" style="font-size: 0.70rem;">
-                    &copy; 2024 RiMS Platform
+                    &copy; 2024 RiMS Platform. All Rights Reserved.
                 </small>
                 <button type="button" class="btn btn-secondary btn-sm px-4 rounded-pill shadow-xs" data-bs-dismiss="modal">
                     ปิดหน้าต่าง

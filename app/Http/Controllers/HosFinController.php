@@ -126,6 +126,10 @@ class HosFinController extends Controller
                 'apTotalVendorsCount' => 0,
                 'apTopCreditors' => collect([]),
                 'arOutstandingSum' => 0.0,
+                'arEndingBalance' => 0.0,
+                'arMedical' => 0.0,
+                'arAdvances' => 0.0,
+                'arOtherServices' => 0.0,
                 'arTotalOb' => 0.0,
                 'arTotalBilled' => 0.0,
                 'arTotalCollected' => 0.0,
@@ -788,6 +792,32 @@ class HosFinController extends Controller
                 ->where(DB::raw('ending_debit - ending_credit'), '<>', 0)
                 ->count();
 
+            // Medical AR (ลูกหนี้ค่ารักษาพยาบาล)
+            $arMedical = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where(function($q) {
+                    $q->where('account_code', 'like', '1102050101%')
+                      ->orWhere('account_code', 'like', '1102050102%');
+                })
+                ->where('account_code', 'not like', '1102050101.102%')
+                ->where('account_code', 'not like', '1102050101.103%')
+                ->where('account_code', 'not like', '1102050101.104%')
+                ->where('account_code', 'not like', '1102050101.105%')
+                ->where('account_code', 'not like', '1102050102.102%')
+                ->where('account_code', 'not like', '1102050102.103%')
+                ->where('account_code', 'not like', '1102050102.104%')
+                ->where('account_code', 'not like', '1102050102.105%')
+                ->sum(DB::raw('ending_debit - ending_credit'));
+
+            // Advance Loans (ลูกหนี้เงินยืม)
+            $arAdvances = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where('account_code', 'like', '110201%')
+                ->sum(DB::raw('ending_debit - ending_credit'));
+
+            // Other Services & Receivables (ลูกหนี้บริการอื่น / อื่นๆ สุทธิ)
+            $arOtherServices = $arEndingBalance - $arMedical - $arAdvances;
+
             $latestFm = ($calMonth >= 10) ? ($calMonth - 9) : ($calMonth + 3);
 
             $arTotals = DB::table('hosfin_gl_journal_items')
@@ -959,6 +989,9 @@ class HosFinController extends Controller
             'apTotalVendorsCount' => $apTotalVendorsCount,
             'apTopCreditors' => $apTopCreditors,
             'arEndingBalance' => $arEndingBalance ?? null,
+            'arMedical' => $arMedical ?? 0,
+            'arAdvances' => $arAdvances ?? 0,
+            'arOtherServices' => $arOtherServices ?? 0,
             'arOutstandingSum' => $arOutstandingSum,
             'arTotalOb' => $arTotalOb,
             'arTotalBilled' => $arTotalBilled,

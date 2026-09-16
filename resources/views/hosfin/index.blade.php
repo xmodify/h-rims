@@ -581,40 +581,75 @@
                         </div>
                     </div>
 
-                    <!-- Card 4: ลูกหนี้ค่ารักษาค้างรับ (AR) -->
+                    <!-- Card 4: ลูกหนี้และสิทธิเรียกร้อง (AR) -->
                     <div class="col-xl-3 col-md-6">
                         <div class="card border-0 shadow-sm rounded-4 h-100 executive-kpi-card bg-white" 
                              style="border: 1.5px solid #bfdbfe !important; background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%); cursor: pointer;"
                              data-bs-toggle="modal" data-bs-target="#hosfinArModal" onclick="openArModal()">
                             <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
-                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
-                                            ลูกหนี้ค่ารักษาพยาบาล (AR)
-                                        </span>
-                                        <div class="fw-black mt-1 text-primary" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
-                                            {{ number_format($arEndingBalance ?? $arOutstandingSum ?? 0, 2) }}
-                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
-                                        </div>
-                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
-                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
-                                                ณ ปิดงวด {{ $latestPeriodLabel }}
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
+                                                ลูกหนี้และสิทธิเรียกร้อง (AR)
                                             </span>
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5" style="font-size: 0.70rem;">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ number_format($arAccountCount ?? 0) }} ผังบัญชี
                                             </span>
                                         </div>
+                                        <div class="fw-black mt-1 text-primary" style="font-size: 1.40rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($arEndingBalance ?? $arOutstandingSum ?? 0, 2) }}
+                                            <span style="font-size: 0.75rem; font-weight: 600;">บาท</span>
+                                        </div>
                                     </div>
-                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 42px; height: 42px;">
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary shadow-xs" style="width: 40px; height: 40px;">
                                         <i class="bi bi-wallet2 fs-4"></i>
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+
+                                <!-- Breakdown Pill Box: 3 Rows -->
+                                <div class="p-2 rounded-3 my-1.5" style="background: rgba(255, 255, 255, 0.9); border: 1px dashed #93c5fd;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openArModal();" 
+                                         title="คลิกเพื่อดูสรุปสิทธิลูกหนี้ค่ารักษาพยาบาล">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-check-circle-fill text-primary me-1 flex-shrink-0"></i> <span class="text-truncate">ลูกหนี้ค่ารักษาพยาบาล:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-primary text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($arMedical ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openArModal();" 
+                                         title="ลูกหนี้เงินยืมทดรองราชการ (รอส่งใบสำคัญล้างหนี้)">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-cash-coin text-warning me-1 flex-shrink-0"></i> <span class="text-truncate">ลูกหนี้เงินยืม:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-dark text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($arAdvances ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openArModal();" 
+                                         title="ลูกหนี้ตรวจสุขภาพ, สิ่งส่งตรวจ, รายได้ค้างรับสุทธิ">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-box-seam-fill text-secondary me-1 flex-shrink-0"></i> <span class="text-truncate">ลูกหนี้บริการอื่น:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-secondary text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($arOtherServices ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-1.5 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
                                     <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดคงเหลือ ณ สิ้นงวดบัญชีนี้">
                                         <i class="bi bi-check-circle-fill text-success me-1"></i>
                                         ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
                                     </span>
-                                    <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
+                                    <small class="text-primary fw-bold text-nowrap ms-1" style="font-size: 0.72rem;">คลิกดูสรุปลูกหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
                             </div>
                         </div>

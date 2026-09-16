@@ -1380,11 +1380,9 @@
             <div class="container-fluid px-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                     <div class="text-center text-md-start">
-                        <span class="footer-brand">RiMS</span> <span class="text-secondary small">: Revenue Intelligent Management System</span>
-                        <span class="text-muted small ms-1 d-none d-lg-inline">| พัฒนาโดย <strong>นายศิริฤกษ์ คณาดี</strong></span>
+                        <span class="footer-brand">RiMS</span> <span class="text-secondary small">: Revenue Intelligent Management System &copy;2024</span>
                     </div>
                     <div class="text-center text-md-end small text-muted">
-                        <span>&copy; 2024 - {{ date('Y') }} RiMS. สงวนลิขสิทธิ์ตาม พ.ร.บ. ลิขสิทธิ์</span>
                         <a href="javascript:void(0)" class="about-link ms-2 d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#rimsAboutModal">
                             <i class="bi bi-patch-check-fill text-success"></i> ข้อมูลลิขสิทธิ์
                         </a>

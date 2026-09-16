@@ -16,3 +16,4 @@ __pycache__/
 ~$*
 *.bak
 .phpunit.result.cache
+/scratch_inspect

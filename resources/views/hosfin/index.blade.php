@@ -472,8 +472,6 @@
                                 <!-- Breakdown Pill Box: ตัวตั้ง (เงินบำรุงพร้อมใช้) vs ตัวหัก (ภาระหนี้สินผูกพัน) -->
                                 <div class="p-2 rounded-3 my-1.5" style="background: rgba(255, 255, 255, 0.9); border: 1px dashed {{ $borderClass105 }};">
                                     <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
-                                         style="cursor: pointer;" 
-                                         onclick="event.stopPropagation(); showMetricModal('105');" 
                                          title="เงินบำรุงคงเหลือพร้อมใช้ตามเกณฑ์ สธ. (กลุ่ม 1005X)">
                                         <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
                                             <i class="bi bi-check-circle-fill text-success me-1 flex-shrink-0"></i> <span class="text-truncate">เงินบำรุงพร้อมใช้ (1005X):</span>
@@ -483,8 +481,6 @@
                                         </span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
-                                         style="cursor: pointer;" 
-                                         onclick="event.stopPropagation(); showMetricModal('105');" 
                                          title="ภาระหนี้สินผูกพันหมุนเวียนที่ต้องชำระ (กลุ่ม 1005Y)">
                                         <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
                                             <i class="bi bi-exclamation-triangle-fill text-danger me-1 flex-shrink-0"></i> <span class="text-truncate">ภาระหนี้สินผูกพัน (1005Y):</span>
@@ -1719,6 +1715,13 @@
     };
 
     let activeChart = null;
+
+    window.showMetricModal = function(code) {
+        const card = document.querySelector(`.metric-card[data-code="${code}"]`);
+        if (card) {
+            card.click();
+        }
+    };
 
     // Handle Card Click Events
     document.querySelectorAll('.metric-card').forEach(card => {

@@ -4762,6 +4762,19 @@ class HosFinController extends Controller
     }
 
     /**
+     * Get all PlanFin account mappings for Modal lookup
+     */
+    public function getPlanfinMappings(Request $request)
+    {
+        $mappings = DB::table('hosfin_planfin_mappings')
+            ->select('account_code', 'account_name', 'plan_code', 'plan_name')
+            ->orderBy('account_code')
+            ->get();
+
+        return response()->json($mappings);
+    }
+
+    /**
      * Helper to build PlanFin mapping lookup table with prefix fallback support
      * Returns array: [lookup_array, sorted_prefix_lengths]
      */

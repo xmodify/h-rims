@@ -543,39 +543,76 @@
                              style="border: 1.5px solid #fecaca !important; background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%); cursor: pointer;"
                              data-bs-toggle="modal" data-bs-target="#hosfinApModal" onclick="openApModal()">
                             <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
-                                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.4px;">
-                                            หนี้สินเจ้าหนี้การค้า (AP)
-                                        </span>
-                                        <div class="fw-black mt-1 text-danger" style="font-size: 1.45rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
-                                            {{ number_format($apEndingBalance ?? $apUnpaidSum ?? 0, 2) }}
-                                            <span style="font-size: 0.78rem; font-weight: 600;">บาท</span>
-                                        </div>
-                                        <div class="mt-1.5 d-flex flex-wrap gap-1.5 align-items-center">
-                                            <span class="badge bg-white text-secondary border shadow-xs rounded-pill px-2 py-0.5" style="font-size: 0.70rem; font-weight: 600;">
-                                                ณ ปิดงวด {{ $latestPeriodLabel }}
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
+                                                หนี้สินเจ้าหนี้การค้า (AP)
                                             </span>
-                                            @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
-                                                <span class="badge bg-danger text-white shadow-sm rounded-pill px-2.5 py-1 d-inline-flex align-items-center" style="font-size: 0.76rem; font-weight: 700;" title="บิลเจ้าหนี้คงค้างจริงในระบบ GL ณ ปัจจุบัน">
-                                                    <span class="spinner-grow spinner-grow-sm text-light me-1.5" style="width: 6px; height: 6px;" role="status"></span>
-                                                    <span>ปัจจุบัน:&nbsp;</span>
-                                                    <span class="font-monospace fw-black" style="font-size: 0.82rem;">{{ number_format($apUnpaidSum, 2) }}</span>
-                                                    <span style="font-size: 0.70rem; opacity: 0.95;">&nbsp;บ.</span>
-                                                </span>
-                                            @endif
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
+                                                {{ number_format($apAccountCount ?? 0) }} ผังบัญชี
+                                            </span>
+                                        </div>
+                                        <div class="fw-black mt-1 text-danger" style="font-size: 1.40rem; font-family: monospace; font-weight: 800; line-height: 1.2;">
+                                            {{ number_format($apEndingBalance ?? $apUnpaidSum ?? 0, 2) }}
+                                            <span style="font-size: 0.75rem; font-weight: 600;">บาท</span>
                                         </div>
                                     </div>
-                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 42px; height: 42px;">
+                                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger shadow-xs" style="width: 40px; height: 40px;">
                                         <i class="bi bi-receipt-cutoff fs-4"></i>
                                     </div>
                                 </div>
-                                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดตรงกับงบทดลองของงวดนี้">
-                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
-                                        ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
-                                    </span>
-                                    <small class="text-danger fw-bold text-nowrap ms-1" style="font-size: 0.73rem;">คลิกดูสรุปเจ้าหนี้ <i class="bi bi-arrow-up-right"></i></small>
+
+                                <!-- Breakdown Pill Box: 3 Rows -->
+                                <div class="p-2 rounded-3 my-1.5" style="background: rgba(255, 255, 255, 0.9); border: 1px dashed #fca5a5;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openApModal();" 
+                                         title="คลิกเพื่อดูสรุปเจ้าหนี้ค่ายา">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-capsule text-danger me-1 flex-shrink-0"></i> <span class="text-truncate">เจ้าหนี้ค่ายา:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-danger text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($apDrugs ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openApModal();" 
+                                         title="เจ้าหนี้วัสดุการแพทย์, วัสดุวิทย์/Lab, ทันตกรรม, ฟอกไต, X-ray">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-heart-pulse-fill text-warning me-1 flex-shrink-0"></i> <span class="text-truncate">เจ้าหนี้เวชภัณฑ์ & บริการแพทย์:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-dark text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($apMedSupplies ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center p-1 rounded-2 hover-highlight" 
+                                         style="cursor: pointer;" 
+                                         onclick="event.stopPropagation(); openApModal();" 
+                                         title="เจ้าหนี้วัสดุอื่น, จ้างเหมาบริการ, ครุภัณฑ์ และค่าใช้จ่ายอื่น">
+                                        <span class="text-secondary small d-flex align-items-center text-truncate" style="font-size: 0.70rem;">
+                                            <i class="bi bi-box-seam-fill text-secondary me-1 flex-shrink-0"></i> <span class="text-truncate">เจ้าหนี้วัสดุอื่น & จ้างเหมา:</span>
+                                        </span>
+                                        <span class="font-monospace fw-bold text-secondary text-nowrap ms-1" style="font-size: 0.78rem;">
+                                            {{ number_format($apOther ?? 0, 2) }} บ. <i class="bi bi-chevron-right text-muted" style="font-size: 0.65rem;"></i>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-1.5 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
+                                    @if(isset($apUnpaidSum) && $apUnpaidSum > 0)
+                                        <span class="badge bg-danger text-white shadow-xs rounded-pill px-2 py-0.5 d-inline-flex align-items-center" style="font-size: 0.68rem; font-weight: 600;" title="บิลเจ้าหนี้คงค้างจริงในระบบ GL ณ ปัจจุบัน">
+                                            <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
+                                            หนี้ปัจจุบัน: {{ number_format($apUnpaidSum, 2) }} บ.
+                                        </span>
+                                    @else
+                                        <span class="text-muted text-truncate" style="font-size: 0.69rem;" title="ยอดตรงกับงบทดลองของงวดนี้">
+                                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                            ตรงงบทดลอง <strong class="text-dark">{{ $latestPeriodLabel }}</strong>
+                                        </span>
+                                    @endif
+                                    <small class="text-danger fw-bold text-nowrap ms-1" style="font-size: 0.72rem;">คลิกดูสรุปเจ้าหนี้ <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
                             </div>
                         </div>
@@ -923,6 +960,34 @@
                             <small class="text-muted fw-bold d-block">บริษัทคู่ค้าที่ค้างจ่าย</small>
                             <span class="fs-5 fw-black text-primary font-monospace">{{ number_format($apTotalVendorsCount) }}</span>
                             <small class="text-muted d-block">บริษัท</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Categories Breakdown Strip -->
+                <div class="card border-0 shadow-xs rounded-3 p-3 bg-white mb-3" style="border: 1px dashed #fca5a5 !important;">
+                    <strong class="text-dark small d-block mb-2"><i class="bi bi-pie-chart-fill text-danger me-1"></i> ยอดเจ้าหนี้การค้าแยกตามหมวดหมู่งวด {{ $latestPeriodLabel }}</strong>
+                    <div class="row g-2 text-center">
+                        <div class="col-md-4">
+                            <div class="p-2 rounded-2 bg-danger bg-opacity-10 border border-danger-subtle">
+                                <small class="text-danger fw-bold d-block" style="font-size: 0.72rem;"><i class="bi bi-capsule me-1"></i>เจ้าหนี้ค่ายา</small>
+                                <span class="fs-6 fw-black text-danger font-monospace">{{ number_format($apDrugs ?? 0, 2) }}</span>
+                                <small class="text-muted d-block" style="font-size: 0.68rem;">บาท</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 rounded-2 bg-warning bg-opacity-10 border border-warning-subtle">
+                                <small class="text-warning-emphasis fw-bold d-block" style="font-size: 0.72rem;"><i class="bi bi-heart-pulse-fill me-1"></i>เจ้าหนี้เวชภัณฑ์ & บริการแพทย์</small>
+                                <span class="fs-6 fw-black text-dark font-monospace">{{ number_format($apMedSupplies ?? 0, 2) }}</span>
+                                <small class="text-muted d-block" style="font-size: 0.68rem;">บาท</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 rounded-2 bg-secondary bg-opacity-10 border border-secondary-subtle">
+                                <small class="text-secondary fw-bold d-block" style="font-size: 0.72rem;"><i class="bi bi-box-seam-fill me-1"></i>เจ้าหนี้วัสดุอื่น & จ้างเหมา</small>
+                                <span class="fs-6 fw-black text-secondary font-monospace">{{ number_format($apOther ?? 0, 2) }}</span>
+                                <small class="text-muted d-block" style="font-size: 0.68rem;">บาท</small>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -712,12 +712,14 @@ class HosFinController extends Controller
         }
 
         $apUnpaidSum = 0;
-        $apUnpaidCount = 0;
-        $apTotalVendorsCount = 0;
         $apUnpaidSum = 0;
         $apUnpaidCount = 0;
         $apTotalVendorsCount = 0;
         $apTopCreditors = collect();
+        $apAccountCount = 0;
+        $apDrugs = 0;
+        $apMedSupplies = 0;
+        $apOther = 0;
 
         $arOutstandingSum = 0;
         $arTotalOb = 0;
@@ -763,6 +765,43 @@ class HosFinController extends Controller
                 ->where('acc_period', $latestPeriod)
                 ->where('account_code', 'like', '2101%')
                 ->sum(DB::raw('ending_credit - ending_debit'));
+
+            $periodApAccountCount = DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where('account_code', 'like', '2101%')
+                ->where(DB::raw('ending_credit - ending_debit'), '<>', 0)
+                ->count();
+            $apAccountCount = $periodApAccountCount > 0 ? $periodApAccountCount : (int)DB::table('hosfin_gl_accounts')->where('account_code', 'like', '2101%')->count();
+
+            // 1. เจ้าหนี้-ยา
+            $apDrugs = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where(function($q) {
+                    $q->where('account_code', 'like', '2101020199.134%')
+                      ->orWhere('account_code', 'like', '2101010102%')
+                      ->orWhere('account_code', 'like', '2101020101%');
+                })
+                ->sum(DB::raw('ending_credit - ending_debit'));
+
+            // 2. เจ้าหนี้-เวชภัณฑ์ & บริการทางการแพทย์
+            $apMedSupplies = (float)DB::table('hosfin_gl_monthly_balances')
+                ->where('acc_period', $latestPeriod)
+                ->where(function($q) {
+                    $q->where('account_code', 'like', '2101020199.135%')
+                      ->orWhere('account_code', 'like', '2101020199.136%')
+                      ->orWhere('account_code', 'like', '2101020199.143%')
+                      ->orWhere('account_code', 'like', '2101020199.144%')
+                      ->orWhere('account_code', 'like', '2101020199.146%')
+                      ->orWhere('account_code', 'like', '2101020199.147%')
+                      ->orWhere('account_code', 'like', '2101020199.148%')
+                      ->orWhere('account_code', 'like', '2101020199.150%')
+                      ->orWhere('account_code', 'like', '2101010103%')
+                      ->orWhere('account_code', 'like', '2101020102%');
+                })
+                ->sum(DB::raw('ending_credit - ending_debit'));
+
+            // 3. เจ้าหนี้-วัสดุอื่น & จ้างเหมา / ครุภัณฑ์
+            $apOther = $apEndingBalance - $apDrugs - $apMedSupplies;
 
             $apUnpaidSum = (float)\App\Models\HosfinGlApBill::where('is_paid', 0)->sum('remaining_debt');
             $apUnpaidCount = (int)\App\Models\HosfinGlApBill::where('is_paid', 0)->count();
@@ -984,6 +1023,10 @@ class HosFinController extends Controller
             'riskScoreLevelLabel' => $riskScoreLevelLabel,
             'monthlyRevenueExpenseTrend' => $monthlyRevenueExpenseTrend,
             'apEndingBalance' => $apEndingBalance ?? null,
+            'apAccountCount' => $apAccountCount ?? 0,
+            'apDrugs' => $apDrugs ?? 0,
+            'apMedSupplies' => $apMedSupplies ?? 0,
+            'apOther' => $apOther ?? 0,
             'apUnpaidSum' => $apUnpaidSum,
             'apUnpaidCount' => $apUnpaidCount,
             'apTotalVendorsCount' => $apTotalVendorsCount,

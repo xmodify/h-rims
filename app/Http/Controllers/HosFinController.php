@@ -858,63 +858,16 @@ class HosFinController extends Controller
             // Other Services & Receivables (ลูกหนี้บริการอื่น / อื่นๆ สุทธิ)
             $arOtherServices = $arEndingBalance - $arMedical - $arAdvances;
 
-            // List of periods from start of FY (xxxx-10) up to $latestPeriod
-            $periodsUpToLatest = [];
-            foreach ($periods as $p) {
-                $periodsUpToLatest[] = $p['period'];
-                if ($p['period'] === $latestPeriod) {
-                    break;
-                }
-            }
-            $firstPeriodInFy = $periodsUpToLatest[0] ?? sprintf('%04d-10', $budgetYear - 1);
-
-            // 1. Get Opening Balance (OB) at beginning of fiscal year from first period
-            $obRows = DB::table('hosfin_gl_monthly_balances')
-                ->where('acc_period', $firstPeriodInFy)
-                ->where('account_code', 'like', '1102%')
-                ->get(['account_code', 'account_name', 'beginning_debit', 'beginning_credit']);
-
-            $obMap = [];
-            foreach ($obRows as $r) {
-                $obMap[$r->account_code] = (float)$r->beginning_debit - (float)$r->beginning_credit;
-            }
-
-            // 2. Cumulative period_debit and period_credit from start of FY up to $latestPeriod
-            $activityRows = DB::table('hosfin_gl_monthly_balances')
-                ->whereIn('acc_period', $periodsUpToLatest)
-                ->where('account_code', 'like', '1102%')
-                ->select(
-                    'account_code',
-                    DB::raw('MAX(account_name) as account_name'),
-                    DB::raw('SUM(period_debit) as total_billed'),
-                    DB::raw('SUM(period_credit) as total_collected')
-                )
-                ->groupBy('account_code')
-                ->get();
-
-            // 3. Ending balances at $latestPeriod
-            $endingRows = DB::table('hosfin_gl_monthly_balances')
+            // AR Breakdown for the selected monthly period ($latestPeriod) from GL monthly balances
+            $periodArRows = DB::table('hosfin_gl_monthly_balances')
                 ->where('acc_period', $latestPeriod)
                 ->where('account_code', 'like', '1102%')
-                ->get(['account_code', 'account_name', 'ending_debit', 'ending_credit']);
-
-            $endingMap = [];
-            foreach ($endingRows as $r) {
-                $endingMap[$r->account_code] = (float)$r->ending_debit - (float)$r->ending_credit;
-            }
-
-            $allArCodes = array_unique(array_merge(
-                array_keys($obMap),
-                $activityRows->pluck('account_code')->toArray(),
-                array_keys($endingMap)
-            ));
+                ->get();
 
             $arGroups = [];
-            foreach ($allArCodes as $code) {
-                $act = $activityRows->firstWhere('account_code', $code);
-                $end = $endingRows->firstWhere('account_code', $code);
-                $ob = $obRows->firstWhere('account_code', $code);
-                $name = $end->account_name ?? ($act->account_name ?? ($ob->account_name ?? ''));
+            foreach ($periodArRows as $r) {
+                $code = $r->account_code;
+                $name = $r->account_name;
 
                 $debtorType = 'อื่นๆ';
                 if (str_contains($name, 'UC') || str_contains($name, 'สปสช') || str_contains($name, 'บัตรทอง') || str_contains($code, '1102050101.2') || str_contains($code, '1102050102.2')) {
@@ -929,10 +882,10 @@ class HosFinController extends Controller
                     $debtorType = 'ผู้ป่วยชำระเงิน';
                 }
 
-                $obVal = $obMap[$code] ?? 0;
-                $billedVal = $act ? (float)$act->total_billed : 0;
-                $collectedVal = $act ? (float)$act->total_collected : 0;
-                $endVal = $endingMap[$code] ?? ($obVal + $billedVal - $collectedVal);
+                $obVal = (float)$r->beginning_debit - (float)$r->beginning_credit;
+                $billedVal = (float)$r->period_debit;
+                $collectedVal = (float)$r->period_credit;
+                $endVal = (float)$r->ending_debit - (float)$r->ending_credit;
 
                 if (!isset($arGroups[$debtorType])) {
                     $arGroups[$debtorType] = (object)[
@@ -959,13 +912,13 @@ class HosFinController extends Controller
                 $arTotalBilled = (float)$arTypeSummaries->sum('total_billed');
                 $arTotalCollected = (float)$arTypeSummaries->sum('total_collected');
                 $arOutstandingSum = (float)$arTypeSummaries->sum('outstanding_balance');
-                $arAccountCount = count($allArCodes);
+                $arAccountCount = $periodArRows->count();
             } else {
                 $latestFm = ($calMonth >= 10) ? ($calMonth - 9) : ($calMonth + 3);
-                $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
-                $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->where('fiscal_month', '<=', $latestFm)->sum('total_billed');
-                $arTotalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->where('fiscal_month', '<=', $latestFm)->sum('total_collected');
-                $arOutstandingSum = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '<=', $latestFm)->sum('outstanding_balance');
+                $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', $latestFm)->sum('beginning_balance');
+                $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', $latestFm)->sum('total_billed');
+                $arTotalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', $latestFm)->sum('total_collected');
+                $arOutstandingSum = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', $latestFm)->sum('outstanding_balance');
                 $arAccountCount = $periodArAccountCount;
             }
 

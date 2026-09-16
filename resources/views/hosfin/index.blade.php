@@ -1106,16 +1106,16 @@
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-success">
-                            <small class="text-muted fw-bold d-block">ยอดตั้งเบิกระหว่างปีนี้</small>
+                            <small class="text-muted fw-bold d-block">ยอดตั้งเบิกประจำงวด ({{ $latestPeriodLabel }})</small>
                             <span class="fs-5 fw-black text-success font-monospace">{{ number_format($arTotalBilled, 2) }}</span>
-                            <small class="text-muted d-block">บาท (รวมยอดยกมา: {{ number_format((($arTotalBilled ?? 0) + ($arTotalOb ?? 0)) / 1000000, 2) }}M)</small>
+                            <small class="text-muted d-block">บาท (เดบิตประจำงวด)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 shadow-xs rounded-3 p-3 bg-white text-center border-start border-4 border-warning">
-                            <small class="text-muted fw-bold d-block">ชดเชยที่รับเงินแล้วปีนี้</small>
+                            <small class="text-muted fw-bold d-block">ชดเชยที่รับเงินในงวด ({{ $latestPeriodLabel }})</small>
                             <span class="fs-5 fw-black text-dark font-monospace">{{ number_format($arTotalCollected, 2) }}</span>
-                            <small class="text-muted d-block">บาท ({{ $arTotalBilled > 0 ? round(($arTotalCollected / $arTotalBilled) * 100, 1) : 0 }}% ของยอดตั้งเบิกปีนี้)</small>
+                            <small class="text-muted d-block">บาท ({{ $arTotalBilled > 0 ? round(($arTotalCollected / $arTotalBilled) * 100, 1) : 0 }}% ของยอดตั้งเบิกงวดนี้)</small>
                         </div>
                     </div>
                 </div>
@@ -1123,7 +1123,7 @@
                 <!-- Rights Group Breakdown Table -->
                 <div class="card border-0 shadow-sm rounded-3 bg-white mb-3">
                     <div class="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
-                        <strong class="text-dark small"><i class="bi bi-pie-chart-fill text-primary me-1"></i> ยอดลูกหนี้และสถานะชดเชยแยกตามสิทธิกองทุน</strong>
+                        <strong class="text-dark small"><i class="bi bi-pie-chart-fill text-primary me-1"></i> ยอดลูกหนี้และสถานะชดเชยแยกตามสิทธิกองทุน (งวด {{ $latestPeriodLabel }})</strong>
                         <span class="badge bg-primary-subtle text-primary border rounded-pill">Funds Breakdown</span>
                     </div>
                     <div class="table-responsive">
@@ -1132,10 +1132,10 @@
                                 <tr>
                                     <th class="ps-3">สิทธิกองทุนการรักษา</th>
                                     <th class="text-center">ผังบัญชี</th>
-                                    <th class="text-end">ยอดยกมา OB (บาท)</th>
-                                    <th class="text-end">ตั้งเบิกปีนี้ (บาท)</th>
-                                    <th class="text-end">ชดเชยปีนี้ (บาท)</th>
-                                    <th class="text-end pe-3 text-primary">ลูกหนี้คงค้างสุทธิ (บาท)</th>
+                                    <th class="text-end">ยอดยกมาจากงวดก่อน (บาท)</th>
+                                    <th class="text-end">ตั้งเบิกงวดนี้ (บาท)</th>
+                                    <th class="text-end">ชดเชยงวดนี้ (บาท)</th>
+                                    <th class="text-end pe-3 text-primary">ลูกหนี้คงค้างสุทธิ ณ สิ้นงวด (บาท)</th>
                                 </tr>
                             </thead>
                             <tbody>

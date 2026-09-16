@@ -788,6 +788,8 @@ class HosFinController extends Controller
                 ->where(DB::raw('ending_debit - ending_credit'), '<>', 0)
                 ->count();
 
+            $latestFm = ($calMonth >= 10) ? ($calMonth - 9) : ($calMonth + 3);
+
             $arTotals = DB::table('hosfin_gl_journal_items')
                 ->where('account_code', 'like', '1102%')
                 ->select(
@@ -798,14 +800,18 @@ class HosFinController extends Controller
                 )
                 ->first();
 
-            $arOutstandingSum = (float)($arTotals->net_outstanding ?? 0);
+            $arOutstandingSum = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', '<=', $latestFm)
+                ->sum('outstanding_balance');
             $arAccountCount = $periodArAccountCount > 0 ? $periodArAccountCount : (int)($arTotals->total_accounts ?? 0);
 
-            $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', 0)->sum('outstanding_balance');
-            $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', '>', 0)->sum('total_billed');
-            $arTotalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_month', '>', 0)->sum('total_collected');
+            $arTotalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
+            $arTotalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->where('fiscal_month', '<=', $latestFm)->sum('total_billed');
+            $arTotalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->where('fiscal_month', '<=', $latestFm)->sum('total_collected');
 
-            $arTypeSummaries = \App\Models\HosfinGlArDebtor::select(
+            $arTypeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', '<=', $latestFm)
+                ->select(
                     'debtor_type',
                     DB::raw('COUNT(DISTINCT account_code) as account_count'),
                     DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),

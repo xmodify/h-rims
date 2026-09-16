@@ -157,6 +157,9 @@ class ClaimValidator
 
     /**
      * ตรวจสอบเลขอนุมัติ EDC (สำหรับสิทธิ OFC)
+     * - ลำดับที่ 1: หากพบในไฟล์นำเข้า KTB -> ผ่านเกณฑ์สมบูรณ์ (เขียว) เพราะระบบส่งออกจะยึด KTB เป็นหลักอันดับ 1
+     * - ลำดับที่ 2: หากไม่พบใน KTB แต่มีใน HOSxP -> เตือน (เหลือง) ให้ตรวจสอบการนำเข้าไฟล์ KTB
+     * - ลำดับที่ 3: หากไม่พบทั้ง 2 ฝั่ง -> ไม่ผ่าน (แดง)
      */
     public function validateEdc($visit): array
     {
@@ -165,15 +168,15 @@ class ClaimValidator
         $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
         $edc_ktb_list = array_filter(array_map('trim', explode(',', $visit->edc_ktb ?? '')));
 
-        if (empty($edc_hosxp_list) && empty($edc_ktb_list)) {
+        if (!empty($edc_ktb_list)) {
+            // 1. มีในไฟล์นำเข้า KTB -> ผ่านสมบูรณ์ (ตาเขียว)
+            // (ไม่สร้าง Warning เพื่อให้เป็นตาเขียวทันทีที่นำเข้าไฟล์ KTB แล้ว เพราะระบบดึง KTB ส่งออกอัตโนมัติ)
+        } elseif (!empty($edc_hosxp_list)) {
+            // 2. ไม่มีในไฟล์ KTB แต่มีใน HOSxP -> เตือน (ตาเหลือง)
+            $warnings[] = "พบเลขอนุมัติใน HOSxP (" . implode(',', $edc_hosxp_list) . ") แต่ยังไม่พบในไฟล์นำเข้า KTB (โปรดตรวจสอบการนำเข้าไฟล์ EDC KTB)";
+        } else {
+            // 3. ไม่พบทั้ง 2 ฝั่ง -> ไม่ผ่าน (ตาแดง)
             $errors[] = "ไม่พบเลขอนุมัติ EDC ทั้งใน HOSxP และไฟล์นำเข้า KTB (กรุณาตรวจสอบการรูดบัตรหรือนำเข้าไฟล์ EDC)";
-        } elseif (empty($edc_hosxp_list) && !empty($edc_ktb_list)) {
-            // มีในไฟล์นำเข้า KTB แต่ไม่มีใน HOSxP -> ให้ผ่านเกณฑ์แบบเตือน (ตาเหลือง)
-            $warnings[] = "พบเลขอนุมัติในไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ") แต่ไม่พบใน HOSxP";
-        } elseif (!empty($edc_hosxp_list) && empty($edc_ktb_list)) {
-            $warnings[] = "พบเลขอนุมัติใน HOSxP (" . implode(',', $edc_hosxp_list) . ") แต่ยังไม่พบในไฟล์นำเข้า KTB";
-        } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
-            $warnings[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
         return [

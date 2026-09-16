@@ -452,8 +452,8 @@
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
                                         <div class="d-flex align-items-center gap-1.5">
-                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
-                                                เงินบำรุงคงเหลือสุทธิ (105)
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.3px;">
+                                                เงินบำรุงคงเหลือสุทธิ (105) (งวด {{ $latestPeriodLabel }})
                                             </span>
                                             <span class="badge {{ ($isPositive105 ?? false) ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' }} rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ $label105 }}
@@ -510,8 +510,8 @@
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
                                         <div class="d-flex align-items-center gap-1.5">
-                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
-                                                เงินสดและเงินฝากจริง (GL)
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.3px;">
+                                                เงินสดและเงินฝากจริง (GL) (งวด {{ $latestPeriodLabel }})
                                             </span>
                                             <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ number_format($cashAccountsCount ?? 0) }} เล่ม
@@ -576,8 +576,8 @@
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
                                         <div class="d-flex align-items-center gap-1.5">
-                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
-                                                หนี้สินเจ้าหนี้การค้า (AP)
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.3px;">
+                                                หนี้สินเจ้าหนี้การค้า (AP) (งวด {{ $latestPeriodLabel }})
                                             </span>
                                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ number_format($apAccountCount ?? 0) }} ผังบัญชี
@@ -657,8 +657,8 @@
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div>
                                         <div class="d-flex align-items-center gap-1.5">
-                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.4px;">
-                                                ลูกหนี้ทั้งหมด (AR)
+                                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.3px;">
+                                                ลูกหนี้ทั้งหมด (AR) (งวด {{ $latestPeriodLabel }})
                                             </span>
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
                                                 {{ number_format($arAccountCount ?? 0) }} ผังบัญชี

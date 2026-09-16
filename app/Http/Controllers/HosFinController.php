@@ -2874,12 +2874,28 @@ class HosFinController extends Controller
             ];
         }
 
-        // Check which fiscal months exist in hosfin_gl_ar_debtors (ignore month 0 which is OB)
-        $existingMonths = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-            ->where('fiscal_month', '>', 0)
+        // Check which periods exist in hosfin_gl_monthly_balances (or fallback to hosfin_gl_ar_debtors)
+        $existingPeriods = DB::table('hosfin_gl_monthly_balances')
+            ->where('account_code', 'like', '1102%')
             ->distinct()
-            ->pluck('fiscal_month')
+            ->pluck('acc_period')
+            ->filter()
             ->toArray();
+
+        $existingMonths = [];
+        foreach ($periods as $p) {
+            if (in_array($p['period'], $existingPeriods)) {
+                $existingMonths[] = $p['fiscal_month'];
+            }
+        }
+
+        if (empty($existingMonths)) {
+            $existingMonths = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', '>', 0)
+                ->distinct()
+                ->pluck('fiscal_month')
+                ->toArray();
+        }
 
         // Determine if specific period is selected
         $selectedFm = null;
@@ -2899,99 +2915,282 @@ class HosFinController extends Controller
             }
         }
 
-        $totalOb = 0.0;
-        $totalOutstandingYear = 0.0;
+        $classifyDebtor = function($name, $code) {
+            if (str_contains($name, 'UC') || str_contains($name, 'สปสช') || str_contains($name, 'บัตรทอง') || str_contains($code, '1102050101.2') || str_contains($code, '1102050102.2')) {
+                return 'สปสช. (UC)';
+            } elseif (str_contains($name, 'ประกันสังคม') || str_contains($code, '1102050101.3') || str_contains($code, '1102050102.3')) {
+                return 'ประกันสังคม (SSS)';
+            } elseif (str_contains($name, 'ข้าราชการ') || str_contains($name, 'เบิกจ่ายตรง') || str_contains($name, 'อปท') || str_contains($code, '1102050101.1') || str_contains($code, '1102050102.1') || str_contains($code, '1102050101.4') || str_contains($code, '1102050102.8')) {
+                return 'ข้าราชการ / อปท.';
+            } elseif (str_contains($name, 'พรบ') || str_contains($name, 'พ.ร.บ') || str_contains($code, '1102050102.4') || str_contains($code, '1102050102.6')) {
+                return 'พ.ร.บ.รถ';
+            } elseif (str_contains($name, 'ชำระเงิน') || str_contains($code, '1102050101.5') || str_contains($code, '1102050102.5')) {
+                return 'ผู้ป่วยชำระเงิน';
+            }
+            return 'อื่นๆ';
+        };
 
-        if ($selectedPeriod === 'all') {
-            $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
-            $totalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_billed');
-            $totalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_collected');
-            $totalOutstandingYear = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('outstanding_balance');
-            $totalOutstanding = $totalOb + $totalOutstandingYear;
+        $hasGlPeriod = DB::table('hosfin_gl_monthly_balances')
+            ->where('account_code', 'like', '1102%')
+            ->exists();
 
-            $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->select(
-                    'debtor_type',
-                    DB::raw('COUNT(DISTINCT account_code) as account_count'),
-                    DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
-                    DB::raw('SUM(outstanding_balance) as outstanding_balance')
-                )
-                ->groupBy('debtor_type')
-                ->orderBy('outstanding_balance', 'desc')
-                ->get();
+        if ($hasGlPeriod) {
+            if ($selectedPeriod !== 'all') {
+                $glRows = DB::table('hosfin_gl_monthly_balances')
+                    ->where('acc_period', $selectedPeriod)
+                    ->where('account_code', 'like', '1102%')
+                    ->get();
 
-            // Group by account_code so each account code appears exactly once with cumulative total!
-            $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->select(
-                    'account_code',
-                    DB::raw('MAX(account_name) as account_name'),
-                    DB::raw('MAX(debtor_type) as debtor_type'),
-                    DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
-                    DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
-                    DB::raw('SUM(outstanding_balance) as outstanding_balance'),
-                    DB::raw('COUNT(DISTINCT CASE WHEN fiscal_month > 0 THEN fiscal_month END) as month_count')
-                )
-                ->groupBy('account_code')
-                ->orderBy('outstanding_balance', 'desc')
-                ->get();
+                $debtorsList = [];
+                $groups = [];
+
+                foreach ($glRows as $r) {
+                    $code = $r->account_code;
+                    $name = $r->account_name;
+                    $debtorType = $classifyDebtor($name, $code);
+
+                    $obVal = (float)$r->beginning_debit - (float)$r->beginning_credit;
+                    $billedVal = (float)$r->period_debit;
+                    $collectedVal = (float)$r->period_credit;
+                    $endVal = (float)$r->ending_debit - (float)$r->ending_credit;
+
+                    $debtorsList[] = (object)[
+                        'account_code'        => $code,
+                        'account_name'        => $name,
+                        'debtor_type'         => $debtorType,
+                        'ob_balance'          => $obVal,
+                        'total_billed'        => $billedVal,
+                        'total_collected'     => $collectedVal,
+                        'year_outstanding'    => $billedVal - $collectedVal,
+                        'outstanding_balance' => $endVal,
+                        'month_count'         => 1,
+                    ];
+
+                    if (!isset($groups[$debtorType])) {
+                        $groups[$debtorType] = (object)[
+                            'debtor_type'         => $debtorType,
+                            'account_count'       => 0,
+                            'ob_balance'          => 0.0,
+                            'total_billed'        => 0.0,
+                            'total_collected'     => 0.0,
+                            'year_outstanding'    => 0.0,
+                            'outstanding_balance' => 0.0
+                        ];
+                    }
+                    $groups[$debtorType]->account_count++;
+                    $groups[$debtorType]->ob_balance += $obVal;
+                    $groups[$debtorType]->total_billed += $billedVal;
+                    $groups[$debtorType]->total_collected += $collectedVal;
+                    $groups[$debtorType]->year_outstanding += ($billedVal - $collectedVal);
+                    $groups[$debtorType]->outstanding_balance += $endVal;
+                }
+
+                usort($debtorsList, fn($a, $b) => $b->outstanding_balance <=> $a->outstanding_balance);
+                $debtors = collect($debtorsList);
+
+                uasort($groups, fn($a, $b) => $b->outstanding_balance <=> $a->outstanding_balance);
+                $typeSummaries = collect(array_values($groups));
+
+                $totalOb = (float)$typeSummaries->sum('ob_balance');
+                $totalBilled = (float)$typeSummaries->sum('total_billed');
+                $totalCollected = (float)$typeSummaries->sum('total_collected');
+                $totalOutstanding = (float)$typeSummaries->sum('outstanding_balance');
+                $totalOutstandingYear = $totalBilled - $totalCollected;
+            } else {
+                // All year cumulative from GL monthly balances
+                $allPeriodKeys = array_column($periods, 'period');
+                $firstPeriod = $allPeriodKeys[0];
+                $latestImportedPeriod = DB::table('hosfin_gl_monthly_balances')
+                    ->whereIn('acc_period', $allPeriodKeys)
+                    ->where('account_code', 'like', '1102%')
+                    ->orderBy('acc_period', 'desc')
+                    ->value('acc_period') ?? $firstPeriod;
+
+                $obRows = DB::table('hosfin_gl_monthly_balances')
+                    ->where('acc_period', $firstPeriod)
+                    ->where('account_code', 'like', '1102%')
+                    ->get();
+                $obMap = [];
+                foreach ($obRows as $r) {
+                    $obMap[$r->account_code] = (float)$r->beginning_debit - (float)$r->beginning_credit;
+                }
+
+                $activityRows = DB::table('hosfin_gl_monthly_balances')
+                    ->whereIn('acc_period', $allPeriodKeys)
+                    ->where('account_code', 'like', '1102%')
+                    ->select(
+                        'account_code',
+                        DB::raw('MAX(account_name) as account_name'),
+                        DB::raw('SUM(period_debit) as total_billed'),
+                        DB::raw('SUM(period_credit) as total_collected'),
+                        DB::raw('COUNT(DISTINCT acc_period) as month_count')
+                    )
+                    ->groupBy('account_code')
+                    ->get();
+
+                $endRows = DB::table('hosfin_gl_monthly_balances')
+                    ->where('acc_period', $latestImportedPeriod)
+                    ->where('account_code', 'like', '1102%')
+                    ->get();
+                $endMap = [];
+                foreach ($endRows as $r) {
+                    $endMap[$r->account_code] = (float)$r->ending_debit - (float)$r->ending_credit;
+                }
+
+                $allCodes = array_unique(array_merge(array_keys($obMap), $activityRows->pluck('account_code')->toArray(), array_keys($endMap)));
+                $debtorsList = [];
+                $groups = [];
+
+                foreach ($allCodes as $code) {
+                    $act = $activityRows->firstWhere('account_code', $code);
+                    $endR = $endRows->firstWhere('account_code', $code);
+                    $obR = $obRows->firstWhere('account_code', $code);
+                    $name = $endR->account_name ?? ($act->account_name ?? ($obR->account_name ?? ''));
+                    $debtorType = $classifyDebtor($name, $code);
+
+                    $obVal = $obMap[$code] ?? 0;
+                    $billedVal = $act ? (float)$act->total_billed : 0;
+                    $collectedVal = $act ? (float)$act->total_collected : 0;
+                    $endVal = $endMap[$code] ?? ($obVal + $billedVal - $collectedVal);
+
+                    $debtorsList[] = (object)[
+                        'account_code'        => $code,
+                        'account_name'        => $name,
+                        'debtor_type'         => $debtorType,
+                        'ob_balance'          => $obVal,
+                        'total_billed'        => $billedVal,
+                        'total_collected'     => $collectedVal,
+                        'year_outstanding'    => $billedVal - $collectedVal,
+                        'outstanding_balance' => $endVal,
+                        'month_count'         => $act ? (int)$act->month_count : 1,
+                    ];
+
+                    if (!isset($groups[$debtorType])) {
+                        $groups[$debtorType] = (object)[
+                            'debtor_type'         => $debtorType,
+                            'account_count'       => 0,
+                            'ob_balance'          => 0.0,
+                            'total_billed'        => 0.0,
+                            'total_collected'     => 0.0,
+                            'year_outstanding'    => 0.0,
+                            'outstanding_balance' => 0.0
+                        ];
+                    }
+                    $groups[$debtorType]->account_count++;
+                    $groups[$debtorType]->ob_balance += $obVal;
+                    $groups[$debtorType]->total_billed += $billedVal;
+                    $groups[$debtorType]->total_collected += $collectedVal;
+                    $groups[$debtorType]->year_outstanding += ($billedVal - $collectedVal);
+                    $groups[$debtorType]->outstanding_balance += $endVal;
+                }
+
+                usort($debtorsList, fn($a, $b) => $b->outstanding_balance <=> $a->outstanding_balance);
+                $debtors = collect($debtorsList);
+
+                uasort($groups, fn($a, $b) => $b->outstanding_balance <=> $a->outstanding_balance);
+                $typeSummaries = collect(array_values($groups));
+
+                $totalOb = (float)$typeSummaries->sum('ob_balance');
+                $totalBilled = (float)$typeSummaries->sum('total_billed');
+                $totalCollected = (float)$typeSummaries->sum('total_collected');
+                $totalOutstanding = (float)$typeSummaries->sum('outstanding_balance');
+                $totalOutstandingYear = $totalBilled - $totalCollected;
+            }
         } else {
-            // Specific month: Roll forward cumulative Opening Balance (fiscal_month 0 + months 1 to selectedFm - 1)
-            $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', '<', $selectedFm)
-                ->sum('outstanding_balance');
+            $totalOb = 0.0;
+            $totalOutstandingYear = 0.0;
 
-            $monthData = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', $selectedFm)
-                ->select(
-                    DB::raw('SUM(total_billed) as total_billed'),
-                    DB::raw('SUM(total_collected) as total_collected'),
-                    DB::raw('SUM(outstanding_balance) as total_outstanding')
-                )->first();
+            if ($selectedPeriod === 'all') {
+                $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', 0)->sum('outstanding_balance');
+                $totalBilled = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_billed');
+                $totalCollected = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('total_collected');
+                $totalOutstandingYear = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)->where('fiscal_month', '>', 0)->sum('outstanding_balance');
+                $totalOutstanding = $totalOb + $totalOutstandingYear;
 
-            $totalBilled = (float)($monthData->total_billed ?? 0);
-            $totalCollected = (float)($monthData->total_collected ?? 0);
-            $totalOutstandingYear = (float)($monthData->total_outstanding ?? 0);
-            $totalOutstanding = $totalOb + $totalOutstandingYear;
+                $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->select(
+                        'debtor_type',
+                        DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                        DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
+                        DB::raw('SUM(outstanding_balance) as outstanding_balance')
+                    )
+                    ->groupBy('debtor_type')
+                    ->orderBy('outstanding_balance', 'desc')
+                    ->get();
 
-            // Summary by debtor_type with roll forward balances
-            $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', '<=', $selectedFm)
-                ->select(
-                    'debtor_type',
-                    DB::raw('COUNT(DISTINCT account_code) as account_count'),
-                    DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN outstanding_balance ELSE 0 END) as year_outstanding"),
-                    DB::raw("SUM(outstanding_balance) as outstanding_balance")
-                )
-                ->groupBy('debtor_type')
-                ->orderBy('outstanding_balance', 'desc')
-                ->get();
+                // Group by account_code so each account code appears exactly once with cumulative total!
+                $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->select(
+                        'account_code',
+                        DB::raw('MAX(account_name) as account_name'),
+                        DB::raw('MAX(debtor_type) as debtor_type'),
+                        DB::raw('SUM(CASE WHEN fiscal_month = 0 THEN outstanding_balance ELSE 0 END) as ob_balance'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_billed ELSE 0 END) as total_billed'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN total_collected ELSE 0 END) as total_collected'),
+                        DB::raw('SUM(CASE WHEN fiscal_month > 0 THEN outstanding_balance ELSE 0 END) as year_outstanding'),
+                        DB::raw('SUM(outstanding_balance) as outstanding_balance'),
+                        DB::raw('COUNT(DISTINCT CASE WHEN fiscal_month > 0 THEN fiscal_month END) as month_count')
+                    )
+                    ->groupBy('account_code')
+                    ->orderBy('outstanding_balance', 'desc')
+                    ->get();
+            } else {
+                // Specific month: Roll forward cumulative Opening Balance (fiscal_month 0 + months 1 to selectedFm - 1)
+                $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->where('fiscal_month', '<', $selectedFm)
+                    ->sum('outstanding_balance');
 
-            // Account-level debtor rows with roll forward balances
-            $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', '<=', $selectedFm)
-                ->select(
-                    'account_code',
-                    DB::raw('MAX(account_name) as account_name'),
-                    DB::raw('MAX(debtor_type) as debtor_type'),
-                    DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
-                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN outstanding_balance ELSE 0 END) as year_outstanding"),
-                    DB::raw("SUM(outstanding_balance) as outstanding_balance"),
-                    DB::raw('1 as month_count')
-                )
-                ->groupBy('account_code')
-                ->havingRaw('outstanding_balance <> 0 OR total_billed <> 0 OR total_collected <> 0 OR ob_balance <> 0')
-                ->orderBy('outstanding_balance', 'desc')
-                ->get();
+                $monthData = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->where('fiscal_month', $selectedFm)
+                    ->select(
+                        DB::raw('SUM(total_billed) as total_billed'),
+                        DB::raw('SUM(total_collected) as total_collected'),
+                        DB::raw('SUM(outstanding_balance) as total_outstanding')
+                    )->first();
+
+                $totalBilled = (float)($monthData->total_billed ?? 0);
+                $totalCollected = (float)($monthData->total_collected ?? 0);
+                $totalOutstandingYear = (float)($monthData->total_outstanding ?? 0);
+                $totalOutstanding = $totalOb + $totalOutstandingYear;
+
+                // Summary by debtor_type with roll forward balances
+                $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->where('fiscal_month', '<=', $selectedFm)
+                    ->select(
+                        'debtor_type',
+                        DB::raw('COUNT(DISTINCT account_code) as account_count'),
+                        DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as year_outstanding"),
+                        DB::raw("SUM(outstanding_balance) as outstanding_balance")
+                    )
+                    ->groupBy('debtor_type')
+                    ->orderBy('outstanding_balance', 'desc')
+                    ->get();
+
+                // Account-level debtor rows with roll forward balances
+                $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                    ->where('fiscal_month', '<=', $selectedFm)
+                    ->select(
+                        'account_code',
+                        DB::raw('MAX(account_name) as account_name'),
+                        DB::raw('MAX(debtor_type) as debtor_type'),
+                        DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
+                        DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN outstanding_balance ELSE 0 END) as year_outstanding"),
+                        DB::raw("SUM(outstanding_balance) as outstanding_balance"),
+                        DB::raw('1 as month_count')
+                    )
+                    ->groupBy('account_code')
+                    ->havingRaw('outstanding_balance <> 0 OR total_billed <> 0 OR total_collected <> 0 OR ob_balance <> 0')
+                    ->orderBy('outstanding_balance', 'desc')
+                    ->get();
+            }
         }
 
         $collectionRate = $totalBilled > 0 ? round(($totalCollected / $totalBilled) * 100, 1) : 0;

@@ -252,6 +252,11 @@
                         </form>
                     </div>
                 </div>
+                <!-- Copyright Footer -->
+                <div class="text-center mt-3 mb-4 text-muted small" style="font-size: 0.78rem; line-height: 1.6;">
+                    <div><span class="fw-bold text-dark">RiMS</span> : Revenue Intelligent Management System</div>
+                    <div>&copy; 2024 - {{ date('Y') }} RiMS Platform | พัฒนาโดย <strong class="text-secondary">นายศิริฤกษ์ คณาดี</strong> | สงวนลิขสิทธิ์ตาม พ.ร.บ. ลิขสิทธิ์</div>
+                </div>
             </div>
         </div>
     </div>

@@ -215,24 +215,27 @@ class DebtorAccController extends Controller
         // Fetch corresponding general ledger rows for this period
         $tb_rows = DB::table('hosfin_trial_balance')
             ->where('acc_period', $acc_period)
-            ->get()
-            ->keyBy('account_code');
+            ->get();
 
         $revenue_map = $this->debtor_revenue_map;
 
-        // Map Trial Balance values to Ledger rows
+        // Map Trial Balance values to Ledger rows (Aggregates parent code + sub-accounts like .216 and .21601)
         $data = $data->map(function ($row) use ($tb_rows, $revenue_map) {
             $code = $row->acc_code;
-            $tb = $tb_rows->get($code);
+            
+            // Match asset account and any sub-accounts (e.g. 1102050101.216 and 1102050101.21601)
+            $matched_tbs = $tb_rows->filter(function ($tb) use ($code) {
+                return $tb->account_code === $code || str_starts_with($tb->account_code, $code);
+            });
 
-            if ($tb) {
-                // Asset account: map all debit/credit fields
-                $row->tb_debit_bf = floatval($tb->debit_bf);
-                $row->tb_credit_bf = floatval($tb->credit_bf);
-                $row->tb_debit_month = floatval($tb->debit_month);
-                $row->tb_credit_month = floatval($tb->credit_month);
-                $row->tb_debit_net = floatval($tb->debit_net);
-                $row->tb_credit_net = floatval($tb->credit_net);
+            if ($matched_tbs->isNotEmpty()) {
+                // Asset account: sum all debit/credit fields across parent + sub-accounts
+                $row->tb_debit_bf = floatval($matched_tbs->sum('debit_bf'));
+                $row->tb_credit_bf = floatval($matched_tbs->sum('credit_bf'));
+                $row->tb_debit_month = floatval($matched_tbs->sum('debit_month'));
+                $row->tb_credit_month = floatval($matched_tbs->sum('credit_month'));
+                $row->tb_debit_net = floatval($matched_tbs->sum('debit_net'));
+                $row->tb_credit_net = floatval($matched_tbs->sum('credit_net'));
                 $row->tb_has_data = true;
             } else {
                 $row->tb_debit_bf = 0.00;
@@ -244,19 +247,22 @@ class DebtorAccController extends Controller
                 $row->tb_has_data = false;
             }
 
-            // Map Revenue (Category 4)
+            // Map Revenue (Category 4) with sub-account aggregation
             $rev_code = $revenue_map[$code] ?? null;
             $row->tb_rev_code = $rev_code;
             if ($rev_code) {
-                $tb_rev = $tb_rows->get($rev_code);
-                if ($tb_rev) {
-                    // Revenue account: map all debit/credit fields
-                    $row->tb_rev_debit_bf = floatval($tb_rev->debit_bf);
-                    $row->tb_rev_credit_bf = floatval($tb_rev->credit_bf);
-                    $row->tb_rev_debit_month = floatval($tb_rev->debit_month);
-                    $row->tb_rev_credit_month = floatval($tb_rev->credit_month);
-                    $row->tb_rev_debit_net = floatval($tb_rev->debit_net);
-                    $row->tb_rev_credit_net = floatval($tb_rev->credit_net);
+                $matched_revs = $tb_rows->filter(function ($tb) use ($rev_code) {
+                    return $tb->account_code === $rev_code || str_starts_with($tb->account_code, $rev_code);
+                });
+
+                if ($matched_revs->isNotEmpty()) {
+                    // Revenue account: sum all debit/credit fields across parent + sub-accounts
+                    $row->tb_rev_debit_bf = floatval($matched_revs->sum('debit_bf'));
+                    $row->tb_rev_credit_bf = floatval($matched_revs->sum('credit_bf'));
+                    $row->tb_rev_debit_month = floatval($matched_revs->sum('debit_month'));
+                    $row->tb_rev_credit_month = floatval($matched_revs->sum('credit_month'));
+                    $row->tb_rev_debit_net = floatval($matched_revs->sum('debit_net'));
+                    $row->tb_rev_credit_net = floatval($matched_revs->sum('credit_net'));
                     $row->tb_rev_has_data = true;
                 } else {
                     $row->tb_rev_debit_bf = 0.00;

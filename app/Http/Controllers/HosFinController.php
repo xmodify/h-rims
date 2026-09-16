@@ -1522,11 +1522,35 @@ class HosFinController extends Controller
                 ->distinct()
                 ->pluck('account_name', 'account_code')
                 ->toArray();
+            $dtlLengths = [];
+            foreach (array_keys($nameMap) as $k) {
+                $dtlLengths[strlen($k)] = true;
+            }
+            $dtlLengths = array_keys($dtlLengths);
+            rsort($dtlLengths);
+
+            list($pfLookup, $pfLengths) = $this->getPlanfinMappingLookup();
+            $newPlanfinMappings = [];
 
             $insertRows = [];
             foreach ($rows as $row) {
-                $code = $row['account_code'];
-                $cleanName = isset($nameMap[$code]) ? $nameMap[$code] : $row['account_name'];
+                $code = trim($row['account_code']);
+                $cleanName = null;
+                if (isset($nameMap[$code]) && $nameMap[$code]) {
+                    $cleanName = $nameMap[$code];
+                } else {
+                    foreach ($dtlLengths as $dLen) {
+                        if (strlen($code) < $dLen) continue;
+                        $dPrefix = substr($code, 0, $dLen);
+                        if (isset($nameMap[$dPrefix]) && $nameMap[$dPrefix]) {
+                            $cleanName = $nameMap[$dPrefix];
+                            break;
+                        }
+                    }
+                }
+                if (!$cleanName) {
+                    $cleanName = $row['account_name'];
+                }
                 
                 $insertRows[] = [
                     'acc_year' => $row['acc_year'],
@@ -1545,12 +1569,34 @@ class HosFinController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
+
+                // Auto-sync unmapped rev/exp accounts into hosfin_planfin_mappings
+                $firstDigit = substr($code, 0, 1);
+                if (in_array($firstDigit, ['4', '5']) && !isset($pfLookup[$code])) {
+                    $resolvedPlan = $this->resolvePlanCode($code, $pfLookup, $pfLengths);
+                    if ($resolvedPlan) {
+                        $newPlanfinMappings[] = [
+                            'account_code' => $code,
+                            'account_name' => $cleanName,
+                            'plan_code' => $resolvedPlan,
+                            'plan_name' => DB::table('hosfin_planfin_categories')->where('plan_code', $resolvedPlan)->value('plan_name') ?: $resolvedPlan,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                        $pfLookup[$code] = $resolvedPlan;
+                    }
+                }
             }
 
-            DB::transaction(function () use ($period, $insertRows) {
+            DB::transaction(function () use ($period, $insertRows, $newPlanfinMappings) {
                 DB::table('hosfin_trial_balance')->where('acc_period', $period)->delete();
                 foreach (array_chunk($insertRows, 100) as $chunk) {
                     DB::table('hosfin_trial_balance')->insert($chunk);
+                }
+                if (!empty($newPlanfinMappings)) {
+                    foreach (array_chunk($newPlanfinMappings, 100) as $chunk) {
+                        DB::table('hosfin_planfin_mappings')->insert($chunk);
+                    }
                 }
             });
 
@@ -2764,7 +2810,11 @@ class HosFinController extends Controller
                 ->orderBy('outstanding_balance', 'desc')
                 ->get();
         } else {
-            // Specific month
+            // Specific month: Roll forward cumulative Opening Balance (fiscal_month 0 + months 1 to selectedFm - 1)
+            $totalOb = (float)\App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
+                ->where('fiscal_month', '<', $selectedFm)
+                ->sum('outstanding_balance');
+
             $monthData = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
                 ->where('fiscal_month', $selectedFm)
                 ->select(
@@ -2775,37 +2825,41 @@ class HosFinController extends Controller
 
             $totalBilled = (float)($monthData->total_billed ?? 0);
             $totalCollected = (float)($monthData->total_collected ?? 0);
-            $totalOutstanding = (float)($monthData->total_outstanding ?? 0);
-            $totalOutstandingYear = $totalOutstanding;
+            $totalOutstandingYear = (float)($monthData->total_outstanding ?? 0);
+            $totalOutstanding = $totalOb + $totalOutstandingYear;
 
+            // Summary by debtor_type with roll forward balances
             $typeSummaries = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', $selectedFm)
+                ->where('fiscal_month', '<=', $selectedFm)
                 ->select(
                     'debtor_type',
                     DB::raw('COUNT(DISTINCT account_code) as account_count'),
-                    DB::raw('0 as ob_balance'),
-                    DB::raw('SUM(total_billed) as total_billed'),
-                    DB::raw('SUM(total_collected) as total_collected'),
-                    DB::raw('SUM(outstanding_balance) as year_outstanding'),
-                    DB::raw('SUM(outstanding_balance) as outstanding_balance')
+                    DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN outstanding_balance ELSE 0 END) as year_outstanding"),
+                    DB::raw("SUM(outstanding_balance) as outstanding_balance")
                 )
                 ->groupBy('debtor_type')
                 ->orderBy('outstanding_balance', 'desc')
                 ->get();
 
+            // Account-level debtor rows with roll forward balances
             $debtors = \App\Models\HosfinGlArDebtor::where('fiscal_year', $budgetYear)
-                ->where('fiscal_month', $selectedFm)
+                ->where('fiscal_month', '<=', $selectedFm)
                 ->select(
                     'account_code',
-                    'account_name',
-                    'debtor_type',
-                    DB::raw('0 as ob_balance'),
-                    'total_billed',
-                    'total_collected',
-                    DB::raw('outstanding_balance as year_outstanding'),
-                    'outstanding_balance',
+                    DB::raw('MAX(account_name) as account_name'),
+                    DB::raw('MAX(debtor_type) as debtor_type'),
+                    DB::raw("SUM(CASE WHEN fiscal_month < {$selectedFm} THEN outstanding_balance ELSE 0 END) as ob_balance"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_billed ELSE 0 END) as total_billed"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN total_collected ELSE 0 END) as total_collected"),
+                    DB::raw("SUM(CASE WHEN fiscal_month = {$selectedFm} THEN outstanding_balance ELSE 0 END) as year_outstanding"),
+                    DB::raw("SUM(outstanding_balance) as outstanding_balance"),
                     DB::raw('1 as month_count')
                 )
+                ->groupBy('account_code')
+                ->havingRaw('outstanding_balance <> 0 OR total_billed <> 0 OR total_collected <> 0 OR ob_balance <> 0')
                 ->orderBy('outstanding_balance', 'desc')
                 ->get();
         }
@@ -4165,22 +4219,27 @@ class HosFinController extends Controller
 
         // 12-Month Matrix Trends Calculation (Across all fiscal periods of active year)
         $yearPeriodList = array_column($periodOptions, 'period');
-        $tbMatrixRaw = DB::table('hosfin_trial_balance as t')
-            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-            ->whereIn('t.acc_period', $yearPeriodList)
-            ->select(
-                't.acc_period',
-                'm.plan_code',
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
-            )
-            ->groupBy('t.acc_period', 'm.plan_code')
-            ->get();
+        list($pfLookup, $pfLengths) = $this->getPlanfinMappingLookup();
+
+        $tbMatrixRaw = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $yearPeriodList)
+            ->where(function($q) {
+                $q->where('account_code', 'like', '4%')
+                  ->orWhere('account_code', 'like', '5%');
+            })
+            ->get(['acc_period', 'account_code', 'debit_month', 'credit_month']);
 
         $matrixLookup = [];
         foreach ($tbMatrixRaw as $row) {
-            $val = (floatval($row->rev) != 0) ? floatval($row->rev) : floatval($row->exp);
-            $matrixLookup[$row->plan_code][$row->acc_period] = $val;
+            $pCode = $this->resolvePlanCode($row->account_code, $pfLookup, $pfLengths);
+            if (!$pCode) continue;
+
+            $firstDigit = substr(trim($row->account_code), 0, 1);
+            $val = ($firstDigit === '4')
+                ? (floatval($row->credit_month) - floatval($row->debit_month))
+                : (floatval($row->debit_month) - floatval($row->credit_month));
+
+            $matrixLookup[$pCode][$row->acc_period] = ($matrixLookup[$pCode][$row->acc_period] ?? 0.0) + $val;
         }
 
         $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
@@ -4304,20 +4363,44 @@ class HosFinController extends Controller
             ->get();
 
         $neededPeriods = array_values(array_unique(array_merge($yearPeriodList, [$selectedPeriod, $baselinePeriod, "{$priorYear}-09"])));
-        $tbSubRows = DB::table('hosfin_trial_balance as t')
-            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-            ->whereIn('t.acc_period', $neededPeriods)
-            ->select('t.acc_period', 't.account_code', 't.debit_net', 't.credit_net', 't.debit_month', 't.credit_month')
+        $tbSubRows = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $neededPeriods)
+            ->where(function($q) {
+                $q->where('account_code', 'like', '4%')
+                  ->orWhere('account_code', 'like', '5%');
+            })
+            ->select('acc_period', 'account_code', 'account_name', 'debit_net', 'credit_net', 'debit_month', 'credit_month')
             ->get();
 
         $tbSubLookup = [];
         $tbSubLookupMonthly = [];
+        $unmappedSubAccounts = [];
+        $existingMappingCodes = $mappings->pluck('account_code')->toArray();
+
         foreach ($tbSubRows as $r) {
-            $firstDigit = substr($r->account_code, 0, 1);
+            $accCode = trim($r->account_code);
+            $firstDigit = substr($accCode, 0, 1);
             $val = ($firstDigit === '4') ? (floatval($r->credit_net) - floatval($r->debit_net)) : (floatval($r->debit_net) - floatval($r->credit_net));
             $valM = ($firstDigit === '4') ? (floatval($r->credit_month) - floatval($r->debit_month)) : (floatval($r->debit_month) - floatval($r->credit_month));
-            $tbSubLookup[$r->acc_period][$r->account_code] = $val;
-            $tbSubLookupMonthly[$r->acc_period][$r->account_code] = $valM;
+            $tbSubLookup[$r->acc_period][$accCode] = $val;
+            $tbSubLookupMonthly[$r->acc_period][$accCode] = $valM;
+
+            // Track any sub-account from TB that wasn't in explicit mappings list
+            if (!in_array($accCode, $existingMappingCodes) && !isset($unmappedSubAccounts[$accCode])) {
+                $pCode = $this->resolvePlanCode($accCode, $pfLookup, $pfLengths);
+                if ($pCode) {
+                    $unmappedSubAccounts[$accCode] = (object)[
+                        'account_code' => $accCode,
+                        'account_name' => $r->account_name ?: $accCode,
+                        'plan_code' => $pCode,
+                        'plan_name' => $tab1Rows[$pCode]['name'] ?? $pCode
+                    ];
+                }
+            }
+        }
+
+        if (!empty($unmappedSubAccounts)) {
+            $mappings = $mappings->concat(array_values($unmappedSubAccounts));
         }
 
         // Fetch sub-account targets from hosfin_planfin_sub_targets
@@ -4679,25 +4762,75 @@ class HosFinController extends Controller
     }
 
     /**
-     * Helper to compute PlanFin actual figures from hosfin_trial_balance
+     * Helper to build PlanFin mapping lookup table with prefix fallback support
+     * Returns array: [lookup_array, sorted_prefix_lengths]
+     */
+    private function getPlanfinMappingLookup()
+    {
+        $mappings = DB::table('hosfin_planfin_mappings')->get(['account_code', 'plan_code']);
+        $lookup = [];
+        $prefixLengths = [];
+        foreach ($mappings as $m) {
+            $code = trim($m->account_code);
+            $pCode = trim($m->plan_code);
+            if ($code && $pCode) {
+                $lookup[$code] = $pCode;
+                $prefixLengths[strlen($code)] = true;
+            }
+        }
+        $lengths = array_keys($prefixLengths);
+        rsort($lengths);
+
+        return [$lookup, $lengths];
+    }
+
+    /**
+     * Resolve plan_code for a given trial balance account_code using exact or prefix fallback match
+     */
+    private function resolvePlanCode($accountCode, $lookup, $lengths)
+    {
+        $code = trim($accountCode);
+        if (!$code) return null;
+        if (isset($lookup[$code])) {
+            return $lookup[$code];
+        }
+        // Prefix matching from longest to shortest
+        foreach ($lengths as $len) {
+            if (strlen($code) < $len) continue;
+            $prefix = substr($code, 0, $len);
+            if (isset($lookup[$prefix])) {
+                return $lookup[$prefix];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Helper to compute PlanFin actual figures from hosfin_trial_balance with prefix matching
      */
     private function calculatePlanfinActuals($period)
     {
-        $raw = DB::table('hosfin_trial_balance as t')
-            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-            ->where('t.acc_period', $period)
-            ->select(
-                'm.plan_code',
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_net, 0) - COALESCE(t.debit_net, 0)) ELSE 0 END) as rev"),
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_net, 0) - COALESCE(t.credit_net, 0)) ELSE 0 END) as exp")
-            )
-            ->groupBy('m.plan_code')
-            ->get();
+        list($lookup, $lengths) = $this->getPlanfinMappingLookup();
+
+        $raw = DB::table('hosfin_trial_balance')
+            ->where('acc_period', $period)
+            ->where(function($q) {
+                $q->where('account_code', 'like', '4%')
+                  ->orWhere('account_code', 'like', '5%');
+            })
+            ->get(['account_code', 'debit_net', 'credit_net']);
 
         $res = [];
         foreach ($raw as $r) {
-            $val = (floatval($r->rev) != 0) ? floatval($r->rev) : floatval($r->exp);
-            $res[$r->plan_code] = $val;
+            $pCode = $this->resolvePlanCode($r->account_code, $lookup, $lengths);
+            if (!$pCode) continue;
+
+            $firstDigit = substr(trim($r->account_code), 0, 1);
+            $val = ($firstDigit === '4')
+                ? (floatval($r->credit_net) - floatval($r->debit_net))
+                : (floatval($r->debit_net) - floatval($r->credit_net));
+
+            $res[$pCode] = ($res[$pCode] ?? 0.0) + $val;
         }
 
         // Summary Calculations
@@ -4719,25 +4852,31 @@ class HosFinController extends Controller
     }
 
     /**
-     * Helper to compute PlanFin monthly actual figures (movement) from hosfin_trial_balance
+     * Helper to compute PlanFin monthly actual figures (movement) from hosfin_trial_balance with prefix matching
      */
     private function calculatePlanfinMonthlyActuals($period)
     {
-        $raw = DB::table('hosfin_trial_balance as t')
-            ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-            ->where('t.acc_period', $period)
-            ->select(
-                'm.plan_code',
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
-            )
-            ->groupBy('m.plan_code')
-            ->get();
+        list($lookup, $lengths) = $this->getPlanfinMappingLookup();
+
+        $raw = DB::table('hosfin_trial_balance')
+            ->where('acc_period', $period)
+            ->where(function($q) {
+                $q->where('account_code', 'like', '4%')
+                  ->orWhere('account_code', 'like', '5%');
+            })
+            ->get(['account_code', 'debit_month', 'credit_month']);
 
         $res = [];
         foreach ($raw as $r) {
-            $val = (floatval($r->rev) != 0) ? floatval($r->rev) : floatval($r->exp);
-            $res[$r->plan_code] = $val;
+            $pCode = $this->resolvePlanCode($r->account_code, $lookup, $lengths);
+            if (!$pCode) continue;
+
+            $firstDigit = substr(trim($r->account_code), 0, 1);
+            $val = ($firstDigit === '4')
+                ? (floatval($r->credit_month) - floatval($r->debit_month))
+                : (floatval($r->debit_month) - floatval($r->credit_month));
+
+            $res[$pCode] = ($res[$pCode] ?? 0.0) + $val;
         }
 
         $revCodes = ['P04','P05','P06','P61','P07','P08','P09','P10','P11','P12','P121','P13'];
@@ -4909,24 +5048,21 @@ class HosFinController extends Controller
                     }
                 }
 
-                // 2. Sync Mappings if new accounts found
+                // 2. Sync Mappings with Upsert (Update if exists, Insert if new)
                 if (!empty($res['mappings'])) {
-                    $existingAccs = DB::table('hosfin_planfin_mappings')->pluck('account_code')->toArray();
-                    $newMaps = [];
                     foreach ($res['mappings'] as $m) {
-                        if (!in_array($m['account_code'], $existingAccs)) {
-                            $newMaps[] = [
-                                'account_code' => $m['account_code'],
+                        $accCode = trim($m['account_code'] ?? '');
+                        if (!$accCode) continue;
+                        DB::table('hosfin_planfin_mappings')->updateOrInsert(
+                            ['account_code' => $accCode],
+                            [
                                 'account_name' => $m['account_name'] ?? null,
-                                'plan_code' => $m['plan_code'],
+                                'plan_code' => trim($m['plan_code']),
                                 'plan_name' => $m['plan_name'] ?? null,
-                                'created_at' => now(),
-                                'updated_at' => now()
-                            ];
-                        }
-                    }
-                    if (!empty($newMaps)) {
-                        DB::table('hosfin_planfin_mappings')->insert($newMaps);
+                                'updated_at' => now(),
+                                'created_at' => now()
+                            ]
+                        );
                     }
                 }
 
@@ -5791,45 +5927,34 @@ class HosFinController extends Controller
         $fiscalEnd = $fiscalMonths[12]['end_date'];
         $periodList = array_column($fiscalMonths, 'period');
 
-        // 1. Fetch GL Financial Actuals from hosfin_trial_balance
+        // 1. Fetch GL Financial Actuals from hosfin_trial_balance with prefix matching
+        list($pfLookup, $pfLengths) = $this->getPlanfinMappingLookup();
         $tbSummaryByPeriod = [];
-        if ($isSummaryRow) {
-            $query = DB::table('hosfin_trial_balance as t')
-                ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-                ->whereIn('t.acc_period', $periodList);
+        foreach ($periodList as $p) {
+            $tbSummaryByPeriod[$p] = ['rev' => 0.0, 'exp' => 0.0, 'amount' => 0.0];
+        }
 
-            if ($planCode === 'P13S') {
-                $query->whereIn('m.plan_code', $revCodes);
-            } elseif ($planCode === 'P26S') {
-                $query->whereIn('m.plan_code', $expCodes);
-            } elseif ($planCode === 'P29-R') {
-                $query->whereIn('m.plan_code', array_diff($revCodes, ['P13', 'P121']));
-            } elseif ($planCode === 'P29-E') {
-                $query->whereIn('m.plan_code', array_diff($expCodes, ['P24', 'P251']));
-            } else {
-                $query->whereIn('m.plan_code', array_merge($revCodes, $expCodes));
-            }
-
-            $tbRawRows = $query->select(
-                't.acc_period',
-                'm.plan_code',
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
-                DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
-            )
-            ->groupBy('t.acc_period', 'm.plan_code')
+        $tbRawRows = DB::table('hosfin_trial_balance')
+            ->whereIn('acc_period', $periodList)
+            ->where(function($q) {
+                $q->where('account_code', 'like', '4%')
+                  ->orWhere('account_code', 'like', '5%');
+            })
+            ->select('acc_period', 'account_code', 'debit_month', 'credit_month')
             ->get();
 
-            foreach ($periodList as $p) {
-                $tbSummaryByPeriod[$p] = ['rev' => 0.0, 'exp' => 0.0, 'amount' => 0.0];
-            }
+        if ($isSummaryRow) {
             foreach ($tbRawRows as $r) {
                 $p = $r->acc_period;
                 if (!isset($tbSummaryByPeriod[$p])) continue;
-                if (in_array($r->plan_code, $revCodes)) {
-                    $tbSummaryByPeriod[$p]['rev'] += floatval($r->rev);
-                }
-                if (in_array($r->plan_code, $expCodes)) {
-                    $tbSummaryByPeriod[$p]['exp'] += floatval($r->exp);
+                $pCode = $this->resolvePlanCode($r->account_code, $pfLookup, $pfLengths);
+                if (!$pCode) continue;
+
+                $firstDigit = substr(trim($r->account_code), 0, 1);
+                if ($firstDigit === '4' && in_array($pCode, $revCodes)) {
+                    $tbSummaryByPeriod[$p]['rev'] += (floatval($r->credit_month) - floatval($r->debit_month));
+                } elseif ($firstDigit === '5' && in_array($pCode, $expCodes)) {
+                    $tbSummaryByPeriod[$p]['exp'] += (floatval($r->debit_month) - floatval($r->credit_month));
                 }
             }
 
@@ -5844,20 +5969,19 @@ class HosFinController extends Controller
                     $tbSummaryByPeriod[$p]['amount'] = $revVal - $expVal;
                 }
             }
-            $tbRaw = collect();
         } else {
-            $tbRaw = DB::table('hosfin_trial_balance as t')
-                ->join('hosfin_planfin_mappings as m', 't.account_code', '=', 'm.account_code')
-                ->whereIn('t.acc_period', $periodList)
-                ->where('m.plan_code', $planCode)
-                ->select(
-                    't.acc_period',
-                    DB::raw("SUM(CASE WHEN t.account_code LIKE '4%' THEN (COALESCE(t.credit_month, 0) - COALESCE(t.debit_month, 0)) ELSE 0 END) as rev"),
-                    DB::raw("SUM(CASE WHEN t.account_code LIKE '5%' THEN (COALESCE(t.debit_month, 0) - COALESCE(t.credit_month, 0)) ELSE 0 END) as exp")
-                )
-                ->groupBy('t.acc_period')
-                ->get()
-                ->keyBy('acc_period');
+            foreach ($tbRawRows as $r) {
+                $p = $r->acc_period;
+                if (!isset($tbSummaryByPeriod[$p])) continue;
+                $pCode = $this->resolvePlanCode($r->account_code, $pfLookup, $pfLengths);
+                if ($pCode === $planCode) {
+                    $firstDigit = substr(trim($r->account_code), 0, 1);
+                    $val = ($firstDigit === '4')
+                        ? (floatval($r->credit_month) - floatval($r->debit_month))
+                        : (floatval($r->debit_month) - floatval($r->credit_month));
+                    $tbSummaryByPeriod[$p]['amount'] += $val;
+                }
+            }
         }
 
         // 2. Fetch Annual Target for this category
@@ -6192,15 +6316,7 @@ class HosFinController extends Controller
             $p = $fm['period'];
             $ym = $fm['ym'];
 
-            if ($isSummaryRow) {
-                $glAmt = floatval($tbSummaryByPeriod[$p]['amount'] ?? 0.0);
-            } else {
-                $tbItem = $tbRaw->get($p);
-                $glAmt = 0.0;
-                if ($tbItem) {
-                    $glAmt = ($categoryType === 'revenue') ? floatval($tbItem->rev) : floatval($tbItem->exp);
-                }
-            }
+            $glAmt = floatval($tbSummaryByPeriod[$p]['amount'] ?? 0.0);
 
             // OPD Data
             $opData = $opUsageByYm[$ym] ?? [];

@@ -800,10 +800,11 @@ class MainSettingController extends Controller
                         $jsonData = json_decode(file_get_contents($filePathHosfinMappings), true);
                         if (json_last_error() === JSON_ERROR_NONE) {
                             $insertedMappings = 0;
+                            if (Schema::hasTable('hosfin_dtl_mappings')) {
+                                DB::table('hosfin_dtl_mappings')->truncate();
+                            }
                             DB::beginTransaction();
                             try {
-                                DB::table('hosfin_dtl_mappings')->delete();
-
                                 $batchMappings = [];
                                 foreach ($jsonData as $row) {
                                     $batchMappings[] = [
@@ -842,10 +843,12 @@ class MainSettingController extends Controller
                         $jsonData = json_decode(file_get_contents($filePathPFCats), true);
                         if (json_last_error() === JSON_ERROR_NONE) {
                             $insertedPFCats = 0;
+                            if (Schema::hasTable('hosfin_planfin_categories')) {
+                                DB::table('hosfin_planfin_categories')->truncate();
+                            }
                             DB::beginTransaction();
                             try {
                                 if (Schema::hasTable('hosfin_planfin_categories')) {
-                                    DB::table('hosfin_planfin_categories')->delete();
                                     $batchCats = [];
                                     foreach ($jsonData as $row) {
                                         $batchCats[] = [
@@ -881,10 +884,12 @@ class MainSettingController extends Controller
                         $jsonData = json_decode(file_get_contents($filePathPFMaps), true);
                         if (json_last_error() === JSON_ERROR_NONE) {
                             $insertedPFMaps = 0;
+                            if (Schema::hasTable('hosfin_planfin_mappings')) {
+                                DB::table('hosfin_planfin_mappings')->truncate();
+                            }
                             DB::beginTransaction();
                             try {
                                 if (Schema::hasTable('hosfin_planfin_mappings')) {
-                                    DB::table('hosfin_planfin_mappings')->delete();
                                     $batchMaps = [];
                                     foreach ($jsonData as $row) {
                                         $batchMaps[] = [

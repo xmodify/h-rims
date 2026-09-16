@@ -423,9 +423,10 @@
                                     <th class="text-end">ชดเชยที่รับแล้วปีนี้ (บาท)</th>
                                     <th class="text-end text-primary pe-3">ลูกหนี้คงค้างสุทธิ (บาท)</th>
                                 @else
+                                    <th class="text-end">ยอดยกมาต้นงวด (บาท)</th>
                                     <th class="text-end">ยอดตั้งเบิกงวดนี้ (บาท)</th>
                                     <th class="text-end">ชดเชยที่รับแล้วงวดนี้ (บาท)</th>
-                                    <th class="text-end text-primary pe-3">ลูกหนี้คงค้างงวดนี้ (บาท)</th>
+                                    <th class="text-end text-primary pe-3">ลูกหนี้คงค้างยกไป (บาท)</th>
                                 @endif
                             </tr>
                         </thead>
@@ -454,9 +455,7 @@
                                             </span>
                                         @endif
                                     </td>
-                                    @if($selectedPeriod === 'all')
-                                        <td class="text-end font-monospace text-muted" data-order="{{ $ob }}">{{ number_format($ob, 2) }}</td>
-                                    @endif
+                                    <td class="text-end font-monospace text-muted" data-order="{{ $ob }}">{{ number_format($ob, 2) }}</td>
                                     <td class="text-end font-monospace" data-order="{{ $billed }}">{{ number_format($billed, 2) }}</td>
                                     <td class="text-end font-monospace text-success" data-order="{{ $collected }}">{{ number_format($collected, 2) }}</td>
                                     <td class="text-end font-monospace pe-3 fw-bold {{ $out > 0.01 ? 'text-primary fs-6' : ($out < -0.01 ? 'text-danger' : 'text-muted') }}" data-order="{{ $out }}">
@@ -468,9 +467,7 @@
                         <tfoot>
                             <tr>
                                 <th colspan="4" class="text-end fw-bold py-2.5 ps-3">รวมทั้งหมด (ตามที่กรอง):</th>
-                                @if($selectedPeriod === 'all')
-                                    <th class="text-end font-monospace py-2.5 text-muted" id="footTotalOb">{{ number_format($totalOb, 2) }}</th>
-                                @endif
+                                <th class="text-end font-monospace py-2.5 text-muted" id="footTotalOb">{{ number_format($totalOb, 2) }}</th>
                                 <th class="text-end font-monospace py-2.5" id="footTotalBilled">{{ number_format($totalBilled, 2) }}</th>
                                 <th class="text-end font-monospace py-2.5 text-success" id="footTotalCollected">{{ number_format($totalCollected, 2) }}</th>
                                 <th class="text-end font-monospace py-2.5 text-primary pe-3 fs-6" id="footTotalOutstanding">{{ number_format($totalOutstanding, 2) }}</th>
@@ -507,8 +504,7 @@
                 $('#debtorsTable').DataTable().destroy();
             }
 
-            var isAllPeriod = {{ $selectedPeriod === 'all' ? 'true' : 'false' }};
-            var defaultOrderCol = isAllPeriod ? 7 : 6;
+            var defaultOrderCol = 7;
 
             var debtorDt = $('#debtorsTable').DataTable({
                 dom: commonDom,
@@ -547,25 +543,15 @@
                 footerCallback: function (row, data, start, end, display) {
                     try {
                         var api = this.api();
-                        if (isAllPeriod) {
-                            var totalOb = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                            var totalBilled = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                            var totalCollected = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                            var totalOutstanding = api.column(7, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        var totalOb = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        var totalBilled = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        var totalCollected = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                        var totalOutstanding = api.column(7, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
 
-                            $('#footTotalOb').html(fmt(totalOb || 0));
-                            $('#footTotalBilled').html(fmt(totalBilled || 0));
-                            $('#footTotalCollected').html(fmt(totalCollected || 0));
-                            $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
-                        } else {
-                            var totalBilled = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                            var totalCollected = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                            var totalOutstanding = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-
-                            $('#footTotalBilled').html(fmt(totalBilled || 0));
-                            $('#footTotalCollected').html(fmt(totalCollected || 0));
-                            $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
-                        }
+                        $('#footTotalOb').html(fmt(totalOb || 0));
+                        $('#footTotalBilled').html(fmt(totalBilled || 0));
+                        $('#footTotalCollected').html(fmt(totalCollected || 0));
+                        $('#footTotalOutstanding').html(fmt(totalOutstanding || 0));
                     } catch (e) {}
                 }
             });

@@ -1227,7 +1227,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge" data-bs-toggle="modal" data-bs-target="#rimsAboutModal" title="คลิกเพื่อดูข้อมูลระบบและลิขสิทธิ์">
-                                V.69-09-16 12.30
+                                {{ config('app.version', 'V.69-09-16 12.30') }}
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')

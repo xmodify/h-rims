@@ -58,7 +58,7 @@
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
                             <span class="text-muted fw-semibold">เวอร์ชันโปรแกรม:</span>
                             <span class="badge bg-secondary-subtle text-secondary border font-monospace px-2 py-0.5" style="font-size: 0.72rem;">
-                                V.69-09-16 12.30
+                                {{ config('app.version', 'V.69-09-16 12.30') }}
                             </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2">

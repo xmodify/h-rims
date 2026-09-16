@@ -1297,6 +1297,10 @@
                                                 href="{{ route('admin.logs.schedule') }}">
                                                 <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule
                                             </a>
+                                            <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
+                                                data-bs-target="#downloadToolsModal">
+                                                <i class="bi bi-cloud-arrow-down-fill me-2 text-primary"></i> Download
+                                            </a>
                                         @endif
                                         @if(auth()->user()->status === 'admin' || auth()->user()->allow_aopod_death === 'Y')
                                             @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
@@ -1316,10 +1320,6 @@
                                         @endif
                                     @endauth
                                     <div class="dropdown-divider opacity-10"></div>
-                                    <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
-                                        data-bs-target="#downloadToolsModal">
-                                        <i class="bi bi-cloud-arrow-down-fill me-2 text-primary"></i> Download
-                                    </a>
                                     <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
                                         data-bs-target="#editProfileModal">
                                         <i class="bi bi-person-circle me-2 text-success"></i> Edit Profile
@@ -2329,7 +2329,11 @@
         @include('components.pre_audit_modal')
 
         <!-- Global Download Tools Modal (GL Agent, e-Claim Extension) -->
-        @include('components.download_tools_modal')
+        @auth
+            @if(Auth::user()->status === 'admin')
+                @include('components.download_tools_modal')
+            @endif
+        @endauth
 
         <!-- Global NHSO Endpoint Pull Modal (ปิดสิทธิ สปสช.) -->
         @auth

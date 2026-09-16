@@ -529,7 +529,7 @@
                                 <div class="d-flex align-items-center justify-content-between pt-1.5 border-top mt-1" style="border-color: rgba(0,0,0,0.06) !important;">
                                     <span class="badge bg-success text-white shadow-xs rounded-pill px-2 py-0.5 d-inline-flex align-items-center" style="font-size: 0.68rem; font-weight: 600;" title="ยอดเงินสดและรายการเทียบเท่าเงินสดใน GL ณ ปัจจุบัน">
                                         <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
-                                        Live เงินสด: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
+                                        เงินสดปัจจุบัน: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
                                     </span>
                                     <small class="text-success fw-bold text-nowrap ms-1" style="font-size: 0.72rem;">คลิกดูแยกเล่ม <i class="bi bi-arrow-up-right"></i></small>
                                 </div>
@@ -1198,7 +1198,7 @@
                                 </small>
                                 <span class="badge bg-success text-white rounded-pill px-2 py-0.5 shadow-xs fw-bold" style="font-size: 0.68rem;">
                                     <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 4px; height: 4px;" role="status"></span>
-                                    Live เงินสด: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
+                                    เงินสดปัจจุบัน: {{ number_format($operatingCashLive ?? $operatingCash ?? 0, 2) }} บ.
                                 </span>
                             </div>
                         </div>
@@ -1242,7 +1242,7 @@
                                 </small>
                                 <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5 shadow-xs fw-bold" style="font-size: 0.70rem;">
                                     <span class="spinner-grow spinner-grow-sm text-light me-1" style="width: 5px; height: 5px;" role="status"></span>
-                                    Live รวม: {{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }} บ.
+                                    ยอดปัจจุบันรวม: {{ number_format($cashLiveBalance ?? $cashBalance ?? 0, 2) }} บ.
                                 </span>
                             </div>
                         </div>

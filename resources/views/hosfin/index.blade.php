@@ -818,9 +818,17 @@
                 @endphp
 
                 @foreach($rows as $rowKey => $rowInfo)
-                    <div class="section-title-custom">
-                        <i class="bi {{ $rowInfo['icon'] }} me-1"></i> {{ $rowInfo['title'] }}
-                        <span class="text-muted fw-normal" style="font-size: 0.75rem; margin-left: 6px;">(คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี)</span>
+                    <div class="section-title-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-1.5">
+                            <i class="bi {{ $rowInfo['icon'] }} me-1"></i> 
+                            <span>{{ $rowInfo['title'] }}</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5 ms-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <i class="bi bi-calendar-event me-1"></i>งวด {{ $latestPeriodLabel }}
+                            </span>
+                        </div>
+                        <span class="text-muted fw-normal" style="font-size: 0.75rem;">
+                            <i class="bi bi-hand-index-thumb me-1"></i>คลิกที่การ์ดเพื่อดูแนวโน้มรายงวดบัญชี
+                        </span>
                     </div>
                     <div class="row g-3 mb-4 row-cols-1 row-cols-md-2 row-cols-xl-4">
                         @foreach($rowInfo['codes'] as $c)

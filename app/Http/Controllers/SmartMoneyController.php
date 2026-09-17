@@ -790,7 +790,7 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Update Receipt and Auto-Sync to STM tables
+     * Update Receipt and Auto-Sync to STM tables (One-Way: Smart Money -> STM)
      */
     public function updateReceipt(Request $request)
     {
@@ -810,7 +810,7 @@ class SmartMoneyController extends Controller
             $receipt_date = $request->receipt_date;
             $receipt_by = auth()->user()->name ?? 'system';
 
-            // 1. Update Smart Money Batches
+            // 1. Update Smart Money Batches for this batch_no
             $affectedBatches = SmartMoneyBatch::where('batch_no', $batch_no)->get();
             if ($affectedBatches->isEmpty()) {
                 return response()->json(['status' => 'error', 'message' => 'ไม่พบข้อมูล Batch ' . $batch_no], 404);
@@ -823,17 +823,28 @@ class SmartMoneyController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // 2. Auto-Sync to STM tables based on round_no
+            // 2. One-Way Auto-Sync to STM tables based on round_no (Group all distinct receipts in this round)
             $stmSynced = 0;
             $roundNos = $affectedBatches->pluck('round_no')->filter()->unique();
 
             foreach ($roundNos as $roundNo) {
-                $stmSynced += $this->syncReceiptToAllStmTables($roundNo, $receive_no, $receipt_date, $receipt_by);
+                $groupedReceipts = SmartMoneyBatch::where('round_no', $roundNo)
+                    ->whereNotNull('receive_no')
+                    ->where('receive_no', '<>', '')
+                    ->pluck('receive_no')
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $combinedReceiptNo = implode(', ', $groupedReceipts);
+                $latestReceiptDate = SmartMoneyBatch::where('round_no', $roundNo)->max('receipt_date') ?: $receipt_date;
+
+                $stmSynced += $this->syncReceiptToAllStmTables($roundNo, $combinedReceiptNo, $latestReceiptDate, $receipt_by);
             }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'ออกใบเสร็จและซิงก์ข้อมูลเข้าสู่ระบบ STM เรียบร้อยแล้ว',
+                'message' => 'ออกใบเสร็จและส่งข้อมูลเข้าสู่ระบบ STM เรียบร้อยแล้ว (อัปเดต STM ' . $stmSynced . ' ตาราง)',
                 'batch_no' => $batch_no,
                 'receive_no' => $receive_no,
                 'receipt_date' => $receipt_date,
@@ -848,130 +859,51 @@ class SmartMoneyController extends Controller
     }
 
     /**
+     * Helper: Sync Combined Receipts to All Statement (STM) Tables for a specific Round
+     */
+    private function syncReceiptToAllStmTables($roundNo, $receiveNo, $receiptDate, $receiptBy)
+    {
+        if (empty($roundNo) || empty($receiveNo)) return 0;
+
+        $stmTables = [
+            'stm_ucs', 'stm_ucs_kidney', 'stm_seamless_dmis', 'stm_ofc', 'stm_ofc_csop',
+            'stm_ofc_cipn', 'stm_bkk', 'stm_bkk_kidney', 'stm_bmt', 'stm_bmt_kidney',
+            'stm_srt', 'stm_pvt', 'stm_lgo', 'stm_lgo_kidney', 'stm_sss_kidney'
+        ];
+
+        $updatedCount = 0;
+
+        foreach ($stmTables as $table) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
+                \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
+                \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
+                
+                $cnt = DB::table($table)
+                    ->where('round_no', $roundNo)
+                    ->update([
+                        'receive_no' => $receiveNo,
+                        'receipt_date' => $receiptDate,
+                        'receipt_by' => $receiptBy ?: 'SmartMoney Sync',
+                    ]);
+                $updatedCount += $cnt;
+            }
+        }
+
+        return $updatedCount;
+    }
+
+    /**
      * Smart Two-Way Sync between Smart Money and STM Tables
      */
     public function syncTwoWayStm(Request $request)
     {
-        try {
-            $stmTables = [
-                'stm_ucs', 'stm_ucs_kidney', 'stm_seamless_dmis', 'stm_ofc', 'stm_ofc_csop',
-                'stm_ofc_cipn', 'stm_bkk', 'stm_bkk_kidney', 'stm_bmt', 'stm_bmt_kidney',
-                'stm_srt', 'stm_pvt', 'stm_lgo', 'stm_lgo_kidney', 'stm_sss_kidney'
-            ];
-
-            // 1. STEP 1: Pull Receipts from STM -> Smart Money
-            $pendingBatches = SmartMoneyBatch::where(function($q) {
-                $q->whereNull('receive_no')->orWhere('receive_no', '');
-            })->whereNotNull('round_no')->where('round_no', '<>', '')->get();
-
-            $syncedFromStm = 0;
-            $syncedFromBatches = [];
-
-            if ($pendingBatches->isNotEmpty()) {
-                $roundList = $pendingBatches->pluck('round_no')->unique()->values()->toArray();
-
-                foreach ($stmTables as $table) {
-                    if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
-                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
-                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
-                        
-                        $stmRows = DB::table($table)
-                            ->whereIn('round_no', $roundList)
-                            ->whereNotNull('receive_no')
-                            ->where('receive_no', '<>', '')
-                            ->get(['round_no', 'receive_no', 'receipt_date', 'receipt_by']);
-
-                        foreach ($stmRows as $stmRow) {
-                            $matchingBatches = $pendingBatches->where('round_no', $stmRow->round_no);
-                            foreach ($matchingBatches as $b) {
-                                if (empty($b->receive_no)) {
-                                    $rDate = !empty($stmRow->receipt_date) ? $stmRow->receipt_date : now()->toDateString();
-                                    $rBy = !empty($stmRow->receipt_by) ? $stmRow->receipt_by : 'STM Sync';
-                                    
-                                    $b->update([
-                                        'receive_no' => $stmRow->receive_no,
-                                        'receipt_date' => $rDate,
-                                        'receipt_by' => $rBy,
-                                    ]);
-                                    $b->receive_no = $stmRow->receive_no;
-                                    $syncedFromStm++;
-                                    $syncedFromBatches[] = $b->batch_no;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. STEP 2: Push Receipts from Smart Money -> STM
-            $issuedBatches = SmartMoneyBatch::whereNotNull('receive_no')
-                ->where('receive_no', '<>', '')
-                ->whereNotNull('round_no')
-                ->where('round_no', '<>', '')
-                ->get(['round_no', 'receive_no', 'receipt_date', 'receipt_by']);
-
-            $totalCheckedStm = 0;
-            $totalUpdatedStm = 0;
-
-            foreach ($issuedBatches as $b) {
-                foreach ($stmTables as $table) {
-                    if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
-                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
-                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
-                        
-                        $matchingRows = DB::table($table)->where('round_no', $b->round_no)->count();
-                        if ($matchingRows > 0) {
-                            $totalCheckedStm += $matchingRows;
-                            
-                            $cnt = DB::table($table)
-                                ->where('round_no', $b->round_no)
-                                ->where(function($q) use ($b) {
-                                    $q->whereNull('receive_no')
-                                      ->orWhere('receive_no', '!=', $b->receive_no);
-                                })
-                                ->update([
-                                    'receive_no' => $b->receive_no,
-                                    'receipt_date' => $b->receipt_date,
-                                    'receipt_by' => $b->receipt_by ?: 'SmartMoney Sync',
-                                ]);
-                            $totalUpdatedStm += $cnt;
-                        }
-                    }
-                }
-            }
-
-            // 3. STEP 3: Summary message
-            $msgParts = [];
-            if ($syncedFromStm > 0) {
-                $distinctBatches = count(array_unique($syncedFromBatches));
-                $msgParts[] = "ดึงใบเสร็จจาก STM เข้ามา {$syncedFromStm} งวด ({$distinctBatches} Batches)";
-            }
-            if ($totalUpdatedStm > 0) {
-                $msgParts[] = "ส่งใบเสร็จไปอัปเดต STM {$totalUpdatedStm} รายการ";
-            }
-
-            if (!empty($msgParts)) {
-                $message = "ซิงก์ข้อมูล 2 ทางสำเร็จ: " . implode(', ', $msgParts) . " (ตรวจสอบความถูกต้องครบถ้วน {$totalCheckedStm} รายการ)";
-            } else {
-                $message = "ข้อมูลเลขที่ใบเสร็จระหว่าง Smart Money และ STM ตรงกันและเป็นปัจจุบันครบถ้วน 100% แล้ว (ตรวจสอบแล้ว " . number_format($totalCheckedStm) . " รายการ)";
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'message' => $message,
-                'synced_from_stm' => $syncedFromStm,
-                'synced_to_stm' => $totalUpdatedStm,
-                'total_checked_stm' => $totalCheckedStm,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('SmartMoney syncTwoWayStm error: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการซิงก์ข้อมูล: ' . $e->getMessage()], 500);
-        }
+        // One-way push from Smart Money to STM is safer because Smart Money maintains batch-level granularity
+        return $this->syncAllReceiptsToStm($request);
     }
 
     /**
-     * Sync All Receipts from Smart Money to STM Tables (Smart Money -> STM)
+     * Sync All Receipts from Smart Money to STM Tables (One-Way: Smart Money -> STM)
+     * Aggregates multiple batch receipts per round_no with GROUP_CONCAT / implode
      */
     public function syncAllReceiptsToStm(Request $request)
     {
@@ -996,29 +928,36 @@ class SmartMoneyController extends Controller
                 'stm_srt', 'stm_pvt', 'stm_lgo', 'stm_lgo_kidney', 'stm_sss_kidney'
             ];
 
+            // Group batches by round_no
+            $groupedByRound = $batches->groupBy('round_no');
             $totalChecked = 0;
             $totalUpdated = 0;
 
-            foreach ($batches as $b) {
+            foreach ($groupedByRound as $roundNo => $bList) {
+                $receipts = $bList->pluck('receive_no')->filter()->unique()->values()->toArray();
+                $combinedReceiptNo = implode(', ', $receipts);
+                $latestReceiptDate = $bList->max('receipt_date');
+                $latestReceiptBy = $bList->pluck('receipt_by')->filter()->last() ?: 'SmartMoney Sync';
+
                 foreach ($stmTables as $table) {
                     if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
                         \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
                         \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
                         
-                        $matchingRows = DB::table($table)->where('round_no', $b->round_no)->count();
+                        $matchingRows = DB::table($table)->where('round_no', $roundNo)->count();
                         if ($matchingRows > 0) {
                             $totalChecked += $matchingRows;
                             
                             $cnt = DB::table($table)
-                                ->where('round_no', $b->round_no)
-                                ->where(function($q) use ($b) {
+                                ->where('round_no', $roundNo)
+                                ->where(function($q) use ($combinedReceiptNo) {
                                     $q->whereNull('receive_no')
-                                      ->orWhere('receive_no', '!=', $b->receive_no);
+                                      ->orWhere('receive_no', '!=', $combinedReceiptNo);
                                 })
                                 ->update([
-                                    'receive_no' => $b->receive_no,
-                                    'receipt_date' => $b->receipt_date,
-                                    'receipt_by' => $b->receipt_by ?: 'SmartMoney Sync',
+                                    'receive_no' => $combinedReceiptNo,
+                                    'receipt_date' => $latestReceiptDate,
+                                    'receipt_by' => $latestReceiptBy,
                                 ]);
                             $totalUpdated += $cnt;
                         }
@@ -1225,6 +1164,12 @@ class SmartMoneyController extends Controller
                         elseif (stripos($trimmed, 'กองทุนย่อย') !== false) $colMap['fund_sub'] = $cIdx;
                         elseif (stripos($trimmed, 'กองทุน') !== false && !isset($colMap['fund_main'])) $colMap['fund_main'] = $cIdx;
                         elseif (stripos($trimmed, 'จำนวนเงิน') !== false && stripos($trimmed, 'รอหักกลบ') === false) $colMap['amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'ชะลอการโอน') !== false) $colMap['hold_amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'รายการหัก') !== false) $colMap['deduct_amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'หลักประกัน') !== false) $colMap['guarantee_amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'ภาษี') !== false) $colMap['tax_amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'คงเหลือ') !== false) $colMap['remain_amount'] = $cIdx;
+                        elseif (stripos($trimmed, 'รอหักกลบ') !== false) $colMap['offset_amount'] = $cIdx;
                         elseif (stripos($trimmed, 'เงินโอนเข้าบัญชี') !== false) $colMap['net_amount'] = $cIdx;
                     }
 
@@ -1239,6 +1184,12 @@ class SmartMoneyController extends Controller
                         $fMain = trim((string)($row[$colMap['fund_main'] ?? 5] ?? ''));
                         $fSub = trim((string)($row[$colMap['fund_sub'] ?? 6] ?? ''));
                         $amt = $this->cleanNumber($row[$colMap['amount'] ?? 7] ?? 0);
+                        $holdAmt = $this->cleanNumber($row[$colMap['hold_amount'] ?? 8] ?? 0);
+                        $deductAmt = $this->cleanNumber($row[$colMap['deduct_amount'] ?? 9] ?? 0);
+                        $guaranteeAmt = $this->cleanNumber($row[$colMap['guarantee_amount'] ?? 10] ?? 0);
+                        $taxAmt = $this->cleanNumber($row[$colMap['tax_amount'] ?? 11] ?? 0);
+                        $remainAmt = $this->cleanNumber($row[$colMap['remain_amount'] ?? 12] ?? 0);
+                        $offsetAmt = $this->cleanNumber($row[$colMap['offset_amount'] ?? 13] ?? 0);
                         $netAmt = $this->cleanNumber($row[$colMap['net_amount'] ?? 14] ?? 0);
 
                         if (empty($bNo) || empty($accCode)) continue;
@@ -1276,6 +1227,12 @@ class SmartMoneyController extends Controller
                                 'fund_sub' => $fSub,
                                 'fund_full' => trim("$fMain $fSub"),
                                 'amount' => $amt,
+                                'hold_amount' => $holdAmt,
+                                'deduct_amount' => $deductAmt,
+                                'guarantee_amount' => $guaranteeAmt,
+                                'tax_amount' => $taxAmt,
+                                'remain_amount' => $remainAmt,
+                                'offset_amount' => $offsetAmt,
                                 'net_amount' => $netAmt,
                                 'net_amount_formatted' => number_format($netAmt, 2),
                                 'file_name' => basename($sFile),
@@ -1339,6 +1296,12 @@ class SmartMoneyController extends Controller
                 $roundNo = trim($item['round_no'] ?? '');
                 $transferDate = !empty($item['transfer_date']) ? $this->parseDate($item['transfer_date']) : null;
                 $amount = $this->cleanNumber($item['amount'] ?? 0);
+                $holdAmount = $this->cleanNumber($item['hold_amount'] ?? 0);
+                $deductAmount = $this->cleanNumber($item['deduct_amount'] ?? 0);
+                $guaranteeAmount = $this->cleanNumber($item['guarantee_amount'] ?? 0);
+                $taxAmount = $this->cleanNumber($item['tax_amount'] ?? 0);
+                $remainAmount = $this->cleanNumber($item['remain_amount'] ?? 0);
+                $offsetAmount = $this->cleanNumber($item['offset_amount'] ?? 0);
                 $netAmount = $this->cleanNumber($item['net_amount'] ?? 0);
                 $fundMain = trim($item['fund_main'] ?? '');
                 $fundSub = trim($item['fund_sub'] ?? '');
@@ -1365,6 +1328,12 @@ class SmartMoneyController extends Controller
                     if (!empty($fundMain)) $batch->fund_main = $fundMain;
                     if (!empty($fundSub)) $batch->fund_sub = $fundSub;
                     if ($amount > 0) $batch->amount = $amount;
+                    if ($holdAmount > 0) $batch->hold_amount = $holdAmount;
+                    if ($deductAmount > 0) $batch->deduct_amount = $deductAmount;
+                    if ($guaranteeAmount > 0) $batch->guarantee_amount = $guaranteeAmount;
+                    if ($taxAmount > 0) $batch->tax_amount = $taxAmount;
+                    if ($remainAmount > 0) $batch->remain_amount = $remainAmount;
+                    if ($offsetAmount > 0) $batch->offset_amount = $offsetAmount;
                     if ($netAmount > 0) $batch->net_amount = $netAmount;
                     if (!empty($fileName)) $batch->file_name = $fileName;
 
@@ -1386,6 +1355,12 @@ class SmartMoneyController extends Controller
                         'fund_main' => $fundMain,
                         'fund_sub' => $fundSub,
                         'amount' => $amount,
+                        'hold_amount' => $holdAmount,
+                        'deduct_amount' => $deductAmount,
+                        'guarantee_amount' => $guaranteeAmount,
+                        'tax_amount' => $taxAmount,
+                        'remain_amount' => $remainAmount,
+                        'offset_amount' => $offsetAmount,
                         'net_amount' => $netAmount,
                         'file_name' => $fileName,
                         'receive_no' => !empty($receiveNo) ? $receiveNo : null,
@@ -1469,50 +1444,6 @@ class SmartMoneyController extends Controller
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-    }
-
-    /**
-     * Helper to sync receipt to all STM tables
-     */
-    protected function syncReceiptToAllStmTables($roundNo, $receiveNo, $receiptDate, $receiptBy)
-    {
-        if (empty($roundNo) || empty($receiveNo)) return 0;
-
-        $stmTables = [
-            'stm_ucs',
-            'stm_ucs_kidney',
-            'stm_seamless_dmis',
-            'stm_ofc',
-            'stm_ofc_csop',
-            'stm_ofc_cipn',
-            'stm_bkk',
-            'stm_bkk_kidney',
-            'stm_bmt',
-            'stm_bmt_kidney',
-            'stm_srt',
-            'stm_pvt',
-            'stm_lgo',
-            'stm_lgo_kidney',
-            'stm_sss_kidney',
-        ];
-
-        $updated = 0;
-        foreach ($stmTables as $table) {
-            try {
-                if (\Illuminate\Support\Facades\Schema::hasTable($table) && \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no')) {
-                    $cnt = DB::table($table)
-                        ->where('round_no', $roundNo)
-                        ->update([
-                            'receive_no' => $receiveNo,
-                            'receipt_date' => $receiptDate,
-                            'receipt_by' => $receiptBy,
-                        ]);
-                    $updated += $cnt;
-                }
-            } catch (\Exception $e) {}
-        }
-
-        return $updated;
     }
 
     /**

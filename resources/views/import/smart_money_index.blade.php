@@ -60,8 +60,8 @@
                 <i class="bi bi-graph-up-arrow me-1"></i> กราฟแนวโน้ม 12 เดือน
             </button>
 
-            <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-normal" id="btnSmartSyncStm" title="ซิงก์ข้อมูลเลขที่ใบเสร็จระหว่าง Smart Money และ STM แบบ 2 ทางอัตโนมัติ">
-                <i class="bi bi-arrow-repeat me-1"></i> ซิงก์ใบเสร็จกับ STM
+            <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-normal" id="btnSmartSyncStm" title="ส่งข้อมูลเลขที่ใบเสร็จจาก Smart Money ไปอัปเดตยัง Statement (STM ทุกสิทธิ์)">
+                <i class="bi bi-send-check me-1"></i> ซิงก์ใบเสร็จไปยัง STM
             </button>
 
             @if($hasBotLicense)
@@ -253,9 +253,10 @@
                             <th class="text-center" style="width: 7%;">BatchNo.</th>
                             <th class="text-start" style="width: 12%;">งวด/เลขที่เบิกจ่าย</th>
                             <th class="text-start" style="width: 10%;">รหัสผังบัญชี</th>
-                            <th class="text-start" style="width: 22%;">กองทุน / กองทุนย่อย</th>
+                            <th class="text-start" style="width: 20%;">กองทุน / กองทุนย่อย</th>
                             <th class="text-end" style="width: 8%;">จำนวนเงิน</th>
-                            <th class="text-end" style="width: 9%;">เงินโอนเข้าบัญชี</th>
+                            <th class="text-end" style="width: 7%;">รายการหัก</th>
+                            <th class="text-end" style="width: 8%;">เงินโอนเข้าบัญชี</th>
                             <th class="text-center" style="width: 7%;">เลขที่ใบเสร็จ</th>
                             <th class="text-center" style="width: 6%;">วันที่ออก</th>
                             <th class="text-center" style="width: 5%;">ผู้ออก</th>
@@ -264,15 +265,19 @@
                     </thead>
                     <tbody>
                         @foreach($batches as $index => $row)
+                        @php
+                            $deductTotal = (float)$row->total_deduct_amount;
+                            $offsetTotal = (float)$row->total_offset_amount;
+                        @endphp
                         <tr id="row-batch-{{ $row->batch_no }}">
-                            <td class="text-center small text-muted">{{ $index + 1 }}</td>
-                            <td class="text-center small text-nowrap">
+                            <td class="text-center small text-muted" data-order="{{ $index + 1 }}">{{ $index + 1 }}</td>
+                            <td class="text-center small text-nowrap" data-order="{{ $row->transfer_date ? $row->transfer_date : '' }}">
                                 {{ !empty($row->transfer_date) ? DateThai($row->transfer_date) : '-' }}
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" data-order="{{ $row->batch_no }}">
                                 <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fw-bold font-monospace">{{ $row->batch_no }}</span>
                             </td>
-                            <td class="text-start small">
+                            <td class="text-start small" data-order="{{ implode(',', $row->round_nos) }}">
                                 @if(count($row->round_nos) === 1)
                                     <span class="text-primary">{{ $row->round_nos[0] }}</span>
                                 @elseif(count($row->round_nos) > 1)
@@ -284,7 +289,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="text-start small">
+                            <td class="text-start small" data-order="{{ implode(',', $row->account_codes) }}">
                                 @if(count($row->account_codes) === 1)
                                     <span class="badge bg-light text-dark border font-monospace">{{ $row->account_codes[0] }}</span>
                                 @elseif(count($row->account_codes) > 1)
@@ -295,7 +300,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="text-start small">
+                            <td class="text-start small" data-order="{{ $row->fund_mains[0] ?? '' }}">
                                 @if($row->items->count() > 1)
                                     <div class="d-flex align-items-center gap-1.5 mb-1">
                                         <button type="button"
@@ -317,13 +322,24 @@
                                     <div class="text-muted small text-truncate" style="max-width: 220px;" title="{{ $row->fund_subs[0] ?? '' }}">{{ $row->fund_subs[0] ?? '-' }}</div>
                                 @endif
                             </td>
-                            <td class="text-end small text-muted">
+                            <td class="text-end small text-muted" data-order="{{ (float)$row->total_amount }}">
                                 {{ number_format($row->total_amount, 2) }}
                             </td>
-                            <td class="text-end fw-bold text-success">
+                            <td class="text-end small" data-order="{{ $deductTotal }}">
+                                @if($deductTotal > 0)
+                                    <span class="text-danger fw-semibold font-monospace" title="รายการหักจากยอดโอนเงิน">-{{ number_format($deductTotal, 2) }}</span>
+                                @elseif($offsetTotal > 0)
+                                    <span class="badge bg-secondary-subtle text-secondary border fw-normal" title="มีจำนวนเงินรอหักกลบ {{ number_format($offsetTotal, 2) }} บาท (ยังไม่ได้หักในงวดนี้)" style="font-size: 10px;">
+                                        รอหัก {{ number_format($offsetTotal, 2) }}
+                                    </span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
+                            <td class="text-end fw-bold text-success" data-order="{{ (float)$row->total_net_amount }}">
                                 {{ number_format($row->total_net_amount, 2) }}
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" data-order="{{ $row->receive_no ?: '0' }}">
                                 @if(!empty($row->receive_no))
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1" style="font-size: 11px;">
                                         <i class="bi bi-check-circle-fill me-0.5"></i> {{ $row->receive_no }}
@@ -334,10 +350,10 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-center small text-nowrap">
+                            <td class="text-center small text-nowrap" data-order="{{ $row->receipt_date ? $row->receipt_date : '' }}">
                                 {{ !empty($row->receive_no) && !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}
                             </td>
-                            <td class="text-center small text-muted text-truncate" style="max-width: 110px;" title="{{ !empty($row->receive_no) && !empty($row->receipt_by) ? $row->receipt_by : '-' }}">
+                            <td class="text-center small text-muted text-truncate" style="max-width: 110px;" title="{{ !empty($row->receive_no) && !empty($row->receipt_by) ? $row->receipt_by : '-' }}" data-order="{{ $row->receipt_by ?? '' }}">
                                 {{ !empty($row->receive_no) && !empty($row->receipt_by) ? $row->receipt_by : '-' }}
                             </td>
                             <td class="text-center text-nowrap">
@@ -415,8 +431,8 @@
                             <th class="text-start" width="18%">กองทุน</th>
                             <th class="text-start" width="18%">กองทุนย่อย</th>
                             <th class="text-end" width="10%">จำนวนเงิน</th>
-                            <th class="text-end" width="8%">ชะลอการโอน</th>
                             <th class="text-end" width="8%">รายการหัก</th>
+                            <th class="text-end" width="10%">เงินโอนเข้าบัญชี</th>
                             <th class="text-center" width="10%">เลขที่ใบเสร็จ</th>
                         </tr>
                     </thead>
@@ -429,8 +445,18 @@
                             <td class="text-start text-dark text-truncate" style="max-width: 180px;" title="{{ $sub->fund_main }}">{{ $sub->fund_main }}</td>
                             <td class="text-start text-muted text-truncate" style="max-width: 200px;" title="{{ $sub->fund_sub }}">{{ $sub->fund_sub }}</td>
                             <td class="text-end fw-semibold text-dark">{{ number_format($sub->amount, 2) }}</td>
-                            <td class="text-end text-muted">{{ number_format($sub->hold_amount, 2) }}</td>
-                            <td class="text-end text-danger">{{ number_format($sub->deduct_amount, 2) }}</td>
+                            <td class="text-end">
+                                @if($sub->deduct_amount > 0)
+                                    <span class="text-danger fw-semibold font-monospace">-{{ number_format($sub->deduct_amount, 2) }}</span>
+                                @elseif($sub->offset_amount > 0)
+                                    <span class="badge bg-secondary-subtle text-secondary border fw-normal" title="มีจำนวนเงินรอหักกลบ {{ number_format($sub->offset_amount, 2) }} บาท" style="font-size: 9.5px;">
+                                        รอหัก {{ number_format($sub->offset_amount, 2) }}
+                                    </span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
+                            <td class="text-end fw-bold text-success">{{ number_format($sub->net_amount, 2) }}</td>
                             <td class="text-center">
                                 @if(!empty($sub->receive_no))
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 11px;">
@@ -451,13 +477,15 @@
                                 รวมยอดทั้งหมดใน Batch No. <span class="font-monospace text-dark">{{ $row->batch_no }}</span> :
                             </td>
                             <td class="text-end text-dark">{{ number_format($row->total_amount, 2) }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->items->sum('hold_amount'), 2) }}</td>
-                            <td class="text-end text-danger">{{ number_format($row->items->sum('deduct_amount'), 2) }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" title="ยอดเงินโอนเข้าบัญชีธนาคารรวมสุทธิ">
-                                    โอนเข้าบัญชี: {{ number_format($row->total_net_amount, 2) }} บาท
-                                </span>
+                            <td class="text-end text-danger">
+                                @if($row->total_deduct_amount > 0)
+                                    -{{ number_format($row->total_deduct_amount, 2) }}
+                                @else
+                                    -
+                                @endif
                             </td>
+                            <td class="text-end text-success">{{ number_format($row->total_net_amount, 2) }}</td>
+                            <td class="text-center small text-muted">บาท</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1073,7 +1101,11 @@
     $(document).ready(function() {
         // Initialize DataTable
         var table = $('#smartMoneyTable').DataTable({
-            ordering: false,
+            ordering: true,
+            order: [], // retain server-provided order initially
+            columnDefs: [
+                { orderable: false, targets: [12] } // column 12 (การจัดการ) is not orderable
+            ],
             pageLength: 25,
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             buttons: [
@@ -1869,32 +1901,32 @@
             });
         });
 
-        // Smart Two-Way Sync between Smart Money and STM (Bidirectional Sync)
+        // Push Receipts from Smart Money to STM Tables (One-Way: Smart Money -> STM)
         $('#btnSmartSyncStm').on('click', function() {
             Swal.fire({
-                title: 'ซิงก์เลขที่ใบเสร็จกับ STM?',
-                text: 'ระบบจะซิงก์ข้อมูล 2 ทางอัตโนมัติ: ดึงเลขที่ใบเสร็จจาก STM เข้ามาใน Smart Money และส่งเลขที่ใบเสร็จจาก Smart Money ไปอัปเดตยัง Statement (STM ทุกสิทธิ์)',
+                title: 'ซิงก์ใบเสร็จไปยัง Statement (STM)?',
+                text: 'ระบบจะรวบรวมเลขที่และวันที่ออกใบเสร็จจาก Smart Money ทุก Batch ส่งไปอัปเดตยังตาราง Statement UCS และ LGO แบบทางเดียว (Smart Money ➔ STM)',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
-                confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> ใช่, เริ่มซิงก์ข้อมูล',
+                confirmButtonText: '<i class="bi bi-send-check me-1"></i> ใช่, เริ่มซิงก์ข้อมูล',
                 cancelButtonText: 'ยกเลิก',
                 customClass: { popup: 'rounded-4' }
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.fire({
-                        title: 'กำลังซิงก์เลขที่ใบเสร็จ 2 ทางอัตโนมัติ...',
+                        title: 'กำลังส่งเลขที่ใบเสร็จไปยัง Statement (STM)...',
                         html: `
                             <div class="p-2 text-start">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small text-muted fw-normal" id="twoWaySyncStatusText">กำลังเชื่อมต่อฐานข้อมูล Statement (STM)...</span>
-                                    <span class="badge bg-success fw-normal px-2 py-1" id="twoWaySyncPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
+                                    <span class="small text-muted fw-normal" id="pushSyncStatusText">กำลังเชื่อมต่อฐานข้อมูล Smart Money...</span>
+                                    <span class="badge bg-success fw-bold px-2.5 py-1" id="pushSyncPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
                                 </div>
                                 <div class="progress mb-3" style="height: 16px; border-radius: 8px; background-color: #e9ecef; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                                    <div id="twoWaySyncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
+                                    <div id="pushSyncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
                                 </div>
                                 <div class="p-2.5 rounded-3 bg-light border text-muted small" style="font-size: 11.5px; line-height: 1.5;">
-                                    <i class="bi bi-info-circle text-success me-1"></i> ขั้นตอนที่ 1: ตรวจสอบและดึงใบเสร็จจากตาราง STM ทุกสิทธิ์ ➔ ขั้นตอนที่ 2: อัปเดตใบเสร็จจาก Smart Money ไปยัง STM ทุกงวด
+                                    <i class="bi bi-info-circle text-success me-1"></i> ระบบจะรวบรวมเลขที่ใบเสร็จทุก Batch จาก Smart Money ไปอัปเดตยัง Statement UCS และ LGO (Smart Money ➔ STM)
                                 </div>
                             </div>
                         `,
@@ -1904,27 +1936,27 @@
                         customClass: { popup: 'rounded-4' }
                     });
 
-                    var twoWayInterval = setInterval(function() {
-                        var $bar = $('#twoWaySyncProgressBar');
+                    var pushInterval = setInterval(function() {
+                        var $bar = $('#pushSyncProgressBar');
                         if (!$bar.length) return;
                         var currentWidth = parseInt($bar[0].style.width) || 15;
                         if (currentWidth < 90) {
                             var nextWidth = currentWidth + Math.floor(Math.random() * 10) + 5;
                             if (nextWidth > 90) nextWidth = 90;
                             $bar.css('width', nextWidth + '%');
-                            $('#twoWaySyncPercent').text(nextWidth + '%');
+                            $('#pushSyncPercent').text(nextWidth + '%');
 
                             if (nextWidth >= 25 && nextWidth < 55) {
-                                $('#twoWaySyncStatusText').text('ขั้นตอนที่ 1/2: กำลังดึงเลขที่ใบเสร็จจากตาราง STM ทุกสิทธิ์...');
+                                $('#pushSyncStatusText').text('กำลังรวบรวมเลขที่ใบเสร็จรายงวดจาก Smart Money...');
                             } else if (nextWidth >= 55 && nextWidth < 80) {
-                                $('#twoWaySyncStatusText').text('ขั้นตอนที่ 2/2: กำลังส่งเลขที่ใบเสร็จ Smart Money ไปยัง Statement...');
+                                $('#pushSyncStatusText').text('กำลังส่งและอัปเดตเลขที่ใบเสร็จไปยังตาราง Statement ทุกสิทธิ์...');
                             } else if (nextWidth >= 80) {
-                                $('#twoWaySyncStatusText').text('กำลังตรวจสอบความถูกต้องและบันทึกข้อมูล...');
+                                $('#pushSyncStatusText').text('กำลังตรวจสอบความถูกต้องและจัดเก็บข้อมูล...');
                             }
                         }
                     }, 300);
 
-                    fetch("{{ route('import.smart_money.sync_two_way_stm') }}", {
+                    fetch("{{ route('import.smart_money.sync_all_stm') }}", {
                         method: "POST",
                         headers: {
                             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
@@ -1933,18 +1965,19 @@
                     })
                     .then(res => res.json())
                     .then(res => {
-                        clearInterval(twoWayInterval);
-                        $('#twoWaySyncProgressBar').css('width', '100%');
-                        $('#twoWaySyncPercent').text('100%');
-                        $('#twoWaySyncStatusText').text('ซิงก์ข้อมูลเสร็จสมบูรณ์ 100%');
+                        clearInterval(pushInterval);
+                        $('#pushSyncProgressBar').css('width', '100%');
+                        $('#pushSyncPercent').text('100%');
+                        $('#pushSyncStatusText').text('ซิงก์ข้อมูลเสร็จสมบูรณ์ 100%');
 
                         setTimeout(function() {
                             if (res.status === 'success') {
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'ซิงก์ใบเสร็จ 2 ทางสำเร็จ',
+                                    title: 'ซิงก์ใบเสร็จไปยัง Statement สำเร็จ',
                                     text: res.message,
                                     confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#10b981',
                                     customClass: { popup: 'rounded-4' }
                                 }).then(() => {
                                     window.location.reload();

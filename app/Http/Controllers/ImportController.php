@@ -88,44 +88,82 @@ class ImportController extends Controller
         /* ---------------- Query หลัก ---------------- */
         $stm_ucs = DB::select("
             SELECT
-            IF(SUBSTRING(stm_filename,11) LIKE 'O%','OPD','IPD') AS dep,
-            stm_filename,
-            round_no,
-            COUNT(DISTINCT repno) AS repno,
-            COUNT(cid) AS count_cid,
-            SUM(charge) AS charge,
-            SUM(fund_ip_payrate) AS fund_ip_payrate,
-            SUM(receive_total) AS receive_total,
-            MAX(receive_no)   AS receive_no,
-            MAX(receipt_date) AS receipt_date,
-            MAX(receipt_by)   AS receipt_by
-            FROM stm_ucs
-            WHERE (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename), 4) AS UNSIGNED)
-                + (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
-            GROUP BY stm_filename, round_no            
+            IF(SUBSTRING(s.stm_filename,11) LIKE 'O%','OPD','IPD') AS dep,
+            s.stm_filename,
+            s.round_no,
+            COUNT(DISTINCT s.repno) AS repno,
+            COUNT(s.cid) AS count_cid,
+            SUM(s.charge) AS charge,
+            SUM(s.fund_ip_payrate) AS fund_ip_payrate,
+            SUM(s.receive_total) AS receive_total,
+            SUM(s.receive_ip_compensate_pay) AS ip_pay,
+            SUM(s.receive_op) AS op_pay,
+            SUM(s.receive_ae_ae + s.receive_ae_drug) AS ae_pay,
+            SUM(s.receive_inst) AS inst_pay,
+            SUM(s.receive_hc_hc + s.receive_hc_drug) AS hc_pay,
+            SUM(s.receive_dmis_compensate_pay + s.receive_dmis_drug + s.receive_palliative + s.receive_dmishd + s.receive_pp + s.receive_fs + s.receive_opbkk) AS other_pay,
+            MAX(s.receive_no)   AS receive_no,
+            MAX(s.receipt_date) AS receipt_date,
+            MAX(s.receipt_by)   AS receipt_by,
+            -- Smart Money info
+            (SELECT SUM(sm.net_amount) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_net_total,
+            (SELECT GROUP_CONCAT(DISTINCT sm.batch_no SEPARATOR ', ') FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_batches,
+            (SELECT GROUP_CONCAT(DISTINCT sm.receive_no ORDER BY sm.receive_no SEPARATOR ', ') FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+             AND sm.receive_no IS NOT NULL AND sm.receive_no != ''
+            ) AS sm_receive_no,
+            (SELECT MAX(sm.receipt_date) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+             AND sm.receipt_date IS NOT NULL
+            ) AS sm_receipt_date,
+            (SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'batch_no', sm.batch_no,
+                    'round_no', sm.round_no,
+                    'transfer_date', sm.transfer_date,
+                    'fund_main', sm.fund_main,
+                    'fund_sub', sm.fund_sub,
+                    'account_code', sm.account_code,
+                    'amount', sm.amount,
+                    'net_amount', sm.net_amount,
+                    'receive_no', sm.receive_no,
+                    'receipt_date', sm.receipt_date,
+                    'receipt_by', sm.receipt_by
+                )
+             ) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_batches_json
+            FROM stm_ucs s
+            WHERE (CAST(SUBSTRING(s.stm_filename, LOCATE('25', s.stm_filename), 4) AS UNSIGNED)
+                + (CAST(SUBSTRING(s.stm_filename, LOCATE('25', s.stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY s.stm_filename, s.round_no            
             ORDER BY 
                 CASE 
-                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
-                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
-                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
-                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
-                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
-                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
-                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
-                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    WHEN s.stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN s.stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
                     ELSE 0
                 END DESC,
                 CASE 
-                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
-                    WHEN round_no REGEXP '[0-9]+$'
-                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN s.round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(s.round_no, '[0-9]+$') AS UNSIGNED)
                     ELSE 0
                 END DESC,
                 dep DESC,
-                stm_filename DESC ", [$budget_year]);
+                s.stm_filename DESC ", [$budget_year]);
 
         return view(
             'import.stm_ucs',
@@ -6866,52 +6904,84 @@ class ImportController extends Controller
 
         $stm_lgo = DB::select("
             SELECT 
-            IF(SUBSTRING(stm_filename,14) LIKE 'O%','OPD','IPD') AS dep,
-            stm_filename,
-            round_no,
-            COUNT(DISTINCT repno)       AS repno,
-            COUNT(cid)                  AS count_cid,
-            SUM(adjrw)                  AS sum_adjrw,
-            SUM(payrate)                AS sum_payrate,
-            SUM(charge_treatment)       AS sum_charge_treatment,
-            SUM(compensate_treatment)   AS sum_compensate_treatment,
-            SUM(case_iplg)              AS sum_case_iplg,
-            SUM(case_oplg)              AS sum_case_oplg,
-            SUM(case_palg)              AS sum_case_palg,
-            SUM(case_inslg)             AS sum_case_inslg,
-            SUM(case_otlg)              AS sum_case_otlg,
-            SUM(case_pp)                AS sum_case_pp,
-            SUM(case_drug)              AS sum_case_drug,
-            MAX(receive_no)             AS receive_no,
-            MAX(receipt_date)           AS receipt_date,
-            MAX(receipt_by)             AS receipt_by
-            FROM stm_lgo
-            WHERE (CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2), '_', 1 ), 4) AS UNSIGNED)  
-				+ (CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2),'_', 1), 5, 2) AS UNSIGNED) >= 10)) = ?
-            GROUP BY stm_filename, round_no
+            IF(SUBSTRING(s.stm_filename,14) LIKE 'O%','OPD','IPD') AS dep,
+            s.stm_filename,
+            s.round_no,
+            COUNT(DISTINCT s.repno)       AS repno,
+            COUNT(s.cid)                  AS count_cid,
+            SUM(s.adjrw)                  AS sum_adjrw,
+            SUM(s.payrate)                AS sum_payrate,
+            SUM(s.charge_treatment)       AS sum_charge_treatment,
+            SUM(s.compensate_treatment)   AS sum_compensate_treatment,
+            SUM(s.case_iplg)              AS sum_case_iplg,
+            SUM(s.case_oplg)              AS sum_case_oplg,
+            SUM(s.case_palg)              AS sum_case_palg,
+            SUM(s.case_inslg)             AS sum_case_inslg,
+            SUM(s.case_otlg)              AS sum_case_otlg,
+            SUM(s.case_pp)                AS sum_case_pp,
+            SUM(s.case_drug)              AS sum_case_drug,
+            MAX(s.receive_no)             AS receive_no,
+            MAX(s.receipt_date)           AS receipt_date,
+            MAX(s.receipt_by)             AS receipt_by,
+            -- Smart Money info
+            (SELECT SUM(sm.net_amount) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_net_total,
+            (SELECT GROUP_CONCAT(DISTINCT sm.batch_no SEPARATOR ', ') FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_batches,
+            (SELECT GROUP_CONCAT(DISTINCT sm.receive_no ORDER BY sm.receive_no SEPARATOR ', ') FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+             AND sm.receive_no IS NOT NULL AND sm.receive_no != ''
+            ) AS sm_receive_no,
+            (SELECT MAX(sm.receipt_date) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+             AND sm.receipt_date IS NOT NULL
+            ) AS sm_receipt_date,
+            (SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'batch_no', sm.batch_no,
+                    'round_no', sm.round_no,
+                    'transfer_date', sm.transfer_date,
+                    'fund_main', sm.fund_main,
+                    'fund_sub', sm.fund_sub,
+                    'account_code', sm.account_code,
+                    'amount', sm.amount,
+                    'net_amount', sm.net_amount,
+                    'receive_no', sm.receive_no,
+                    'receipt_date', sm.receipt_date,
+                    'receipt_by', sm.receipt_by
+                )
+             ) FROM smart_money_batches sm 
+             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
+            ) AS sm_batches_json
+            FROM stm_lgo s
+            WHERE (CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(s.stm_filename, '_', -2), '_', 1 ), 4) AS UNSIGNED)  
+				+ (CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(s.stm_filename, '_', -2),'_', 1), 5, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY s.stm_filename, s.round_no
             ORDER BY 
                 CASE 
-                    WHEN stm_filename REGEXP '25[5-7][0-9]{5}' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
-                    WHEN stm_filename REGEXP '25[5-7][0-9]{3}' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
-                    WHEN stm_filename REGEXP '20[2-3][0-9]{5}' 
-                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
-                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
-                    WHEN stm_filename REGEXP '20[2-3][0-9]{3}' 
-                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
-                             + CAST(SUBSTRING(REGEXP_SUBSTR(stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
+                    WHEN s.stm_filename REGEXP '25[5-7][0-9]{5}' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '25[5-7][0-9]{5}') AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '25[5-7][0-9]{3}' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '25[5-7][0-9]{3}') AS UNSIGNED) * 100
+                    WHEN s.stm_filename REGEXP '20[2-3][0-9]{5}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{5}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{5}'), 5, 4) AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '20[2-3][0-9]{3}' 
+                        THEN (CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{3}'), 1, 4) AS UNSIGNED) + 543) * 10000 
+                             + CAST(SUBSTRING(REGEXP_SUBSTR(s.stm_filename, '20[2-3][0-9]{3}'), 5, 2) AS UNSIGNED) * 100
                     ELSE 0
                 END DESC,
                 CASE 
-                    WHEN stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
-                        THEN CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
-                    WHEN round_no REGEXP '[0-9]+$'
-                        THEN CAST(REGEXP_SUBSTR(round_no, '[0-9]+$') AS UNSIGNED)
+                    WHEN s.stm_filename REGEXP '_[0-9]{2}(\\([0-9]+\\))?\\.xls$' 
+                        THEN CAST(REGEXP_SUBSTR(s.stm_filename, '[0-9]{2}(?=(\\([0-9]+\\))?\\.xls$)') AS UNSIGNED)
+                    WHEN s.round_no REGEXP '[0-9]+$'
+                        THEN CAST(REGEXP_SUBSTR(s.round_no, '[0-9]+$') AS UNSIGNED)
                     ELSE 0
                 END DESC,
                 dep DESC,
-                stm_filename DESC ", [$budget_year]);
+                s.stm_filename DESC ", [$budget_year]);
 
         return view('import.stm_lgo', compact('stm_lgo', 'budget_year_select', 'budget_year'));
     }

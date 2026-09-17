@@ -53,6 +53,9 @@
                 <button type="button" class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#chartModal" id="btnShowChart">
                     <i class="bi bi-bar-chart-fill me-1"></i> กราฟสรุปรายเดือน
                 </button>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnSyncFromSmartMoney" title="ดึงเลขที่ใบเสร็จล่าสุดที่การเงินลงไว้ใน Smart Money มาอัปเดต">
+                    <i class="bi bi-wallet2 me-1"></i> ซิงก์ใบเสร็จจาก Smart Money
+                </button>
             </div>
         </div>
         
@@ -86,29 +89,49 @@
                 <table id="stm_lgo" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th class="text-center">Filename</th> 
+                            <th class="text-center" width="17%">ชื่อ File</th> 
                             <th class="text-center">Dep</th>   
                             <th class="text-center">จำนวนราย</th> 
                             <th class="text-center">เรียกเก็บ</th>            
-                            <th class="text-center">AdjRW</th> 
-                            <th class="text-center">IPLG</th>
-                            <th class="text-center">OPLG</th>
-                            <th class="text-center">PP</th>
-                            <th class="text-center">DRUG</th>
-                            <th class="text-center">ชดเชยสุทธิ</th>
-                            <th class="text-center">เลขงวด</th>
-                                <th class="text-center">เลขที่ใบเสร็จ</th>
-                                <th class="text-center">วันที่ออกใบเสร็จ</th>
-                                <th class="text-center">ผู้ออกใบเสร็จ</th>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center" width="15%">การจัดการ</th>
-                            @endif
+                            <th class="text-center">ชดเชยสุทธิ (STM)</th> 
+                            <th class="text-center">เลขงวด/REP</th>
+                            <th class="text-center">โอนจริง (Smart Money)</th>
+                            <th class="text-center">สถานะ / รอโอน</th>
+                            <th class="text-center">เลขที่ใบเสร็จ</th>
+                            <th class="text-center">วันที่ออกใบเสร็จ</th>
+                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                            <th class="text-center" width="11%">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($stm_lgo as $row)
-                        <tr data-receipt="{{ !empty($row->receive_no) ? '1' : '0' }}">
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                        @php
+                            $stmTotal = (float)$row->sum_compensate_treatment;
+                            $smTotal = isset($row->sm_net_total) && $row->sm_net_total !== null ? (float)$row->sm_net_total : null;
+                            $diff = $smTotal !== null ? round($stmTotal - $smTotal, 2) : null;
+                            $ipPay = (float)($row->sum_case_iplg ?? 0);
+                            $opPay = (float)($row->sum_case_oplg ?? 0);
+                            $palgPay = (float)($row->sum_case_palg ?? 0);
+                            $inslgPay = (float)($row->sum_case_inslg ?? 0);
+                            $otlgPay = (float)($row->sum_case_otlg ?? 0);
+                            $ppPay = (float)($row->sum_case_pp ?? 0);
+                            $drugPay = (float)($row->sum_case_drug ?? 0);
+                            
+                            $effectiveReceiptNo = !empty($row->sm_receive_no) ? $row->sm_receive_no : ($row->receive_no ?? '');
+                            $effectiveReceiptDate = !empty($row->sm_receipt_date) ? $row->sm_receipt_date : ($row->receipt_date ?? '');
+                            $hasReceipt = !empty($effectiveReceiptNo);
+
+                            // Tooltip for pending subfunds
+                            $tooltipSubfunds = [];
+                            if ($palgPay > 0) $tooltipSubfunds[] = "PALG (กายภาพ): " . number_format($palgPay, 2);
+                            if ($inslgPay > 0) $tooltipSubfunds[] = "INSLG (อุปกรณ์): " . number_format($inslgPay, 2);
+                            if ($otlgPay > 0) $tooltipSubfunds[] = "OTLG (ส่งต่อ): " . number_format($otlgPay, 2);
+                            if ($ppPay > 0) $tooltipSubfunds[] = "PP (สร้างเสริม): " . number_format($ppPay, 2);
+                            if ($drugPay > 0) $tooltipSubfunds[] = "DRUG (ยาเฉพาะ): " . number_format($drugPay, 2);
+                            $tooltipText = !empty($tooltipSubfunds) ? "<b>รอโอนกองทุนย่อย:</b><br>" . implode("<br>", $tooltipSubfunds) : "ยอดส่วนต่างกองทุนย่อย";
+                        @endphp
+                        <tr data-receipt="{{ $hasReceipt ? '1' : '0' }}">
+                            <td class="small fw-bold text-dark text-break">{{ $row->stm_filename }}</td>
                             <td class="text-center">
                                 @if($row->dep === 'OPD')
                                     <span class="badge bg-info-subtle text-primary border border-info-subtle fw-bold px-2 py-1" style="font-size: 11px;">
@@ -122,17 +145,62 @@
                             </td>
                             <td class="text-end fw-bold">{{ number_format($row->count_cid) }}</td>
                             <td class="text-end text-muted">{{ number_format($row->sum_charge_treatment,2) }}</td>
-                            <td class="text-end small">{{ number_format($row->sum_adjrw,4) }}</td> 
-                            <td class="text-end">{{ number_format($row->sum_case_iplg,2) }}</td> 
-                            <td class="text-end">{{ number_format($row->sum_case_oplg,2) }}</td>   
-                            <td class="text-end">{{ number_format($row->sum_case_pp,2) }}</td> 
-                            <td class="text-end">{{ number_format($row->sum_case_drug,2) }}</td> 
-                            <td class="text-end text-success fw-bold">{{ number_format($row->sum_compensate_treatment,2) }}</td> 
+                            <td class="text-end text-success fw-bold">{{ number_format($stmTotal, 2) }}</td> 
                             <td class="text-center text-primary fw-bold">{{ $row->round_no }}</td> 
+                            <td class="text-end fw-semibold">
+                                @if($smTotal !== null && $smTotal > 0)
+                                    <div class="d-flex align-items-center justify-content-end gap-2">
+                                        <span class="text-teal fw-bold" style="color: #0d9488;">{{ number_format($smTotal, 2) }}</span>
+                                        <button type="button" class="btn btn-xs btn-outline-teal rounded-circle p-0 btn-show-sm-batches ms-1" 
+                                                style="width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #0d9488; border-color: #0d9488; transition: all 0.2s ease;"
+                                                data-round="{{ $row->round_no }}"
+                                                data-filename="{{ $row->stm_filename }}"
+                                                data-sm-total="{{ $smTotal }}"
+                                                data-batches-json="{{ $row->sm_batches_json ?? '[]' }}"
+                                                data-bs-toggle="tooltip" title="คลิกดูรายละเอียด Batch เงินโอน & เลขที่ใบเสร็จ">
+                                            <i class="bi bi-eye-fill" style="font-size: 11px;"></i>
+                                        </button>
+                                    </div>
+                                    @if(!empty($row->sm_batches))
+                                        <div class="text-muted cursor-pointer btn-show-sm-batches mt-0.5" 
+                                             style="font-size: 10px; cursor: pointer;"
+                                             data-round="{{ $row->round_no }}"
+                                             data-filename="{{ $row->stm_filename }}"
+                                             data-sm-total="{{ $smTotal }}"
+                                             data-batches-json="{{ $row->sm_batches_json ?? '[]' }}"
+                                             data-bs-toggle="tooltip" title="คลิกดูรายละเอียด Batch เงินโอน & เลขที่ใบเสร็จ">
+                                            Batch: <span class="text-decoration-underline">{{ $row->sm_batches }}</span>
+                                        </div>
+                                    @endif
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
                             <td class="text-center">
-                                @if(!empty($row->receive_no))
+                                @if($smTotal !== null && $smTotal > 0)
+                                    @if(abs($diff) < 0.01)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
+                                            <i class="bi bi-check-circle-fill me-0.5"></i> โอนครบแล้ว
+                                        </span>
+                                    @elseif($diff > 0)
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size: 11px;" data-bs-toggle="tooltip" title="ยอดชดเชย STM: {{ number_format($stmTotal, 2) }} | โอนจริง SM: {{ number_format($smTotal, 2) }}">
+                                            <i class="bi bi-hourglass-split me-0.5"></i> รอโอน {{ number_format($diff, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1" style="font-size: 11px;">
+                                            <i class="bi bi-info-circle me-0.5"></i> โอน {{ number_format($smTotal, 2) }}
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-dash-circle me-0.5"></i> รอนำเข้า SM
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if($hasReceipt)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1" style="font-size: 11px;">
-                                        <i class="bi bi-check-circle-fill me-0.5"></i> {{ $row->receive_no }}
+                                        <i class="bi bi-check-circle-fill me-0.5"></i> {{ $effectiveReceiptNo }}
                                     </span>
                                 @else
                                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium px-2 py-1" style="font-size: 11px;">
@@ -140,39 +208,37 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-center small">{{ !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}</td>
+                            <td class="text-center small">{{ !empty($effectiveReceiptDate) ? DateThai($effectiveReceiptDate) : '-' }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <td class="text-center text-nowrap">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        @if(!empty($row->round_no))
-                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                                <button type="button"
-                                                    class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2"
-                                                    data-round="{{ $row->round_no }}"
-                                                    data-receive="{{ $row->receive_no }}"
-                                                    data-date="{{ $row->receipt_date }}"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#receiptModal"
-                                                    title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
-                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                                </button>
-                                            @endif
-                                            
-                                            @if(Auth::user()->status == 'admin')
-                                                <button type="button"
-                                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-action-delete"
-                                                    data-filename="{{ $row->stm_filename }}"
-                                                    data-type="stm_lgo"
-                                                    title="ลบข้อมูลนำเข้า">
-                                                    <i class="bi bi-trash-fill me-1"></i> ลบ
-                                                </button>
-                                            @endif
+                            <td class="text-center text-nowrap">
+                                <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                    @if(!empty($row->round_no))
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                            <button type="button"
+                                                class="btn btn-xs {{ $hasReceipt ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2.5 py-1"
+                                                data-round="{{ $row->round_no }}"
+                                                data-receive="{{ $effectiveReceiptNo }}"
+                                                data-date="{{ $effectiveReceiptDate }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#receiptModal"
+                                                title="{{ $hasReceipt ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
+                                                <i class="bi {{ $hasReceipt ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>{{ $hasReceipt ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                            </button>
                                         @endif
-                                    </div>
-                                </td>
-                            @endif
+                                        
+                                        @if(Auth::user()->status == 'admin')
+                                            <button type="button"
+                                                class="btn btn-xs btn-outline-danger rounded-circle p-1 btn-action-delete"
+                                                data-filename="{{ $row->stm_filename }}"
+                                                data-type="stm_lgo"
+                                                title="ลบข้อมูลนำเข้า"
+                                                style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -269,6 +335,77 @@
     </div>
 </div>
 {{-- End Modal --}}
+
+{{-- Modal: Smart Money Batches Detail (รายละเอียดเงินโอนราย Batch & ใบเสร็จ) --}}
+<div class="modal fade" id="smBatchesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header text-white p-4" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3" style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border-radius: 14px; color: white; box-shadow: 0 4px 12px rgba(13,148,136,0.3);">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white">รายละเอียดเงินโอน Smart Money & เลขที่ใบเสร็จ</h5>
+                        <div class="text-light-50 small mt-0.5" id="smBatchesModalSubtitle">งวดที่: - | ไฟล์: -</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light">
+                <!-- Summary Card -->
+                <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <span class="text-muted small">ยอดเงินโอนจริงรวมทุก Batch ในงวดนี้:</span>
+                            <div class="fs-4 fw-bold text-teal mt-0.5" style="color: #0d9488;" id="smBatchesModalGrandTotal">0.00 บาท</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-teal-subtle text-teal border border-teal-subtle px-3 py-1.5 rounded-pill fw-bold" style="color: #0d9488; background-color: #f0fdfa; border-color: #ccfbf1;" id="smBatchesModalCountBadge">
+                                0 Batches
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batches Table -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-list-check text-teal me-2" style="color: #0d9488;"></i> รายการ Batch เงินโอนจาก สปสช.
+                        </h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3" width="5%">#</th>
+                                    <th>วันที่โอน</th>
+                                    <th class="text-center">Batch No.</th>
+                                    <th>งวด / กองทุน</th>
+                                    <th class="text-end">ยอดโอน (บาท)</th>
+                                    <th class="text-center">เลขที่ใบเสร็จ</th>
+                                    <th>วันที่ออก / ผู้ออก</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smBatchesModalTableBody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-0 p-3 px-4 d-flex justify-content-between">
+                <a href="{{ route('import.smart_money') }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> ไปยังระบบ Smart Money
+                </a>
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- SweetAlert: Success -->
 @if (session('stm_success'))
@@ -616,6 +753,167 @@
                 }
             });
 
+            // Event delegation for receipt modal buttons
+            $(document).on('click', '.btn-new-receipt, .btn-edit-receipt', function () {
+                $('#round_no').val($(this).data('round'));
+                $('#receive_no').val($(this).data('receive') || '');
+                $('#receipt_date').val($(this).data('date') || '');
+                
+                var rDate = $(this).data('date');
+                if(rDate) {
+                    $('#receipt_date_display').datepicker('setDate', new Date(rDate));
+                } else {
+                    $('#receipt_date_display').datepicker('clearDates');
+                }
+            });
+
+            // AJAX Save Receipt
+            $('#btnSaveReceipt').on('click', function () {
+                let round_no     = $('#round_no').val();
+                let receive_no   = $('#receive_no').val();
+                let receipt_date = $('#receipt_date').val();
+                if (!receive_no || !receipt_date) {
+                    Swal.fire('แจ้งเตือน','กรุณากรอกข้อมูลให้ครบ','warning');
+                    return;
+                }
+                fetch("{{ url('import/stm_lgo_updateReceipt') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        round_no: round_no,
+                        receive_no: receive_no,
+                        receipt_date: receipt_date
+                    })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'บันทึกสำเร็จ',
+                            html: `
+                                <p><strong>เลขที่ใบเสร็จ:</strong> ${res.receive_no}</p>
+                                <p><strong>วันที่ออก:</strong> ${res.receipt_date}</p>
+                            `,
+                            confirmButtonText: 'ปิด'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire('ผิดพลาด', res.message, 'error');
+                    }
+                });
+            });
+
+            // Sync Receipts from Smart Money with Animated Progress %
+            $('#btnSyncFromSmartMoney').on('click', function() {
+                Swal.fire({
+                    title: 'ซิงก์ใบเสร็จจาก Smart Money?',
+                    text: 'ระบบจะดึงเลขที่และวันที่ออกใบเสร็จที่การเงินลงไว้ใน Smart Money มาอัปเดตเข้า Statement อปท. (LGO)',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> ใช่, เริ่มซิงก์ข้อมูล',
+                    cancelButtonText: 'ยกเลิก',
+                    customClass: { popup: 'rounded-4' }
+                }).then((result) => {
+                    if(result.isConfirmed) {
+                        Swal.fire({
+                            title: 'กำลังซิงก์เลขที่ใบเสร็จจาก Smart Money...',
+                            html: `
+                                <div class="p-2 text-start">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="small text-muted fw-normal" id="syncStatusText">กำลังเชื่อมต่อฐานข้อมูล Smart Money...</span>
+                                        <span class="badge bg-success fw-bold px-2.5 py-1" id="syncPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
+                                    </div>
+                                    <div class="progress mb-3" style="height: 16px; border-radius: 8px; background-color: #e9ecef; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
+                                        <div id="syncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <div class="p-2.5 rounded-3 bg-light border text-muted small" style="font-size: 11.5px; line-height: 1.5;">
+                                        <i class="bi bi-info-circle text-success me-1"></i> ระบบกำลังรวบรวมเลขที่ใบเสร็จทุก Batch จาก Smart Money มาอัปเดตลง Statement อปท. (LGO)
+                                    </div>
+                                </div>
+                            `,
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-4' }
+                        });
+
+                        var syncInterval = setInterval(function() {
+                            var $bar = $('#syncProgressBar');
+                            if (!$bar.length) return;
+                            var currentWidth = parseInt($bar[0].style.width) || 15;
+                            if (currentWidth < 90) {
+                                var nextWidth = currentWidth + Math.floor(Math.random() * 12) + 6;
+                                if (nextWidth > 90) nextWidth = 90;
+                                $bar.css('width', nextWidth + '%');
+                                $('#syncPercent').text(nextWidth + '%');
+
+                                if (nextWidth >= 30 && nextWidth < 60) {
+                                    $('#syncStatusText').text('กำลังประมวลผลรวบรวมเลขที่ใบเสร็จรายงวด...');
+                                } else if (nextWidth >= 60 && nextWidth < 85) {
+                                    $('#syncStatusText').text('กำลังอัปเดตเลขที่ใบเสร็จลง Statement LGO...');
+                                } else if (nextWidth >= 85) {
+                                    $('#syncStatusText').text('กำลังตรวจสอบความถูกต้องและจัดเก็บข้อมูล...');
+                                }
+                            }
+                        }, 250);
+
+                        fetch("{{ route('import.smart_money.sync_all_stm') }}", {
+                            method: "POST",
+                            headers: {
+                                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
+                                "Accept": "application/json"
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(res => {
+                            clearInterval(syncInterval);
+                            $('#syncProgressBar').css('width', '100%');
+                            $('#syncPercent').text('100%');
+                            $('#syncStatusText').text('ซิงก์ข้อมูลเสร็จสมบูรณ์ 100%');
+
+                            setTimeout(function() {
+                                if(res.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'สำเร็จ',
+                                        text: res.message,
+                                        confirmButtonText: 'ตกลง',
+                                        customClass: { popup: 'rounded-4' }
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'ผิดพลาด',
+                                        text: res.message,
+                                        confirmButtonText: 'ปิด',
+                                        customClass: { popup: 'rounded-4' }
+                                    });
+                                }
+                            }, 400);
+                        })
+                        .catch(err => {
+                            clearInterval(syncInterval);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ผิดพลาด',
+                                text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                                confirmButtonText: 'ปิด',
+                                customClass: { popup: 'rounded-4' }
+                            });
+                        });
+                    }
+                });
+            });
+
             var stmTable = $('#stm_lgo').DataTable({
                 ordering: false,   // 🔥 ปิด sorting
                 dom: '<"row mb-3"' +
@@ -644,6 +942,87 @@
                         next: "ถัดไป"
                     }
                 }
+            });
+
+            // Initialize Bootstrap Tooltips
+            function initTooltips() {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+            initTooltips();
+
+            stmTable.on('draw', function() {
+                initTooltips();
+            });
+
+            // Smart Money Batches Detail Modal Handler
+            $(document).on('click', '.btn-show-sm-batches', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var round = $(this).data('round');
+                var filename = $(this).data('filename');
+                var smTotal = parseFloat($(this).data('sm-total')) || 0;
+                var batchesRaw = $(this).data('batches-json');
+                var batches = [];
+                
+                if (typeof batchesRaw === 'string') {
+                    try {
+                        batches = JSON.parse(batchesRaw) || [];
+                    } catch(err) {
+                        batches = [];
+                    }
+                } else if (Array.isArray(batchesRaw)) {
+                    batches = batchesRaw;
+                }
+
+                $('#smBatchesModalSubtitle').html('งวดที่: <b>' + round + '</b> | ไฟล์: <b>' + filename + '</b>');
+                $('#smBatchesModalGrandTotal').text(smTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บาท');
+                $('#smBatchesModalCountBadge').text(batches.length + ' Batches');
+
+                var rows = '';
+                if (batches.length === 0) {
+                    rows = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูล Batch ในระบบ Smart Money</td></tr>';
+                } else {
+                    batches.forEach(function(b, idx) {
+                        var netAmt = parseFloat(b.net_amount || b.amount || 0);
+                        var transferDate = b.transfer_date ? b.transfer_date : '-';
+                        var receiptBadge = b.receive_no 
+                            ? `<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1"><i class="bi bi-check-circle-fill me-0.5"></i> ${b.receive_no}</span>`
+                            : `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="bi bi-clock-history me-0.5"></i> ยังไม่ออก</span>`;
+                        
+                        var receiptMeta = '-';
+                        if (b.receive_no) {
+                            var rDate = b.receipt_date || '-';
+                            var rBy = b.receipt_by || '-';
+                            receiptMeta = `<div class="small fw-semibold text-dark">${rDate}</div><div class="text-muted" style="font-size: 11px;">${rBy}</div>`;
+                        }
+
+                        rows += `<tr>
+                            <td class="ps-3 fw-bold text-muted">${idx + 1}</td>
+                            <td><div class="small fw-semibold text-dark">${transferDate}</div></td>
+                            <td class="text-center"><span class="badge bg-secondary-subtle text-dark border px-2 py-1 font-monospace">${b.batch_no || '-'}</span></td>
+                            <td>
+                                <div class="fw-bold text-dark" style="font-size: 13px;">${b.round_no || '-'}</div>
+                                <div class="text-muted" style="font-size: 11px;">${b.fund_main || ''} ${b.fund_sub ? '- ' + b.fund_sub : ''}</div>
+                                ${b.account_code ? `<div class="text-muted font-monospace" style="font-size: 10px;">ผัง: ${b.account_code}</div>` : ''}
+                            </td>
+                            <td class="text-end fw-bold text-teal" style="color: #0d9488;">
+                                ${netAmt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-center">${receiptBadge}</td>
+                            <td>${receiptMeta}</td>
+                        </tr>`;
+                    });
+                }
+
+                $('#smBatchesModalTableBody').html(rows);
+
+                var modalEl = document.getElementById('smBatchesModal');
+                var modal = new bootstrap.Modal(modalEl);
+                modal.show();
             });
 
             // Filter only unreceipted files

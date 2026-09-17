@@ -54,6 +54,9 @@
                 <button type="button" class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#chartModal" id="btnShowChart">
                     <i class="bi bi-bar-chart-fill me-1"></i> กราฟสรุปรายเดือน
                 </button>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnSyncFromSmartMoney" title="ดึงเลขที่ใบเสร็จล่าสุดที่การเงินลงไว้ใน Smart Money มาอัปเดต">
+                    <i class="bi bi-wallet2 me-1"></i> ซิงก์ใบเสร็จจาก Smart Money
+                </button>
             </div>
         </div>
         
@@ -133,7 +136,7 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-center small">{{ $row->receipt_date ?? '-' }}</td>
+                            <td class="text-center small">{{ !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
                                 <td class="text-center text-nowrap">
@@ -564,6 +567,46 @@
                         });
                     } else {
                         Swal.fire('ผิดพลาด', res.message, 'error');
+                    }
+                });
+            });
+
+            // Sync Receipts from Smart Money
+            $('#btnSyncFromSmartMoney').on('click', function() {
+                Swal.fire({
+                    title: 'ซิงก์ใบเสร็จจาก Smart Money?',
+                    text: 'ระบบจะดึงเลขที่และวันที่ออกใบเสร็จที่การเงินลงไว้ใน Smart Money มาอัปเดตเข้า Statement UCS',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ซิงก์เลย',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if(result.isConfirmed) {
+                        Swal.fire({
+                            title: 'กำลังซิงก์ข้อมูล...',
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        fetch("{{ route('import.smart_money.sync_all_stm') }}", {
+                            method: "POST",
+                            headers: {
+                                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
+                                "Accept": "application/json"
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(res => {
+                            if(res.status === 'success') {
+                                Swal.fire('สำเร็จ', res.message, 'success').then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('ผิดพลาด', res.message, 'error');
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                        });
                     }
                 });
             });

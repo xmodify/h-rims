@@ -647,6 +647,12 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern">
                                         <li>
+                                            <a class="dropdown-item dropdown-item-modern fw-semibold text-success" href="{{ route('import.smart_money') }}">
+                                                <i class="bi bi-wallet2 me-1 text-success"></i> Smart Money Transfer
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ route('import.rep') }}">
                                                 <i class="bi bi-file-earmark-spreadsheet-fill me-1 text-success"></i>การตรวจสอบเบื้องต้น Rep
                                             </a>

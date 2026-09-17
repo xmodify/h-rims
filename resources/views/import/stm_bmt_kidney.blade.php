@@ -112,7 +112,7 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="text-center small">{{ $row->receipt_date ?? '-' }}</td>
+                            <td class="text-center small">{{ !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
                                 <td class="text-center text-nowrap">

@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\FdhClaimStatusController;
 use App\Http\Controllers\ImportSssController;
 use App\Http\Controllers\EclaimBotController;
 use App\Http\Controllers\ClaimAuditController;
+use App\Http\Controllers\SmartMoneyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -252,6 +253,20 @@ Route::get('import/rep_pvt/fail-details', [ImportRepController::class, 'rep_pvt_
 Route::match(['get', 'post'], 'import/rep_pvt_detail', [ImportRepController::class, 'rep_pvt_detail'])->name('rep_pvt_detail');
 Route::match(['get', 'post'], 'import/rep_pvt_detail_opd', [ImportRepController::class, 'rep_pvt_detail_opd'])->name('rep_pvt_detail_opd');
 Route::match(['get', 'post'], 'import/rep_pvt_detail_ipd', [ImportRepController::class, 'rep_pvt_detail_ipd'])->name('rep_pvt_detail_ipd');
+
+// Smart Money Transfer (SMTF) Routes
+Route::get('import/smart-money', [SmartMoneyController::class, 'index'])->name('import.smart_money');
+Route::post('import/smart-money/import-summary', [SmartMoneyController::class, 'importSummaryExcel'])->name('import.smart_money.import_summary');
+Route::get('import/smart-money/detail/{batch_no}', [SmartMoneyController::class, 'detail'])->name('import.smart_money.detail');
+Route::post('import/smart-money/import-detail', [SmartMoneyController::class, 'importDetailExcel'])->name('import.smart_money.import_detail');
+Route::post('import/smart-money/update-receipt', [SmartMoneyController::class, 'updateReceipt'])->name('import.smart_money.update_receipt');
+Route::post('import/smart-money/sync-all-stm', [SmartMoneyController::class, 'syncAllReceiptsToStm'])->name('import.smart_money.sync_all_stm');
+Route::post('import/smart-money/sync-from-stm', [SmartMoneyController::class, 'syncReceiptsFromStm'])->name('import.smart_money.sync_from_stm');
+Route::get('import/smart-money/api/detail/{batch_no}', [SmartMoneyController::class, 'getDetailJson'])->name('import.smart_money.api_detail');
+Route::post('import/smart-money/sync-bot', [SmartMoneyController::class, 'syncBotData'])->name('import.smart_money.sync_bot');
+Route::post('import/smart-money/search-bot', [SmartMoneyController::class, 'searchBotStatements'])->name('import.smart_money.search_bot');
+Route::post('import/smart-money/import-bot', [SmartMoneyController::class, 'importBotStatements'])->name('import.smart_money.import_bot');
+Route::post('import/smart-money/delete', [SmartMoneyController::class, 'deleteBatch'])->name('import.smart_money.delete');
 
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');

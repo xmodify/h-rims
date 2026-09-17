@@ -2393,7 +2393,7 @@ class ClaimIpController extends Controller
         }
 
         $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,pt.marrystatus,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -2440,7 +2440,7 @@ class ClaimIpController extends Controller
  
         // 4. Claimed Data (SSS - Optimized)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,pt.marrystatus,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, 
                 (SELECT IFNULL(SUM(r.total_amount), 0)
@@ -2457,7 +2457,7 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype
             LEFT JOIN visit_pttype vp ON vp.vn = i.vn
-            LEFT JOIN ward w ON w.ward=i.vn
+            LEFT JOIN ward w ON w.ward=i.ward
             LEFT JOIN an_stat a ON a.an=i.an
             LEFT JOIN (
                 SELECT o.an,o.pttype,SUM(o.sum_price) AS income
@@ -2512,128 +2512,201 @@ class ClaimIpController extends Controller
             }
         }
 
-        // Structural validation for unsent admissions ($search)
+        // Batch pre-fetch validation data for all ANs across search and claim
+        $all_ans = array_values(array_unique(array_filter(array_merge(
+            array_column($search, 'an'),
+            array_column($claim, 'an')
+        ))));
+
+        $room_board_map = [];
+        $ssem72_map = [];
+        $payplan_map = [];
+        $procs_map = [];
+
+        if (!empty($all_ans)) {
+            // 1. Room & Board (Category 01)
+            $rb_ans = DB::connection('hosxp')->table('opitemrece as o')
+                ->leftJoin('income as inc', 'inc.income', '=', 'o.income')
+                ->whereIn('o.an', $all_ans)
+                ->where(function($q) {
+                    $q->where('o.income', '01')
+                      ->orWhere('inc.income_csmbs_code', '01');
+                })
+                ->where('o.qty', '>', 0)
+                ->distinct()
+                ->pluck('o.an')
+                ->toArray();
+            $room_board_map = array_flip($rb_ans);
+
+            // 2. Coinsurance SSEM72
+            $ssem_ans = DB::connection('hosxp')->table('ipt_pttype as ip')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+                ->leftJoin('sks_benefit_plan_type as s', 's.sks_benefit_plan_type_id', '=', 'p.sks_benefit_plan_type_id')
+                ->whereIn('ip.an', $all_ans)
+                ->where(function($q) {
+                    $q->where('s.cipn_instype_code', 'SSEM72')
+                      ->orWhere('ip.pttype', 'SSEM72')
+                      ->orWhere('ip.pttype', 'like', '%SSEM72%')
+                      ->orWhere('p.name', 'like', '%SSEM72%');
+                })
+                ->distinct()
+                ->pluck('ip.an')
+                ->toArray();
+            $ssem72_map = array_flip($ssem_ans);
+
+            // 3. Payplan UPP
+            $payplans = DB::connection('hosxp')->table('ipt as i')
+                ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->whereIn('i.an', $all_ans)
+                ->select('i.an', 'pu.pttype_upp_type_code')
+                ->get();
+            foreach ($payplans as $pp) {
+                $payplan_map[$pp->an] = $pp->pttype_upp_type_code ?: '80';
+            }
+
+            // 4. Procedures
+            $procs = DB::connection('hosxp')->table('iptoprt')
+                ->whereIn('an', $all_ans)
+                ->select('an', 'opdate', 'icd9')
+                ->get();
+            foreach ($procs as $p) {
+                $procs_map[$p->an][] = $p;
+            }
+
+            // 5. Batch Catalog Warnings (Equipment, Labs, Drugs)
+            $equip_codes = DB::table('lookup_sss_equipdev_aipn')->pluck('code')->toArray();
+            $equip_set = array_flip($equip_codes);
+
+            $labcat_codes = DB::table('labcat_chi')->select('lccode', 'cscode', 'tmlt')->get();
+            $labcat_map = [];
+            foreach ($labcat_codes as $lc) {
+                if ($lc->lccode) $labcat_map[$lc->lccode] = $lc->tmlt;
+                if ($lc->cscode) $labcat_map[$lc->cscode] = $lc->tmlt;
+            }
+
+            $drugcat_codes = DB::table('drugcat_chi')->select('hospdrugcode', 'tmtid', 'productcat')->get();
+            $drugcat_map = [];
+            foreach ($drugcat_codes as $dc) {
+                $drugcat_map[$dc->hospdrugcode] = $dc;
+            }
+
+            $all_items = DB::connection('hosxp')->table('opitemrece as o')
+                ->leftJoin('income as inc', 'inc.income', '=', 'o.income')
+                ->leftJoin('nondrugitems as n', 'n.icode', '=', 'o.icode')
+                ->whereIn('o.an', $all_ans)
+                ->where('o.qty', '>', 0)
+                ->where('o.sum_price', '>', 0)
+                ->select('o.an', 'o.icode', 'o.income', 'inc.income_csmbs_code', 'n.nhso_adp_code')
+                ->get();
+
+            $catalog_warnings_map = [];
+            foreach ($all_items as $it) {
+                $csmbs = !empty($it->income_csmbs_code) ? trim($it->income_csmbs_code) : $it->income;
+                if ($csmbs === '02') {
+                    $std_code = !empty($it->nhso_adp_code) ? trim($it->nhso_adp_code) : $it->icode;
+                    if (!isset($equip_set[$std_code])) {
+                        $catalog_warnings_map[$it->an][] = "รหัสอุปกรณ์ {$std_code} ไม่อยู่ในรายการเบิกจ่าย";
+                    }
+                } elseif (in_array($csmbs, ['06', '07'])) {
+                    if (!isset($labcat_map[$it->icode])) {
+                        $catalog_warnings_map[$it->an][] = "รหัสบริการ {$it->icode} ไม่อยู่ใน Lab Catalog";
+                    } elseif (empty($labcat_map[$it->icode])) {
+                        $catalog_warnings_map[$it->an][] = "รหัสบริการ {$it->icode} ไม่มีรหัส TMLT";
+                    }
+                } elseif (in_array($csmbs, ['03', '04'])) {
+                    if (!isset($drugcat_map[$it->icode])) {
+                        $catalog_warnings_map[$it->an][] = "รหัสยา {$it->icode} ไม่อยู่ใน Drug Catalog";
+                    } else {
+                        $dc = $drugcat_map[$it->icode];
+                        if (empty($dc->tmtid) && (int)$dc->productcat < 3) {
+                            $catalog_warnings_map[$it->an][] = "รหัสยา {$it->icode} ไม่มีรหัส TMTID/STDCode";
+                        }
+                    }
+                }
+            }
+        }
+
         $validator = new \App\Services\ClaimValidator();
 
+        // Structural validation for unsent admissions ($search)
         foreach ($search as $row) {
             $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
             $row->rep_error = null;
             $row->rep_warning = null;
-            $errors = [];
+            
+            $hard_errors = [];
+            $warnings = [];
 
-            // 3. Coinsurance SSEM72 Check
-            $pttypes = DB::connection('hosxp')->select("
-                SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code
-                FROM ipt_pttype ip
-                LEFT JOIN pttype p ON p.pttype = ip.pttype
-                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
-                WHERE ip.an = ?
-            ", [$row->an]);
-
-            $has_ssem72 = false;
-            foreach ($pttypes as $pt) {
-                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
-                    $has_ssem72 = true;
-                    break;
-                }
-            }
-
-            $payplan = DB::connection('hosxp')->table('ipt as i')
-                ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
-                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
-                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
-                ->where('i.an', $row->an)
-                ->value('pu.pttype_upp_type_code') ?: '80';
-
-            if (in_array($payplan, ['85', '95']) && !$has_ssem72) {
-                $errors[] = "ขาดสิทธิ Coinsurance SSEM72";
-            }
-
-            // 4. ICD10 Check
-            if (!empty($row->icd10)) {
+            // 1. PDX Check (Hard Error)
+            if (empty($row->icd10)) {
+                $hard_errors[] = "ไม่มีรหัสวินิจฉัยโรคหลัก (PDX)";
+            } else {
                 $val_res = $validator->validateIcd10Chi($row->icd10, '1');
                 if (!$val_res['is_valid'] && !in_array(substr($row->icd10, 0, 2), ['U5', 'U6', 'U7'])) {
-                    $errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
+                    $hard_errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
                 }
+            }
+
+            // 2. Coinsurance SSEM72 Check (Hard Error for UPayPlan 85/95)
+            $payplan = $payplan_map[$row->an] ?? '80';
+            $has_ssem72 = isset($ssem72_map[$row->an]);
+            if (in_array($payplan, ['85', '95']) && !$has_ssem72) {
+                $hard_errors[] = "ขาดสิทธิร่วมจ่าย Coinsurance SSEM72";
+            }
+
+            // 3. Room & Board Check (Hard Error - Error 316)
+            if (!isset($room_board_map[$row->an])) {
+                $hard_errors[] = "ไม่พบรายการค่าห้องค่าอาหาร";
+            }
+
+            // 4. Authen Code Check (Warning)
+            if ($row->auth_code !== 'Y') {
+                $warnings[] = "ยังไม่พบเลขอนุมัติสิทธิ์ (Authen Code)";
+            }
+
+            // 5. Marital status (Warning)
+            $marry = trim((string)($row->marrystatus ?? ''));
+            if ($marry === '' || $marry === '9') {
+                $warnings[] = "ยังไม่ได้ระบุสถานภาพการสมรส";
+            }
+
+            // 6. Operation dates (Warning)
+            if (isset($procs_map[$row->an])) {
+                foreach ($procs_map[$row->an] as $p) {
+                    if (!empty($p->opdate)) {
+                        if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
+                            $warnings[] = "วันเวลาทำหัตถการ {$p->icd9} อยู่นอกช่วงการรักษา";
+                        }
+                    }
+                }
+            }
+
+            // 7. Catalog Warnings (Equipment, Labs, Drugs)
+            if (isset($catalog_warnings_map[$row->an])) {
+                foreach ($catalog_warnings_map[$row->an] as $cw) {
+                    $warnings[] = $cw;
+                }
+            }
+
+            $hard_errors = array_values(array_unique($hard_errors));
+            $warnings = array_values(array_unique($warnings));
+
+            $row->hard_errors = $hard_errors;
+            $row->warnings = $warnings;
+
+            if (!empty($hard_errors)) {
+                $row->btn_color = 'btn-outline-danger';
+                $row->btn_title = implode(' | ', $hard_errors);
+                $row->rep_error = implode(', ', $hard_errors);
+            } elseif (!empty($warnings)) {
+                $row->btn_color = 'btn-outline-warning';
+                $row->btn_title = implode(' | ', $warnings);
+                $row->rep_warning = implode(', ', $warnings);
             } else {
-                $errors[] = "ไม่มีรหัสวินิจฉัยหลัก (PDX)";
-            }
-
-            // 5. Lab/Blood Catalog (06, 07) Check
-            $opd_items = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
-                FROM opitemrece o
-                WHERE o.an = ? AND o.income IN ('06', '07')
-            ", [$row->an]);
-            
-            if (!empty($opd_items)) {
-                foreach ($opd_items as $item) {
-                    $qty = (float)$item->qty;
-                    $unitprice = (float)$item->unitprice;
-                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
-                    if ($charge_amt <= 0 || $qty <= 0) {
-                        continue;
-                    }
-                    $lab = DB::table('labcat_chi')
-                        ->where('lccode', $item->icode)
-                        ->orWhere('cscode', $item->icode)
-                        ->first();
-                    if (!$lab) {
-                        $errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
-                    } else {
-                        if (empty($lab->tmlt)) {
-                            $errors[] = "รหัสบริการ {$item->icode} ไม่มีรหัส TMLT/STDCode (Error 644)";
-                        }
-                    }
-                }
-            }
-
-            // 6. Drug Catalog Check
-            $opd_drugs = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
-                FROM opitemrece o
-                WHERE o.an = ? AND o.income IN ('03', '04')
-            ", [$row->an]);
-            
-            if (!empty($opd_drugs)) {
-                foreach ($opd_drugs as $item) {
-                    $qty = (float)$item->qty;
-                    $unitprice = (float)$item->unitprice;
-                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
-                    if ($charge_amt <= 0 || $qty <= 0) {
-                        continue;
-                    }
-                    $drug = DB::table('drugcat_chi')
-                        ->where('hospdrugcode', $item->icode)
-                        ->first();
-                    if (!$drug) {
-                        $errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
-                    } else {
-                        if (empty($drug->tmtid)) {
-                            if ((int)$drug->productcat < 3) {
-                                $errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Check Operation dates (Error 251)
-            $procs = DB::connection('hosxp')->select("
-                SELECT opdate, icd9
-                FROM iptoprt
-                WHERE an = ?
-            ", [$row->an]);
-            foreach ($procs as $p) {
-                if (!empty($p->opdate)) {
-                    if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
-                        $errors[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา (Error 251)";
-                    }
-                }
-            }
-
-            if (!empty($errors)) {
-                $row->rep_error = implode(', ', $errors);
+                $row->btn_color = 'btn-outline-success';
+                $row->btn_title = 'ผ่านเกณฑ์ตรวจสอบและพร้อมส่งออก';
             }
         }
 
@@ -2652,119 +2725,76 @@ class ClaimIpController extends Controller
         // Pre-audit validation loop for already sent/denied claims to check current status in HOSxP
         foreach ($claim as $row) {
             $row->current_errors = null;
-            $c_errors = [];
+            $hard_errors = [];
+            $warnings = [];
 
-            // 1. Coinsurance SSEM72 Check
-            $pttypes = DB::connection('hosxp')->select("
-                SELECT ip.pttype, p.name, s.cipn_instype_code
-                FROM ipt_pttype ip
-                LEFT JOIN pttype p ON p.pttype = ip.pttype
-                LEFT JOIN sks_benefit_plan_type s ON s.sks_benefit_plan_type_id = p.sks_benefit_plan_type_id
-                WHERE ip.an = ?
-            ", [$row->an]);
-
-            $has_ssem72 = false;
-            foreach ($pttypes as $pt) {
-                if ($pt->cipn_instype_code === 'SSEM72' || $pt->pttype === 'SSEM72' || strpos($pt->pttype, 'SSEM72') !== false || strpos($pt->name, 'SSEM72') !== false) {
-                    $has_ssem72 = true;
-                    break;
-                }
-            }
-
-            $payplan = DB::connection('hosxp')->table('ipt as i')
-                ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
-                ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
-                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
-                ->where('i.an', $row->an)
-                ->value('pu.pttype_upp_type_code') ?: '80';
-
+            // 1. Coinsurance SSEM72 Check (Hard Error)
+            $payplan = $payplan_map[$row->an] ?? '80';
+            $has_ssem72 = isset($ssem72_map[$row->an]);
             if (in_array($payplan, ['85', '95']) && !$has_ssem72) {
-                $c_errors[] = "ขาดสิทธิ Coinsurance SSEM72";
+                $hard_errors[] = "ขาดสิทธิร่วมจ่าย Coinsurance SSEM72";
             }
 
-            // 2. PDX Check
-            if (!empty($row->icd10)) {
+            // 2. PDX Check (Hard Error)
+            if (empty($row->icd10)) {
+                $hard_errors[] = "ไม่มีรหัสวินิจฉัยโรคหลัก (PDX)";
+            } else {
                 $val_res = $validator->validateIcd10Chi($row->icd10, '1');
                 if (!$val_res['is_valid'] && !in_array(substr($row->icd10, 0, 2), ['U5', 'U6', 'U7'])) {
-                    $c_errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
+                    $hard_errors[] = "รหัสวินิจฉัยหลัก {$row->icd10} ไม่ถูกต้องตาม CHI";
                 }
+            }
+
+            // 3. Room & Board Check (Hard Error)
+            if (!isset($room_board_map[$row->an])) {
+                $hard_errors[] = "ไม่พบรายการค่าห้องค่าอาหาร";
+            }
+
+            // 4. Authen Code Check (Warning)
+            if ($row->auth_code !== 'Y') {
+                $warnings[] = "ยังไม่พบเลขอนุมัติสิทธิ์ (Authen Code)";
+            }
+
+            // 5. Marital status (Warning)
+            $marry = trim((string)($row->marrystatus ?? ''));
+            if ($marry === '' || $marry === '9') {
+                $warnings[] = "ยังไม่ได้ระบุสถานภาพการสมรส";
+            }
+
+            // 6. Operation dates (Warning)
+            if (isset($procs_map[$row->an])) {
+                foreach ($procs_map[$row->an] as $p) {
+                    if (!empty($p->opdate)) {
+                        if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
+                            $warnings[] = "วันเวลาทำหัตถการ {$p->icd9} อยู่นอกช่วงการรักษา";
+                        }
+                    }
+                }
+            }
+
+            // 7. Catalog Warnings (Equipment, Labs, Drugs)
+            if (isset($catalog_warnings_map[$row->an])) {
+                foreach ($catalog_warnings_map[$row->an] as $cw) {
+                    $warnings[] = $cw;
+                }
+            }
+
+            $hard_errors = array_values(array_unique($hard_errors));
+            $warnings = array_values(array_unique($warnings));
+
+            $row->hard_errors = $hard_errors;
+            $row->warnings = $warnings;
+
+            if (!empty($hard_errors)) {
+                $row->btn_color = 'btn-outline-danger';
+                $row->btn_title = implode(' | ', $hard_errors);
+                $row->current_errors = implode(', ', $hard_errors);
+            } elseif (!empty($warnings)) {
+                $row->btn_color = 'btn-outline-warning';
+                $row->btn_title = implode(' | ', $warnings);
             } else {
-                $c_errors[] = "ไม่มีรหัสวินิจฉัยหลัก (PDX)";
-            }
-
-            // 3. Lab Catalog Check
-            $opd_items = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
-                FROM opitemrece o
-                WHERE o.an = ? AND o.income IN ('06', '07')
-            ", [$row->an]);
-            if (!empty($opd_items)) {
-                foreach ($opd_items as $item) {
-                    $qty = (float)$item->qty;
-                    $unitprice = (float)$item->unitprice;
-                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
-                    if ($charge_amt <= 0 || $qty <= 0) {
-                        continue;
-                    }
-                    $lab = DB::table('labcat_chi')
-                        ->where('lccode', $item->icode)
-                        ->orWhere('cscode', $item->icode)
-                        ->first();
-                    if (!$lab) {
-                        $c_errors[] = "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog";
-                    } else {
-                        if (empty($lab->tmlt)) {
-                            $c_errors[] = "รหัสบริการ {$item->icode} ไม่มีรหัส TMLT/STDCode (Error 644)";
-                        }
-                    }
-                }
-            }
-
-            // 4. Drug Catalog Check
-            $opd_drugs = DB::connection('hosxp')->select("
-                SELECT o.icode, o.income, o.qty, o.sum_price, o.unitprice
-                FROM opitemrece o
-                WHERE o.an = ? AND o.income IN ('03', '04')
-            ", [$row->an]);
-            if (!empty($opd_drugs)) {
-                foreach ($opd_drugs as $item) {
-                    $qty = (float)$item->qty;
-                    $unitprice = (float)$item->unitprice;
-                    $charge_amt = (float)$item->sum_price ?: ($qty * $unitprice);
-                    if ($charge_amt <= 0 || $qty <= 0) {
-                        continue;
-                    }
-                    $drug = DB::table('drugcat_chi')
-                        ->where('hospdrugcode', $item->icode)
-                        ->first();
-                    if (!$drug) {
-                        $c_errors[] = "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog";
-                    } else {
-                        if (empty($drug->tmtid)) {
-                            if ((int)$drug->productcat < 3) {
-                                $c_errors[] = "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode (Error 644)";
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Check Operation dates (Error 251)
-            $procs = DB::connection('hosxp')->select("
-                SELECT opdate, icd9
-                FROM iptoprt
-                WHERE an = ?
-            ", [$row->an]);
-            foreach ($procs as $p) {
-                if (!empty($p->opdate)) {
-                    if ($p->opdate < $row->regdate || $p->opdate > $row->dchdate) {
-                        $c_errors[] = "วันทำหัตถการ {$p->opdate} ({$p->icd9}) ออกช่วงการรักษา (Error 251)";
-                    }
-                }
-            }
-
-            if (!empty($c_errors)) {
-                $row->current_errors = implode(', ', $c_errors);
+                $row->btn_color = 'btn-outline-success';
+                $row->btn_title = 'ผ่านเกณฑ์ตรวจสอบและพร้อมส่งออก';
             }
         }
 

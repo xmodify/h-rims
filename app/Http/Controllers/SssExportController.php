@@ -913,6 +913,13 @@ class SssExportController extends Controller
         try {
             $data = $this->generate_aipn_data_array($ans, $session_no, $tcode, $care_as);
             
+            // Block export if there are hard errors
+            $has_hard_errors = collect($data['audit_results'])->contains('level', 'error');
+            if ($has_hard_errors) {
+                $err_messages = collect($data['audit_results'])->where('level', 'error')->pluck('message')->unique()->implode(', ');
+                return redirect()->back()->with('error', 'ไม่สามารถส่งออกได้เนื่องจากพบข้อผิดพลาดสำคัญ: ' . $err_messages);
+            }
+
             $hcode = LicenseVerificationService::getHcode();
             $zip_name = "{$hcode}AIPN{$session_no}.zip";
             
@@ -1005,11 +1012,14 @@ class SssExportController extends Controller
             // Sex: 1=ชาย, 2=หญิง
             $sex = ($adm->sex == '1' || $adm->sex == 'ชาย') ? '1' : (($adm->sex == '2' || $adm->sex == 'หญิง') ? '2' : '9');
             
-            // Marry mapping
-            $marry = '9';
+            // Marry mapping: default '1' (single) if empty or '9' to prevent 10D
+            $marry = '1';
             if ($adm->marry == '1' || $adm->marry == 'โสด') $marry = '1';
             elseif ($adm->marry == '2' || $adm->marry == 'คู่' || $adm->marry == 'สมรส') $marry = '2';
-            elseif ($adm->marry == '3' || $adm->marry == 'หม้าย' || $adm->marry == 'หย่า') $marry = '3';
+            elseif ($adm->marry == '3' || $adm->marry == 'หม้าย') $marry = '3';
+            elseif ($adm->marry == '4' || $adm->marry == 'หย่า' || $adm->marry == 'หย่าร้าง') $marry = '4';
+            elseif ($adm->marry == '5' || $adm->marry == 'แยก' || $adm->marry == 'แยกกันอยู่') $marry = '5';
+            elseif ($adm->marry == '6' || $adm->marry == 'สมณะ' || $adm->marry == 'นักบวช') $marry = '6';
 
             // Nation mapping
             $nation = ($adm->nationality == '99' || $adm->nationality == 'TH' || strpos($adm->nationality, 'ไทย') !== false) ? '99' : '97';
@@ -1065,13 +1075,23 @@ class SssExportController extends Controller
                     'an' => $an,
                     'hn' => $hn,
                     'ptname' => $ptname,
-                    'message' => "ยังไม่มีเลขอนุมัติสิทธิ์ (Authen Code) หรือขอสิทธิ์ไม่สำเร็จ",
-                    'level' => 'error'
+                    'message' => "ยังไม่พบเลขอนุมัติสิทธิ์ (Authen Code)",
+                    'level' => 'warning'
+                ];
+            }
+
+            // Marital status check
+            if (empty($adm->marry) || $adm->marry == '9') {
+                $audit_results[] = [
+                    'an' => $an,
+                    'hn' => $hn,
+                    'ptname' => $ptname,
+                    'message' => "ยังไม่ได้ระบุสถานภาพการสมรส",
+                    'level' => 'warning'
                 ];
             }
 
             // Coinsurance Check
-            // Query all patient rights registered for this admission in ipt_pttype
             $pttypes = DB::connection('hosxp')->select("
                 SELECT ip.pttype, p.hipdata_code, p.name, s.cipn_instype_code
                 FROM ipt_pttype ip
@@ -1094,10 +1114,31 @@ class SssExportController extends Controller
                         'an' => $an,
                         'hn' => $hn,
                         'ptname' => $ptname,
-                        'message' => "สิทธิหลัก (UPayPlan {$upayplan}) ต้องการสิทธิร่วมจ่าย Coinsurance SSEM72 (Error 369) กรุณาเพิ่มสิทธิร่วมให้ถูกต้อง",
+                        'message' => "ขาดสิทธิร่วมจ่าย Coinsurance SSEM72",
                         'level' => 'error'
                     ];
                 }
+            }
+
+            // Room & Board check (Category 01 - Hard Error - Error 316)
+            $has_room_board = DB::connection('hosxp')->table('opitemrece as o')
+                ->leftJoin('income as inc', 'inc.income', '=', 'o.income')
+                ->where('o.an', $an)
+                ->where(function($q) {
+                    $q->where('o.income', '01')
+                      ->orWhere('inc.income_csmbs_code', '01');
+                })
+                ->where('o.qty', '>', 0)
+                ->exists();
+
+            if (!$has_room_board) {
+                $audit_results[] = [
+                    'an' => $an,
+                    'hn' => $hn,
+                    'ptname' => $ptname,
+                    'message' => "ไม่พบรายการค่าห้องค่าอาหาร",
+                    'level' => 'error'
+                ];
             }
 
             // 1. Diagnosis
@@ -1126,7 +1167,7 @@ class SssExportController extends Controller
                         'an' => $an,
                         'hn' => $hn,
                         'ptname' => $ptname,
-                        'message' => "รหัสวินิจฉัยโรค {$icd10} ประเภท {$diagtype} ไม่ถูกต้องตามบัญชี สกส. (S54)",
+                        'message' => "รหัสวินิจฉัยโรค {$icd10} ไม่ถูกต้องตาม CHI",
                         'level' => 'error'
                     ];
                 }
@@ -1149,7 +1190,7 @@ class SssExportController extends Controller
                     'an' => $an,
                     'hn' => $hn,
                     'ptname' => $ptname,
-                    'message' => "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)",
+                    'message' => "ไม่มีรหัสวินิจฉัยโรคหลัก (PDX)",
                     'level' => 'error'
                 ];
             }
@@ -1165,17 +1206,30 @@ class SssExportController extends Controller
 
             $ipop_rows = [];
             foreach ($procs as $idx => $p) {
-                $datein = ($p->opdate ?: $adm->regdate) . 'T' . ($p->optime ?: '00:00:00');
-                $dateout = ($p->enddate ?: $adm->dchdate) . 'T' . ($p->endtime ?: '00:00:00');
+                $op_in = $p->opdate ?: $adm->regdate;
+                $op_in_time = $p->optime ?: ($adm->regtime ?: '00:00:00');
+                $op_out = $p->enddate ?: ($p->opdate ?: $adm->dchdate);
+                $op_out_time = $p->endtime ?: ($p->optime ?: ($adm->dchtime ?: '00:00:00'));
 
-                // Check datein and dateout are within admission range
+                // Auto-clamp within admission boundary to prevent Error 251
+                if ($op_in < $adm->regdate) {
+                    $op_in = $adm->regdate;
+                    $op_in_time = $adm->regtime ?: '00:00:00';
+                }
+                if ($op_out > $adm->dchdate) {
+                    $op_out = $adm->dchdate;
+                    $op_out_time = $adm->dchtime ?: '00:00:00';
+                }
+                $datein = $op_in . 'T' . $op_in_time;
+                $dateout = $op_out . 'T' . $op_out_time;
+
                 if ($p->opdate < $adm->regdate || $p->opdate > $adm->dchdate) {
                     $audit_results[] = [
                         'an' => $an,
                         'hn' => $hn,
                         'ptname' => $ptname,
-                        'message' => "วันที่ทำหัตถการ {$p->opdate} อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)",
-                        'level' => 'error'
+                        'message' => "วันเวลาทำหัตถการ {$p->icd9} อยู่นอกช่วงการรักษา",
+                        'level' => 'warning'
                     ];
                 }
 
@@ -1212,7 +1266,6 @@ class SssExportController extends Controller
                 $sum_price = round((float)($item->sum_price ?: 0.0), 2);
                 $discount = round((float)($item->discount ?: 0.0), 2);
 
-                // Skip items with quantity <= 0 or sum_price <= 0 (e.g., patient's own medicines or waived charges with net 0)
                 if ($qty <= 0 || ($sum_price <= 0 && $discount <= 0) || ($sum_price <= 0 && $discount >= ($qty * $unitprice))) {
                     continue;
                 }
@@ -1221,7 +1274,6 @@ class SssExportController extends Controller
                     $unitprice = round(($sum_price + $discount) / $qty, 2);
                 }
 
-                // ChargeAmt in AIPN standard must always equal round(QTY * UnitPrice, 2)
                 $charge_amt = round($qty * $unitprice, 2);
 
                 if ($charge_amt <= 0) {
@@ -1274,11 +1326,10 @@ class SssExportController extends Controller
 
                 // If claimcat is T (income category 10/02), check lookup_sss_equipdev_aipn
                 if ($billgr === '02') {
-                    $claimcat = 'T';
-                    // Fetch limit rate from lookup_sss_equipdev_aipn
                     $std_adp_code = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : $item->icode;
                     $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $std_adp_code)->first();
                     if ($equip) {
+                        $claimcat = 'T';
                         $stdcode = $equip->code;
                         $daterev = $equip->daterev;
                         if ($unitprice > $equip->rate) {
@@ -1286,14 +1337,23 @@ class SssExportController extends Controller
                                 'an' => $an,
                                 'hn' => $hn,
                                 'ptname' => $ptname,
-                                'message' => "รหัสอุปกรณ์ {$std_adp_code} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)",
-                                'level' => 'error'
+                                'message' => "รหัสอุปกรณ์ {$std_adp_code} ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ")",
+                                'level' => 'warning'
                             ];
                         }
                     } else {
-                        if (!empty($item->nhso_adp_code)) {
-                            $stdcode = trim($item->nhso_adp_code);
-                        }
+                        // Fallback: not found in SSS EquipDev master, avoid 66B by re-mapping to category 05 / 17 with ClaimCat='D'
+                        $billgr = '05';
+                        $billgrcs = '05';
+                        $stdcode = '';
+                        $claimcat = 'D';
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสอุปกรณ์ {$std_adp_code} ไม่อยู่ในรายการเบิกจ่าย",
+                            'level' => 'warning'
+                        ];
                     }
                 }
 
@@ -1303,41 +1363,29 @@ class SssExportController extends Controller
                     if ($drug) {
                         $stdcode = $drug->tmtid ?: '';
                         if (empty($stdcode)) {
-                            // Herbal medicine, supplies, etc. (productcat 3-7) does not require TMT
                             if ((int)$drug->productcat < 3) {
                                 $audit_results[] = [
                                     'an' => $an,
                                     'hn' => $hn,
                                     'ptname' => $ptname,
-                                    'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)",
-                                    'level' => 'error'
+                                    'message' => "รหัสยา {$item->icode} ไม่มีรหัส TMTID/STDCode",
+                                    'level' => 'warning'
                                 ];
                             }
                         }
                     } else {
-                        if (str_starts_with(trim($item->icode), '1')) {
-                            // Remap drug not in catalog to other services
-                            $billgr = '17';
-                            $billgrcs = '88';
-                            $stdcode = '';
-                            $claimcat = 'D';
+                        $billgr = '17';
+                        $billgrcs = '88';
+                        $stdcode = '';
+                        $claimcat = 'D';
 
-                            $audit_results[] = [
-                                'an' => $an,
-                                'hn' => $hn,
-                                'ptname' => $ptname,
-                                'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
-                                'level' => 'error'
-                            ];
-                        } else {
-                            $audit_results[] = [
-                                'an' => $an,
-                                'hn' => $hn,
-                                'ptname' => $ptname,
-                                'message' => "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)",
-                                'level' => 'error'
-                            ];
-                        }
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสยา {$item->icode} ไม่อยู่ใน Drug Catalog",
+                            'level' => 'warning'
+                        ];
                     }
                 }
 
@@ -1351,42 +1399,26 @@ class SssExportController extends Controller
                                 'an' => $an,
                                 'hn' => $hn,
                                 'ptname' => $ptname,
-                                'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMLT/STDCode (Error 644)",
-                                'level' => 'error'
+                                'message' => "รหัสบริการ {$item->icode} ไม่มีรหัส TMLT",
+                                'level' => 'warning'
                             ];
-                            // FALLBACK: map to other service categories
                             $billgr = '17';
                             $billgrcs = '88';
                             $stdcode = '';
                         }
                     } else {
-                        if (str_starts_with(trim($item->icode), '3')) {
-                            // Remap lab not in catalog to other services
-                            $billgr = '17';
-                            $billgrcs = '88';
-                            $stdcode = '';
-                            $claimcat = 'D';
+                        $billgr = '17';
+                        $billgrcs = '88';
+                        $stdcode = '';
+                        $claimcat = 'D';
 
-                            $audit_results[] = [
-                                'an' => $an,
-                                'hn' => $hn,
-                                'ptname' => $ptname,
-                                'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
-                                'level' => 'error'
-                            ];
-                        } else {
-                            $audit_results[] = [
-                                'an' => $an,
-                                'hn' => $hn,
-                                'ptname' => $ptname,
-                                'message' => "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)",
-                                'level' => 'error'
-                            ];
-                            // FALLBACK: map to other service categories
-                            $billgr = '17';
-                            $billgrcs = '88';
-                            $stdcode = '';
-                        }
+                        $audit_results[] = [
+                            'an' => $an,
+                            'hn' => $hn,
+                            'ptname' => $ptname,
+                            'message' => "รหัสบริการ {$item->icode} ไม่อยู่ใน Lab Catalog",
+                            'level' => 'warning'
+                        ];
                     }
                 }
 
@@ -1699,15 +1731,20 @@ class SssExportController extends Controller
         $errors = [];
         $warnings = [];
 
-        // 1. Check Authen
+        // 1. Check Authen (Warning)
         if (empty($adm->auth_code)) {
-            $errors[] = "ยังไม่มีเลขอนุมัติสิทธิ์ (Authen Code) หรือขอสิทธิ์ไม่สำเร็จ";
+            $warnings[] = "ยังไม่พบเลขอนุมัติสิทธิ์ (Authen Code)";
         }
 
+        // 2. Marital status (Warning)
+        $marry = trim((string)($adm->marry_status ?? ''));
+        if ($marry === '' || $marry === '9') {
+            $warnings[] = "ยังไม่ได้ระบุสถานภาพการสมรส";
+        }
 
         $validator = new \App\Services\ClaimValidator();
 
-        // Fetch Diagnoses & Check PDX
+        // 3. Fetch Diagnoses & Check PDX (Hard Error)
         $diags = DB::connection('hosxp')->select("
             SELECT d.icd10, d.diagtype, doc.name AS doctor_name, d.entry_datetime,
                    COALESCE((SELECT name FROM icd101 WHERE code = d.icd10), '') as icd_name
@@ -1726,15 +1763,15 @@ class SssExportController extends Controller
             $icd10 = trim($d->icd10);
             $val_res = $validator->validateIcd10Chi($icd10, $diagtype);
             if (!$val_res['is_valid'] && !in_array(substr($icd10, 0, 2), ['U5', 'U6', 'U7'])) {
-                $errors[] = "รหัสวินิจฉัยโรค {$icd10} ประเภท {$diagtype} ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                $errors[] = "รหัสวินิจฉัยโรค {$icd10} ไม่ถูกต้องตาม CHI";
             }
         }
 
         if (!$has_pdx) {
-            $errors[] = "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)";
+            $errors[] = "ไม่มีรหัสวินิจฉัยโรคหลัก (PDX)";
         }
 
-        // Fetch Procedures & Check operation dates
+        // 4. Fetch Procedures & Check operation dates (Warning)
         $procs = DB::connection('hosxp')->select("
             SELECT o.icd9, o.opdate, o.optime, o.enddate, o.endtime, doc.name AS doctor_name,
                    COALESCE((SELECT name FROM icd9cm1 WHERE code = o.icd9), '') as icd_name
@@ -1746,11 +1783,11 @@ class SssExportController extends Controller
 
         foreach ($procs as $p) {
             if ($p->opdate < $adm->regdate || $p->opdate > $adm->dchdate) {
-                $errors[] = "วันที่ทำหัตถการ {$p->opdate} ({$p->icd9}) อยู่นอกช่วงการนอนโรงพยาบาล (Error 251)";
+                $warnings[] = "วันเวลาทำหัตถการ {$p->icd9} อยู่นอกช่วงการรักษา";
             }
         }
 
-        // Coinsurance / SSEM72 check
+        // 5. Coinsurance / SSEM72 check (Hard Error)
         $pttype_upp = DB::connection('hosxp')->table('ipt_pttype as ip')
             ->leftJoin('pttype as p', 'p.pttype', '=', 'ip.pttype')
             ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
@@ -1776,31 +1813,53 @@ class SssExportController extends Controller
         }
 
         if (in_array($upayplan, ['85', '95']) && !$has_ssem72) {
-            $errors[] = "สิทธิหลัก (UPayPlan {$upayplan}) ต้องการสิทธิร่วมจ่าย Coinsurance SSEM72 (Error 369) กรุณาเพิ่มสิทธิร่วมให้ถูกต้อง";
+            $errors[] = "ขาดสิทธิร่วมจ่าย Coinsurance SSEM72";
+        }
+
+        // 6. Room & Board Check (Hard Error)
+        $has_room_board = DB::connection('hosxp')->table('opitemrece as o')
+            ->leftJoin('income as inc', 'inc.income', '=', 'o.income')
+            ->where('o.an', $an)
+            ->where(function($q) {
+                $q->where('o.income', '01')
+                  ->orWhere('inc.income_csmbs_code', '01');
+            })
+            ->where('o.qty', '>', 0)
+            ->exists();
+        if (!$has_room_board) {
+            $errors[] = "ไม่พบรายการค่าห้องค่าอาหาร";
         }
 
         // Fetch Charge Items & catalog validations
         $items = DB::connection('hosxp')->select("
             SELECT o.icode, SUM(o.qty) AS qty, SUM(o.sum_price) AS sum_price, MIN(o.unitprice) AS unitprice, SUM(o.discount) AS discount, MIN(o.income) AS income, inc.income_csmbs_code,
                    MIN(n.nhso_adp_code) AS nhso_adp_code,
+                   MIN(n.billcode) AS billcode,
+                   MIN(n.sks_tmlt_code) AS sks_tmlt_code,
+                   MIN(d.sks_drug_code) AS sks_drug_code,
+                   MIN(d.tmt_tp_code) AS tmt_tp_code,
+                   MIN(d.did) AS did,
                    COALESCE((SELECT name FROM drugitems WHERE icode = o.icode), (SELECT name FROM nondrugitems WHERE icode = o.icode)) AS item_name
             FROM opitemrece o
             LEFT JOIN income inc ON inc.income = o.income
             LEFT JOIN nondrugitems n ON n.icode = o.icode
+            LEFT JOIN drugitems d ON d.icode = o.icode
             WHERE o.an = ?
             GROUP BY o.icode
             ORDER BY income ASC, icode ASC
         ", [$an]);
 
-        foreach ($items as $item) {
+        foreach ($items as &$item) {
+            $icode = $item->icode;
             $qty = round((float)$item->qty, 2);
             $sum_price = round((float)($item->sum_price ?: 0.0), 2);
             $discount = round((float)($item->discount ?: 0.0), 2);
+            $unitprice = (float)$item->unitprice;
             
-            // Skip validation checks for items with price or quantity <= 0 (e.g., patient's own medicines or waived charges)
-            if ($qty <= 0 || ($sum_price <= 0 && $discount <= 0) || ($sum_price <= 0 && $discount >= ($qty * (float)$item->unitprice))) {
-                continue;
-            }
+            // Standard codes initialization
+            $item->tmtid = '';
+            $item->tmlt = '';
+            $item->adp = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : (!empty($item->billcode) ? trim($item->billcode) : '');
 
             $billgr = '19';
             if (!empty($item->income_csmbs_code)) {
@@ -1831,55 +1890,56 @@ class SssExportController extends Controller
                     case '11': $billgr = '11'; break;
                 }
             }
-            
-            $unitprice = (float)$item->unitprice;
 
             if ($billgr === '02') {
-                $std_adp_code = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : $item->icode;
+                $std_adp_code = !empty($item->nhso_adp_code) ? trim($item->nhso_adp_code) : $icode;
                 $equip = DB::table('lookup_sss_equipdev_aipn')->where('code', $std_adp_code)->first();
                 if ($equip) {
+                    $item->adp = $equip->code;
                     if ($unitprice > $equip->rate) {
-                        $errors[] = "รหัสอุปกรณ์ {$std_adp_code} (" . trim($item->item_name) . ") ราคาเรียกเก็บ (" . number_format($unitprice, 2) . ") เกินอัตราที่กำหนด (" . number_format($equip->rate, 2) . ") (Error 365)";
+                        $warnings[] = "รหัสอุปกรณ์ {$std_adp_code} ราคาเรียกเก็บเกินอัตราที่กำหนด";
                     }
+                } else {
+                    $warnings[] = "รหัสอุปกรณ์ {$std_adp_code} ไม่อยู่ในรายการเบิกจ่าย";
                 }
             }
 
-            if (in_array($billgr, ['03', '04'])) {
-                $drug = DB::table('drugcat_chi')->where('hospdrugcode', $item->icode)->first();
+            if (in_array($billgr, ['03', '04']) || str_starts_with($icode, '1')) {
+                $drug = DB::table('drugcat_chi')->where('hospdrugcode', $icode)->first();
                 if ($drug) {
-                    if (empty($drug->tmtid)) {
+                    $item->tmtid = $drug->tmtid ?: ($item->tmt_tp_code ?: ($item->sks_drug_code ?: ''));
+                    if (empty($item->tmtid)) {
                         if ((int)$drug->productcat < 3) {
-                            $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMTID/STDCode (Error 644)";
+                            $warnings[] = "รหัสยา {$icode} ไม่มีรหัส TMTID/STDCode";
                         }
                     }
                 } else {
-                    if (str_starts_with(trim($item->icode), '1')) {
-                        // Remap drug not in catalog to other services
-                        $billgr = '17';
-                        $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
-                    } else {
-                        $errors[] = "รหัสยา {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Drug Catalog (Error 666)";
+                    $item->tmtid = $item->tmt_tp_code ?: ($item->sks_drug_code ?: '');
+                    if (in_array($billgr, ['03', '04'])) {
+                        $warnings[] = "รหัสยา {$icode} ไม่อยู่ใน Drug Catalog";
                     }
                 }
             }
 
-            if (in_array($billgr, ['06', '07'])) {
-                $lab = DB::table('labcat_chi')->where('lccode', $item->icode)->orWhere('cscode', $item->icode)->first();
+            if (in_array($billgr, ['06', '07']) || in_array($item->income, ['06', '07'])) {
+                $lab = DB::table('labcat_chi')->where('lccode', $icode)->orWhere('cscode', $icode)->first();
                 if ($lab) {
-                    if (empty($lab->tmlt)) {
-                        $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่มีรหัส TMLT/STDCode (Error 644)";
+                    $item->tmlt = $lab->tmlt ?: '';
+                    if (empty($item->tmlt)) {
+                        $warnings[] = "รหัสบริการ {$icode} ไม่มีรหัส TMLT";
                     }
                 } else {
-                    if (str_starts_with(trim($item->icode), '3')) {
-                        // Remap lab not in catalog to other services
-                        $billgr = '17';
-                        $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
-                    } else {
-                        $errors[] = "รหัสตรวจวิเคราะห์/โลหิต {$item->icode} (" . trim($item->item_name) . ") ไม่พบใน Lab Catalog (Error 661)";
+                    if (!empty($item->sks_tmlt_code)) {
+                        $item->tmlt = $item->sks_tmlt_code;
                     }
+                    $warnings[] = "รหัสบริการ {$icode} ไม่อยู่ใน Lab Catalog";
                 }
             }
         }
+        unset($item);
+
+        $errors = array_values(array_unique($errors));
+        $warnings = array_values(array_unique($warnings));
 
         return response()->json([
             'success' => true,

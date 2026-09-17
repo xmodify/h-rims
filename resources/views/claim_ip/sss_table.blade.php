@@ -1,5 +1,6 @@
 @php
-    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn') && (Auth::user()->status === 'admin' || Auth::user()->allow_export_aipn === 'Y');
+    $user = Auth::user();
+    $is_aipn_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('export_aipn') && ($user && ($user->status === 'admin' || ($user->allow_export_aipn ?? '') === 'Y'));
 @endphp
 <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
@@ -110,11 +111,7 @@
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>
                                     <td class="text-center">
-                                        @php
-                                            $btn_color = ($row->auth_code == 'Y' && empty($row->rep_error)) ? 'btn-outline-success' : 'btn-outline-danger';
-                                            $btn_title = ($row->auth_code == 'Y' && empty($row->rep_error)) ? 'ผ่านเงื่อนไขโครงสร้างเบื้องต้น' : 'ไม่ผ่านเงื่อนไข (โปรดตรวจดูข้อผิดพลาด)';
-                                        @endphp
-                                        <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
+                                        <button class="btn btn-sm {{ $row->btn_color ?? 'btn-outline-secondary' }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $row->btn_title ?? 'คลิกดูรายละเอียด' }}">
                                             <i class="bi bi-eye-fill"></i>
                                         </button>
                                     </td>
@@ -228,11 +225,7 @@
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ !empty($row->current_errors) ? 'true' : 'false' }}">
                                     </td>
                                     <td class="text-center">
-                                        @php
-                                            $btn_color = ($row->auth_code == 'Y' && empty($row->current_errors)) ? 'btn-outline-success' : 'btn-outline-danger';
-                                            $btn_title = ($row->auth_code == 'Y' && empty($row->current_errors)) ? 'ผ่านเงื่อนไข Pre-Audit ครบถ้วน' : 'ไม่ผ่านเงื่อนไข Pre-Audit (โปรดตรวจดูข้อผิดพลาด)';
-                                        @endphp
-                                        <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
+                                        <button class="btn btn-sm {{ $row->btn_color ?? 'btn-outline-secondary' }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $row->btn_title ?? 'คลิกดูรายละเอียด' }}">
                                             <i class="bi bi-eye-fill"></i>
                                         </button>
                                     </td>
@@ -367,11 +360,7 @@
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->an }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>
                                     <td class="text-center">
-                                        @php
-                                            $btn_color = ($row->auth_code == 'Y' && empty($row->current_errors)) ? 'btn-outline-success' : 'btn-outline-danger';
-                                            $btn_title = ($row->auth_code == 'Y' && empty($row->current_errors)) ? 'ผ่านเงื่อนไข Pre-Audit (แก้ไขแล้ว)' : 'ไม่ผ่านเงื่อนไข Pre-Audit (โปรดตรวจดูข้อผิดพลาด)';
-                                        @endphp
-                                        <button class="btn btn-sm {{ $btn_color }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $btn_title }}">
+                                        <button class="btn btn-sm {{ $row->btn_color ?? 'btn-outline-secondary' }} px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showAnDetails('{{ $row->an }}')" title="{{ $row->btn_title ?? 'คลิกดูรายละเอียด' }}">
                                             <i class="bi bi-eye-fill"></i>
                                         </button>
                                     </td>

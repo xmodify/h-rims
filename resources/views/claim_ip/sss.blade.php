@@ -1379,9 +1379,9 @@
                         btnDownload.innerHTML = `<i class="bi bi-lock-fill me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
                         btnDownload.className = 'btn btn-outline-danger px-4 fw-bold';
                     } else if (errorCount > 0) {
-                        btnDownload.disabled = false;
-                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip) (พบ ${errorCount} ข้อผิดพลาด)`;
-                        btnDownload.className = 'btn btn-warning text-dark fw-bold px-4 shadow-sm';
+                        btnDownload.disabled = true;
+                        btnDownload.innerHTML = `<i class="bi bi-exclamation-octagon-fill me-1"></i> ไม่สามารถส่งออกได้ (พบข้อผิดพลาด ${errorCount} รายการ)`;
+                        btnDownload.className = 'btn btn-danger text-white fw-bold px-4 shadow-sm';
                     } else {
                         btnDownload.disabled = false;
                         btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด AIPN (.zip)`;
@@ -1509,7 +1509,7 @@
                       <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
                         <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไขเพื่อป้องกันการติด C)</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: มีข้อผิดพลาดสำคัญที่ต้องแก้ไข</div>
                           <ul class="mb-0 ps-3 text-danger">
                             ${errors.map(err => `<li>${err}</li>`).join('')}
                           </ul>
@@ -1522,7 +1522,7 @@
                       <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
                         <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลทางคลินิกผ่านเกณฑ์ แต่มีข้อแนะนำความพร้อมการนำส่ง</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อควรระวัง / เตือนให้ตรวจสอบ</div>
                           <ul class="mb-0 ps-3 text-warning" style="color: #92400e !important;">
                             ${warnings.map(warn => `<li>${warn}</li>`).join('')}
                           </ul>
@@ -1535,8 +1535,8 @@
                       <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
                         <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และโครงสร้างสมบูรณ์)</div>
-                          <div class="text-muted small">ข้อมูลการจำหน่ายผู้ป่วยในถูกต้องและผ่านเกณฑ์ Pre-Audit ครบถ้วน</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลสมบูรณ์ พร้อมส่งออก</div>
+                          <div class="text-muted small">ผ่านเกณฑ์ตรวจสอบโครงสร้างครบถ้วน</div>
                         </div>
                       </div>
                     </div>`;
@@ -1555,21 +1555,42 @@
                     totalCharge += price;
                     totalDiscount += parseFloat(item.discount) || 0;
                     
-                    const rowHtml = `<tr>
-                        <td class="text-center small"><span class="badge bg-secondary">${item.income}</span></td>
-                        <td class="text-center small fw-bold">${item.icode}</td>
-                        <td>${item.item_name || '-'}</td>
-                        <td class="text-end px-3">${parseFloat(item.qty).toFixed(1)}</td>
-                        <td class="text-end px-3">${parseFloat(item.unitprice).toFixed(2)}</td>
-                        <td class="text-end px-3 fw-bold">${price.toFixed(2)}</td>
-                        <td class="text-end px-3 text-muted">${parseFloat(item.discount || 0).toFixed(2)}</td>
-                    </tr>`;
-
                     if (item.icode.startsWith('1')) {
-                        drugRows += rowHtml;
+                        const tmtHtml = item.tmtid 
+                            ? `<span class="badge bg-primary-subtle text-primary border border-primary font-monospace">${item.tmtid}</span>` 
+                            : `<span class="badge bg-danger-subtle text-danger border border-danger" style="font-size: 0.7rem;">ไม่มี TMT</span>`;
+
+                        drugRows += `<tr>
+                            <td class="text-center small"><span class="badge bg-secondary">${item.income || '-'}</span></td>
+                            <td class="text-center small fw-bold font-monospace">${item.icode}</td>
+                            <td class="text-center small">${tmtHtml}</td>
+                            <td>${item.item_name || '-'}</td>
+                            <td class="text-end px-2">${parseFloat(item.qty).toFixed(1)}</td>
+                            <td class="text-end px-2">${parseFloat(item.unitprice).toFixed(2)}</td>
+                            <td class="text-end px-2 fw-bold">${price.toFixed(2)}</td>
+                            <td class="text-end px-2 text-muted">${parseFloat(item.discount || 0).toFixed(2)}</td>
+                        </tr>`;
                         drugsCount++;
                     } else {
-                        serviceRows += rowHtml;
+                        const tmltHtml = item.tmlt 
+                            ? `<span class="badge bg-info-subtle text-info-emphasis border border-info font-monospace">${item.tmlt}</span>` 
+                            : `<span class="text-muted">-</span>`;
+                        
+                        const adpHtml = item.adp 
+                            ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning font-monospace">${item.adp}</span>` 
+                            : `<span class="text-muted">-</span>`;
+
+                        serviceRows += `<tr>
+                            <td class="text-center small"><span class="badge bg-secondary">${item.income || '-'}</span></td>
+                            <td class="text-center small fw-bold font-monospace">${item.icode}</td>
+                            <td class="text-center small">${tmltHtml}</td>
+                            <td class="text-center small">${adpHtml}</td>
+                            <td>${item.item_name || '-'}</td>
+                            <td class="text-end px-2">${parseFloat(item.qty).toFixed(1)}</td>
+                            <td class="text-end px-2">${parseFloat(item.unitprice).toFixed(2)}</td>
+                            <td class="text-end px-2 fw-bold">${price.toFixed(2)}</td>
+                            <td class="text-end px-2 text-muted">${parseFloat(item.discount || 0).toFixed(2)}</td>
+                        </tr>`;
                         servicesCount++;
                     }
                 });
@@ -1677,16 +1698,17 @@
                           <table id="modal-drugs-table" class="table table-bordered table-striped table-sm align-middle modal-table mb-0 w-100">
                             <thead class="table-secondary">
                               <tr>
-                                <th class="text-center" width="10%">หมวด</th>
-                                <th class="text-center" width="15%">รหัสบริการ</th>
+                                <th class="text-center" width="6%">หมวด</th>
+                                <th class="text-center" width="10%">รหัสยา</th>
+                                <th class="text-center" width="12%">รหัส TMT</th>
                                 <th>ชื่อยา/เวชภัณฑ์</th>
-                                <th class="text-end px-3" width="12%">จำนวน</th>
-                                <th class="text-end px-3" width="12%">ราคา/หน่วย</th>
-                                <th class="text-end px-3" width="15%">ยอดเงินรวม</th>
-                                <th class="text-end px-3" width="12%">ส่วนลด</th>
+                                <th class="text-end px-2" width="8%">จำนวน</th>
+                                <th class="text-end px-2" width="10%">ราคา/หน่วย</th>
+                                <th class="text-end px-2" width="12%">ยอดเงินรวม</th>
+                                <th class="text-end px-2" width="9%">ส่วนลด</th>
                               </tr>
                             </thead>
-                            <tbody>${drugRows || '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลรายการยา</td></tr>'}</tbody>
+                            <tbody>${drugRows || '<tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูลรายการยา</td></tr>'}</tbody>
                           </table>
                         </div>
                       </div>
@@ -1697,16 +1719,18 @@
                           <table id="modal-charges-table" class="table table-bordered table-striped table-sm align-middle modal-table mb-0 w-100">
                             <thead class="table-secondary">
                               <tr>
-                                <th class="text-center" width="10%">หมวด</th>
-                                <th class="text-center" width="15%">รหัสบริการ</th>
+                                <th class="text-center" width="6%">หมวด</th>
+                                <th class="text-center" width="10%">รหัสบริการ</th>
+                                <th class="text-center" width="10%">รหัส TMLT</th>
+                                <th class="text-center" width="10%">รหัส ADP</th>
                                 <th>รายการค่าบริการทางการแพทย์</th>
-                                <th class="text-end px-3" width="12%">จำนวน</th>
-                                <th class="text-end px-3" width="12%">ราคา/หน่วย</th>
-                                <th class="text-end px-3" width="15%">ยอดเงินรวม</th>
-                                <th class="text-end px-3" width="12%">ส่วนลด</th>
+                                <th class="text-end px-2" width="8%">จำนวน</th>
+                                <th class="text-end px-2" width="10%">ราคา/หน่วย</th>
+                                <th class="text-end px-2" width="12%">ยอดเงินรวม</th>
+                                <th class="text-end px-2" width="9%">ส่วนลด</th>
                               </tr>
                             </thead>
-                            <tbody>${serviceRows || '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลค่ารักษาเรียกเก็บ</td></tr>'}</tbody>
+                            <tbody>${serviceRows || '<tr><td colspan="9" class="text-center text-muted">ไม่พบข้อมูลค่ารักษาเรียกเก็บ</td></tr>'}</tbody>
                           </table>
                         </div>
                       </div>

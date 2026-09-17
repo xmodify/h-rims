@@ -848,6 +848,129 @@ class SmartMoneyController extends Controller
     }
 
     /**
+     * Smart Two-Way Sync between Smart Money and STM Tables
+     */
+    public function syncTwoWayStm(Request $request)
+    {
+        try {
+            $stmTables = [
+                'stm_ucs', 'stm_ucs_kidney', 'stm_seamless_dmis', 'stm_ofc', 'stm_ofc_csop',
+                'stm_ofc_cipn', 'stm_bkk', 'stm_bkk_kidney', 'stm_bmt', 'stm_bmt_kidney',
+                'stm_srt', 'stm_pvt', 'stm_lgo', 'stm_lgo_kidney', 'stm_sss_kidney'
+            ];
+
+            // 1. STEP 1: Pull Receipts from STM -> Smart Money
+            $pendingBatches = SmartMoneyBatch::where(function($q) {
+                $q->whereNull('receive_no')->orWhere('receive_no', '');
+            })->whereNotNull('round_no')->where('round_no', '<>', '')->get();
+
+            $syncedFromStm = 0;
+            $syncedFromBatches = [];
+
+            if ($pendingBatches->isNotEmpty()) {
+                $roundList = $pendingBatches->pluck('round_no')->unique()->values()->toArray();
+
+                foreach ($stmTables as $table) {
+                    if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
+                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
+                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
+                        
+                        $stmRows = DB::table($table)
+                            ->whereIn('round_no', $roundList)
+                            ->whereNotNull('receive_no')
+                            ->where('receive_no', '<>', '')
+                            ->get(['round_no', 'receive_no', 'receipt_date', 'receipt_by']);
+
+                        foreach ($stmRows as $stmRow) {
+                            $matchingBatches = $pendingBatches->where('round_no', $stmRow->round_no);
+                            foreach ($matchingBatches as $b) {
+                                if (empty($b->receive_no)) {
+                                    $rDate = !empty($stmRow->receipt_date) ? $stmRow->receipt_date : now()->toDateString();
+                                    $rBy = !empty($stmRow->receipt_by) ? $stmRow->receipt_by : 'STM Sync';
+                                    
+                                    $b->update([
+                                        'receive_no' => $stmRow->receive_no,
+                                        'receipt_date' => $rDate,
+                                        'receipt_by' => $rBy,
+                                    ]);
+                                    $b->receive_no = $stmRow->receive_no;
+                                    $syncedFromStm++;
+                                    $syncedFromBatches[] = $b->batch_no;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. STEP 2: Push Receipts from Smart Money -> STM
+            $issuedBatches = SmartMoneyBatch::whereNotNull('receive_no')
+                ->where('receive_no', '<>', '')
+                ->whereNotNull('round_no')
+                ->where('round_no', '<>', '')
+                ->get(['round_no', 'receive_no', 'receipt_date', 'receipt_by']);
+
+            $totalCheckedStm = 0;
+            $totalUpdatedStm = 0;
+
+            foreach ($issuedBatches as $b) {
+                foreach ($stmTables as $table) {
+                    if (\Illuminate\Support\Facades\Schema::hasTable($table) && 
+                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'round_no') && 
+                        \Illuminate\Support\Facades\Schema::hasColumn($table, 'receive_no')) {
+                        
+                        $matchingRows = DB::table($table)->where('round_no', $b->round_no)->count();
+                        if ($matchingRows > 0) {
+                            $totalCheckedStm += $matchingRows;
+                            
+                            $cnt = DB::table($table)
+                                ->where('round_no', $b->round_no)
+                                ->where(function($q) use ($b) {
+                                    $q->whereNull('receive_no')
+                                      ->orWhere('receive_no', '!=', $b->receive_no);
+                                })
+                                ->update([
+                                    'receive_no' => $b->receive_no,
+                                    'receipt_date' => $b->receipt_date,
+                                    'receipt_by' => $b->receipt_by ?: 'SmartMoney Sync',
+                                ]);
+                            $totalUpdatedStm += $cnt;
+                        }
+                    }
+                }
+            }
+
+            // 3. STEP 3: Summary message
+            $msgParts = [];
+            if ($syncedFromStm > 0) {
+                $distinctBatches = count(array_unique($syncedFromBatches));
+                $msgParts[] = "ดึงใบเสร็จจาก STM เข้ามา {$syncedFromStm} งวด ({$distinctBatches} Batches)";
+            }
+            if ($totalUpdatedStm > 0) {
+                $msgParts[] = "ส่งใบเสร็จไปอัปเดต STM {$totalUpdatedStm} รายการ";
+            }
+
+            if (!empty($msgParts)) {
+                $message = "ซิงก์ข้อมูล 2 ทางสำเร็จ: " . implode(', ', $msgParts) . " (ตรวจสอบความถูกต้องครบถ้วน {$totalCheckedStm} รายการ)";
+            } else {
+                $message = "ข้อมูลเลขที่ใบเสร็จระหว่าง Smart Money และ STM ตรงกันและเป็นปัจจุบันครบถ้วน 100% แล้ว (ตรวจสอบแล้ว " . number_format($totalCheckedStm) . " รายการ)";
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'synced_from_stm' => $syncedFromStm,
+                'synced_to_stm' => $totalUpdatedStm,
+                'total_checked_stm' => $totalCheckedStm,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('SmartMoney syncTwoWayStm error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการซิงก์ข้อมูล: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Sync All Receipts from Smart Money to STM Tables (Smart Money -> STM)
      */
     public function syncAllReceiptsToStm(Request $request)
@@ -1706,5 +1829,169 @@ class SmartMoneyController extends Controller
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save('php://output');
         exit;
+    }
+
+    /**
+     * Get 12-Month Trend Chart Data (Total & Breakdown by Fund)
+     */
+    public function getTrendData(Request $request)
+    {
+        try {
+            $budgetYear = intval($request->budget_year ?: (date('Y') + 543 + (date('m') >= 10 ? 1 : 0)));
+            
+            // Calculate 12 Months dates for Thai Budget Year (Oct Y-1 to Sep Y)
+            $adYearEnd = $budgetYear - 543;
+            $adYearStart = $adYearEnd - 1;
+
+            $startDate = "{$adYearStart}-10-01";
+            $endDate = "{$adYearEnd}-09-30";
+
+            // Thai Month Labels
+            $monthsMap = [
+                1 => ['ym' => "{$adYearStart}-10", 'short' => 'ต.ค.', 'full' => 'ตุลาคม', 'year' => substr($budgetYear - 1, -2)],
+                2 => ['ym' => "{$adYearStart}-11", 'short' => 'พ.ย.', 'full' => 'พฤศจิกายน', 'year' => substr($budgetYear - 1, -2)],
+                3 => ['ym' => "{$adYearStart}-12", 'short' => 'ธ.ค.', 'full' => 'ธันวาคม', 'year' => substr($budgetYear - 1, -2)],
+                4 => ['ym' => "{$adYearEnd}-01", 'short' => 'ม.ค.', 'full' => 'มกราคม', 'year' => substr($budgetYear, -2)],
+                5 => ['ym' => "{$adYearEnd}-02", 'short' => 'ก.พ.', 'full' => 'กุมภาพันธ์', 'year' => substr($budgetYear, -2)],
+                6 => ['ym' => "{$adYearEnd}-03", 'short' => 'มี.ค.', 'full' => 'มีนาคม', 'year' => substr($budgetYear, -2)],
+                7 => ['ym' => "{$adYearEnd}-04", 'short' => 'เม.ย.', 'full' => 'เมษายน', 'year' => substr($budgetYear, -2)],
+                8 => ['ym' => "{$adYearEnd}-05", 'short' => 'พ.ค.', 'full' => 'พฤษภาคม', 'year' => substr($budgetYear, -2)],
+                9 => ['ym' => "{$adYearEnd}-06", 'short' => 'มิ.ย.', 'full' => 'มิถุนายน', 'year' => substr($budgetYear, -2)],
+                10 => ['ym' => "{$adYearEnd}-07", 'short' => 'ก.ค.', 'full' => 'กรกฎาคม', 'year' => substr($budgetYear, -2)],
+                11 => ['ym' => "{$adYearEnd}-08", 'short' => 'ส.ค.', 'full' => 'สิงหาคม', 'year' => substr($budgetYear, -2)],
+                12 => ['ym' => "{$adYearEnd}-09", 'short' => 'ก.ย.', 'full' => 'กันยายน', 'year' => substr($budgetYear, -2)],
+            ];
+
+            $labels = array_map(function($m) {
+                return $m['short'] . ' ' . $m['year'];
+            }, array_values($monthsMap));
+
+            // Query all batches for this budget year
+            $batches = SmartMoneyBatch::where(function($q) use ($startDate, $endDate, $budgetYear) {
+                $q->whereBetween('transfer_date', [$startDate, $endDate])
+                  ->orWhere('budget_year', $budgetYear);
+            })->get();
+
+            // 1. Overall Monthly Aggregations
+            $grandMonthlyAmounts = array_fill(0, 12, 0.0);
+            $grandMonthlyBatches = array_fill(0, 12, 0);
+            $grandTotalSum = 0.0;
+            $grandTotalBatches = 0;
+
+            // 2. Fund Breakdown Aggregations
+            $fundsData = [];
+
+            foreach ($batches as $b) {
+                $tDate = $b->transfer_date;
+                $ym = !empty($tDate) ? substr($tDate, 0, 7) : '';
+                $monthIndex = -1;
+
+                foreach ($monthsMap as $idx => $mInfo) {
+                    if ($mInfo['ym'] === $ym) {
+                        $monthIndex = $idx - 1;
+                        break;
+                    }
+                }
+
+                $amount = floatval($b->net_amount ?? $b->amount ?? 0);
+                $grandTotalSum += $amount;
+                $grandTotalBatches++;
+
+                if ($monthIndex >= 0 && $monthIndex < 12) {
+                    $grandMonthlyAmounts[$monthIndex] += $amount;
+                    $grandMonthlyBatches[$monthIndex]++;
+                }
+
+                // Group by fund_sub and fund_main
+                $mainName = trim($b->fund_main ?: 'ไม่ระบุกองทุน');
+                $subName = trim($b->fund_sub ?: $mainName);
+
+                $fundKey = md5($mainName . '___' . $subName);
+
+                if (!isset($fundsData[$fundKey])) {
+                    $fundsData[$fundKey] = [
+                        'key' => $fundKey,
+                        'fund_main' => $mainName,
+                        'fund_sub' => $subName,
+                        'total_amount' => 0.0,
+                        'batch_count' => 0,
+                        'monthly_amounts' => array_fill(0, 12, 0.0),
+                        'monthly_batches' => array_fill(0, 12, 0),
+                    ];
+                }
+
+                $fundsData[$fundKey]['total_amount'] += $amount;
+                $fundsData[$fundKey]['batch_count']++;
+                if ($monthIndex >= 0 && $monthIndex < 12) {
+                    $fundsData[$fundKey]['monthly_amounts'][$monthIndex] += $amount;
+                    $fundsData[$fundKey]['monthly_batches'][$monthIndex]++;
+                }
+            }
+
+            // Also calculate Main Fund summaries (for grouped view)
+            $mainFundsData = [];
+            foreach ($fundsData as $f) {
+                $mName = $f['fund_main'];
+                $mKey = md5($mName);
+                if (!isset($mainFundsData[$mKey])) {
+                    $mainFundsData[$mKey] = [
+                        'key' => $mKey,
+                        'fund_name' => $mName,
+                        'total_amount' => 0.0,
+                        'batch_count' => 0,
+                        'monthly_amounts' => array_fill(0, 12, 0.0),
+                        'monthly_batches' => array_fill(0, 12, 0),
+                        'sub_count' => 0,
+                    ];
+                }
+                $mainFundsData[$mKey]['total_amount'] += $f['total_amount'];
+                $mainFundsData[$mKey]['batch_count'] += $f['batch_count'];
+                $mainFundsData[$mKey]['sub_count']++;
+                for ($i = 0; $i < 12; $i++) {
+                    $mainFundsData[$mKey]['monthly_amounts'][$i] += $f['monthly_amounts'][$i];
+                    $mainFundsData[$mKey]['monthly_batches'][$i] += $f['monthly_batches'][$i];
+                }
+            }
+
+            // Sort funds by total_amount descending
+            usort($fundsData, function($a, $b) {
+                return $b['total_amount'] <=> $a['total_amount'];
+            });
+            usort($mainFundsData, function($a, $b) {
+                return $b['total_amount'] <=> $a['total_amount'];
+            });
+
+            // Find peak month
+            $peakMonthVal = max($grandMonthlyAmounts);
+            $peakMonthIdx = array_search($peakMonthVal, $grandMonthlyAmounts);
+            $peakMonthLabel = $peakMonthIdx !== false ? $labels[$peakMonthIdx] : '-';
+
+            $monthlyAvg = $grandTotalSum / 12;
+
+            return response()->json([
+                'status' => 'success',
+                'budget_year' => $budgetYear,
+                'labels' => $labels,
+                'months_map' => array_values($monthsMap),
+                'grand_total' => [
+                    'key' => 'grand_total',
+                    'fund_main' => 'ยอดเงินโอนรวมทุกกองทุน',
+                    'fund_sub' => 'รวมเงินโอน สปสช. และกองทุนทั้งหมด',
+                    'total_amount' => $grandTotalSum,
+                    'batch_count' => $grandTotalBatches,
+                    'monthly_avg' => $monthlyAvg,
+                    'peak_month' => $peakMonthLabel,
+                    'peak_amount' => $peakMonthVal,
+                    'monthly_amounts' => $grandMonthlyAmounts,
+                    'monthly_batches' => $grandMonthlyBatches,
+                ],
+                'main_funds' => array_values($mainFundsData),
+                'sub_funds' => array_values($fundsData),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('SmartMoney getTrendData error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการโหลดข้อมูลกราฟ: ' . $e->getMessage()], 500);
+        }
     }
 }

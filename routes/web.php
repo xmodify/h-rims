@@ -260,6 +260,7 @@ Route::post('import/smart-money/import-summary', [SmartMoneyController::class, '
 Route::get('import/smart-money/detail/{batch_no}', [SmartMoneyController::class, 'detail'])->name('import.smart_money.detail');
 Route::post('import/smart-money/import-detail', [SmartMoneyController::class, 'importDetailExcel'])->name('import.smart_money.import_detail');
 Route::post('import/smart-money/update-receipt', [SmartMoneyController::class, 'updateReceipt'])->name('import.smart_money.update_receipt');
+Route::post('import/smart-money/sync-two-way-stm', [SmartMoneyController::class, 'syncTwoWayStm'])->name('import.smart_money.sync_two_way_stm');
 Route::post('import/smart-money/sync-all-stm', [SmartMoneyController::class, 'syncAllReceiptsToStm'])->name('import.smart_money.sync_all_stm');
 Route::post('import/smart-money/sync-from-stm', [SmartMoneyController::class, 'syncReceiptsFromStm'])->name('import.smart_money.sync_from_stm');
 Route::get('import/smart-money/api/detail/{batch_no}', [SmartMoneyController::class, 'getDetailJson'])->name('import.smart_money.api_detail');
@@ -267,6 +268,7 @@ Route::post('import/smart-money/sync-bot', [SmartMoneyController::class, 'syncBo
 Route::post('import/smart-money/search-bot', [SmartMoneyController::class, 'searchBotStatements'])->name('import.smart_money.search_bot');
 Route::post('import/smart-money/import-bot', [SmartMoneyController::class, 'importBotStatements'])->name('import.smart_money.import_bot');
 Route::post('import/smart-money/delete', [SmartMoneyController::class, 'deleteBatch'])->name('import.smart_money.delete');
+Route::get('import/smart-money/trend-data', [SmartMoneyController::class, 'getTrendData'])->name('import.smart_money.trend_data');
 
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');

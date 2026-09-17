@@ -56,21 +56,21 @@
 
         {{-- Action Buttons --}}
         <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnSyncFromStm" title="ดึงเลขที่ใบเสร็จที่มีอยู่แล้วจากระบบ STM เข้ามายัง Smart Money">
-                <i class="bi bi-box-arrow-in-down me-1"></i> ดึงใบเสร็จจาก STM
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-normal" id="btnOpenTrendChartModal" data-bs-toggle="modal" data-bs-target="#smtTrendChartModal" title="ดูกราฟแนวโน้มเงินโอน 12 เดือน และเปรียบเทียบรายกองทุน">
+                <i class="bi bi-graph-up-arrow me-1"></i> กราฟแนวโน้ม 12 เดือน
             </button>
 
-            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnSyncAllStm" title="ซิงก์เลขที่ใบเสร็จทั้งหมดไปยังหน้า Statement (STM ทุกระบบ)">
-                <i class="bi bi-arrow-repeat me-1"></i> ซิงก์ใบเสร็จไป STM
+            <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm fw-normal" id="btnSmartSyncStm" title="ซิงก์ข้อมูลเลขที่ใบเสร็จระหว่าง Smart Money และ STM แบบ 2 ทางอัตโนมัติ">
+                <i class="bi bi-arrow-repeat me-1"></i> ซิงก์ใบเสร็จกับ STM
             </button>
 
             @if($hasBotLicense)
-                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#smtBotModal">
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-normal" data-bs-toggle="modal" data-bs-target="#smtBotModal">
                     <i class="bi bi-robot me-1"></i> ดึงจาก สปสช. (ThaiD)
                 </button>
             @endif
 
-            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-normal" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                 <i class="bi bi-file-earmark-excel me-1"></i> นำเข้าไฟล์ Excel
             </button>
         </div>
@@ -266,7 +266,7 @@
                         @foreach($batches as $index => $row)
                         <tr id="row-batch-{{ $row->batch_no }}">
                             <td class="text-center small text-muted">{{ $index + 1 }}</td>
-                            <td class="text-center small text-nowrap fw-semibold">
+                            <td class="text-center small text-nowrap">
                                 {{ !empty($row->transfer_date) ? DateThai($row->transfer_date) : '-' }}
                             </td>
                             <td class="text-center">
@@ -274,9 +274,9 @@
                             </td>
                             <td class="text-start small">
                                 @if(count($row->round_nos) === 1)
-                                    <span class="fw-bold text-primary">{{ $row->round_nos[0] }}</span>
+                                    <span class="text-primary">{{ $row->round_nos[0] }}</span>
                                 @elseif(count($row->round_nos) > 1)
-                                    <span class="fw-bold text-primary">{{ count($row->round_nos) }} งวด</span>
+                                    <span class="text-primary">{{ count($row->round_nos) }} งวด</span>
                                     <div class="text-muted small text-truncate" style="max-width: 140px;" title="{{ implode(', ', $row->round_nos) }}">
                                         {{ implode(', ', $row->round_nos) }}
                                     </div>
@@ -299,7 +299,7 @@
                                 @if($row->items->count() > 1)
                                     <div class="d-flex align-items-center gap-1.5 mb-1">
                                         <button type="button"
-                                            class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 btn-toggle-subrows fw-bold shadow-xs flex-shrink-0"
+                                            class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5 btn-toggle-subrows shadow-xs flex-shrink-0"
                                             data-batch="{{ $row->batch_no }}"
                                             data-count="{{ $row->items->count() }}"
                                             title="คลิกเพื่อเปิด/ปิดดูรายละเอียดทั้ง {{ $row->items->count() }} ผังย่อย">
@@ -345,7 +345,7 @@
                                     {{-- Receipt Button --}}
                                     @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
                                         <button type="button"
-                                            class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2.5 py-1 fw-semibold shadow-xs"
+                                            class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2.5 py-1 shadow-xs"
                                             data-batch="{{ $row->batch_no }}"
                                             data-round="{{ implode(', ', $row->round_nos) }}"
                                             data-receive="{{ $row->receive_no }}"
@@ -360,7 +360,7 @@
 
                                     {{-- Detail Button (Modal) --}}
                                     <button type="button"
-                                        class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 fw-semibold shadow-xs btn-view-patient-detail"
+                                        class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 shadow-xs btn-view-patient-detail"
                                         data-batch="{{ $row->batch_no }}"
                                         title="ดูรายชื่อผู้ป่วยรายบุคคล">
                                         <i class="bi bi-people-fill me-0.5"></i> รายบุคคล
@@ -896,9 +896,179 @@
     </div>
 </div>
 
+{{-- Modal 5: กราฟแนวโน้มเงินโอน 12 เดือน (Smart Money 12-Month Trends Chart) --}}
+<div class="modal fade" id="smtTrendChartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-xl-down modal-xl modal-dialog-centered" style="max-width: 95vw; width: 1420px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            {{-- Modal Header: Dark Indigo / Violet Gradient --}}
+            <div class="modal-header p-3 px-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-2" 
+                 style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm" 
+                         style="width: 44px; height: 44px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);">
+                        <i class="bi bi-graph-up-arrow fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="smtTrendModalTitle" style="font-size: 1.15rem; letter-spacing: -0.01em;">
+                                📈 กราฟแนวโน้มเงินโอน 12 เดือน: ระบบ Smart Money
+                            </h5>
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <select class="form-select form-select-sm rounded-pill fw-bold bg-warning text-dark border-0 py-0.5 ps-2.5 pe-4 shadow-xs" 
+                                        id="trendSelectBudgetYear" onchange="loadTrendChartData(this.value)" 
+                                        style="font-size: 0.78rem; cursor: pointer; width: auto;">
+                                    @foreach($budget_year_select as $by)
+                                        <option value="{{ $by->LEAVE_YEAR_ID }}" {{ $by->LEAVE_YEAR_ID == $budget_year ? 'selected' : '' }}>
+                                            ปีงบ {{ $by->LEAVE_YEAR_ID }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="small text-white-50" style="font-size: 0.75rem;">
+                            เปรียบเทียบแนวโน้มยอดเงินโอนจริงรายเดือน 12 งวด (ต.ค. – ก.ย.)
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mode Switch Buttons (หมวดหลัก vs กองทุน/รายการย่อย) --}}
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <div class="p-1 rounded-pill d-inline-flex shadow-sm" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <button type="button" class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" 
+                                id="btnTrendModeSub" onclick="switchTrendChartMode('sub')"
+                                style="font-size: 0.78rem; background-color: #10b981; color: #ffffff;">
+                            <i class="bi bi-list-nested me-1"></i> รายการกองทุน (<span id="countSubFunds">0</span>)
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" 
+                                id="btnTrendModeMain" onclick="switchTrendChartMode('main')"
+                                style="font-size: 0.78rem; background-color: transparent; color: #cbd5e1;">
+                            <i class="bi bi-collection me-1"></i> กองทุนหลัก (<span id="countMainFunds">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            {{-- Modal Body: 2-Column Responsive Layout (Fixed Sidebar + Fluid Chart) --}}
+            <div class="modal-body p-0 d-flex flex-row" style="background-color: #f8fafc; height: calc(88vh - 120px); min-height: 560px; max-height: 820px; overflow: hidden;">
+                {{-- LEFT COLUMN: Sidebar (Search & Checklist) --}}
+                <div class="bg-white border-end d-flex flex-column" style="width: 380px; min-width: 380px; max-width: 380px; flex-shrink: 0; height: 100%; overflow: hidden;">
+                    <div class="p-3 border-bottom bg-slate-50 flex-shrink-0">
+                        {{-- Search Input --}}
+                        <div class="input-group input-group-sm mb-2.5 shadow-xs">
+                            <span class="input-group-text bg-white border-end-0 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="trendSearchInput" class="form-control border-start-0 ps-0" 
+                                   placeholder="ค้นหาชื่อกองทุน / รายการเงินโอน..." oninput="filterTrendFundList(this.value)">
+                            <button class="btn btn-outline-secondary bg-white border-start-0" type="button" onclick="clearTrendSearch()" title="ล้างการค้นหา">
+                                <i class="bi bi-x-lg text-muted"></i>
+                            </button>
+                        </div>
+
+                        {{-- Selection Status & Action --}}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="small text-muted" style="font-size: 0.76rem;">
+                                เลือกแล้ว: <strong class="text-primary font-monospace fs-6" id="trendSelectedCount">1</strong> 
+                                <span class="text-muted" id="trendListTotalCount" style="font-size: 0.72rem;">รายการ</span>
+                            </div>
+                            <div class="d-flex gap-1.5">
+                                <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-1 shadow-xs fw-normal" onclick="selectGrandTotalOnly()" title="เลือกดูยอดรวมทั้งหมด" style="font-size: 0.72rem;">
+                                    <i class="bi bi-star-fill text-warning me-1"></i> ยอดรวม
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 shadow-xs fw-normal" onclick="clearTrendSelection()" title="ล้างการเลือกทั้งหมด" style="font-size: 0.72rem;">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างที่เลือก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Scrollable Checkbox List --}}
+                    <div class="p-2 overflow-y-auto flex-grow-1" id="trendChecklistContainer" style="overflow-y: auto;">
+                        {{-- Populated dynamically by JS --}}
+                    </div>
+                </div>
+
+                {{-- RIGHT COLUMN: Chart & KPI Area --}}
+                <div class="flex-grow-1 p-3 p-md-4 d-flex flex-column" style="min-width: 0; height: 100%; overflow-y: auto;">
+                    {{-- Top KPI Metric Strip --}}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 p-2.5 rounded-3 bg-white border shadow-sm flex-shrink-0">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div>
+                                <span class="small text-muted" style="font-size: 0.72rem;">ยอดเงินโอนรวมทั้งปี (ที่เลือก):</span>
+                                <div class="fw-bold text-success font-monospace" id="kpiTrendTotalSum" style="font-size: 1.15rem;">
+                                    0.00 บ.
+                                </div>
+                            </div>
+                            <div class="border-start ps-3">
+                                <span class="small text-muted" style="font-size: 0.72rem;">เฉลี่ยต่องวด (12 เดือน):</span>
+                                <div class="fw-bold text-primary font-monospace" id="kpiTrendMonthlyAvg" style="font-size: 1.05rem;">
+                                    0.00 บ.
+                                </div>
+                            </div>
+                            <div class="border-start ps-3">
+                                <span class="small text-muted" style="font-size: 0.72rem;">เดือนที่โอนสูงสุด (Peak):</span>
+                                <div class="fw-bold text-danger font-monospace" id="kpiTrendPeakMonth" style="font-size: 1.05rem;">
+                                    -
+                                </div>
+                            </div>
+                            <div class="border-start ps-3 d-none d-xl-block">
+                                <span class="small text-muted" style="font-size: 0.72rem;">จำนวนงวดโอนทั้งหมด:</span>
+                                <div class="fw-bold text-secondary font-monospace" id="kpiTrendTotalBatches" style="font-size: 0.95rem;">
+                                    0 งวด
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Download Chart Image Action --}}
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-xs fw-normal d-inline-flex align-items-center gap-1.5" 
+                                    onclick="downloadTrendChartPng()" title="บันทึกภาพกราฟเป็นไฟล์รูปภาพ PNG" style="font-size: 0.78rem;">
+                                <i class="bi bi-camera me-1"></i> บันทึกภาพกราฟ
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Chart Canvas Container --}}
+                    <div class="bg-white rounded-3 border p-3 shadow-sm position-relative flex-grow-1 d-flex flex-column justify-content-center" style="min-height: 420px;">
+                        <div id="trendChartEmptyState" class="position-absolute top-50 start-50 translate-middle text-center text-muted p-4 d-none" style="max-width: 440px;">
+                            <div class="rounded-circle bg-slate-50 d-inline-flex align-items-center justify-content-center mb-3 shadow-xs" style="width: 64px; height: 64px; border: 2px dashed #cbd5e1;">
+                                <i class="bi bi-graph-up-arrow fs-2 text-primary opacity-75"></i>
+                            </div>
+                            <div class="fw-bold fs-6 text-dark mb-1">ยังไม่ได้เลือกรายการเพื่อดูกราฟ</div>
+                            <div class="small text-secondary" style="line-height: 1.6;">
+                                กรุณาติ๊กเลือกกองทุนหลักหรือรายการเงินโอนจากแถบเมนูด้านซ้าย<br>
+                                เพื่อแสดงกราฟเส้นแนวโน้มยอดเงินโอน 12 เดือน
+                            </div>
+                        </div>
+                        <div id="trendChartLoading" class="position-absolute top-50 start-50 translate-middle text-center text-muted p-4">
+                            <div class="spinner-border text-primary mb-2" role="status"></div>
+                            <div class="small text-muted">กำลังประมวลผลข้อมูลกราฟ 12 เดือน...</div>
+                        </div>
+                        <div style="height: 100%; min-height: 380px; width: 100%; position: relative;">
+                            <canvas id="canvasSmartMoneyTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center border-top">
+                <div class="small text-muted" style="font-size: 0.74rem;">
+                    <i class="bi bi-info-circle text-primary me-1"></i>
+                    <strong>เส้นกราฟ</strong> = ยอดเงินโอนเข้าบัญชีจริงรายเดือน 12 งวด (ต.ค. - ก.ย.) | ชี้ที่จุดบนกราฟเพื่อดูรายละเอียดยอดเงินและจำนวนงวด | สามารถเลือกหลายกองทุนเพื่อเปรียบเทียบแนวโน้มได้
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4 fw-normal" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
 <script>
     $(document).ready(function() {
         // Initialize DataTable
@@ -1699,32 +1869,32 @@
             });
         });
 
-        // Pull Receipts from STM Tables into Smart Money (Direction 2: STM -> Smart Money)
-        $('#btnSyncFromStm').on('click', function() {
+        // Smart Two-Way Sync between Smart Money and STM (Bidirectional Sync)
+        $('#btnSmartSyncStm').on('click', function() {
             Swal.fire({
-                title: 'ดึงเลขที่ใบเสร็จจาก STM?',
-                text: 'ระบบจะตรวจสอบว่างวดใดใน Smart Money ที่มีการออกใบเสร็จไว้ในระบบ STM (สปสช., ประกันสังคม, ข้าราชการ, อปท. ฯลฯ) แล้วดึงเลขที่ใบเสร็จมาอัปเดตให้อัตโนมัติ',
+                title: 'ซิงก์เลขที่ใบเสร็จกับ STM?',
+                text: 'ระบบจะซิงก์ข้อมูล 2 ทางอัตโนมัติ: ดึงเลขที่ใบเสร็จจาก STM เข้ามาใน Smart Money และส่งเลขที่ใบเสร็จจาก Smart Money ไปอัปเดตยัง Statement (STM ทุกสิทธิ์)',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
-                confirmButtonText: '<i class="bi bi-box-arrow-in-down me-1"></i> ใช่, ดึงใบเสร็จเลย',
+                confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> ใช่, เริ่มซิงก์ข้อมูล',
                 cancelButtonText: 'ยกเลิก',
                 customClass: { popup: 'rounded-4' }
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.fire({
-                        title: 'กำลังดึงเลขที่ใบเสร็จจาก STM...',
+                        title: 'กำลังซิงก์เลขที่ใบเสร็จ 2 ทางอัตโนมัติ...',
                         html: `
                             <div class="p-2 text-start">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small text-muted fw-bold" id="stmSyncStatusText">กำลังเชื่อมต่อฐานข้อมูล Statement (STM)...</span>
-                                    <span class="badge bg-success fw-bold px-2 py-1" id="stmSyncPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
+                                    <span class="small text-muted fw-normal" id="twoWaySyncStatusText">กำลังเชื่อมต่อฐานข้อมูล Statement (STM)...</span>
+                                    <span class="badge bg-success fw-normal px-2 py-1" id="twoWaySyncPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
                                 </div>
                                 <div class="progress mb-3" style="height: 16px; border-radius: 8px; background-color: #e9ecef; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                                    <div id="stmSyncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
+                                    <div id="twoWaySyncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
                                 </div>
                                 <div class="p-2.5 rounded-3 bg-light border text-muted small" style="font-size: 11.5px; line-height: 1.5;">
-                                    <i class="bi bi-info-circle text-success me-1"></i> ระบบกำลังตรวจสอบเลขที่ใบเสร็จทุกตารางสิทธิ์ (สปสช., ข้าราชการ, ประกันสังคม, อปท., ไต) และจับคู่กับงวดใน Smart Money
+                                    <i class="bi bi-info-circle text-success me-1"></i> ขั้นตอนที่ 1: ตรวจสอบและดึงใบเสร็จจากตาราง STM ทุกสิทธิ์ ➔ ขั้นตอนที่ 2: อัปเดตใบเสร็จจาก Smart Money ไปยัง STM ทุกงวด
                                 </div>
                             </div>
                         `,
@@ -1734,27 +1904,27 @@
                         customClass: { popup: 'rounded-4' }
                     });
 
-                    var syncInterval = setInterval(function() {
-                        var $bar = $('#stmSyncProgressBar');
+                    var twoWayInterval = setInterval(function() {
+                        var $bar = $('#twoWaySyncProgressBar');
                         if (!$bar.length) return;
                         var currentWidth = parseInt($bar[0].style.width) || 15;
-                        if (currentWidth < 88) {
-                            var nextWidth = currentWidth + Math.floor(Math.random() * 12) + 6;
-                            if (nextWidth > 88) nextWidth = 88;
+                        if (currentWidth < 90) {
+                            var nextWidth = currentWidth + Math.floor(Math.random() * 10) + 5;
+                            if (nextWidth > 90) nextWidth = 90;
                             $bar.css('width', nextWidth + '%');
-                            $('#stmSyncPercent').text(nextWidth + '%');
+                            $('#twoWaySyncPercent').text(nextWidth + '%');
 
-                            if (nextWidth >= 30 && nextWidth < 60) {
-                                $('#stmSyncStatusText').text('กำลังค้นหาเลขที่ใบเสร็จในตาราง STM ทุกสิทธิ์...');
-                            } else if (nextWidth >= 60 && nextWidth < 80) {
-                                $('#stmSyncStatusText').text('กำลังเปรียบเทียบข้อมูลงวดและจับคู่กับ Smart Money...');
+                            if (nextWidth >= 25 && nextWidth < 55) {
+                                $('#twoWaySyncStatusText').text('ขั้นตอนที่ 1/2: กำลังดึงเลขที่ใบเสร็จจากตาราง STM ทุกสิทธิ์...');
+                            } else if (nextWidth >= 55 && nextWidth < 80) {
+                                $('#twoWaySyncStatusText').text('ขั้นตอนที่ 2/2: กำลังส่งเลขที่ใบเสร็จ Smart Money ไปยัง Statement...');
                             } else if (nextWidth >= 80) {
-                                $('#stmSyncStatusText').text('กำลังบันทึกและอัปเดตสถานะใบเสร็จ...');
+                                $('#twoWaySyncStatusText').text('กำลังตรวจสอบความถูกต้องและบันทึกข้อมูล...');
                             }
                         }
-                    }, 350);
+                    }, 300);
 
-                    fetch("{{ route('import.smart_money.sync_from_stm') }}", {
+                    fetch("{{ route('import.smart_money.sync_two_way_stm') }}", {
                         method: "POST",
                         headers: {
                             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
@@ -1763,119 +1933,16 @@
                     })
                     .then(res => res.json())
                     .then(res => {
-                        clearInterval(syncInterval);
-                        $('#stmSyncProgressBar').css('width', '100%');
-                        $('#stmSyncPercent').text('100%');
-                        $('#stmSyncStatusText').text('ดึงข้อมูลเสร็จสิ้น 100%');
+                        clearInterval(twoWayInterval);
+                        $('#twoWaySyncProgressBar').css('width', '100%');
+                        $('#twoWaySyncPercent').text('100%');
+                        $('#twoWaySyncStatusText').text('ซิงก์ข้อมูลเสร็จสมบูรณ์ 100%');
 
                         setTimeout(function() {
                             if (res.status === 'success') {
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'ดึงใบเสร็จสำเร็จ 100%',
-                                    text: res.message,
-                                    confirmButtonText: 'ตกลง',
-                                    customClass: { popup: 'rounded-4' }
-                                }).then(() => {
-                                    window.location.reload();
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'ผิดพลาด',
-                                    text: res.message || 'ไม่สามารถดึงข้อมูลได้',
-                                    customClass: { popup: 'rounded-4' }
-                                });
-                            }
-                        }, 400);
-                    })
-                    .catch(err => {
-                        clearInterval(syncInterval);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ผิดพลาด',
-                            text: 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์',
-                            customClass: { popup: 'rounded-4' }
-                        });
-                    });
-                }
-            });
-        });
-
-        // Sync All to STM (Direction 1: Smart Money -> STM)
-        $('#btnSyncAllStm').on('click', function() {
-            Swal.fire({
-                title: 'ยืนยันการซิงก์ใบเสร็จไปยัง STM?',
-                text: 'ระบบจะนำเลขที่ใบเสร็จทั้งหมดใน Smart Money ไปอัปเดตยังตาราง Statement (STM ทุกสิทธิ์)',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#0284c7',
-                confirmButtonText: '<i class="bi bi-arrow-repeat me-1"></i> ใช่, ซิงก์เลย',
-                cancelButtonText: 'ยกเลิก',
-                customClass: { popup: 'rounded-4' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'กำลังซิงก์เลขที่ใบเสร็จไปยัง STM...',
-                        html: `
-                            <div class="p-2 text-start">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small text-muted fw-bold" id="stmPushStatusText">กำลังรวบรวมเลขที่ใบเสร็จใน Smart Money...</span>
-                                    <span class="badge bg-primary fw-bold px-2 py-1" id="stmPushPercent" style="font-size: 13px; border-radius: 8px;">15%</span>
-                                </div>
-                                <div class="progress mb-3" style="height: 16px; border-radius: 8px; background-color: #e9ecef; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                                    <div id="stmPushProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 15%; transition: width 0.3s ease;"></div>
-                                </div>
-                                <div class="p-2.5 rounded-3 bg-light border text-muted small" style="font-size: 11.5px; line-height: 1.5;">
-                                    <i class="bi bi-info-circle text-primary me-1"></i> ระบบกำลังส่งข้อมูลเลขที่ใบเสร็จ วันที่ออก และผู้ออก ไปยังตาราง Statement (STM ทุกสิทธิ์) ตามงวดที่ตรงกัน
-                                </div>
-                            </div>
-                        `,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        customClass: { popup: 'rounded-4' }
-                    });
-
-                    var pushInterval = setInterval(function() {
-                        var $bar = $('#stmPushProgressBar');
-                        if (!$bar.length) return;
-                        var currentWidth = parseInt($bar[0].style.width) || 15;
-                        if (currentWidth < 88) {
-                            var nextWidth = currentWidth + Math.floor(Math.random() * 12) + 6;
-                            if (nextWidth > 88) nextWidth = 88;
-                            $bar.css('width', nextWidth + '%');
-                            $('#stmPushPercent').text(nextWidth + '%');
-
-                            if (nextWidth >= 30 && nextWidth < 60) {
-                                $('#stmPushStatusText').text('กำลังเชื่อมโยงตาราง Statement สปสช., ข้าราชการ, ประกันสังคม...');
-                            } else if (nextWidth >= 60 && nextWidth < 80) {
-                                $('#stmPushStatusText').text('กำลังเขียนข้อมูลเลขที่ใบเสร็จลงในตาราง Statement...');
-                            } else if (nextWidth >= 80) {
-                                $('#stmPushStatusText').text('กำลังบันทึกและตรวจสอบความถูกต้อง...');
-                            }
-                        }
-                    }, 350);
-
-                    fetch("{{ route('import.smart_money.sync_all_stm') }}", {
-                        method: "POST",
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
-                            "Accept": "application/json"
-                        }
-                    })
-                    .then(res => res.json())
-                    .then(res => {
-                        clearInterval(pushInterval);
-                        $('#stmPushProgressBar').css('width', '100%');
-                        $('#stmPushPercent').text('100%');
-                        $('#stmPushStatusText').text('ซิงก์ข้อมูลเสร็จสิ้น 100%');
-
-                        setTimeout(function() {
-                            if (res.status === 'success') {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'ซิงก์ใบเสร็จสำเร็จ 100%',
+                                    title: 'ซิงก์ใบเสร็จ 2 ทางสำเร็จ',
                                     text: res.message,
                                     confirmButtonText: 'ตกลง',
                                     customClass: { popup: 'rounded-4' }
@@ -1893,7 +1960,7 @@
                         }, 400);
                     })
                     .catch(err => {
-                        clearInterval(pushInterval);
+                        clearInterval(twoWayInterval);
                         Swal.fire({
                             icon: 'error',
                             title: 'ผิดพลาด',
@@ -2226,6 +2293,525 @@
             url.searchParams.delete('account_code');
         }
         window.location.href = url.toString();
+    }
+
+    // =========================================================================
+    // SMART MONEY 12-MONTH TREND CHART LOGIC (Interactive Multi-Fund Chart)
+    // =========================================================================
+    var trendChartInstance = null;
+    var trendDataStore = null;
+    var trendCurrentMode = 'sub'; // 'sub' (รายการกองทุนย่อย) or 'main' (กองทุนหลัก)
+    var trendSearchQuery = '';
+    var trendSelectedKeys = new Set(['grand_total']); // Default: grand_total
+
+    // Color Palette for Multi-Line Comparison
+    const trendColorPalette = [
+        '#2563eb', // Royal Blue
+        '#059669', // Emerald Green
+        '#ea580c', // Vibrant Orange / Amber
+        '#7c3aed', // Purple
+        '#db2777', // Pink / Magenta
+        '#0891b2', // Cyan
+        '#16a34a', // Forest Green
+        '#4f46e5', // Indigo
+        '#e11d48', // Rose
+        '#ca8a04', // Gold
+        '#0d9488', // Teal
+        '#9333ea', // Deep Violet
+    ];
+
+    // Custom DataLabels Plugin: Renders floating rounded pill badges above each data point
+    const smtTrendDataLabelsPlugin = {
+        id: 'smtTrendDataLabelsPlugin',
+        afterDatasetsDraw(chart) {
+            // Show data label badges when up to 6 lines are displayed
+            if (chart.data.datasets.length > 6) return;
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.font = '600 10.5px "Prompt", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            chart.data.datasets.forEach((dataset, datasetIdx) => {
+                const meta = chart.getDatasetMeta(datasetIdx);
+                if (meta.hidden) return;
+
+                meta.data.forEach((element, pointIdx) => {
+                    const val = dataset.data[pointIdx];
+                    if (val === null || val === undefined || isNaN(val)) return;
+
+                    let text = '';
+                    const absVal = Math.abs(val);
+                    if (absVal >= 1000000) {
+                        text = (val / 1000000).toFixed(2) + 'M';
+                    } else if (absVal >= 10000) {
+                        text = (val / 1000).toFixed(1) + 'k';
+                    } else if (absVal > 0) {
+                        text = Number(val).toLocaleString(undefined, {maximumFractionDigits: 0});
+                    } else {
+                        text = '0';
+                    }
+
+                    const x = element.x;
+                    // Stagger y position slightly if multiple lines to prevent overlap
+                    const yOffset = (datasetIdx % 2 === 0) ? -16 : -30;
+                    const y = element.y + yOffset;
+
+                    const metrics = ctx.measureText(text);
+                    const boxW = Math.max(metrics.width + 12, 28);
+                    const boxH = 18;
+
+                    // Shadow for premium floating pill effect
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(15, 23, 42, 0.14)';
+                    ctx.shadowBlur = 6;
+                    ctx.shadowOffsetY = 2;
+
+                    // Draw floating rounded pill badge background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(x - (boxW / 2), y - (boxH / 2), boxW, boxH, 6);
+                    } else {
+                        ctx.rect(x - (boxW / 2), y - (boxH / 2), boxW, boxH);
+                    }
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Stroke pill border
+                    ctx.strokeStyle = dataset.borderColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(x - (boxW / 2), y - (boxH / 2), boxW, boxH, 6);
+                    } else {
+                        ctx.rect(x - (boxW / 2), y - (boxH / 2), boxW, boxH);
+                    }
+                    ctx.stroke();
+
+                    // Text label inside pill
+                    ctx.fillStyle = dataset.borderColor;
+                    ctx.fillText(text, x, y + 0.5);
+                });
+            });
+            ctx.restore();
+        }
+    };
+
+    $('#smtTrendChartModal').on('shown.bs.modal', function() {
+        if (!trendDataStore) {
+            loadTrendChartData();
+        } else {
+            if (trendChartInstance) trendChartInstance.resize();
+        }
+    });
+
+    function loadTrendChartData(year) {
+        const budgetYear = year || $('#trendSelectBudgetYear').val() || '{{ $budget_year }}';
+        $('#trendChartLoading').removeClass('d-none');
+        $('#trendChartEmptyState').addClass('d-none');
+
+        fetch("{{ route('import.smart_money.trend_data') }}?budget_year=" + encodeURIComponent(budgetYear), {
+            headers: {
+                "Accept": "application/json"
+            }
+        })
+        .then(res => res.json())
+        .then(res => {
+            $('#trendChartLoading').addClass('d-none');
+            if (res.status === 'success') {
+                trendDataStore = res;
+                $('#badgeTrendBudgetYear').text('ปีงบประมาณ ' + res.budget_year);
+                $('#countSubFunds').text(res.sub_funds.length);
+                $('#countMainFunds').text(res.main_funds.length);
+
+                // Reset selection to grand_total
+                trendSelectedKeys = new Set(['grand_total']);
+                
+                renderTrendChecklist();
+                updateTrendChartAndKpi();
+            } else {
+                Swal.fire('ผิดพลาด', res.message || 'ไม่สามารถโหลดข้อมูลกราฟได้', 'error');
+            }
+        })
+        .catch(err => {
+            $('#trendChartLoading').addClass('d-none');
+            console.error('Error loading trend data:', err);
+            Swal.fire('ผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อโหลดข้อมูลกราฟ', 'error');
+        });
+    }
+
+    function switchTrendChartMode(mode) {
+        trendCurrentMode = mode;
+        if (mode === 'sub') {
+            $('#btnTrendModeSub').css({'background-color': '#10b981', 'color': '#ffffff'});
+            $('#btnTrendModeMain').css({'background-color': 'transparent', 'color': '#cbd5e1'});
+        } else {
+            $('#btnTrendModeMain').css({'background-color': '#4f46e5', 'color': '#ffffff'});
+            $('#btnTrendModeSub').css({'background-color': 'transparent', 'color': '#cbd5e1'});
+        }
+        renderTrendChecklist();
+        updateTrendChartAndKpi();
+    }
+
+    function filterTrendFundList(val) {
+        trendSearchQuery = (val || '').toLowerCase().trim();
+        renderTrendChecklist();
+    }
+
+    function clearTrendSearch() {
+        $('#trendSearchInput').val('');
+        trendSearchQuery = '';
+        renderTrendChecklist();
+    }
+
+    function selectGrandTotalOnly() {
+        trendSelectedKeys = new Set(['grand_total']);
+        renderTrendChecklist();
+        updateTrendChartAndKpi();
+    }
+
+    function clearTrendSelection() {
+        trendSelectedKeys = new Set();
+        renderTrendChecklist();
+        updateTrendChartAndKpi();
+    }
+
+    function toggleTrendFundSelection(key) {
+        if (key === 'grand_total') {
+            trendSelectedKeys = new Set(['grand_total']);
+        } else {
+            trendSelectedKeys.delete('grand_total');
+            if (trendSelectedKeys.has(key)) {
+                trendSelectedKeys.delete(key);
+            } else {
+                trendSelectedKeys.add(key);
+            }
+        }
+        renderTrendChecklist();
+        updateTrendChartAndKpi();
+    }
+
+    function renderTrendChecklist() {
+        if (!trendDataStore) return;
+        const container = document.getElementById('trendChecklistContainer');
+        if (!container) return;
+
+        const list = trendCurrentMode === 'sub' ? trendDataStore.sub_funds : trendDataStore.main_funds;
+        let html = '';
+
+        // 1. Always show Grand Total Item at top
+        const isGrandSelected = trendSelectedKeys.has('grand_total');
+        const grandTotal = trendDataStore.grand_total;
+        
+        html += `
+            <div class="trend-item-card p-2.5 rounded-3 border mb-2 cursor-pointer transition-all ${isGrandSelected ? 'bg-primary-subtle border-primary shadow-xs' : 'bg-white'}"
+                 onclick="toggleTrendFundSelection('grand_total')" style="cursor: pointer; transition: all 0.2s ease;">
+                <div class="d-flex align-items-start gap-2">
+                    <div class="form-check mt-0.5">
+                        <input class="form-check-input" type="checkbox" ${isGrandSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleTrendFundSelection('grand_total')">
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center justify-content-between gap-1 mb-0.5">
+                            <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 10px;">
+                                <i class="bi bi-star-fill text-warning me-0.5"></i> ยอดรวมทุกกองทุน
+                            </span>
+                            <span class="fw-bold text-success font-monospace" style="font-size: 12.5px;">
+                                ${Number(grandTotal.total_amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บ.
+                            </span>
+                        </div>
+                        <div class="small fw-semibold text-dark text-truncate" title="${grandTotal.fund_main}" style="font-size: 11.5px;">
+                            ${grandTotal.fund_main}
+                        </div>
+                        <div class="text-muted d-flex align-items-center justify-content-between mt-1" style="font-size: 10.5px;">
+                            <span>${grandTotal.batch_count} งวดโอน</span>
+                            <span class="text-secondary">เฉลี่ย ${Number(grandTotal.monthly_avg).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} บ./ด.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 my-2 px-1">
+                <hr class="flex-grow-1 my-0 text-muted opacity-25">
+                <span class="text-muted small fw-bold" style="font-size: 10px;">รายการเงินโอนแยกตามกองทุน</span>
+                <hr class="flex-grow-1 my-0 text-muted opacity-25">
+            </div>
+        `;
+
+        // 2. Filter list by Search
+        let visibleCount = 0;
+        let colorIdx = 1;
+
+        list.forEach((item) => {
+            const name = (trendCurrentMode === 'sub' ? (item.fund_main + ' ' + item.fund_sub) : item.fund_name).toLowerCase();
+            const matchesSearch = !trendSearchQuery || name.includes(trendSearchQuery);
+
+            if (!matchesSearch) return;
+            visibleCount++;
+
+            const isSelected = trendSelectedKeys.has(item.key);
+            const title = trendCurrentMode === 'sub' ? item.fund_sub : item.fund_name;
+            const subtitle = trendCurrentMode === 'sub' ? item.fund_main : (item.sub_count + ' รายการย่อย');
+            const itemColor = trendColorPalette[colorIdx % trendColorPalette.length];
+            colorIdx++;
+
+            html += `
+                <div class="trend-item-card p-2 rounded-3 border mb-1.5 cursor-pointer transition-all ${isSelected ? 'bg-light-subtle border-primary shadow-2xs' : 'bg-white'}"
+                     onclick="toggleTrendFundSelection('${item.key}')" style="cursor: pointer; transition: all 0.15s ease;">
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="form-check mt-0.5">
+                            <input class="form-check-input" type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleTrendFundSelection('${item.key}')">
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center justify-content-between gap-1 mb-0.5">
+                                <div class="d-flex align-items-center gap-1.5 overflow-hidden flex-grow-1 min-w-0">
+                                    <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 9px; height: 9px; background-color: ${itemColor};"></span>
+                                    <span class="small fw-semibold text-dark text-truncate" title="${title}" style="font-size: 11.5px;">
+                                        ${title}
+                                    </span>
+                                </div>
+                                <span class="fw-bold text-dark font-monospace text-nowrap ms-1" style="font-size: 11.5px;">
+                                    ${Number(item.total_amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บ.
+                                </span>
+                            </div>
+                            <div class="text-muted d-flex align-items-center justify-content-between mt-1" style="font-size: 10px;">
+                                <span class="text-truncate text-secondary" style="max-width: 180px;" title="${subtitle}">${subtitle}</span>
+                                <span class="badge bg-light text-secondary border px-1.5">${item.batch_count} งวด</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (visibleCount === 0) {
+            html += `
+                <div class="text-center text-muted py-4 small">
+                    <i class="bi bi-search fs-3 text-secondary opacity-50 mb-1 d-block"></i>
+                    ไม่พบรายการกองทุนที่ตรงกับคำค้นหา
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+        $('#trendSelectedCount').text(trendSelectedKeys.size);
+        $('#trendListTotalCount').text('/ ' + list.length + ' รายการ');
+    }
+
+    function updateTrendChartAndKpi() {
+        if (!trendDataStore) return;
+        const canvas = document.getElementById('canvasSmartMoneyTrendChart');
+        if (!canvas) return;
+
+        const labels = trendDataStore.labels;
+        const isGrand = trendSelectedKeys.has('grand_total');
+        const list = trendCurrentMode === 'sub' ? trendDataStore.sub_funds : trendDataStore.main_funds;
+
+        let datasets = [];
+        let combinedMonthlySums = array_fill_zero(12);
+        let totalSum = 0;
+        let totalBatches = 0;
+
+        if (isGrand) {
+            const grand = trendDataStore.grand_total;
+            totalSum = grand.total_amount;
+            totalBatches = grand.batch_count;
+            combinedMonthlySums = [...grand.monthly_amounts];
+
+            // Area Gradient
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 380);
+            gradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
+            gradient.addColorStop(0.6, 'rgba(37, 99, 235, 0.05)');
+            gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
+
+            datasets.push({
+                label: 'ยอดเงินโอนรวมทุกกองทุน (บาท)',
+                data: grand.monthly_amounts,
+                borderColor: '#2563eb',
+                backgroundColor: gradient,
+                fill: true,
+                borderWidth: 3,
+                tension: 0.38,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 2.5,
+                batches: grand.monthly_batches
+            });
+        } else if (trendSelectedKeys.size > 0) {
+            let colorIdx = 0;
+            trendSelectedKeys.forEach(key => {
+                const item = list.find(x => x.key === key);
+                if (item) {
+                    totalSum += item.total_amount;
+                    totalBatches += item.batch_count;
+                    const itemColor = trendColorPalette[colorIdx % trendColorPalette.length];
+                    colorIdx++;
+
+                    for (let i = 0; i < 12; i++) {
+                        combinedMonthlySums[i] += item.monthly_amounts[i];
+                    }
+
+                    const label = trendCurrentMode === 'sub' ? item.fund_sub : item.fund_name;
+
+                    datasets.push({
+                        label: label,
+                        data: item.monthly_amounts,
+                        borderColor: itemColor,
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        borderWidth: 2.8,
+                        tension: 0.38,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: itemColor,
+                        pointBorderWidth: 2.5,
+                        batches: item.monthly_batches
+                    });
+                }
+            });
+        }
+
+        // Empty state check
+        if (datasets.length === 0) {
+            $('#trendChartEmptyState').removeClass('d-none');
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
+                trendChartInstance = null;
+            }
+            $('#kpiTrendTotalSum').text('0.00 บ.');
+            $('#kpiTrendMonthlyAvg').text('0.00 บ.');
+            $('#kpiTrendPeakMonth').text('-');
+            $('#kpiTrendTotalBatches').text('0 งวด');
+            return;
+        } else {
+            $('#trendChartEmptyState').addClass('d-none');
+        }
+
+        // Calculate KPI
+        const monthlyAvg = totalSum / 12;
+        const peakVal = Math.max(...combinedMonthlySums);
+        const peakIdx = combinedMonthlySums.indexOf(peakVal);
+        const peakLabel = (peakIdx >= 0 && peakVal > 0) ? (labels[peakIdx] + ' (' + formatCompactMillions(peakVal) + ')') : '-';
+
+        $('#kpiTrendTotalSum').text(Number(totalSum).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.');
+        $('#kpiTrendMonthlyAvg').text(Number(monthlyAvg).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บ.');
+        $('#kpiTrendPeakMonth').text(peakLabel);
+        $('#kpiTrendTotalBatches').text(Number(totalBatches).toLocaleString() + ' งวด');
+
+        // Draw Chart.js with floating data labels plugin
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            plugins: [smtTrendDataLabelsPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: datasets.length > 1,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { size: 11.5, family: 'Prompt, sans-serif' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { size: 13, weight: 'bold', family: 'Prompt, sans-serif' },
+                        bodyFont: { size: 12, family: 'Prompt, sans-serif' },
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw || 0;
+                                const ds = context.dataset;
+                                const batch = (ds.batches && ds.batches[context.dataIndex]) ? ds.batches[context.dataIndex] : 0;
+                                return ' ' + context.dataset.label + ': ' + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บาท (' + batch + ' งวด)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { font: { size: 11, weight: 'bold', family: 'Prompt, sans-serif' }, color: '#475569' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grace: '20%', // ensure floating value badges at top peaks are never clipped
+                        grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                        ticks: {
+                            font: { size: 11, family: 'Prompt, sans-serif' },
+                            color: '#64748b',
+                            callback: function(val) {
+                                return formatCompactMillions(val);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function formatCompactMillions(val) {
+        if (!val || val === 0) return '0.0';
+        if (Math.abs(val) >= 1000000) {
+            return (val / 1000000).toFixed(2) + 'M';
+        }
+        if (Math.abs(val) >= 1000) {
+            return (val / 1000).toFixed(1) + 'k';
+        }
+        return Number(val).toLocaleString();
+    }
+
+    function array_fill_zero(len) {
+        return new Array(len).fill(0);
+    }
+
+    function downloadTrendChartPng() {
+        if (!trendChartInstance) {
+            Swal.fire('ข้อความ', 'ไม่มีกราฟที่สามารถบันทึกได้', 'info');
+            return;
+        }
+        const canvas = document.getElementById('canvasSmartMoneyTrendChart');
+        if (!canvas) return;
+
+        // Create a temporary canvas with white background
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = canvas.width;
+        tmpCanvas.height = canvas.height;
+        const tmpCtx = tmpCanvas.getContext('2d');
+
+        tmpCtx.fillStyle = '#ffffff';
+        tmpCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+        tmpCtx.drawImage(canvas, 0, 0);
+
+        const imageUri = tmpCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        const year = (trendDataStore && trendDataStore.budget_year) ? trendDataStore.budget_year : '2568';
+        link.download = `SmartMoney_Trend_12Months_${year}.png`;
+        link.href = imageUri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 @endpush

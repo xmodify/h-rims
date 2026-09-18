@@ -21,6 +21,9 @@
 
         {{-- Actions --}}
         <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-info btn-sm rounded-pill px-3 shadow-sm fw-semibold text-white" onclick="syncDetailFromSmt('{{ $batch->batch_no }}')">
+                <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงรายคนจาก SMT
+            </button>
             <a href="{{ route('import.smart_money.detail', [$batch->batch_no, 'export' => 'excel']) }}"
                 class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-semibold text-white">
                 <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
@@ -280,5 +283,64 @@
             Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการส่งไฟล์', 'error');
         });
     });
+
+    window.syncDetailFromSmt = function(batchNo) {
+        if (!batchNo) return;
+        Swal.fire({
+            title: 'กำลังดึงข้อมูลรายคน...',
+            html: `
+                <div class="text-center p-3">
+                    <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคล...</div>
+                    <div class="small text-muted">ระบบจะค้นหาจากฐานข้อมูลและดาวน์โหลดรายงานจาก SMT อัตโนมัติ</div>
+                </div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            customClass: { popup: 'rounded-4' }
+        });
+
+        $.ajax({
+            url: "{{ url('import/smart-money/sync-detail') }}/" + encodeURIComponent(batchNo),
+            type: "POST",
+            data: {
+                _token: "{{ csrf_token() }}"
+            },
+            success: function(res) {
+                if (res && res.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ดึงข้อมูลสำเร็จ!',
+                        html: `
+                            <div class="text-start p-3 bg-light rounded-4 small">
+                                <div class="text-success fw-bold mb-1"><i class="bi bi-check-circle-fill me-1"></i> ${res.message}</div>
+                                <div class="text-muted">จำนวนผู้ป่วย: <strong>${(res.count || 0).toLocaleString()}</strong> รายการ</div>
+                                <div class="text-muted">ยอดเงินรวม: <strong>${res.total_amount_formatted || '0.00'}</strong> บาท</div>
+                            </div>
+                        `,
+                        customClass: { popup: 'rounded-4' }
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่สามารถดึงข้อมูลได้',
+                        text: res.message || 'ไม่พบรายงานรายบุคคลในระบบ',
+                        customClass: { popup: 'rounded-4' }
+                    });
+                }
+            },
+            error: function(err) {
+                var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: msg,
+                    customClass: { popup: 'rounded-4' }
+                });
+            }
+        });
+    };
 </script>
 @endpush

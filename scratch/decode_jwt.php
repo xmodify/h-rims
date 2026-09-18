@@ -7,14 +7,15 @@ $kernel->bootstrap();
 use Illuminate\Support\Facades\DB;
 
 $user = DB::table('users')->where('id', 3)->first();
-$token = $user->eclaim_session_token;
+preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $user->eclaim_session_token, $m);
+$jwt = $m[1] ?? null;
 
-if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
-    $jwt = $m[1];
-    $parts = explode('.', $jwt);
-    $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-    echo "ACCESS_TOKEN Payload:\n";
-    print_r(array_intersect_key($payload, array_flip(['sub', 'name', 'preferred_username', 'email', 'hospMain', 'iss', 'aud', 'exp', 'scope', 'resource_access'])));
-} else {
-    echo "No ACCESS_TOKEN found\n";
-}
+$parts = explode('.', $jwt);
+$header = json_decode(base64_decode(strtr($parts[0], '-_', '+/')), true);
+$payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+echo "=== HEADER ===\n";
+print_r($header);
+
+echo "=== PAYLOAD ===\n";
+print_r($payload);

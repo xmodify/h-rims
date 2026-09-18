@@ -4,36 +4,44 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
-$user = DB::table('users')->where('id', 3)->first();
-$cookieString = $user->eclaim_session_token;
+$tokenData = json_decode(file_get_contents(__DIR__ . '/smt_token.json'), true);
+$token = $tokenData['token'];
 
-// Extract Bearer ACCESS_TOKEN if available
-$bearerToken = null;
-if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $cookieString, $m)) {
-    $bearerToken = $m[1];
-}
+echo "=== Calling /adapter/report/person/dmis with SMT token ===\n";
 
-echo "Testing connection to smt.nhso.go.th...\n";
-echo "Bearer Token present: " . ($bearerToken ? 'YES' : 'NO') . "\n";
-
-// Test 1: Fetch root / homepage of SMTF to see how it loads scripts
 $headers = [
-    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+    'Authorization' => 'Bearer ' . $token,
     'Accept' => 'application/json, text/plain, */*',
-    'Cookie' => $cookieString,
+    'Content-Type' => 'application/json',
+    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Origin' => 'https://smt.nhso.go.th',
+    'Referer' => 'https://smt.nhso.go.th/smtf/',
 ];
 
-if ($bearerToken) {
-    $headers['Authorization'] = 'Bearer ' . $bearerToken;
-}
+// Let's test payload for DCKD6931080031
+// Route was: /home/budget/summary-detail-dmis/:refDocNo/:vendorId/:postingDate/:batchNo/:sfundCd/:efundCd
+// DCKD6931080031/10989/25690915/3270/13/1?mophId=1102050101.216/217
 
-try {
-    $res = Http::withHeaders($headers)->withoutVerifying()->timeout(10)->get('https://smt.nhso.go.th/smtf/');
-    echo "SMTF Root Status: " . $res->status() . "\n";
-    echo "SMTF Body snippet: " . substr($res->body(), 0, 500) . "\n";
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+$payloads = [
+    [
+        'refDocNo' => 'DCKD6931080031',
+        'vendorId' => '10989',
+        'postingDate' => '25690915',
+        'batchNo' => '3270',
+        'sfundCd' => '13',
+        'efundCd' => '1',
+    ],
+    [
+        'docNo' => 'DCKD6931080031',
+        'hcode' => '10989',
+    ]
+];
+
+foreach ($payloads as $p) {
+    echo "Testing payload: " . json_encode($p) . "\n";
+    $res = Http::withoutVerifying()->withHeaders($headers)->post('https://smt.nhso.go.th/adapter/report/person/dmis', $p);
+    echo "Status: " . $res->status() . "\n";
+    echo "Body: " . substr($res->body(), 0, 300) . "\n\n";
 }

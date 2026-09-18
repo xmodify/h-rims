@@ -727,6 +727,10 @@
                                     <i class="bi bi-people me-1 text-primary"></i> 0 รายการ (0.00 บาท)
                                 </span>
 
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_sync_smt" title="ดึงรายชื่อผู้ป่วยรายบุคคลจากระบบ SMT อัตโนมัติ">
+                                    <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงรายคนจาก SMT
+                                </button>
+
                                 <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_export">
                                     <i class="bi bi-file-earmark-excel-fill me-1"></i> ส่งออก Excel
                                 </button>
@@ -1729,13 +1733,14 @@
                         var fundName = item.fund_main || item.account_code || '';
 
                         var currentNumber = i + 1;
-                        $('#smtProgressStep').text(`กำลังบันทึกรายการที่ ${currentNumber} จาก ${totalItems}`);
-                        $('#smtProgressStatusText').html(`Batch <strong>${batchNo}</strong> (งวด: <strong>${roundNo}</strong>) ${fundName ? '- ' + fundName : ''}`);
+                        $('#smtProgressStep').text(`กำลังนำเข้ารายการที่ ${currentNumber} จาก ${totalItems}`);
+                        $('#smtProgressStatusText').html(`Batch <strong>${batchNo}</strong> (งวด: <strong>${roundNo}</strong>) - กำลังบันทึกและดึงข้อมูลรายคนจาก SMT...`);
 
                         try {
                             var res = await $.ajax({
                                 url: "{{ route('import.smart_money.import_bot') }}",
                                 method: "POST",
+                                timeout: 180000,
                                 data: {
                                     _token: "{{ csrf_token() }}",
                                     items: [item]
@@ -2147,8 +2152,15 @@
                             <tr>
                                 <td colspan="11" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
-                                    ไม่พบรายการรายบุคคลใน Batch นี้
-                                    <div class="small mt-1 text-primary">ท่านสามารถกดปุ่ม "นำเข้าไฟล์รายบุคคล" ด้านบนเพื่อนำเข้าไฟล์ Excel 6908_OP หรือ 6908_IP</div>
+                                    ยังไม่พบรายการรายบุคคลใน Batch นี้
+                                    <div class="mt-3 d-flex justify-content-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="syncPatientDetailFromSmt(currentModalBatchNo)">
+                                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงข้อมูลรายคนจาก SMT อัตโนมัติ
+                                        </button>
+                                        <label for="pmodal_upload_file" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm mb-0" style="cursor: pointer;">
+                                            <i class="bi bi-upload me-1"></i> นำเข้าไฟล์ Excel
+                                        </label>
+                                    </div>
                                 </td>
                             </tr>
                         `);
@@ -2344,6 +2356,71 @@
                     customClass: { popup: 'rounded-4' }
                 });
             });
+        });
+
+        // Sync Patient Detail from SMT (Live Download or Local STM Sync)
+        window.syncPatientDetailFromSmt = function(batchNo) {
+            if (!batchNo) return;
+            Swal.fire({
+                title: 'กำลังดึงข้อมูลรายคน...',
+                html: `
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคล...</div>
+                        <div class="small text-muted">ระบบจะค้นหาจากฐานข้อมูลและดาวน์โหลดรายงานจาก SMT อัตโนมัติ</div>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-4' }
+            });
+
+            $.ajax({
+                url: "{{ url('import/smart-money/sync-detail') }}/" + encodeURIComponent(batchNo),
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(res) {
+                    if (res && res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ดึงข้อมูลสำเร็จ!',
+                            html: `
+                                <div class="text-start p-3 bg-light rounded-4 small">
+                                    <div class="text-success fw-bold mb-1"><i class="bi bi-check-circle-fill me-1"></i> ${res.message}</div>
+                                    <div class="text-muted">จำนวนผู้ป่วย: <strong>${(res.count || 0).toLocaleString()}</strong> รายการ</div>
+                                    <div class="text-muted">ยอดเงินรวม: <strong>${res.total_amount_formatted || '0.00'}</strong> บาท</div>
+                                </div>
+                            `,
+                            customClass: { popup: 'rounded-4' }
+                        }).then(() => {
+                            loadPatientModalData(batchNo, 1, '');
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่สามารถดึงข้อมูลได้',
+                            text: res.message || 'ไม่พบรายงานรายบุคคลในระบบ',
+                            customClass: { popup: 'rounded-4' }
+                        });
+                    }
+                },
+                error: function(err) {
+                    var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: msg,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                }
+            });
+        };
+
+        $('#pmodal_btn_sync_smt').on('click', function() {
+            if (!currentModalBatchNo) return;
+            syncPatientDetailFromSmt(currentModalBatchNo);
         });
 
         // Delete Batch

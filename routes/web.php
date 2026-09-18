@@ -268,6 +268,7 @@ Route::post('import/smart-money/sync-bot', [SmartMoneyController::class, 'syncBo
 Route::post('import/smart-money/search-bot', [SmartMoneyController::class, 'searchBotStatements'])->name('import.smart_money.search_bot');
 Route::post('import/smart-money/import-bot', [SmartMoneyController::class, 'importBotStatements'])->name('import.smart_money.import_bot');
 Route::post('import/smart-money/delete', [SmartMoneyController::class, 'deleteBatch'])->name('import.smart_money.delete');
+Route::post('import/smart-money/sync-detail/{batch_no}', [SmartMoneyController::class, 'syncDetailFromSmt'])->name('import.smart_money.sync_detail');
 Route::get('import/smart-money/trend-data', [SmartMoneyController::class, 'getTrendData'])->name('import.smart_money.trend_data');
 
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');

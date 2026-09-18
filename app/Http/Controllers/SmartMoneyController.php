@@ -657,10 +657,11 @@ class SmartMoneyController extends Controller
                 }
 
                 // 3. Find Table Header Row (HN, ชื่อ-สกุล, จ่ายชดเชยสุทธิ)
+                // 3. Find Table Header Row (HN, เลขบัตร, ชื่อ-สกุล, จ่ายชดเชยสุทธิ)
                 $headerRowIdx = -1;
                 foreach ($rows as $idx => $row) {
                     $rowStr = implode(' ', array_filter($row, fn($v) => $v !== null && $v !== ''));
-                    if (stripos($rowStr, 'HN') !== false && stripos($rowStr, 'ชื่อ-สกุล') !== false && (stripos($rowStr, 'จ่ายชดเชยสุทธิ') !== false || stripos($rowStr, 'วันที่เข้ารับบริการ') !== false)) {
+                    if (str_contains($rowStr, 'HN') || str_contains($rowStr, 'เลขบัตร') || str_contains($rowStr, 'จ่ายชดเชย') || str_contains($rowStr, 'ชื่อ-สกุล') || str_contains($rowStr, 'ลำดับ')) {
                         $headerRowIdx = $idx;
                         break;
                     }
@@ -672,81 +673,198 @@ class SmartMoneyController extends Controller
                 $colMap = [];
                 foreach ($headers as $cIdx => $name) {
                     $trimmed = trim((string)$name);
-                    if (stripos($trimmed, 'วันที่โอน') !== false) $colMap['transfer_date'] = $cIdx;
-                    elseif ($trimmed === 'HN') $colMap['hn'] = $cIdx;
-                    elseif ($trimmed === 'AN') $colMap['an'] = $cIdx;
-                    elseif (stripos($trimmed, 'ประเภท') !== false) $colMap['pt_type'] = $cIdx;
-                    elseif (stripos($trimmed, 'เลขบัตรประชาชน') !== false || stripos($trimmed, 'PID') !== false) $colMap['cid'] = $cIdx;
-                    elseif (stripos($trimmed, 'ชื่อ-สกุล') !== false) $colMap['pt_name'] = $cIdx;
-                    elseif (stripos($trimmed, 'วันที่เข้ารับบริการ') !== false) $colMap['vstdate'] = $cIdx;
-                    elseif (stripos($trimmed, 'จ่ายชดเชยสุทธิ') !== false) $colMap['receive_total'] = $cIdx;
-                    elseif (stripos($trimmed, 'REP_NO') !== false || stripos($trimmed, 'REP') !== false) $colMap['repno'] = $cIdx;
-                    elseif (stripos($trimmed, 'กองทุนหลัก') !== false) $colMap['main_fund'] = $cIdx;
-                    elseif (stripos($trimmed, 'กองทุนย่อย') !== false) $colMap['sub_fund'] = $cIdx;
-                    elseif (stripos($trimmed, 'รายละเอียด') !== false) $colMap['sub_fund_desc'] = $cIdx;
-                    elseif (stripos($trimmed, 'Hsend') !== false) $colMap['hsend'] = $cIdx;
-                    elseif (stripos($trimmed, 'Hcode') !== false) $colMap['hcode'] = $cIdx;
-                    elseif (stripos($trimmed, 'seq_no') !== false || stripos($trimmed, 'seq') !== false) $colMap['seq_no'] = $cIdx;
-                    elseif (stripos($trimmed, 'invoice_no') !== false) $colMap['invoice_no'] = $cIdx;
-                    elseif (stripos($trimmed, 'invoice_lt') !== false) $colMap['invoice_lt'] = $cIdx;
+                    if ($trimmed) {
+                        $colMap[$trimmed] = $cIdx;
+                    }
+                }
+
+                // Map column indexes by priority
+                $colIdxSeq = null;
+                $colIdxRepNo = null;
+                $colIdxTransId = null;
+                $colIdxHn = null;
+                $colIdxAn = null;
+                $colIdxCid = null;
+                $colIdxName = null;
+                $colIdxPtType = null;
+                $colIdxRegDate = null;
+                $colIdxVstDate = null;
+                $colIdxMainFund = null;
+                $colIdxSubFund = null;
+                $colIdxSubFundDesc = null;
+                $colIdxHCode = null;
+                $colIdxNetPaid = null;
+
+                foreach ($colMap as $name => $cIdx) {
+                    $clean = mb_strtolower(preg_replace('/\s+/', ' ', $name));
+                    
+                    // Paid Net Amount (Critical: prioritize 'จ่ายชดเชยสุทธิ' and NOT 'ไม่ชดเชย')
+                    if (str_contains($clean, 'ไม่ชดเชย') || str_contains($clean, 'ไม่จ่าย')) {
+                        continue;
+                    }
+                    if (str_contains($clean, 'จ่ายชดเชยสุทธิ') || str_contains($clean, 'ชดเชยสุทธิ') || str_contains($clean, 'จ่ายสุทธิ')) {
+                        $colIdxNetPaid = $cIdx;
+                    } elseif ($colIdxNetPaid === null && (str_contains($clean, 'จ่ายชดเชย') || str_contains($clean, 'จ่ายจริง') || str_contains($clean, 'ชดเชย'))) {
+                        $colIdxNetPaid = $cIdx;
+                    } elseif ($colIdxNetPaid === null && (str_contains($clean, 'จำนวนเงิน') || str_contains($clean, 'ยอดเงิน'))) {
+                        $colIdxNetPaid = $cIdx;
+                    }
+
+                    // Trans ID / Invoice No
+                    if (str_contains($clean, 'trans id') || str_contains($clean, 'transid') || str_contains($clean, 'เลขที่ใบแจ้งหนี้') || str_contains($clean, 'invoice_no')) {
+                        $colIdxTransId = $cIdx;
+                    }
+
+                    // Rep No / Round
+                    if (str_contains($clean, 'rep no') || str_contains($clean, 'repno') || str_contains($clean, 'งวด')) {
+                        $colIdxRepNo = $cIdx;
+                    }
+
+                    // HN
+                    if ($clean === 'hn' || preg_match('/\bhn\b/i', $name)) {
+                        $colIdxHn = $cIdx;
+                    }
+
+                    // AN
+                    if ($clean === 'an' || preg_match('/\ban\b/i', $name)) {
+                        $colIdxAn = $cIdx;
+                    }
+
+                    // CID / PID
+                    if (str_contains($clean, 'เลขบัตรประชาชน') || str_contains($clean, 'บัตรประชาชน') || str_contains($clean, 'pid') || str_contains($clean, 'vctid') || str_contains($clean, 'เลขบัตร')) {
+                        $colIdxCid = $cIdx;
+                    }
+
+                    // Name
+                    if (str_contains($clean, 'ชื่อ-สกุล') || str_contains($clean, 'ชื่อ') || str_contains($clean, 'นามสกุล')) {
+                        $colIdxName = $cIdx;
+                    }
+
+                    // Patient Type / Rights
+                    if (str_contains($clean, 'สิทธิ์') || str_contains($clean, 'ประเภทผู้ป่วย') || str_contains($clean, 'สิทธิ')) {
+                        $colIdxPtType = $cIdx;
+                    }
+
+                    // Visit Date
+                    if (str_contains($clean, 'วันที่เข้ารับบริการ') || str_contains($clean, 'วันรับบริการ') || str_contains($clean, 'vstdate')) {
+                        $colIdxVstDate = $cIdx;
+                    } elseif (str_contains($clean, 'วันที่') || str_contains($clean, 'date')) {
+                        if ($colIdxRegDate === null) $colIdxRegDate = $cIdx;
+                    }
+
+                    // Funds
+                    if (str_contains($clean, 'sys_code') || str_contains($clean, 'กองทุนหลัก')) {
+                        $colIdxMainFund = $cIdx;
+                    }
+                    if (str_contains($clean, 'item_code') || str_contains($clean, 'subfund') || str_contains($clean, 'กองทุนย่อย')) {
+                        $colIdxSubFund = $cIdx;
+                    }
+                    if (str_contains($clean, 'ความหมาย subfund') || str_contains($clean, 'รายการ/ประเภทที่ขอเบิก') || str_contains($clean, 'รายการที่ขอเบิก') || str_contains($clean, 'รายละเอียด')) {
+                        $colIdxSubFundDesc = $cIdx;
+                    }
+
+                    // HCode
+                    if (str_contains($clean, 'hcode') || str_contains($clean, 'รหัสหน่วยบริการ')) {
+                        $colIdxHCode = $cIdx;
+                    }
+
+                    // Sequence
+                    if (str_contains($clean, 'ลำดับที่') || str_contains($clean, 'ลำดับ') || str_contains($clean, 'seq')) {
+                        if ($colIdxSeq === null) $colIdxSeq = $cIdx;
+                    }
                 }
 
                 $fileCount = 0;
+                $lastHnByCid = [];
                 DB::beginTransaction();
 
                 for ($i = $headerRowIdx + 1; $i < count($rows); $i++) {
                     $row = $rows[$i];
                     if (empty(array_filter($row, fn($v) => $v !== null && trim((string)$v) !== ''))) continue;
 
-                    $hn = trim((string)($row[$colMap['hn'] ?? 2] ?? ''));
-                    if (empty($hn) || $hn === 'รวม') continue;
+                    // Check total row
+                    $firstCol = trim((string)($row[0] ?? ''));
+                    if (str_contains($firstCol, 'รวม') || str_contains($firstCol, 'Total')) continue;
 
-                    $an = trim((string)($row[$colMap['an'] ?? 3] ?? ''));
-                    $transferDate = $this->parseDate($row[$colMap['transfer_date'] ?? 1] ?? '');
-                    $ptType = trim((string)($row[$colMap['pt_type'] ?? 4] ?? ''));
-                    $cid = trim((string)($row[$colMap['cid'] ?? 5] ?? ''));
-                    $ptName = trim((string)($row[$colMap['pt_name'] ?? 6] ?? ''));
-                    $vstdate = $this->parseDate($row[$colMap['vstdate'] ?? 7] ?? '');
-                    $receiveTotal = $this->cleanNumber($row[$colMap['receive_total'] ?? 8] ?? 0);
-                    $repno = trim((string)($row[$colMap['repno'] ?? 9] ?? ''));
-                    $mainFund = trim((string)($row[$colMap['main_fund'] ?? 10] ?? ''));
-                    $subFund = trim((string)($row[$colMap['sub_fund'] ?? 11] ?? ''));
-                    $subFundDesc = trim((string)($row[$colMap['sub_fund_desc'] ?? 12] ?? ''));
-                    $hsend = trim((string)($row[$colMap['hsend'] ?? 13] ?? ''));
-                    $hcode = trim((string)($row[$colMap['hcode'] ?? 14] ?? ''));
-                    $seqNo = isset($colMap['seq_no']) ? trim((string)($row[$colMap['seq_no']] ?? '')) : null;
-                    $invoiceNo = isset($colMap['invoice_no']) ? trim((string)($row[$colMap['invoice_no']] ?? '')) : null;
-                    $invoiceLt = isset($colMap['invoice_lt']) ? trim((string)($row[$colMap['invoice_lt']] ?? '')) : null;
+                    $seqNo = $colIdxSeq !== null ? trim((string)($row[$colIdxSeq] ?? '')) : null;
+                    $repno = $colIdxRepNo !== null ? trim((string)($row[$colIdxRepNo] ?? '')) : $round_no;
+                    $invoiceNo = $colIdxTransId !== null ? trim((string)($row[$colIdxTransId] ?? '')) : null;
+                    $hn = $colIdxHn !== null ? trim((string)($row[$colIdxHn] ?? '')) : '';
+                    $an = $colIdxAn !== null ? trim((string)($row[$colIdxAn] ?? '')) : null;
+                    $cid = $colIdxCid !== null ? trim((string)($row[$colIdxCid] ?? '')) : '';
+                    $ptName = $colIdxName !== null ? trim((string)($row[$colIdxName] ?? '')) : '';
+                    $ptType = $colIdxPtType !== null ? trim((string)($row[$colIdxPtType] ?? '')) : '';
+                    $mainFund = $colIdxMainFund !== null ? trim((string)($row[$colIdxMainFund] ?? '')) : '';
+                    $subFund = $colIdxSubFund !== null ? trim((string)($row[$colIdxSubFund] ?? '')) : '';
+                    $subFundDesc = $colIdxSubFundDesc !== null ? trim((string)($row[$colIdxSubFundDesc] ?? '')) : '';
+                    $hcode = $colIdxHCode !== null ? trim((string)($row[$colIdxHCode] ?? '')) : '10989';
+
+                    // Parse visit date
+                    $vstRaw = '';
+                    if ($colIdxVstDate !== null && !empty($row[$colIdxVstDate])) {
+                        $vstRaw = trim((string)$row[$colIdxVstDate]);
+                    } elseif ($colIdxRegDate !== null && !empty($row[$colIdxRegDate])) {
+                        $vstRaw = trim((string)$row[$colIdxRegDate]);
+                    }
+                    $vstdate = $this->parseDate($vstRaw);
+
+                    // Parse paid amount
+                    $receiveTotal = 0.00;
+                    if ($colIdxNetPaid !== null && isset($row[$colIdxNetPaid])) {
+                        $receiveTotal = $this->cleanNumber($row[$colIdxNetPaid]);
+                    }
+
+                    // Backfill HN from CID
+                    if (!empty($cid)) {
+                        if (!empty($hn)) {
+                            $lastHnByCid[$cid] = $hn;
+                        } elseif (isset($lastHnByCid[$cid])) {
+                            $hn = $lastHnByCid[$cid];
+                        }
+                    }
+
+                    if (empty($hn) && empty($cid) && empty($ptName)) continue;
 
                     // Derive budget year if not set
                     $rowBYear = $budget_year;
-                    if (!$rowBYear && $transferDate) {
-                        $rowBYear = $this->getBudgetYear($transferDate);
+                    if (!$rowBYear && $batch) {
+                        $rowBYear = $batch->budget_year;
+                    }
+                    if (!$rowBYear && $vstdate) {
+                        $rowBYear = $this->getBudgetYear($vstdate);
                     }
 
-                    SmartMoneyDetail::updateOrInsert(
-                        [
-                            'round_no' => $round_no,
-                            'hn' => $hn,
-                            'an' => !empty($an) ? $an : null,
-                            'vstdate' => $vstdate,
-                            'repno' => $repno,
-                            'sub_fund' => $subFund,
-                        ],
+                    $matchAttributes = [
+                        'round_no' => $round_no,
+                    ];
+                    if ($invoiceNo) {
+                        $matchAttributes['invoice_no'] = $invoiceNo;
+                    } elseif ($seqNo) {
+                        $matchAttributes['seq_no'] = $seqNo;
+                    } else {
+                        $matchAttributes['hn'] = $hn;
+                        if ($vstdate) $matchAttributes['vstdate'] = $vstdate;
+                        if ($subFund) $matchAttributes['sub_fund'] = $subFund;
+                    }
+
+                    SmartMoneyDetail::updateOrCreate(
+                        $matchAttributes,
                         [
                             'batch_no' => $batch_no,
-                            'transfer_date' => $transferDate ?: ($batch ? $batch->transfer_date : null),
+                            'transfer_date' => $batch ? $batch->transfer_date : null,
+                            'hn' => $hn,
+                            'an' => !empty($an) ? $an : null,
                             'pt_type' => $ptType ?: (!empty($an) ? 'ผู้ป่วยใน' : 'ผู้ป่วยนอก'),
                             'cid' => $cid,
                             'pt_name' => $ptName,
                             'receive_total' => $receiveTotal,
+                            'repno' => $repno,
                             'main_fund' => $mainFund,
+                            'sub_fund' => $subFund,
                             'sub_fund_desc' => $subFundDesc,
-                            'hsend' => $hsend,
                             'hcode' => $hcode,
                             'seq_no' => $seqNo,
                             'invoice_no' => $invoiceNo,
-                            'invoice_lt' => $invoiceLt,
                             'budget_year' => $rowBYear,
                         ]
                     );
@@ -1289,6 +1407,8 @@ class SmartMoneyController extends Controller
      */
     public function importBotStatements(Request $request)
     {
+        ini_set('max_execution_time', 300);
+
         $items = $request->items;
         if (empty($items) || !is_array($items)) {
             return response()->json(['status' => 'error', 'message' => 'กรุณาเลือกรายการที่ต้องการนำเข้าอย่างน้อย 1 รายการ'], 400);
@@ -1298,6 +1418,7 @@ class SmartMoneyController extends Controller
         $updatedCount = 0;
         $syncedStmCount = 0;
         $syncedDetailsCount = 0;
+        $savedBatches = [];
 
         DB::beginTransaction();
         try {
@@ -1382,37 +1503,51 @@ class SmartMoneyController extends Controller
                     $insertedCount++;
                 }
 
-                // Auto-import matching detail patient records if available
-                $syncedDetailsCount += $this->autoImportMatchingDetailFiles($batch->batch_no, $batch->round_no, $batch->account_code, $batch->budget_year);
-
-                // If receipt exists, sync to STM tables automatically
-                if (!empty($batch->receive_no) && !empty($batch->round_no)) {
-                    $synced = $this->syncReceiptToAllStmTables($batch->round_no, $batch->receive_no, $batch->receipt_date, $batch->receipt_by);
-                    $syncedStmCount += $synced;
-                }
+                $savedBatches[] = $batch;
             }
 
             DB::commit();
-
-            $msg = 'นำเข้าข้อมูล Smart Money สำเร็จ ' . count($items) . ' รายการ';
-            if ($syncedDetailsCount > 0) {
-                $msg .= " (พร้อมดึงข้อมูลผู้ป่วยรายบุคคล $syncedDetailsCount รายการ)";
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'message' => $msg,
-                'total' => count($items),
-                'inserted' => $insertedCount,
-                'updated' => $updatedCount,
-                'synced_stm' => $syncedStmCount,
-                'synced_details' => $syncedDetailsCount,
-            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('SmartMoney importBotStatements error: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage()], 500);
         }
+
+        // Process patient details strictly from Smart Money Transfer (SMTF)
+        foreach ($savedBatches as $batch) {
+            try {
+                $syncedDetailsCount += $this->autoImportMatchingDetailFiles(
+                    $batch->batch_no,
+                    $batch->round_no,
+                    $batch->account_code,
+                    $batch->budget_year,
+                    $batch->transfer_date
+                );
+            } catch (\Exception $e) {
+                Log::warning("Auto-import details warning for batch {$batch->batch_no}: " . $e->getMessage());
+            }
+
+            // If receipt exists, sync to STM tables automatically
+            if (!empty($batch->receive_no) && !empty($batch->round_no)) {
+                $synced = $this->syncReceiptToAllStmTables($batch->round_no, $batch->receive_no, $batch->receipt_date, $batch->receipt_by);
+                $syncedStmCount += $synced;
+            }
+        }
+
+        $msg = 'นำเข้าข้อมูล Smart Money สำเร็จ ' . count($items) . ' รายการ';
+        if ($syncedDetailsCount > 0) {
+            $msg .= " (พร้อมดึงข้อมูลผู้ป่วยรายบุคคล $syncedDetailsCount รายการ)";
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $msg,
+            'total' => count($items),
+            'inserted' => $insertedCount,
+            'updated' => $updatedCount,
+            'synced_stm' => $syncedStmCount,
+            'synced_details' => $syncedDetailsCount,
+        ]);
     }
 
     /**
@@ -1556,9 +1691,9 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Auto-import or link matching detail files for a batch
+     * Auto-import or link matching detail files for a batch (Smart Money Details only)
      */
-    protected function autoImportMatchingDetailFiles($batchNo, $roundNo, $accountCode, $budgetYear)
+    protected function autoImportMatchingDetailFiles($batchNo, $roundNo, $accountCode, $budgetYear, $transferDate = null)
     {
         if (empty($roundNo) && empty($accountCode)) return 0;
 
@@ -1574,14 +1709,114 @@ class SmartMoneyController extends Controller
                 ]);
         }
 
-        // 2. Return count of existing details already in DB for this batch/round
+        // 2. Check existing details already in smart_money_details for this batch/round
         $existingDetails = SmartMoneyDetail::where('batch_no', $batchNo)
             ->when(!empty($roundNo), function($q) use ($roundNo) {
                 $q->orWhere('round_no', $roundNo);
             })
+            ->where('receive_total', '>', 0)
             ->count();
 
-        return $existingDetails;
+        if ($existingDetails > 0) {
+            return $existingDetails;
+        }
+
+        // 3. If 0 details found, automatically download strictly from SMT Live via worker
+        if (!empty($roundNo) && $roundNo !== '-') {
+            try {
+                $scriptPath = base_path('tools/smt/download_detail.js');
+                if (file_exists($scriptPath)) {
+                    $cmd = sprintf(
+                        'node "%s" %s %s %s %s %s',
+                        $scriptPath,
+                        escapeshellarg($batchNo),
+                        escapeshellarg($roundNo),
+                        escapeshellarg($transferDate ?: date('Y-m-d')),
+                        escapeshellarg($accountCode ?: ''),
+                        escapeshellarg('10989')
+                    );
+
+                    exec($cmd, $output, $returnCode);
+                    $rawOutput = implode("\n", $output);
+                    $result = json_decode($rawOutput, true);
+                    if ($result && isset($result['status']) && $result['status'] === 'success') {
+                        return (int)($result['count'] ?? 0);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Auto-download SMT details failed for batch {$batchNo}: " . $e->getMessage());
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Sync Patient Details strictly from Smart Money Transfer (SMTF) Live
+     */
+    public function syncDetailFromSmt(Request $request, $batch_no)
+    {
+        ini_set('max_execution_time', 300);
+
+        $batch = SmartMoneyBatch::where('batch_no', $batch_no)->first();
+        if (!$batch) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบข้อมูล Batch ' . $batch_no], 404);
+        }
+
+        $roundNo = $batch->round_no;
+        if (empty($roundNo) || $roundNo === '-') {
+            return response()->json(['status' => 'error', 'message' => 'Batch นี้ไม่มีเลขงวด (Round No) สำหรับค้นหารายบุคคลใน SMT'], 422);
+        }
+
+        // 1. Check if already populated in smart_money_details with positive sum
+        $existingCount = SmartMoneyDetail::where('batch_no', $batch_no)->orWhere('round_no', $roundNo)->count();
+        $existingSum = SmartMoneyDetail::where('batch_no', $batch_no)->orWhere('round_no', $roundNo)->sum('receive_total');
+        if ($existingCount > 0 && $existingSum > 0 && !$request->force_sync) {
+            return response()->json([
+                'status' => 'success',
+                'source' => 'existing_details',
+                'count' => $existingCount,
+                'total_amount' => (float)$existingSum,
+                'total_amount_formatted' => number_format($existingSum, 2),
+                'message' => "มีข้อมูลรายบุคคลในระบบแล้ว {$existingCount} รายการ (" . number_format($existingSum, 2) . " บาท)",
+            ]);
+        }
+
+        // 2. Live download strictly from SMT (Smart Money Transfer) via Worker
+        $scriptPath = base_path('tools/smt/download_detail.js');
+        if (!file_exists($scriptPath)) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบสคริปต์ดาวน์โหลด SMT'], 500);
+        }
+
+        $cmd = sprintf(
+            'node "%s" %s %s %s %s %s',
+            $scriptPath,
+            escapeshellarg($batch->batch_no),
+            escapeshellarg($roundNo),
+            escapeshellarg($batch->transfer_date ?: date('Y-m-d')),
+            escapeshellarg($batch->account_code ?: ''),
+            escapeshellarg('10989')
+        );
+
+        exec($cmd, $output, $returnCode);
+        $rawOutput = implode("\n", $output);
+
+        $result = json_decode($rawOutput, true);
+        if ($result && isset($result['status']) && $result['status'] === 'success') {
+            $count = $result['count'] ?? 0;
+            $sum = $result['total_amount'] ?? 0;
+            return response()->json([
+                'status' => 'success',
+                'source' => 'smt_live',
+                'count' => $count,
+                'total_amount' => (float)$sum,
+                'total_amount_formatted' => number_format($sum, 2),
+                'message' => "ดึงข้อมูลผู้ป่วยรายบุคคลจาก SMT สำเร็จ " . number_format($count) . " รายการ (" . number_format($sum, 2) . " บาท)",
+            ]);
+        } else {
+            $errMsg = ($result && !empty($result['message'])) ? $result['message'] : 'ไม่สามารถดึงข้อมูลจาก SMT ได้ในขณะนี้ หรือยังไม่มีรายงานในระบบ';
+            return response()->json(['status' => 'error', 'message' => $errMsg, 'raw' => $rawOutput], 500);
+        }
     }
 
     /**

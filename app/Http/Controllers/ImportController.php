@@ -8641,7 +8641,10 @@ class ImportController extends Controller
             }
         } elseif (app()->runningInConsole()) {
             // เฉพาะคำสั่งเบื้องหลัง CLI/Console เท่านั้นที่อนุญาตให้อ่านจากไฟล์สำรอง
-            $tokenFile = base_path('scratch/smt_token.json');
+            $tokenFile = storage_path('app/smt_token.json');
+            if (!file_exists($tokenFile)) {
+                $tokenFile = base_path('scratch/smt_token.json');
+            }
             if (file_exists($tokenFile)) {
                 $c = json_decode(file_get_contents($tokenFile), true);
                 if (!empty($c['token'])) {

@@ -270,6 +270,7 @@ Route::post('import/smart-money/import-bot', [SmartMoneyController::class, 'impo
 Route::post('import/smart-money/delete', [SmartMoneyController::class, 'deleteBatch'])->name('import.smart_money.delete');
 Route::post('import/smart-money/sync-detail/{batch_no}', [SmartMoneyController::class, 'syncDetailFromSmt'])->name('import.smart_money.sync_detail');
 Route::get('import/smart-money/trend-data', [SmartMoneyController::class, 'getTrendData'])->name('import.smart_money.trend_data');
+Route::get('import/smart-money/download-paym/{batch_no}', [SmartMoneyController::class, 'downloadPaym'])->name('import.smart_money.download_paym');
 
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');

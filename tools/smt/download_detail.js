@@ -34,8 +34,11 @@ if (!batchNo || !roundNo) {
             postingDate = `${bYear}${mm}${dd}`;
         }
 
-        // 1. Read clean cookies
-        const cookieFile = path.join(__dirname, '../../scratch/cookies_for_playwright.json');
+        // 1. Read clean cookies (Argument -> storage/app)
+        let cookieFile = process.argv[7] || '';
+        if (!cookieFile || !fs.existsSync(cookieFile)) {
+            cookieFile = path.join(__dirname, '../../storage/app/cookies_for_playwright.json');
+        }
         if (!fs.existsSync(cookieFile)) {
             console.error(JSON.stringify({ status: 'error', message: 'Cookie session file not found' }));
             process.exit(1);

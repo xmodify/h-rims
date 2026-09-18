@@ -2028,4 +2028,81 @@ class SmartMoneyController extends Controller
             return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการโหลดข้อมูลกราฟ: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Download or View Official PAYM (ใบแจ้งโอนเงิน / ใบสำคัญการจ่ายเงิน) from NHSO SMT
+     */
+    public function downloadPaym(Request $request, $batchNo)
+    {
+        $batch = SmartMoneyBatch::where('batch_no', $batchNo)
+            ->whereNotNull('file_name')
+            ->where('file_name', '!=', '')
+            ->first();
+
+        if (!$batch) {
+            abort(404, "ไม่พบข้อมูลใบแจ้งโอนของ Batch {$batchNo}");
+        }
+
+        $fileName = trim($batch->file_name);
+
+        // Directory for cached PAYM files
+        $storageDir = storage_path('app/smt_paym');
+        if (!file_exists($storageDir)) {
+            @mkdir($storageDir, 0777, true);
+        }
+        $cachedFile = $storageDir . DIRECTORY_SEPARATOR . "PAYM_{$batchNo}.pdf";
+
+        // 1. If cached already and valid size (> 1KB)
+        if (file_exists($cachedFile) && filesize($cachedFile) > 1000) {
+            return response()->file($cachedFile, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="NHSO_PAYM_' . $batchNo . '.pdf"'
+            ]);
+        }
+
+        // 2. If uploaded local file
+        $localPath = storage_path('app/public/smt_uploads/' . $fileName);
+        if (file_exists($localPath) && filesize($localPath) > 1000) {
+            return response()->file($localPath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"'
+            ]);
+        }
+
+        // 3. Fetch from NHSO SMT API via File Token
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'Accept' => '*/*',
+            'Origin' => 'https://smt.nhso.go.th',
+            'Referer' => 'https://smt.nhso.go.th/smtf/',
+        ];
+        $bearerToken = $this->getActiveSmartMoneyToken();
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $url = "https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReportDetail/download?fileName=" . urlencode($fileName);
+
+        try {
+            $res = Http::withHeaders($headers)->withoutVerifying()->timeout(30)->get($url);
+
+            if ($res->status() === 200 && strlen($res->body()) > 1000) {
+                @file_put_contents($cachedFile, $res->body());
+                return response()->file($cachedFile, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="NHSO_PAYM_' . $batchNo . '.pdf"'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("downloadPaym error for batch {$batchNo}: " . $e->getMessage());
+        }
+
+        return response()->make(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Download Error</title>' .
+            '<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script></head><body>' .
+            '<script>Swal.fire({icon: "error", title: "ไม่สามารถดาวน์โหลดได้", text: "ไม่สามารถดาวน์โหลดไฟล์ใบแจ้งโอนจาก สปสช. ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"}).then(() => window.close());</script></body></html>',
+            500,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
+    }
 }

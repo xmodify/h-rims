@@ -374,6 +374,16 @@
                                         </button>
                                     @endif
 
+                                    {{-- PAYM Voucher Button (ใบแจ้งโอนเงิน สปสช.) --}}
+                                    @if(!empty($row->file_name))
+                                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}"
+                                            target="_blank"
+                                            class="btn btn-xs btn-outline-danger rounded-pill px-2.5 py-1 shadow-xs"
+                                            title="ดู/พิมพ์ ใบแจ้งโอนเงิน สปสช. (PAYM Voucher PDF)">
+                                            <i class="bi bi-file-earmark-pdf-fill me-0.5"></i> ใบแจ้งโอน
+                                        </a>
+                                    @endif
+
                                     {{-- Detail Button (Modal) --}}
                                     <button type="button"
                                         class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 shadow-xs btn-view-patient-detail"
@@ -416,9 +426,19 @@
                     <span class="fw-bold text-dark">Batch No. <span class="text-primary font-monospace">{{ $row->batch_no }}</span></span>
                     <span class="badge bg-secondary-subtle text-secondary border">ทั้งหมด {{ $row->items->count() }} รายการ</span>
                 </div>
-                <div class="text-muted small">
-                    <span>ยอดเงินโอนเข้าบัญชีสุทธิรวม: </span>
-                    <strong class="text-success fs-6">{{ number_format($row->total_net_amount, 2) }}</strong> บาท
+                <div class="d-flex align-items-center gap-3">
+                    @if(!empty($row->file_name))
+                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}"
+                            target="_blank"
+                            class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-0.5 shadow-xs"
+                            title="เปิดดู/พิมพ์ ใบแจ้งโอนเงิน สปสช. (PAYM Voucher PDF)">
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> ใบแจ้งโอน (PDF)
+                        </a>
+                    @endif
+                    <div class="text-muted small">
+                        <span>ยอดเงินโอนเข้าบัญชีสุทธิรวม: </span>
+                        <strong class="text-success fs-6">{{ number_format($row->total_net_amount, 2) }}</strong> บาท
+                    </div>
                 </div>
             </div>
             <div class="table-responsive bg-white rounded-3 border shadow-sm">

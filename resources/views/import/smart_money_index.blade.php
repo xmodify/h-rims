@@ -2124,10 +2124,12 @@
 
         // Patient Details Modal Management
         var currentModalBatchNo = '';
+        window.currentModalBatchNo = '';
         var currentModalPage = 1;
 
         function loadPatientModalData(batchNo, page = 1, search = '') {
             currentModalBatchNo = batchNo;
+            window.currentModalBatchNo = batchNo;
             currentModalPage = page;
 
             $('#pmodal_table_body').html(`
@@ -2174,7 +2176,7 @@
                                     <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
                                     ยังไม่พบรายการรายบุคคลใน Batch นี้
                                     <div class="mt-3 d-flex justify-content-center gap-2">
-                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="syncPatientDetailFromSmt(currentModalBatchNo)">
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="syncPatientDetailFromSmt('${b.batch_no}')">
                                             <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงข้อมูลรายคนจาก SMT อัตโนมัติ
                                         </button>
                                         <label for="pmodal_upload_file" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm mb-0" style="cursor: pointer;">
@@ -2380,6 +2382,7 @@
 
         // Sync Patient Detail from SMT (Live Download or Local STM Sync)
         window.syncPatientDetailFromSmt = function(batchNo) {
+            batchNo = batchNo || window.currentModalBatchNo || currentModalBatchNo;
             if (!batchNo) return;
             Swal.fire({
                 title: 'กำลังดึงข้อมูลรายคน...',

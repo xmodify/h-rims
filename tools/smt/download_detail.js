@@ -14,6 +14,70 @@ if (!batchNo || !roundNo) {
     process.exit(1);
 }
 
+function findChromiumExecutable() {
+    try {
+        const dir = path.resolve(__dirname, '../../storage/app/playwright_browsers');
+        if (fs.existsSync(dir)) {
+            const rec = (d, target) => {
+                for (const f of fs.readdirSync(d)) {
+                    const fp = path.join(d, f);
+                    if (fs.statSync(fp).isDirectory()) {
+                        const r = rec(fp, target);
+                        if (r) return r;
+                    } else if (f === target) {
+                        return fp;
+                    }
+                }
+                return null;
+            };
+            const hTarget = process.platform === 'win32' ? 'chrome-headless-shell.exe' : 'chrome-headless-shell';
+            const cTarget = process.platform === 'win32' ? 'chrome.exe' : 'chrome';
+            const fH = rec(dir, hTarget);
+            if (fH) {
+                if (process.platform !== 'win32') {
+                    try { fs.chmodSync(fH, 0o755); } catch(e) {}
+                }
+                return fH;
+            }
+            const fC = rec(dir, cTarget);
+            if (fC) {
+                if (process.platform !== 'win32') {
+                    try { fs.chmodSync(fC, 0o755); } catch(e) {}
+                }
+                return fC;
+            }
+        }
+    } catch(e) {}
+    try {
+        const def = chromium.executablePath();
+        if (def && fs.existsSync(def)) return def;
+    } catch(e) {}
+    const sysList = process.platform === 'win32' ? [
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+    ] : [
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser'
+    ];
+    for (const s of sysList) {
+        if (fs.existsSync(s)) return s;
+    }
+    return null;
+}
+
+async function launchBrowser(options) {
+    const exe = findChromiumExecutable();
+    const opts = { ...options };
+    if (exe) {
+        opts.executablePath = exe;
+    }
+    return await chromium.launch(opts);
+}
+
 (async () => {
     try {
         // Calculate Buddhist posting date e.g. 2026-09-15 -> 25690915
@@ -47,7 +111,7 @@ if (!batchNo || !roundNo) {
         const rawCookies = JSON.parse(fs.readFileSync(cookieFile, 'utf-8'));
         const cleanCookies = rawCookies.filter(c => c.name !== 'ACCESS_TOKEN' && c.name.length < 100);
 
-        const browser = await chromium.launch({
+        const browser = await launchBrowser({
             headless: true,
             args: [
                 '--disable-blink-features=AutomationControlled',
@@ -55,13 +119,17 @@ if (!batchNo || !roundNo) {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
+                '--ignore-certificate-errors',
+                '--allow-running-insecure-content',
+                '--ignore-ssl-errors',
             ]
         });
 
         const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             viewport: { width: 1400, height: 900 },
-            acceptDownloads: true
+            acceptDownloads: true,
+            ignoreHTTPSErrors: true
         });
 
         await context.addCookies(cleanCookies);
@@ -86,11 +154,14 @@ if (!batchNo || !roundNo) {
         let sfundCd = '13';
         let efundCd = '1';
 
+        const vendorId10 = (hcode || '10989').replace(/\D/g, '').padStart(10, '0');
+
         try {
             const apiRes = await context.request.post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReportDetail', {
+                ignoreHTTPSErrors: true,
                 data: {
                     fiscalYear: postingDate.substring(0, 4) || '2569',
-                    vendorId: '0000010989',
+                    vendorId: vendorId10,
                     postingDate: postingDate,
                     batchNo: batchNo,
                     offset: 0,
@@ -131,7 +202,10 @@ if (!batchNo || !roundNo) {
 
         if (!exportBtn) {
             await browser.close();
-            console.error(JSON.stringify({ status: 'error', message: 'Export Excel button not found or unauthorized' }));
+            console.error(JSON.stringify({ 
+                status: 'error', 
+                message: 'ไม่พบปุ่ม Export Excel ในหน้ารายละเอียดของ สปสช. (อาจเป็นงบที่ไม่มีรายการผู้ป่วยรายบุคคล เช่น งบเหมาจ่าย/งบปรับเกลี่ย/งบสนับสนุน หรือยังไม่ออกรายงาน)' 
+            }));
             process.exit(1);
         }
 

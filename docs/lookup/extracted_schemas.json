@@ -9178,7 +9178,7 @@
     "drugcat_chi": {
         "columns": {
             "hospdrugcode": {
-                "type": "varchar(255)",
+                "type": "varchar(100)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -9280,7 +9280,7 @@
                 "extra": ""
             },
             "updateflag": {
-                "type": "varchar(255)",
+                "type": "varchar(10)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -9729,7 +9729,7 @@
                 "extra": ""
             },
             "hipdata": {
-                "type": "varchar(255)",
+                "type": "varchar(191)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -10722,7 +10722,7 @@
                 "extra": ""
             },
             "lccode": {
-                "type": "varchar(255)",
+                "type": "varchar(100)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -11104,7 +11104,7 @@
                 "extra": "auto_increment"
             },
             "lccode": {
-                "type": "varchar(255)",
+                "type": "varchar(100)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -11458,7 +11458,7 @@
     "lookup_icd9_chi": {
         "columns": {
             "code": {
-                "type": "varchar(255)",
+                "type": "varchar(50)",
                 "nullable": false,
                 "default": null,
                 "extra": ""
@@ -12098,7 +12098,7 @@
                 "extra": ""
             },
             "claimCode": {
-                "type": "varchar(255)",
+                "type": "varchar(100)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -33564,7 +33564,7 @@
                 "extra": ""
             },
             "vendor_name": {
-                "type": "varchar(255)",
+                "type": "varchar(191)",
                 "nullable": false,
                 "default": null,
                 "extra": ""
@@ -33630,7 +33630,7 @@
                 "extra": "auto_increment"
             },
             "vendor_name": {
-                "type": "varchar(255)",
+                "type": "varchar(191)",
                 "nullable": false,
                 "default": null,
                 "extra": ""

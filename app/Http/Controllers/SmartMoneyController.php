@@ -1338,15 +1338,23 @@ class SmartMoneyController extends Controller
                     if (stripos($rowText, $keyword) === false) continue;
                 }
 
-                $key = $bNo . '_' . $accCode . '_' . $rNo;
+                $key = $bNo . '_' . $accCode . '_' . $rNo . '_' . md5($fMain . '|' . $fSub . '|' . $amt . '|' . $netAmt);
                 if (!isset($batchMap[$key])) {
                     // Check DB for existing status
-                    $existing = SmartMoneyBatch::where('batch_no', $bNo)
-                        ->where('account_code', $accCode)
-                        ->when(!empty($rNo) && $rNo !== '-', function($q) use ($rNo) {
-                            $q->where('round_no', $rNo);
-                        })
-                        ->first();
+                    $existingQuery = SmartMoneyBatch::where('batch_no', $bNo)
+                        ->where('account_code', $accCode);
+
+                    if (!empty($rNo) && $rNo !== '-') {
+                        $existingQuery->where('round_no', $rNo);
+                    }
+                    if (!empty($fSub)) {
+                        $existingQuery->where(function($q) use ($fSub, $netAmt) {
+                            $q->where('fund_sub', $fSub)
+                              ->orWhere('fund_sub', 'like', "%{$fSub}%")
+                              ->orWhere('net_amount', $netAmt);
+                        });
+                    }
+                    $existing = $existingQuery->first();
 
                     $batchMap[$key] = [
                         'id' => $existing ? $existing->id : null,
@@ -1447,12 +1455,20 @@ class SmartMoneyController extends Controller
                 }
 
                 // Check existing batch
-                $batch = SmartMoneyBatch::where('batch_no', $batchNo)
-                    ->where('account_code', $accountCode)
-                    ->when(!empty($roundNo) && $roundNo !== '-', function($q) use ($roundNo) {
-                        $q->where('round_no', $roundNo);
-                    })
-                    ->first();
+                $batchQuery = SmartMoneyBatch::where('batch_no', $batchNo)
+                    ->where('account_code', $accountCode);
+
+                if (!empty($roundNo) && $roundNo !== '-') {
+                    $batchQuery->where('round_no', $roundNo);
+                }
+                if (!empty($fundSub)) {
+                    $batchQuery->where(function($q) use ($fundSub, $netAmount) {
+                        $q->where('fund_sub', $fundSub)
+                          ->orWhere('fund_sub', 'like', "%{$fundSub}%")
+                          ->orWhere('net_amount', $netAmount);
+                    });
+                }
+                $batch = $batchQuery->first();
 
                 if ($batch) {
                     // Update batch without erasing existing receive_no

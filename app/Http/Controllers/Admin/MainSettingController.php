@@ -1217,11 +1217,24 @@ class MainSettingController extends Controller
     {
         $updated = [];
 
+        // Collect indexed columns
+        $indexedColumns = [];
+        if (isset($schemaDef['indexes'])) {
+            foreach ($schemaDef['indexes'] as $columnsInfo) {
+                foreach ($columnsInfo as $c) {
+                    if (isset($c['column'])) {
+                        $indexedColumns[$c['column']] = true;
+                    }
+                }
+            }
+        }
+
         // 1. If table does not exist, create it from scratch
         if (!Schema::hasTable($tableName)) {
-            Schema::create($tableName, function (Blueprint $table) use ($schemaDef) {
+            Schema::create($tableName, function (Blueprint $table) use ($schemaDef, $indexedColumns) {
                 foreach ($schemaDef['columns'] as $colName => $col) {
-                    $this->addColumnToBlueprint($table, $colName, $col);
+                    $isIndexed = isset($indexedColumns[$colName]);
+                    $this->addColumnToBlueprint($table, $colName, $col, false, $isIndexed);
                 }
                 
                 // Add indexes (except primary which is usually handled by auto_increment)
@@ -1257,10 +1270,11 @@ class MainSettingController extends Controller
         // 2. If table exists, verify columns and update them
         $existingColumns = Schema::getColumnListing($tableName);
         foreach ($schemaDef['columns'] as $colName => $col) {
+            $isIndexed = isset($indexedColumns[$colName]);
             if (!in_array($colName, $existingColumns)) {
                 // Column is missing! Add it.
-                Schema::table($tableName, function (Blueprint $table) use ($colName, $col) {
-                    $this->addColumnToBlueprint($table, $colName, $col);
+                Schema::table($tableName, function (Blueprint $table) use ($colName, $col, $isIndexed) {
+                    $this->addColumnToBlueprint($table, $colName, $col, false, $isIndexed);
                 });
                 $updated[] = "+$colName";
             } else {
@@ -1286,8 +1300,8 @@ class MainSettingController extends Controller
                     
                     if ($typeMismatch || $actualNullable !== $expectedNullable || $actualDefault !== $expectedDefault) {
                         try {
-                            Schema::table($tableName, function (Blueprint $table) use ($colName, $col) {
-                                $this->addColumnToBlueprint($table, $colName, $col, true);
+                            Schema::table($tableName, function (Blueprint $table) use ($colName, $col, $isIndexed) {
+                                $this->addColumnToBlueprint($table, $colName, $col, true, $isIndexed);
                             });
                             $updated[] = "*$colName";
                         } catch (\Exception $e) {
@@ -1351,7 +1365,7 @@ class MainSettingController extends Controller
     /**
      * Add column definition to Laravel Blueprint
      */
-    protected function addColumnToBlueprint($table, $colName, $col, $isChange = false)
+    protected function addColumnToBlueprint($table, $colName, $col, $isChange = false, $isIndexed = false)
     {
         $type = $col['type'];
         $nullable = $col['nullable'];
@@ -1396,10 +1410,16 @@ class MainSettingController extends Controller
         } elseif (strpos($type, 'varchar') !== false) {
             preg_match('/varchar\((\d+)\)/', $type, $matches);
             $length = isset($matches[1]) ? intval($matches[1]) : 255;
+            if ($isIndexed && $length > 191) {
+                $length = 191; // Cap at 191 for utf8mb4 max key length limit (767 bytes) on legacy MySQL/MariaDB
+            }
             $colObj = $table->string($colName, $length);
         } elseif (strpos($type, 'char') !== false) {
             preg_match('/char\((\d+)\)/', $type, $matches);
             $length = isset($matches[1]) ? intval($matches[1]) : 255;
+            if ($isIndexed && $length > 191) {
+                $length = 191;
+            }
             $colObj = $table->char($colName, $length);
         } elseif (strpos($type, 'decimal') !== false) {
             preg_match('/decimal\((\d+),(\d+)\)/', $type, $matches);

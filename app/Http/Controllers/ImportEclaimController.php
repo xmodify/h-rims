@@ -599,6 +599,7 @@ class ImportEclaimController extends Controller
 
 
 
+        $probePassed = false;
         try {
             $headers = $this->getEclaimBrowserHeaders($token);
             $probeUrl = 'https://eclaim.nhso.go.th/webComponent/check_data/CheckDataAction.do';
@@ -615,14 +616,34 @@ class ImportEclaimController extends Controller
                 stripos($html, 'คุณไม่มีสิทธิ์') === false &&
                 stripos($html, 'frmErr') === false
             ) {
-                return response()->json([
-                    'connected' => true,
-                    'user' => $user,
-                    'connected_at' => $time,
-                ]);
+                $probePassed = true;
             }
         } catch (\Exception $e) {
             Log::warning('eClaim getBotStatus probe error: ' . $e->getMessage());
+        }
+
+        // ตรวจสอบสำรอง: หากเป็น ThaiD SSO Session (KEYCLOAK_IDENTITY / ACCESS_TOKEN) ที่ยังไม่หมดอายุ
+        if (!$probePassed) {
+            if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $parts = explode('.', $mJwt[1]);
+                if (count($parts) >= 2) {
+                    $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                    if (!empty($payload['exp']) && time() < $payload['exp']) {
+                        $probePassed = true;
+                        if (empty($user) || $user === 'ผู้ใช้งาน e-Claim') {
+                            $user = $payload['name'] ?? $payload['nameTh'] ?? (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน ThaiD');
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($probePassed) {
+            return response()->json([
+                'connected' => true,
+                'user' => $user,
+                'connected_at' => $time,
+            ]);
         }
 
         return response()->json([

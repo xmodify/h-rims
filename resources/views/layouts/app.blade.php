@@ -647,50 +647,58 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern">
                                         <li>
-                                            <a class="dropdown-item dropdown-item-modern fw-semibold text-success" href="{{ route('import.smart_money') }}">
-                                                <i class="bi bi-wallet2 me-1 text-success"></i> Smart Money Transfer
+                                            <a class="dropdown-item dropdown-item-modern fw-semibold" href="{{ route('import.smart_money') }}">
+                                                <i class="bi bi-wallet2 me-2" style="color: #10b981;"></i> Smart Money Transfer
                                             </a>
                                         </li>
-                                        <li><hr class="dropdown-divider my-1"></li>
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ route('import.rep') }}">
-                                                <i class="bi bi-file-earmark-spreadsheet-fill me-1 text-success"></i>การตรวจสอบเบื้องต้น Rep
+                                                <i class="bi bi-file-earmark-spreadsheet-fill me-2" style="color: #0284c7;"></i> ข้อมูลเบื้องต้น (REP)
                                             </a>
                                         </li>
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement') }}">
-                                                <i class="bi bi-file-earmark-arrow-up-fill me-1 text-primary"></i> Statement OP-IP
+                                        <!-- ชี้ขวา Statement (STM) -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-file-earmark-arrow-up-fill me-2" style="color: #8b5cf6;"></i> Statement (STM)
                                             </a>
-                                        </li>                                        
-                                        @if ($hasLookupIcode_kidney)
-                                            <li>
-                                                <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement_kidney') }}">
-                                                    <i class="bi bi-droplet-fill me-1 text-danger"></i> Statement ฟอกไต
-                                                </a>
-                                            </li>
-                                        @endif
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.dmis') }}">
-                                                <i class="bi bi-puzzle-fill me-1 text-warning"></i> Seamless For DMIS
-                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement') }}">
+                                                        <i class="bi bi-file-earmark-medical text-primary me-2"></i> OP-IP ทั่วไป
+                                                    </a>
+                                                </li>
+                                                @if ($hasLookupIcode_kidney)
+                                                    <li>
+                                                        <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement_kidney') }}">
+                                                            <i class="bi bi-droplet-fill text-danger me-2"></i> ฟอกไต
+                                                        </a>
+                                                    </li>
+                                                @endif
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ route('import.dmis') }}">
+                                                        <i class="bi bi-puzzle-fill text-warning me-2"></i> Seamless For DMIS
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </li>
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('import/fdh_claim_status') }}">
-                                                <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
+                                                <i class="bi bi-cloud-check-fill me-2" style="color: #f97316;"></i> FDH Status
                                             </a>
                                         </li>
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('import/eclaim_status') }}">
-                                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
+                                                <i class="bi bi-file-earmark-check-fill me-2" style="color: #0d9488;"></i> e-Claim Status
                                             </a>
                                         </li>
                                         <!-- ชี้ขวา Drug Catalog -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                  data-bs-toggle="dropdown">
-                                                <i class="bi bi-capsule-pill text-info me-2"></i> Drug Catalog
+                                                <i class="bi bi-capsule-pill me-2" style="color: #f43f5e;"></i> Drug Catalog
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
@@ -705,7 +713,7 @@
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                 data-bs-toggle="dropdown">
-                                                <i class="bi bi-clipboard-pulse text-warning me-2"></i> Lab Catalog
+                                                <i class="bi bi-clipboard2-pulse-fill me-2" style="color: #eab308;"></i> Lab Catalog
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
@@ -720,7 +728,7 @@
                                         </li>
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ route('import.sss_equipdev_aipn') }}">
-                                                <i class="bi bi-database-fill-gear me-2" style="color: #0d9488;"></i> Equipdev AIPN
+                                                <i class="bi bi-database-fill-gear me-2" style="color: #6366f1;"></i> Equipdev AIPN
                                             </a>
                                         </li>
                                     </ul>

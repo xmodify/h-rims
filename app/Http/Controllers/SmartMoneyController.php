@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use App\Models\SmartMoneyBatch;
@@ -1075,10 +1076,49 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Search Bot Statements for Date Range and compare with DB
+     * Get Active Smart Money Token (JWT Bearer Token from ThaiD / e-Claim SSO)
+     */
+    protected function getActiveSmartMoneyToken()
+    {
+        $token = null;
+        if (auth()->check()) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                $token = DB::table('users')->where('id', auth()->id())->value('eclaim_session_token');
+            }
+            if (!$token) {
+                $token = session('eclaim_session_token');
+            }
+        } else {
+            $token = session('eclaim_session_token');
+        }
+
+        if (!$token) return null;
+
+        // Extract ACCESS_TOKEN (JWT)
+        if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
+            return $m[1];
+        }
+
+        if (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
+            return trim($token);
+        }
+
+        return null;
+    }
+
+    /**
+     * Search Bot Statements for Date Range via live API from smt.nhso.go.th and compare with DB
      */
     public function searchBotStatements(Request $request)
     {
+        $bearerToken = $this->getActiveSmartMoneyToken();
+        if (!$bearerToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ ThaiD หรือ Session หมดอายุ กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล'
+            ], 401);
+        }
+
         $startDate = $this->parseDate($request->start_date);
         $endDate = $this->parseDate($request->end_date);
         $keyword = trim((string)$request->keyword);
@@ -1086,166 +1126,137 @@ class SmartMoneyController extends Controller
         if (!$startDate) $startDate = date('Y-m-01');
         if (!$endDate) $endDate = date('Y-m-d');
 
+        // Prepare Thai Buddhist Date strings (dd/mm/YYYY) for smt.nhso.go.th API
+        $startTs = strtotime($startDate);
+        $endTs = strtotime($endDate);
+        $startThaiStr = date('d/m/', $startTs) . ((int)date('Y', $startTs) + 543);
+        $endThaiStr = date('d/m/', $endTs) . ((int)date('Y', $endTs) + 543);
+        $budgetYear = (string)$this->getBudgetYear($endDate);
+
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $hospcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        $hospcode = $hospcode ?: '10989';
+        $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
+
         try {
-            $batchMap = [];
+            $postData = [
+                'vendorSearchConditionCode' => '1',
+                'zoneId' => '',
+                'provinceId' => '',
+                'vendorId' => $vendorId,
+                'vendorId5Digit' => '',
+                'budgetSource' => '',
+                'budgetYear' => $budgetYear,
+                'transferStartDate' => $startThaiStr,
+                'transferEndDate' => $endThaiStr,
+                'hospType' => '',
+                'isTest' => '',
+            ];
 
-            // 1. Check existing records in DB (smart_money_batches)
-            $dbBatches = SmartMoneyBatch::whereBetween('transfer_date', [$startDate, $endDate])
-                ->when(!empty($keyword), function($q) use ($keyword) {
-                    $q->where(function($sub) use ($keyword) {
-                        $sub->where('batch_no', 'like', "%{$keyword}%")
-                            ->orWhere('round_no', 'like', "%{$keyword}%")
-                            ->orWhere('account_code', 'like', "%{$keyword}%")
-                            ->orWhere('fund_main', 'like', "%{$keyword}%")
-                            ->orWhere('fund_sub', 'like', "%{$keyword}%");
-                    });
-                })
-                ->get();
+            $res = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+                'Authorization' => 'Bearer ' . $bearerToken,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => 'https://smt.nhso.go.th',
+                'Referer' => 'https://smt.nhso.go.th/smtf/',
+            ])->withoutVerifying()->timeout(25)->post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReport/search', $postData);
 
-            foreach ($dbBatches as $b) {
-                $key = trim($b->batch_no) . '_' . trim($b->account_code) . '_' . trim($b->round_no);
-                $batchMap[$key] = [
-                    'id' => $b->id,
-                    'transfer_date' => $b->transfer_date ? (string)$b->transfer_date : '',
-                    'transfer_date_thai' => $b->transfer_date ? DateThai($b->transfer_date) : '-',
-                    'batch_no' => $b->batch_no ?: '-',
-                    'round_no' => $b->round_no ?: '-',
-                    'account_code' => $b->account_code ?: '-',
-                    'fund_main' => $b->fund_main ?: '',
-                    'fund_sub' => $b->fund_sub ?: '',
-                    'fund_full' => trim(($b->fund_main ?: '') . ' ' . ($b->fund_sub ?: '')),
-                    'amount' => (float)$b->amount,
-                    'net_amount' => (float)$b->net_amount,
-                    'net_amount_formatted' => number_format((float)$b->net_amount, 2),
-                    'file_name' => $b->file_name ?: '',
-                    'is_imported' => true,
-                    'has_receipt' => !empty($b->receive_no),
-                    'receive_no' => $b->receive_no ?: '',
-                    'receipt_date' => $b->receipt_date ? DateThai($b->receipt_date) : '',
-                    'receipt_by' => $b->receipt_by ?: '',
-                ];
+            if (in_array($res->status(), [401, 403])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Session การเชื่อมต่อกับ สปสช. (ThaiD) หมดอายุ กรุณากดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อเชื่อมต่อใหม่'
+                ], 401);
             }
 
-            // 2. Check staging Excel / summary files in docs/ or storage/app/smart_money/
-            $summaryFiles = array_merge(
-                glob(base_path('docs/nhso_*.xlsx')) ?: [],
-                glob(storage_path('app/smart_money/*.xlsx')) ?: [],
-                glob(storage_path('app/nhso_*.xlsx')) ?: []
-            );
+            if ($res->status() !== 200) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ไม่สามารถดึงข้อมูลจากระบบ Smart Money สปสช. ได้ (HTTP ' . $res->status() . ')'
+                ], 500);
+            }
 
-            foreach ($summaryFiles as $sFile) {
-                if (!file_exists($sFile)) continue;
-                try {
-                    $spreadsheet = IOFactory::load($sFile);
-                    $sheet = $spreadsheet->getActiveSheet();
-                    $rows = $sheet->toArray();
-                    if (empty($rows)) continue;
+            $json = $res->json();
+            $datas = $json['datas'] ?? [];
 
-                    // Find header
-                    $headerRowIdx = -1;
-                    foreach (array_slice($rows, 0, 10) as $idx => $r) {
-                        $rowStr = implode(' ', array_filter($r, fn($v) => $v !== null && $v !== ''));
-                        if (stripos($rowStr, 'Batch') !== false && (stripos($rowStr, 'วันที่โอน') !== false || stripos($rowStr, 'รหัสผังบัญชี') !== false || stripos($rowStr, 'เงินโอนเข้าบัญชี') !== false)) {
-                            $headerRowIdx = $idx;
-                            break;
-                        }
-                    }
+            $batchMap = [];
+            foreach ($datas as $item) {
+                $bNo = trim((string)($item['batchNo'] ?? ''));
+                $accCode = trim((string)($item['mophId'] ?? ''));
+                $rNo = trim((string)($item['refDocNo'] ?? ''));
 
-                    if ($headerRowIdx === -1) continue;
+                if (empty($bNo) || empty($accCode) || $bNo === '-') continue;
 
-                    $headers = $rows[$headerRowIdx];
-                    $colMap = [];
-                    foreach ($headers as $cIdx => $name) {
-                        $trimmed = trim((string)$name);
-                        if (stripos($trimmed, 'วันที่โอน') !== false) $colMap['transfer_date'] = $cIdx;
-                        elseif (stripos($trimmed, 'Batch No') !== false) $colMap['batch_no'] = $cIdx;
-                        elseif (stripos($trimmed, 'งวด') !== false || stripos($trimmed, 'เลขที่เบิกจ่าย') !== false) $colMap['round_no'] = $cIdx;
-                        elseif (stripos($trimmed, 'รหัสผังบัญชี') !== false) $colMap['account_code'] = $cIdx;
-                        elseif (stripos($trimmed, 'กองทุนย่อย') !== false) $colMap['fund_sub'] = $cIdx;
-                        elseif (stripos($trimmed, 'กองทุน') !== false && !isset($colMap['fund_main'])) $colMap['fund_main'] = $cIdx;
-                        elseif (stripos($trimmed, 'จำนวนเงิน') !== false && stripos($trimmed, 'รอหักกลบ') === false) $colMap['amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'ชะลอการโอน') !== false) $colMap['hold_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'รายการหัก') !== false) $colMap['deduct_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'หลักประกัน') !== false) $colMap['guarantee_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'ภาษี') !== false) $colMap['tax_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'คงเหลือ') !== false) $colMap['remain_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'รอหักกลบ') !== false) $colMap['offset_amount'] = $cIdx;
-                        elseif (stripos($trimmed, 'เงินโอนเข้าบัญชี') !== false) $colMap['net_amount'] = $cIdx;
-                    }
+                // Parse transfer date
+                $rawRunDt = trim((string)($item['runDt'] ?? ''));
+                $rawPostDt = trim((string)($item['postingDate'] ?? ''));
+                $tDate = null;
+                if (!empty($rawRunDt)) {
+                    $tDate = date('Y-m-d', strtotime($rawRunDt));
+                } elseif (!empty($rawPostDt) && strlen($rawPostDt) === 8) {
+                    $y = (int)substr($rawPostDt, 0, 4);
+                    if ($y > 2400) $y -= 543;
+                    $tDate = sprintf('%04d-%02d-%02d', $y, substr($rawPostDt, 4, 2), substr($rawPostDt, 6, 2));
+                }
+                if (!$tDate) continue;
 
-                    for ($i = $headerRowIdx + 1; $i < count($rows); $i++) {
-                        $row = $rows[$i];
-                        if (empty($row) || ($row[0] ?? '') === 'รวม') continue;
+                $fMain = trim((string)($item['fundName'] ?? ($item['fundDescr'] ?? '')));
+                $fSub = trim((string)($item['efundDesc'] ?? ($item['fundGroupDescr'] ?? '')));
+                $amt = (float)($item['amount'] ?? 0);
+                $holdAmt = (float)($item['wait'] ?? 0);
+                $deductAmt = (float)($item['debt'] ?? 0);
+                $guaranteeAmt = (float)($item['bond'] ?? 0);
+                $taxAmt = (float)($item['vat'] ?? 0);
+                $remainAmt = (float)($item['total'] ?? 0);
+                $offsetAmt = (float)($item['odbt'] ?? 0);
+                $netAmt = (float)($item['total'] ?? 0);
+                $paymFile = trim((string)($item['downloadPAYMFileName'] ?? ''));
 
-                        $rawDate = trim((string)($row[$colMap['transfer_date'] ?? 1] ?? ''));
-                        $bNo = trim((string)($row[$colMap['batch_no'] ?? 2] ?? ''));
-                        $rNo = trim((string)($row[$colMap['round_no'] ?? 3] ?? ''));
-                        $accCode = trim((string)($row[$colMap['account_code'] ?? 4] ?? ''));
-                        $fMain = trim((string)($row[$colMap['fund_main'] ?? 5] ?? ''));
-                        $fSub = trim((string)($row[$colMap['fund_sub'] ?? 6] ?? ''));
-                        $amt = $this->cleanNumber($row[$colMap['amount'] ?? 7] ?? 0);
-                        $holdAmt = $this->cleanNumber($row[$colMap['hold_amount'] ?? 8] ?? 0);
-                        $deductAmt = $this->cleanNumber($row[$colMap['deduct_amount'] ?? 9] ?? 0);
-                        $guaranteeAmt = $this->cleanNumber($row[$colMap['guarantee_amount'] ?? 10] ?? 0);
-                        $taxAmt = $this->cleanNumber($row[$colMap['tax_amount'] ?? 11] ?? 0);
-                        $remainAmt = $this->cleanNumber($row[$colMap['remain_amount'] ?? 12] ?? 0);
-                        $offsetAmt = $this->cleanNumber($row[$colMap['offset_amount'] ?? 13] ?? 0);
-                        $netAmt = $this->cleanNumber($row[$colMap['net_amount'] ?? 14] ?? 0);
+                // Keyword filter
+                if (!empty($keyword)) {
+                    $rowText = "$bNo $rNo $accCode $fMain $fSub";
+                    if (stripos($rowText, $keyword) === false) continue;
+                }
 
-                        if (empty($bNo) || empty($accCode)) continue;
+                $key = $bNo . '_' . $accCode . '_' . $rNo;
+                if (!isset($batchMap[$key])) {
+                    // Check DB for existing status
+                    $existing = SmartMoneyBatch::where('batch_no', $bNo)
+                        ->where('account_code', $accCode)
+                        ->when(!empty($rNo) && $rNo !== '-', function($q) use ($rNo) {
+                            $q->where('round_no', $rNo);
+                        })
+                        ->first();
 
-                        $transferDate = $this->parseDate($rawDate);
-                        if (!$transferDate) continue;
-
-                        // Check date range filter
-                        if ($transferDate < $startDate || $transferDate > $endDate) continue;
-
-                        // Check keyword filter
-                        if (!empty($keyword)) {
-                            $rowText = "$bNo $rNo $accCode $fMain $fSub";
-                            if (stripos($rowText, $keyword) === false) continue;
-                        }
-
-                        $key = $bNo . '_' . $accCode . '_' . $rNo;
-                        if (!isset($batchMap[$key])) {
-                            // Check DB for existing status
-                            $existing = SmartMoneyBatch::where('batch_no', $bNo)
-                                ->where('account_code', $accCode)
-                                ->when(!empty($rNo) && $rNo !== '-', function($q) use ($rNo) {
-                                    $q->where('round_no', $rNo);
-                                })
-                                ->first();
-
-                            $batchMap[$key] = [
-                                'id' => $existing ? $existing->id : null,
-                                'transfer_date' => $transferDate,
-                                'transfer_date_thai' => DateThai($transferDate),
-                                'batch_no' => $bNo,
-                                'round_no' => $rNo ?: '-',
-                                'account_code' => $accCode,
-                                'fund_main' => $fMain,
-                                'fund_sub' => $fSub,
-                                'fund_full' => trim("$fMain $fSub"),
-                                'amount' => $amt,
-                                'hold_amount' => $holdAmt,
-                                'deduct_amount' => $deductAmt,
-                                'guarantee_amount' => $guaranteeAmt,
-                                'tax_amount' => $taxAmt,
-                                'remain_amount' => $remainAmt,
-                                'offset_amount' => $offsetAmt,
-                                'net_amount' => $netAmt,
-                                'net_amount_formatted' => number_format($netAmt, 2),
-                                'file_name' => basename($sFile),
-                                'is_imported' => !empty($existing),
-                                'has_receipt' => !empty($existing && $existing->receive_no),
-                                'receive_no' => $existing ? ($existing->receive_no ?: '') : '',
-                                'receipt_date' => ($existing && $existing->receipt_date) ? DateThai($existing->receipt_date) : '',
-                                'receipt_by' => $existing ? ($existing->receipt_by ?: '') : '',
-                            ];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    Log::warning("SmartMoney searchBotStatements parse file {$sFile} error: " . $e->getMessage());
+                    $batchMap[$key] = [
+                        'id' => $existing ? $existing->id : null,
+                        'transfer_date' => $tDate,
+                        'transfer_date_thai' => DateThai($tDate),
+                        'batch_no' => $bNo,
+                        'round_no' => $rNo ?: '-',
+                        'account_code' => $accCode,
+                        'fund_main' => $fMain,
+                        'fund_sub' => $fSub,
+                        'fund_full' => trim("$fMain $fSub"),
+                        'amount' => $amt,
+                        'hold_amount' => $holdAmt,
+                        'deduct_amount' => $deductAmt,
+                        'guarantee_amount' => $guaranteeAmt,
+                        'tax_amount' => $taxAmt,
+                        'remain_amount' => $remainAmt,
+                        'offset_amount' => $offsetAmt,
+                        'net_amount' => $netAmt,
+                        'net_amount_formatted' => number_format($netAmt, 2),
+                        'file_name' => $paymFile ?: "NHSO_SMT_{$bNo}.pdf",
+                        'download_paym_file' => $paymFile,
+                        'is_imported' => !empty($existing),
+                        'has_receipt' => !empty($existing && $existing->receive_no),
+                        'receive_no' => $existing ? ($existing->receive_no ?: '') : '',
+                        'receipt_date' => ($existing && $existing->receipt_date) ? DateThai($existing->receipt_date) : '',
+                        'receipt_by' => $existing ? ($existing->receipt_by ?: '') : '',
+                    ];
                 }
             }
 
@@ -1269,7 +1280,7 @@ class SmartMoneyController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('SmartMoney searchBotStatements error: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการค้นหาข้อมูล: ' . $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ สปสช.: ' . $e->getMessage()], 500);
         }
     }
 
@@ -1563,157 +1574,14 @@ class SmartMoneyController extends Controller
                 ]);
         }
 
-        // 2. Check if details already exist for this batch
+        // 2. Return count of existing details already in DB for this batch/round
         $existingDetails = SmartMoneyDetail::where('batch_no', $batchNo)
             ->when(!empty($roundNo), function($q) use ($roundNo) {
                 $q->orWhere('round_no', $roundNo);
             })
             ->count();
 
-        if ($existingDetails > 0) {
-            return $existingDetails;
-        }
-
-        // 3. Scan docs/ and storage/ for matching detail files
-        $detailFiles = array_merge(
-            glob(base_path('docs/*6908*.xlsx')) ?: [],
-            glob(base_path('docs/*OP*.xlsx')) ?: [],
-            glob(base_path('docs/*IP*.xlsx')) ?: [],
-            glob(storage_path('app/smart_money/*.xlsx')) ?: [],
-            glob(storage_path('app/*.xlsx')) ?: []
-        );
-
-        $importedCount = 0;
-        foreach (array_unique($detailFiles) as $file) {
-            if (!file_exists($file)) continue;
-            try {
-                $spreadsheet = IOFactory::load($file);
-                $sheet = $spreadsheet->getActiveSheet();
-                $rows = $sheet->toArray();
-                if (empty($rows)) continue;
-
-                // Extract metadata from header
-                $fileRoundNo = null;
-                $fileAccountCode = null;
-                foreach (array_slice($rows, 0, 8) as $r) {
-                    $rowStr = implode(' ', array_filter($r, fn($v) => $v !== null && $v !== ''));
-                    if (preg_match('/งวด\s*:\s*([^\s]+)/u', $rowStr, $m)) {
-                        $fileRoundNo = trim($m[1]);
-                    }
-                    if (preg_match('/รหัสผังบัญชี[^\:]*:\s*([^\s]+)/u', $rowStr, $m)) {
-                        $fileAccountCode = trim($m[1]);
-                    }
-                }
-
-                if (!$fileRoundNo) continue;
-
-                // Check if matches our round_no (MUST match exact round_no)
-                $isMatch = false;
-                if (!empty($roundNo) && $roundNo !== '-') {
-                    if ($fileRoundNo === $roundNo) {
-                        $isMatch = true;
-                    }
-                } elseif (!empty($accountCode) && !empty($fileAccountCode)) {
-                    if ($fileAccountCode === $accountCode) {
-                        $isMatch = true;
-                    }
-                }
-
-                if (!$isMatch) continue;
-
-                // Find header row
-                $headerRowIdx = -1;
-                foreach (array_slice($rows, 0, 10) as $idx => $r) {
-                    $rowStr = implode(' ', array_filter($r, fn($v) => $v !== null && $v !== ''));
-                    if (stripos($rowStr, 'HN') !== false && stripos($rowStr, 'ชื่อ-สกุล') !== false) {
-                        $headerRowIdx = $idx;
-                        break;
-                    }
-                }
-
-                if ($headerRowIdx === -1) continue;
-
-                $headers = $rows[$headerRowIdx];
-                $colMap = [];
-                foreach ($headers as $cIdx => $name) {
-                    $trimmed = trim((string)$name);
-                    if (stripos($trimmed, 'วันที่โอน') !== false) $colMap['transfer_date'] = $cIdx;
-                    elseif ($trimmed === 'HN') $colMap['hn'] = $cIdx;
-                    elseif ($trimmed === 'AN') $colMap['an'] = $cIdx;
-                    elseif (stripos($trimmed, 'ประเภท') !== false) $colMap['pt_type'] = $cIdx;
-                    elseif (stripos($trimmed, 'เลขบัตรประชาชน') !== false || stripos($trimmed, 'PID') !== false) $colMap['cid'] = $cIdx;
-                    elseif (stripos($trimmed, 'ชื่อ-สกุล') !== false) $colMap['pt_name'] = $cIdx;
-                    elseif (stripos($trimmed, 'วันที่เข้ารับบริการ') !== false) $colMap['vstdate'] = $cIdx;
-                    elseif (stripos($trimmed, 'จ่ายชดเชยสุทธิ') !== false) $colMap['receive_total'] = $cIdx;
-                    elseif (stripos($trimmed, 'REP_NO') !== false || stripos($trimmed, 'REP') !== false) $colMap['repno'] = $cIdx;
-                    elseif (stripos($trimmed, 'กองทุนหลัก') !== false) $colMap['main_fund'] = $cIdx;
-                    elseif (stripos($trimmed, 'กองทุนย่อย') !== false) $colMap['sub_fund'] = $cIdx;
-                    elseif (stripos($trimmed, 'รายละเอียด') !== false) $colMap['sub_fund_desc'] = $cIdx;
-                    elseif (stripos($trimmed, 'Hsend') !== false) $colMap['hsend'] = $cIdx;
-                    elseif (stripos($trimmed, 'Hcode') !== false) $colMap['hcode'] = $cIdx;
-                    elseif (stripos($trimmed, 'seq_no') !== false || stripos($trimmed, 'seq') !== false) $colMap['seq_no'] = $cIdx;
-                    elseif (stripos($trimmed, 'invoice_no') !== false) $colMap['invoice_no'] = $cIdx;
-                    elseif (stripos($trimmed, 'invoice_lt') !== false) $colMap['invoice_lt'] = $cIdx;
-                }
-
-                for ($i = $headerRowIdx + 1; $i < count($rows); $i++) {
-                    $row = $rows[$i];
-                    if (empty(array_filter($row, fn($v) => $v !== null && trim((string)$v) !== ''))) continue;
-
-                    $hn = trim((string)($row[$colMap['hn'] ?? 2] ?? ''));
-                    if (empty($hn) || $hn === 'รวม') continue;
-
-                    $an = trim((string)($row[$colMap['an'] ?? 3] ?? ''));
-                    $transferDate = $this->parseDate($row[$colMap['transfer_date'] ?? 1] ?? '');
-                    $ptType = trim((string)($row[$colMap['pt_type'] ?? 4] ?? ''));
-                    $cid = trim((string)($row[$colMap['cid'] ?? 5] ?? ''));
-                    $ptName = trim((string)($row[$colMap['pt_name'] ?? 6] ?? ''));
-                    $vstdate = $this->parseDate($row[$colMap['vstdate'] ?? 7] ?? '');
-                    $receiveTotal = $this->cleanNumber($row[$colMap['receive_total'] ?? 8] ?? 0);
-                    $repno = trim((string)($row[$colMap['repno'] ?? 9] ?? ''));
-                    $mainFund = trim((string)($row[$colMap['main_fund'] ?? 10] ?? ''));
-                    $subFund = trim((string)($row[$colMap['sub_fund'] ?? 11] ?? ''));
-                    $subFundDesc = trim((string)($row[$colMap['sub_fund_desc'] ?? 12] ?? ''));
-                    $hsend = trim((string)($row[$colMap['hsend'] ?? 13] ?? ''));
-                    $hcode = trim((string)($row[$colMap['hcode'] ?? 14] ?? ''));
-                    $seqNo = isset($colMap['seq_no']) ? trim((string)($row[$colMap['seq_no']] ?? '')) : null;
-                    $invoiceNo = isset($colMap['invoice_no']) ? trim((string)($row[$colMap['invoice_no']] ?? '')) : null;
-                    $invoiceLt = isset($colMap['invoice_lt']) ? trim((string)($row[$colMap['invoice_lt']] ?? '')) : null;
-
-                    SmartMoneyDetail::updateOrInsert(
-                        [
-                            'round_no' => $fileRoundNo,
-                            'hn' => $hn,
-                            'an' => !empty($an) ? $an : null,
-                            'vstdate' => $vstdate,
-                            'repno' => $repno,
-                            'sub_fund' => $subFund,
-                        ],
-                        [
-                            'batch_no' => $batchNo,
-                            'transfer_date' => $transferDate,
-                            'pt_type' => $ptType ?: (!empty($an) ? 'ผู้ป่วยใน' : 'ผู้ป่วยนอก'),
-                            'cid' => $cid,
-                            'pt_name' => $ptName,
-                            'receive_total' => $receiveTotal,
-                            'main_fund' => $mainFund,
-                            'sub_fund_desc' => $subFundDesc,
-                            'hsend' => $hsend,
-                            'hcode' => $hcode,
-                            'seq_no' => $seqNo,
-                            'invoice_no' => $invoiceNo,
-                            'invoice_lt' => $invoiceLt,
-                            'budget_year' => $budgetYear,
-                        ]
-                    );
-                    $importedCount++;
-                }
-            } catch (\Exception $e) {
-                Log::warning("autoImportMatchingDetailFiles error on {$file}: " . $e->getMessage());
-            }
-        }
-
-        return $importedCount ?: $existingDetails;
+        return $existingDetails;
     }
 
     /**

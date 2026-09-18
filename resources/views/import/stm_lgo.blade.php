@@ -636,7 +636,7 @@
                                         $currentYear = date('Y') + 543;
                                     @endphp
                                     @for($y = $currentYear + 1; $y >= $currentYear - 4; $y--)
-                                        <option value="{{ $y }}" {{ $y == $budget_year ? 'selected' : '' }}>ปีงบประมาณ {{ $y }}</option>
+                                        <option value="{{ $y }}" {{ $y == $budget_year ? 'selected' : '' }}>ปี พ.ศ. {{ $y }}</option>
                                     @endfor
                                 </select>
                             </div>
@@ -672,10 +672,16 @@
                 <!-- Section 3: List of Statement / REP files found in e-Claim -->
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                     <div class="card-header bg-white py-2.5 px-3 d-flex justify-content-between align-items-center">
-                        <div class="fw-bold text-dark small">
-                            <i class="bi bi-list-task text-primary me-1"></i> รายการ Statement (REP LGO) ที่พบใน e-Claim
+                        <div class="fw-bold text-dark small d-flex align-items-center gap-2">
+                            <i class="bi bi-list-task text-primary"></i> 
+                            <span>รายการ Statement (REP LGO) ที่มีเงินโอนใน Smart Money</span>
                         </div>
-                        <span id="botStmLgoCountBadge" class="badge bg-secondary-subtle text-secondary rounded-pill">พบ 0 รายการ</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small" style="font-size: 11px;">
+                                <i class="bi bi-wallet2 me-1"></i> กรองเฉพาะที่มีเงินโอนใน Smart Money
+                            </span>
+                            <span id="botStmLgoCountBadge" class="badge bg-secondary-subtle text-secondary rounded-pill">พบ 0 รายการ</span>
+                        </div>
                     </div>
                     <div class="table-responsive" style="max-height: 380px;">
                         <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
@@ -684,21 +690,22 @@
                                     <th width="40" class="text-center">
                                         <input type="checkbox" class="form-check-input" id="checkAllBotStmLgo">
                                     </th>
-                                    <th class="text-center" width="130">วันที่นำส่ง</th>
-                                    <th class="text-center" width="110">เลข REP</th>
+                                    <th class="text-center" width="120">วันที่นำส่ง</th>
+                                    <th class="text-center" width="105">เลข REP</th>
                                     <th>ชื่อไฟล์ ECD / EXCEL</th>
-                                    <th class="text-center" width="80">จำนวน</th>
-                                    <th class="text-center" width="80">ผ่าน</th>
-                                    <th class="text-center" width="80">ไม่ผ่าน</th>
-                                    <th class="text-center" width="120">ผู้นำเข้า</th>
-                                    <th class="text-center" width="140">สถานะใน RIMS</th>
+                                    <th class="text-center" width="150">เงินโอน Smart Money</th>
+                                    <th class="text-center" width="75">จำนวน</th>
+                                    <th class="text-center" width="70">ผ่าน</th>
+                                    <th class="text-center" width="70">ไม่ผ่าน</th>
+                                    <th class="text-center" width="110">ผู้นำเข้า</th>
+                                    <th class="text-center" width="130">สถานะใน RIMS</th>
                                 </tr>
                             </thead>
                             <tbody id="botStmLgoTableBody">
                                 <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">
+                                    <td colspan="10" class="text-center py-5 text-muted">
                                         <div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>
-                                        กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement LGO
+                                        กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement LGO ที่มีเงินโอน
                                     </td>
                                 </tr>
                             </tbody>
@@ -1400,7 +1407,7 @@
                         success: function () {
                             checkEclaimStmLgoStatus();
                             $('#eclaimStmLgoTokenInput').val('');
-                            $('#botStmLgoTableBody').html('<tr><td colspan="9" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement LGO</td></tr>');
+                            $('#botStmLgoTableBody').html('<tr><td colspan="10" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน e-Claim" เพื่อดึงรายการ Statement LGO ที่มีเงินโอน</td></tr>');
                             Swal.fire({
                                 icon: 'success',
                                 title: 'ตัดการเชื่อมต่อแล้ว',
@@ -1421,9 +1428,9 @@
 
             $('#botStmLgoTableBody').html(`
                 <tr>
-                    <td colspan="9" class="text-center py-5">
+                    <td colspan="10" class="text-center py-5">
                         <div class="spinner-border text-primary" role="status"></div>
-                        <div class="mt-2 text-muted fw-bold">กำลังดึงข้อมูล Statement (REP LGO) จาก e-Claim สปสช. ...</div>
+                        <div class="mt-2 text-muted fw-bold">กำลังดึงข้อมูล Statement (REP LGO) และตรวจสอบยอดเงินโอน Smart Money...</div>
                     </td>
                 </tr>
             `);
@@ -1445,7 +1452,7 @@
                     } else {
                         $('#botStmLgoTableBody').html(`
                             <tr>
-                                <td colspan="9" class="text-center py-5 text-danger">
+                                <td colspan="10" class="text-center py-5 text-danger">
                                     <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
                                     <strong>${res.message || 'ไม่พบข้อมูล'}</strong>
                                 </td>
@@ -1460,7 +1467,7 @@
                     }
                     $('#botStmLgoTableBody').html(`
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-danger">
+                            <td colspan="10" class="text-center py-5 text-danger">
                                 <i class="bi bi-x-circle-fill fs-3 mb-2 d-block"></i>
                                 <strong>${msg}</strong>
                             </td>
@@ -1471,16 +1478,16 @@
         });
 
         function renderBotStmLgoTable(items) {
-            $('#botStmLgoCountBadge').text('พบ ' + items.length + ' รายการ');
+            $('#botStmLgoCountBadge').text('พบ ' + items.length + ' รายการ (มีเงินโอน)');
             $('#checkAllBotStmLgo').prop('checked', false);
             updateSelectedStmLgoCount();
 
             if (!items || items.length === 0) {
                 $('#botStmLgoTableBody').html(`
                     <tr>
-                        <td colspan="9" class="text-center py-5 text-muted">
+                        <td colspan="10" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
-                            ไม่พบรายการ Statement ในงวดเดือนที่เลือก
+                            ไม่พบรายการ Statement LGO ที่มีประวัติเงินโอนใน Smart Money ในงวดที่เลือก
                         </td>
                     </tr>
                 `);
@@ -1492,6 +1499,16 @@
                 var statusBadge = item.is_imported 
                     ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle me-1"></i>นำเข้าแล้ว (${item.imported_count} ราย)</span>`
                     : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1"><i class="bi bi-dash-circle me-1"></i>ยังไม่เคยนำเข้า</span>`;
+
+                var smtBadge = `
+                    <div class="text-center">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                            <i class="bi bi-wallet2 me-1"></i> Batch: <b>${item.smt_batch || '-'}</b>
+                            <div class="small fw-bold mt-0.5">${Number(item.smt_amount || 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ฿</div>
+                        </span>
+                        ${item.smt_transfer_date ? `<div class="text-muted mt-0.5" style="font-size: 10px;">โอน: ${item.smt_transfer_date}</div>` : ''}
+                    </div>
+                `;
 
                 var itemJson = encodeURIComponent(JSON.stringify(item));
 
@@ -1506,6 +1523,7 @@
                             <div class="fw-bold text-dark"><i class="bi bi-file-earmark-excel text-success me-1"></i> ${item.filename}</div>
                             <small class="text-muted" style="font-size: 11px;">ประเภท: ${item.import_type} | ตรวจสอบ: ${item.check_date}</small>
                         </td>
+                        <td>${smtBadge}</td>
                         <td class="text-center fw-bold">${item.total.toLocaleString()}</td>
                         <td class="text-center text-success fw-bold">${item.pass.toLocaleString()}</td>
                         <td class="text-center ${item.fail > 0 ? 'text-danger fw-bold' : 'text-muted'}">${item.fail.toLocaleString()}</td>

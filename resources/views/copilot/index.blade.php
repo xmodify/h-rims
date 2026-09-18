@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
-    <link rel="icon" href="{{ asset('images/favicon_darkgreen.ico?v=2') }}" type="image/x-icon">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=3">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=3">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon_darkgreen.ico') }}?v=3">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>น้องมีตังค์ - ผู้ช่วย AI อัจฉริยะ (RiMS AI)</title>
     <!-- Google Fonts: Prompt & Sarabun -->

@@ -1549,6 +1549,115 @@ class EclaimBotController extends Controller
                 }
             }
 
+            // ตรวจสอบกับ Smart Money เฉพาะกรณี target_type === 'stm_lgo'
+            if ($targetType === 'stm_lgo' && !empty($repItems)) {
+                $dbBatches = DB::table('smart_money_batches')->get();
+                $liveSmtMap = [];
+
+                // ดึงข้อมูลสดจาก Smart Money API หากมี Session ThaiD (ACCESS_TOKEN)
+                $thaiDToken = $sessionToken;
+                $bearerToken = null;
+                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $thaiDToken, $mJwt)) {
+                    $bearerToken = $mJwt[1];
+                } elseif (strpos($thaiDToken, '.') !== false && substr_count($thaiDToken, '.') >= 2) {
+                    $bearerToken = $thaiDToken;
+                }
+
+                if ($bearerToken) {
+                    $cacheKey = 'live_smt_all_' . $hospcode;
+                    $liveSmtMap = Cache::get($cacheKey) ?: [];
+
+                    if (empty($liveSmtMap)) {
+                        try {
+                            $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
+                            $postData = [
+                                'vendorSearchConditionCode' => '1',
+                                'zoneId' => '',
+                                'provinceId' => '',
+                                'vendorId' => $vendorId,
+                                'vendorId5Digit' => '',
+                                'budgetSource' => '',
+                                'budgetYear' => '',
+                                'transferStartDate' => '01/10/2565',
+                                'transferEndDate' => '30/09/2570',
+                                'hospType' => '',
+                                'isTest' => '',
+                            ];
+
+                            $smtRes = Http::withHeaders([
+                                'Authorization' => 'Bearer ' . $bearerToken,
+                                'Content-Type' => 'application/json',
+                                'Origin' => 'https://smt.nhso.go.th',
+                                'Referer' => 'https://smt.nhso.go.th/smtf/',
+                            ])->withoutVerifying()->timeout(20)->post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReport/search', $postData);
+
+                            if ($smtRes->successful()) {
+                                $smtDatas = $smtRes->json()['datas'] ?? [];
+                                foreach ($smtDatas as $sd) {
+                                    $ref = trim((string)($sd['refDocNo'] ?? ''));
+                                    if ($ref) {
+                                        $liveSmtMap[$ref] = $sd;
+                                    }
+                                }
+                                if (!empty($liveSmtMap)) {
+                                    Cache::put($cacheKey, $liveSmtMap, 300);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning("SMT live check error: " . $e->getMessage());
+                        }
+                    }
+                }
+
+                $filteredRepItems = [];
+                foreach ($repItems as $item) {
+                    $rNo = $item['rep_no'];
+                    $matched = null;
+
+                    // 1. ตรวจสอบกับ smart_money_batches ใน Database
+                    foreach ($dbBatches as $b) {
+                        $br = trim((string)$b->round_no);
+                        if ($br === $rNo || str_starts_with($br, $rNo) || str_starts_with($rNo, $br) || str_contains($br, $rNo)) {
+                            $matched = [
+                                'batch_no' => $b->batch_no,
+                                'round_no' => $b->round_no,
+                                'amount' => (float)$b->net_amount,
+                                'transfer_date' => $b->transfer_date,
+                                'fund' => $b->fund_main ?: $b->fund_sub,
+                            ];
+                            break;
+                        }
+                    }
+
+                    // 2. ถ้าใน DB ยังไม่มี ให้ตรวจสอบกับ Live SMT API ที่ดึงมา
+                    if (!$matched) {
+                        foreach ($liveSmtMap as $ref => $sd) {
+                            if ($ref === $rNo || str_starts_with($ref, $rNo) || str_starts_with($rNo, $ref) || str_contains($ref, $rNo)) {
+                                $matched = [
+                                    'batch_no' => $sd['batchNo'] ?? '',
+                                    'round_no' => $ref,
+                                    'amount' => (float)($sd['total'] ?? 0),
+                                    'transfer_date' => $sd['runDt'] ?? '',
+                                    'fund' => $sd['fundName'] ?? '',
+                                ];
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($matched) {
+                        $item['has_smart_money'] = true;
+                        $item['smt_batch'] = $matched['batch_no'];
+                        $item['smt_amount'] = $matched['amount'];
+                        $item['smt_transfer_date'] = $matched['transfer_date'];
+                        $item['smt_fund'] = $matched['fund'];
+                        $filteredRepItems[] = $item;
+                    }
+                }
+
+                $repItems = $filteredRepItems;
+            }
+
             if (empty($repItems)) {
                 return response()->json([
                     'status' => 'success',
@@ -1556,7 +1665,9 @@ class EclaimBotController extends Controller
                     'month' => $month,
                     'count' => 0,
                     'data' => [],
-                    'message' => 'ไม่พบข้อมูลการตรวจสอบเบื้องต้น (REP) ในงวดเดือนที่เลือก'
+                    'message' => ($targetType === 'stm_lgo') 
+                        ? 'ไม่พบรายการ Statement (REP LGO) ที่มีเงินโอนในระบบ Smart Money ในงวดเดือนที่เลือก' 
+                        : 'ไม่พบข้อมูลการตรวจสอบเบื้องต้น (REP) ในงวดเดือนที่เลือก'
                 ]);
             }
 
@@ -2080,46 +2191,28 @@ class EclaimBotController extends Controller
                     $adm = trim((string)$sheet->getCell('I' . $row)->getValue());
                     $datetimeadm = null; $vstdate = null; $vsttime = null;
                     if (!empty($adm) && $adm !== '-') {
-                        try {
-                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $adm);
-                            if ($d) {
-                                $datetimeadm = $d->format('Y-m-d H:i:s');
-                                $vstdate = $d->format('Y-m-d');
-                                $vsttime = $d->format('H:i:s');
-                            }
-                        } catch (\Exception $e) {
-                            $day = substr($adm, 0, 2);
-                            $mo = substr($adm, 3, 2);
-                            $year = substr($adm, 6, 4);
-                            $tm = substr($adm, 11, 8);
-                            if ($day && $mo && $year) {
-                                $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . ($tm ?: '00:00:00');
-                                $vstdate = $year . '-' . $mo . '-' . $day;
-                                $vsttime = $tm ?: '00:00:00';
-                            }
+                        $day = substr($adm, 0, 2);
+                        $mo = substr($adm, 3, 2);
+                        $year = substr($adm, 6, 4);
+                        $tm = strlen($adm) >= 19 ? substr($adm, 11, 8) : (strlen($adm) >= 16 ? substr($adm, 11, 5) . ':00' : '00:00:00');
+                        if ($day && $mo && $year) {
+                            $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . $tm;
+                            $vstdate = $year . '-' . $mo . '-' . $day;
+                            $vsttime = $tm;
                         }
                     }
 
                     $dch = trim((string)$sheet->getCell('J' . $row)->getValue());
                     $datetimedch = null; $dchdate = null; $dchtime = null;
                     if (!empty($dch) && $dch !== '-') {
-                        try {
-                            $d = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $dch);
-                            if ($d) {
-                                $datetimedch = $d->format('Y-m-d H:i:s');
-                                $dchdate = $d->format('Y-m-d');
-                                $dchtime = $d->format('H:i:s');
-                            }
-                        } catch (\Exception $e) {
-                            $dchday = substr($dch, 0, 2);
-                            $dchmo = substr($dch, 3, 2);
-                            $dchyear = substr($dch, 6, 4);
-                            $dchtime_raw = substr($dch, 11, 8);
-                            if ($dchday && $dchmo && $dchyear) {
-                                $datetimedch = $dchyear . '-' . $dchmo . '-' . $dchday . ' ' . ($dchtime_raw ?: '00:00:00');
-                                $dchdate = $dchyear . '-' . $dchmo . '-' . $dchday;
-                                $dchtime = $dchtime_raw ?: '00:00:00';
-                            }
+                        $dchday = substr($dch, 0, 2);
+                        $dchmo = substr($dch, 3, 2);
+                        $dchyear = substr($dch, 6, 4);
+                        $dchtime_raw = strlen($dch) >= 19 ? substr($dch, 11, 8) : (strlen($dch) >= 16 ? substr($dch, 11, 5) . ':00' : '00:00:00');
+                        if ($dchday && $dchmo && $dchyear) {
+                            $datetimedch = $dchyear . '-' . $dchmo . '-' . $dchday . ' ' . $dchtime_raw;
+                            $dchdate = $dchyear . '-' . $dchmo . '-' . $dchday;
+                            $dchtime = $dchtime_raw;
                         }
                     }
 

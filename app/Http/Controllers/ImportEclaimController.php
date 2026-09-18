@@ -599,6 +599,34 @@ class ImportEclaimController extends Controller
 
 
 
+        $authType = strtolower(trim((string)$request->input('auth_type', $request->input('type', $request->input('service', '')))));
+
+        // กรณีระบุ auth_type = 'access_token' ชัดเจน
+        if (in_array($authType, ['access_token', 'jwt', 'smt', 'smart_money', 'smart-money', 'client'])) {
+            if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $parts = explode('.', $mJwt[1]);
+                if (count($parts) >= 2) {
+                    $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                    if (!empty($payload['exp']) && time() < $payload['exp']) {
+                        if (empty($user) || $user === 'ผู้ใช้งาน e-Claim') {
+                            $user = $payload['name'] ?? $payload['nameTh'] ?? (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน ThaiD');
+                        }
+                        return response()->json([
+                            'connected' => true,
+                            'user' => $user,
+                            'connected_at' => $time,
+                            'auth_method' => 'ThaiD SSO (ACCESS_TOKEN)'
+                        ]);
+                    }
+                }
+            }
+            return response()->json([
+                'connected' => false,
+                'user' => $user,
+                'message' => 'Session ThaiD (ACCESS_TOKEN) หมดอายุ (กรุณาสแกน ThaiD ใหม่)'
+            ]);
+        }
+
         $probePassed = false;
         try {
             $headers = $this->getEclaimBrowserHeaders($token);
@@ -622,8 +650,8 @@ class ImportEclaimController extends Controller
             Log::warning('eClaim getBotStatus probe error: ' . $e->getMessage());
         }
 
-        // ตรวจสอบสำรอง: หากเป็น ThaiD SSO Session (KEYCLOAK_IDENTITY / ACCESS_TOKEN) ที่ยังไม่หมดอายุ
-        if (!$probePassed) {
+        // ตรวจสอบสำรองเฉพาะกรณีไม่ได้บังคับ auth_type = 'jsessionid'
+        if (!$probePassed && $authType !== 'jsessionid') {
             if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
                 $parts = explode('.', $mJwt[1]);
                 if (count($parts) >= 2) {

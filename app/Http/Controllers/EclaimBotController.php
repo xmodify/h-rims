@@ -712,11 +712,13 @@ class EclaimBotController extends Controller
     }
 
     /**
-     * 1. ตรวจสอบสถานะการเชื่อมต่อ e-Claim / ThaiD Session (ค้นหาจาก Session -> Cache -> DB main_setting)
+     * 1. ตรวจสอบสถานะการเชื่อมต่อ e-Claim / ThaiD Session
+     * รองรับการแยกตรวจสอบตาม auth_type: 'jsessionid' (REP/STM) vs 'access_token' (Smart Money/Client)
      */
     public function getStatus(Request $request)
     {
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $authType = strtolower(trim((string)$request->input('auth_type', $request->input('type', $request->input('service', 'jsessionid')))));
         
         $userToken = null;
         $userSessionUser = null;
@@ -742,9 +744,48 @@ class EclaimBotController extends Controller
             }
         }
 
-        // Live Probe ทดสอบ Token ของ User ก่อน
         if ($userToken) {
             $userToken = $this->cleanToken($userToken);
+
+            // =========================================================================
+            // กรณี A: auth_type = 'access_token' (Smart Money Transfer, e-Claim Client)
+            // =========================================================================
+            if (in_array($authType, ['access_token', 'jwt', 'smt', 'smart_money', 'smart-money', 'client'])) {
+                $jwtStr = null;
+                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
+                    $jwtStr = $mJwt[1];
+                } elseif (strpos($userToken, '.') !== false && substr_count($userToken, '.') >= 2) {
+                    $jwtStr = $userToken;
+                }
+
+                if ($jwtStr) {
+                    $parts = explode('.', $jwtStr);
+                    if (count($parts) >= 2) {
+                        try {
+                            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                            if (!empty($payload['exp']) && time() < $payload['exp']) {
+                                $user = $userSessionUser ?: ($payload['name'] ?? $payload['nameTh'] ?? (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน ThaiD'));
+                                return response()->json([
+                                    'connected' => true,
+                                    'user' => $user,
+                                    'connected_at' => $userSessionTime ?: date('Y-m-d H:i:s'),
+                                    'auth_method' => 'ThaiD SSO (ACCESS_TOKEN)'
+                                ]);
+                            }
+                        } catch (\Exception $e) {}
+                    }
+                }
+
+                return response()->json([
+                    'connected' => false,
+                    'message' => 'Session ThaiD (ACCESS_TOKEN) หมดอายุ กรุณาเข้าสู่ระบบด้วย ThaiD เพื่อเชื่อมต่อใหม่'
+                ]);
+            }
+
+            // =========================================================================
+            // กรณี B: auth_type = 'jsessionid' (REP & STM ทุกสิทธิ์ บน webComponent)
+            // ต้องผ่าน Live Probe กับ Tomcat e-Claim จริงเท่านั้น (ห้าม Fallback JWT)
+            // =========================================================================
             $probePassed = false;
             try {
                 $headers = $this->getEclaimBrowserHeaders($userToken);
@@ -773,25 +814,6 @@ class EclaimBotController extends Controller
                 $probePassed = false;
             }
 
-            // ตรวจสอบสำรอง: หากเป็น ThaiD SSO Session (KEYCLOAK_IDENTITY / ACCESS_TOKEN) ที่ยังไม่หมดอายุ (สำหรับ Smart Money และ STM ฟอกไต)
-            if (!$probePassed) {
-                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
-                    $parts = explode('.', $mJwt[1]);
-                    if (count($parts) >= 2) {
-                        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-                        if (!empty($payload['exp']) && time() < $payload['exp']) {
-                            $probePassed = true;
-                            if (empty($userSessionUser)) {
-                                $userSessionUser = $payload['name'] ?? $payload['nameTh'] ?? (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน ThaiD');
-                            }
-                            if (empty($userAuthMethod)) {
-                                $userAuthMethod = 'ThaiD SSO (สปสช.)';
-                            }
-                        }
-                    }
-                }
-            }
-
             if ($probePassed) {
                 Session::put('eclaim_session_token', $userToken);
                 Session::put('eclaim_session_user', $userSessionUser);
@@ -801,7 +823,7 @@ class EclaimBotController extends Controller
                     'connected' => true,
                     'user' => $userSessionUser ?: (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน e-Claim'),
                     'connected_at' => $userSessionTime ?: date('Y-m-d H:i:s'),
-                    'auth_method' => $userAuthMethod ?: 'Session ประจำตัวผู้ใช้งาน'
+                    'auth_method' => $userAuthMethod ?: 'e-Claim Tomcat Session (JSESSIONID)'
                 ]);
             }
         }
@@ -809,7 +831,7 @@ class EclaimBotController extends Controller
         // กรณีไม่มี Session ส่วนตัว หรือหมดอายุ (Strict User Isolation: ไม่แชร์ข้ามผู้ใช้งาน)
         return response()->json([
             'connected' => false,
-            'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ (กรุณาเข้าสู่ระบบด้วย ThaiD หรือกดซิงก์ Session จาก Extension)'
+            'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session (JSESSIONID) หมดอายุ (กรุณากดปุ่ม "เข้าสู่ระบบ e-Claim (ThaiD)" เพื่อสแกนใหม่ หรือกดซิงก์จาก Extension)'
         ]);
     }
 
@@ -1462,7 +1484,7 @@ class EclaimBotController extends Controller
             ) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดซิงก์จาก Extension'
+                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เข้าสู่ระบบ e-Claim (ThaiD)" เพื่อสแกนใหม่ หรือกดซิงก์จาก Extension'
                 ], 401);
             }
 
@@ -2311,7 +2333,7 @@ class EclaimBotController extends Controller
             ) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เปลี่ยน Token" แล้ววางค่า JSESSIONID ล่าสุด หรือกดปุ่ม "ซิงก์ Session" จาก Extension'
+                    'message' => 'Session e-Claim บนเซิร์ฟเวอร์หมดอายุหรือไม่ถูกต้อง กรุณากดปุ่ม "เข้าสู่ระบบ e-Claim (ThaiD)" เพื่อสแกนใหม่ หรือกดซิงก์จาก Extension'
                 ], 401);
             }
 

@@ -1092,7 +1092,10 @@
             $.ajax({
                 url: "{{ route('import.eclaim-bot.status') }}",
                 method: "POST",
-                data: { _token: "{{ csrf_token() }}" },
+                data: { 
+                    _token: "{{ csrf_token() }}",
+                    auth_type: 'jsessionid'
+                },
                 success: function(res) {
                     eclaimRepIsChecking = false;
                     if (res && res.connected) {
@@ -1107,6 +1110,7 @@
                             .html('<i class="bi bi-check-circle-fill fs-5"></i>');
                         $('#eclaimRepAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary">' + (res.user || 'ผู้ใช้งาน e-Claim') + '</span>');
                         $('#eclaimRepAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + (res.connected_at || '{{ date("Y-m-d H:i:s") }}'));
+                        $('#btnEclaimRepLoginPopup').html('<i class="bi bi-arrow-repeat me-1"></i> เข้าสู่ระบบใหม่ / เปลี่ยนบัญชี ThaiD');
                         $('#btnEclaimRepLogout').removeClass('d-none');
                         $('#btnBotRepSearch').prop('disabled', false);
                     } else {
@@ -1116,6 +1120,7 @@
                             .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
                         $('#eclaimRepAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ e-Claim หรือ Session หมดอายุ');
                         $('#eclaimRepAuthStatusSub').text(res.message || 'เปิดเว็บ e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใน Extension เพื่อเริ่มดึงข้อมูล');
+                        $('#btnEclaimRepLoginPopup').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ e-Claim (ThaiD)');
                         $('#btnEclaimRepLogout').addClass('d-none');
                         $('#btnBotRepSearch').prop('disabled', true);
 
@@ -1139,6 +1144,7 @@
                         .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
                     $('#eclaimRepAuthStatusText').text('ไม่สามารถตรวจสอบสถานะการเชื่อมต่อ e-Claim ได้');
                     $('#eclaimRepAuthStatusSub').text('กรุณาเปิดหน้า e-Claim ใน Chrome แล้วกดปุ่ม "ซิงก์ Session เข้า RiMS" ใหม่อีกครั้ง');
+                    $('#btnEclaimRepLoginPopup').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ e-Claim (ThaiD)');
                     $('#btnEclaimRepLogout').addClass('d-none');
                     $('#btnBotRepSearch').prop('disabled', true);
                 }
@@ -1293,6 +1299,10 @@
                     if (res.status === 'success') {
                         renderBotRepTable(res.data);
                     } else {
+                        if (res.message && (res.message.includes('หมดอายุ') || res.message.includes('Session'))) {
+                            eclaimRepIsConnected = false;
+                            checkEclaimRepStatus(true);
+                        }
                         $('#botRepTableBody').html(`
                             <tr>
                                 <td colspan="9" class="text-center py-5 text-danger">
@@ -1307,6 +1317,10 @@
                     var msg = 'เกิดข้อผิดพลาดในการค้นหาข้อมูล';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         msg = xhr.responseJSON.message;
+                    }
+                    if (xhr.status === 401 || (msg && (msg.includes('หมดอายุ') || msg.includes('Session')))) {
+                        eclaimRepIsConnected = false;
+                        checkEclaimRepStatus(true);
                     }
                     $('#botRepTableBody').html(`
                         <tr>

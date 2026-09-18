@@ -1372,7 +1372,10 @@
             $.ajax({
                 url: "{{ route('import.eclaim-bot.status') }}",
                 method: "POST",
-                data: { _token: "{{ csrf_token() }}" },
+                data: { 
+                    _token: "{{ csrf_token() }}",
+                    auth_type: 'access_token'
+                },
                 success: function(res) {
                     smtIsChecking = false;
                     if (res && res.connected) {

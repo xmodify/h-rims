@@ -8883,16 +8883,24 @@ class ImportController extends Controller
             if ($details->isEmpty()) {
                 $scriptPath = base_path('tools/smt/download_detail.js');
                 if (file_exists($scriptPath)) {
+                    $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
+                    $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
+                    $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
+                    $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+                    $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
+
                     $cmd = sprintf(
-                        'node "%s" %s %s %s %s %s',
+                        '%s "%s" %s %s %s %s %s %s',
+                        $nodeExe,
                         $scriptPath,
                         escapeshellarg($batchNo),
                         escapeshellarg($roundNo),
                         escapeshellarg($transferDate),
                         escapeshellarg($accountCode),
-                        escapeshellarg('10989')
+                        escapeshellarg($hcode),
+                        escapeshellarg($cookieFile)
                     );
-                    exec($cmd, $output, $returnCode);
+                    \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
                 }
 
                 $details = \App\Models\SmartMoneyDetail::where('round_no', $roundNo)
@@ -9119,16 +9127,24 @@ class ImportController extends Controller
             if ($details->isEmpty()) {
                 $scriptPath = base_path('tools/smt/download_detail.js');
                 if (file_exists($scriptPath)) {
+                    $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
+                    $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
+                    $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
+                    $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+                    $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
+
                     $cmd = sprintf(
-                        'node "%s" %s %s %s %s %s',
+                        '%s "%s" %s %s %s %s %s %s',
+                        $nodeExe,
                         $scriptPath,
                         escapeshellarg($batchNo),
                         escapeshellarg($roundNo),
                         escapeshellarg($transferDate),
                         escapeshellarg($accountCode),
-                        escapeshellarg('10989')
+                        escapeshellarg($hcode),
+                        escapeshellarg($cookieFile)
                     );
-                    exec($cmd, $output, $returnCode);
+                    \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
                 }
 
                 $details = \App\Models\SmartMoneyDetail::where('round_no', $roundNo)
@@ -9194,5 +9210,54 @@ class ImportController extends Controller
             'inserted_details' => $totalInserted,
         ]);
     }
+
+    /**
+     * Ensure Playwright cookie session file exists from active e-Claim session
+     */
+    protected function preparePlaywrightCookies(): ?string
+    {
+        $cookieStr = null;
+        if (auth()->check()) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'eclaim_session_token')) {
+                $cookieStr = \Illuminate\Support\Facades\DB::table('users')->where('id', auth()->id())->value('eclaim_session_token');
+            }
+        }
+        if (!$cookieStr) {
+            $cookieStr = session('eclaim_session_token');
+        }
+
+        if (empty($cookieStr)) {
+            return null;
+        }
+
+        $cookies = [];
+        $parts = explode(';', $cookieStr);
+        foreach ($parts as $p) {
+            $p = trim($p);
+            if (empty($p)) continue;
+            $eqPos = strpos($p, '=');
+            if ($eqPos !== false) {
+                $k = trim(substr($p, 0, $eqPos));
+                $v = trim(substr($p, $eqPos + 1));
+                if (!empty($k)) {
+                    $cookies[] = [
+                        'name' => $k,
+                        'value' => $v,
+                        'domain' => '.nhso.go.th',
+                        'path' => '/',
+                    ];
+                }
+            }
+        }
+
+        if (empty($cookies)) {
+            return null;
+        }
+
+        $cookieFile = storage_path('app/cookies_for_playwright.json');
+        @file_put_contents($cookieFile, json_encode($cookies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        return $cookieFile;
+    }
 }
+
 

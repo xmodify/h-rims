@@ -53,6 +53,8 @@ if (!batchNo || !roundNo) {
                 '--disable-blink-features=AutomationControlled',
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
             ]
         });
 

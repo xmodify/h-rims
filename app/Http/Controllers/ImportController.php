@@ -8818,9 +8818,20 @@ class ImportController extends Controller
                     if (stripos($rowText, $keyword) === false) continue;
                 }
 
+                $rNoClean = preg_replace('/[^0-9]/', '', $rNo);
                 $existingCount = DB::table('stm_lgo_kidney')
-                    ->where('round_no', $rNo)
-                    ->orWhere('repno', $rNo)
+                    ->where(function($q) use ($rNo, $rNoClean, $bNo) {
+                        $q->where('round_no', $rNo)
+                          ->orWhere('repno', $rNo);
+                        if (!empty($rNoClean)) {
+                            $q->orWhere('round_no', 'like', "%{$rNoClean}%")
+                              ->orWhere('repno', 'like', "%{$rNoClean}%")
+                              ->orWhere('stm_filename', 'like', "%{$rNoClean}%");
+                        }
+                        if (!empty($bNo) && $bNo !== '-') {
+                            $q->orWhere('stm_filename', 'like', "%{$bNo}%");
+                        }
+                    })
                     ->count();
 
                 $results[] = [
@@ -9061,10 +9072,20 @@ class ImportController extends Controller
                     if (stripos($rowText, $keyword) === false) continue;
                 }
 
+                $rNoClean = preg_replace('/[^0-9]/', '', $rNo);
                 $existingCount = DB::table('stm_ucs_kidney')
-                    ->where('round_no', $rNo)
-                    ->orWhere('repno', 'like', "DCKD%")
-                    ->where('stm_filename', 'like', "%{$bNo}%")
+                    ->where(function($q) use ($rNo, $rNoClean, $bNo) {
+                        $q->where('round_no', $rNo)
+                          ->orWhere('repno', $rNo);
+                        if (!empty($rNoClean)) {
+                            $q->orWhere('round_no', 'like', "%{$rNoClean}%")
+                              ->orWhere('repno', 'like', "%{$rNoClean}%")
+                              ->orWhere('stm_filename', 'like', "%{$rNoClean}%");
+                        }
+                        if (!empty($bNo) && $bNo !== '-') {
+                            $q->orWhere('stm_filename', 'like', "%{$bNo}%");
+                        }
+                    })
                     ->count();
 
                 $results[] = [

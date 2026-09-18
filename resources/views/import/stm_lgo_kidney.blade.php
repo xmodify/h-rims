@@ -16,8 +16,11 @@
                         
                         <div class="input-group mb-3">
                             <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
-                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
-                                <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
+                            <button class="btn btn-success px-3.5" type="submit" style="border-radius: 0;">
+                                <i class="bi bi-cloud-upload me-1.5"></i> นำเข้าข้อมูล
+                            </button>
+                            <button type="button" class="btn btn-primary px-3.5 shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#smtKidneyModal" style="border-radius: 0 10px 10px 0; background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">
+                                <i class="bi bi-cloud-arrow-down-fill me-1.5"></i> ดึงจาก SMTF
                             </button>
                         </div>
 
@@ -239,7 +242,146 @@
         </div>
     </div>
 </div>
-{{-- End Modal --}}
+{{-- End Modal ออกใบเสร็จ --}}
+
+{{-- Modal ดึงข้อมูลจาก สปสช. (ThaiD SSO / Smart Money) - LGO HD --}}
+<div class="modal fade" id="smtKidneyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 1320px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header text-white p-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #059669, #10b981); border-radius: 14px; color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.4);">
+                        <i class="bi bi-robot fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="smtKidneyModalLabel">
+                            นำเข้า STM ฟอกไต
+                        </h5>
+                        <div class="text-light-50 small mt-0.5 d-flex align-items-center gap-2">
+                            <span>ระบบเชื่อมต่อตรง smt.nhso.go.th</span>
+                            <span class="badge rounded-pill bg-white text-dark py-1 px-2 fw-medium" style="font-size: 10.5px;">
+                                <i class="bi bi-shield-check text-primary me-1"></i> ThaiD SSO Ready
+                            </span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 ms-1" style="font-size: 10.5px;">
+                                เฉพาะงวด LGO-HD% (อปท. ฟอกไต)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4 bg-light">
+                <!-- Section 1: ThaiD Session Connection Status -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="smtAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" id="smtAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ ThaiD</div>
+                                    <div class="text-muted small" id="smtAuthStatusSub">สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบ</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" id="btnSmtThaidLogin">
+                                    <i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnSmtLogout">
+                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
+                                </button>
+                                <a href="https://smt.nhso.go.th/smtf/#/home/budget/summary" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="เปิดหน้าเว็บ Smart Money Transfer ในแท็บใหม่">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดเว็บ Smart Money Transfer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Search & Filter Box -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">
+                                    <i class="bi bi-calendar-event text-primary me-1"></i> ตั้งแต่วันที่
+                                </label>
+                                <input type="hidden" id="bot_start_date" name="bot_start_date">
+                                <input type="text" class="form-control form-control-sm rounded-3 datepicker_th" id="bot_start_date_picker" placeholder="วว/ดด/ปปปป" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">
+                                    <i class="bi bi-calendar-event text-primary me-1"></i> ถึงวันที่
+                                </label>
+                                <input type="hidden" id="bot_end_date" name="bot_end_date">
+                                <input type="text" class="form-control form-control-sm rounded-3 datepicker_th" id="bot_end_date_picker" placeholder="วว/ดด/ปปปป" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted mb-1">เลข Batch / งวด / ผังบัญชี (ระบุหรือไม่ก็ได้)</label>
+                                <input type="text" class="form-control form-control-sm rounded-3" id="botSmtKeywordFilter" placeholder="เช่น LGO-HD, 3150, ฟอกไต...">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end pt-3">
+                                <button class="btn btn-primary btn-sm w-100 rounded-3 py-1.5 fw-bold shadow-sm opacity-50" type="button" id="btnBotSmtSearch" disabled title="กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล">
+                                    <i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Smart Money Results List Table -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-2.5 px-3 d-flex justify-content-between align-items-center">
+                        <div class="fw-bold small text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-list-task text-success"></i> รายการเงินโอน Smart Money Transfer ที่พบใน สปสช. (เปรียบเทียบกับฐานข้อมูล RiMS)
+                        </div>
+                        <span class="badge bg-light text-dark border px-2.5 py-1" id="botSmtCountBadge">พบ 0 รายการ</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 420px;">
+                        <table class="table table-hover table-bordered align-middle mb-0 small" id="botSmtTable" style="width: 100%;">
+                            <thead class="table-light sticky-top">
+                                <tr class="text-muted small">
+                                    <th class="text-center" style="width: 38px;">
+                                        <input class="form-check-input" type="checkbox" id="checkAllBotSmt">
+                                    </th>
+                                    <th class="text-center text-nowrap" style="width: 95px;">วันที่โอน</th>
+                                    <th class="text-center text-nowrap" style="width: 85px;">BatchNo.</th>
+                                    <th class="text-center text-nowrap" style="width: 140px;">งวด / เลขที่เบิกจ่าย</th>
+                                    <th class="text-center text-nowrap" style="width: 125px;">รหัสผังบัญชี</th>
+                                    <th class="text-start">กองทุน / กองทุนย่อย</th>
+                                    <th class="text-end text-nowrap" style="width: 135px;">เงินโอนเข้าบัญชี (บาท)</th>
+                                    <th class="text-center text-nowrap" style="width: 165px;">สถานะใน RiMS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="botSmtTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>
+                                        กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer p-3 bg-white border-top d-flex justify-content-between">
+                <div class="small fw-bold text-primary" id="selectedBotSmtCount">เลือก 0 รายการ</div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light px-3 rounded-pill fw-semibold" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-success px-4 rounded-pill fw-semibold shadow-sm" id="btnStartImportBotSmt" disabled>
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> เริ่มนำเข้า RiMS ทันที
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- End Modal Smart Money Transfer --}}
 
 <!-- SweetAlert: Success -->
 @if (session('stm_success'))
@@ -664,6 +806,555 @@
                             });
                         }
                     });
+                }
+            });
+        });
+
+        // ==========================================
+        // Smart Money Transfer (ThaiD) - LGO-HD
+        // ==========================================
+        var thaiMonthsShort = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+        function toThaiDateString(d) {
+            if (!d) return '';
+            if (d instanceof Date) {
+                var day = d.getDate();
+                var month = thaiMonthsShort[d.getMonth() + 1] || '';
+                var year = d.getFullYear() + 543;
+                return day + ' ' + month + ' ' + year;
+            }
+            var str = d.toString().trim();
+            if (str.indexOf('-') !== -1) {
+                var p = str.split('-');
+                if (p.length === 3) {
+                    var y = parseInt(p[0], 10);
+                    if (y < 2400) y += 543;
+                    var m = parseInt(p[1], 10);
+                    var dayNum = parseInt(p[2], 10);
+                    return dayNum + ' ' + (thaiMonthsShort[m] || m) + ' ' + y;
+                }
+            }
+            if (str.indexOf('/') !== -1) {
+                var p = str.split('/');
+                if (p.length === 3) {
+                    var y = parseInt(p[2], 10);
+                    if (y < 2400) y += 543;
+                    var m = parseInt(p[0], 10);
+                    var dayNum = parseInt(p[1], 10);
+                    return dayNum + ' ' + (thaiMonthsShort[m] || m) + ' ' + y;
+                }
+            }
+            return str;
+        }
+
+        function formatThaiDateTime(dateStr) {
+            if (!dateStr) return '';
+            var parts = dateStr.toString().trim().split(' ');
+            var datePart = parts[0];
+            var timePart = parts[1] || '';
+            
+            var dFormatted = datePart;
+            if (datePart.indexOf('-') !== -1) {
+                var p = datePart.split('-');
+                if (p.length === 3) {
+                    var y = parseInt(p[0], 10);
+                    if (y < 2400) y += 543;
+                    var m = parseInt(p[1], 10);
+                    var dayNum = parseInt(p[2], 10);
+                    dFormatted = dayNum + ' ' + (thaiMonthsShort[m] || m) + ' ' + y;
+                }
+            }
+            return dFormatted + (timePart ? ' ' + timePart + ' น.' : '');
+        }
+
+        // Initialize Thai Datepicker for Modal
+        try {
+            $('#bot_start_date_picker, #bot_end_date_picker').datepicker('destroy');
+        } catch(e) {}
+
+        $('#bot_start_date_picker, #bot_end_date_picker').datepicker({
+            format: 'd M yyyy',
+            todayBtn: "linked",
+            todayHighlight: true,
+            autoclose: true,
+            language: 'th-th',
+            thaiyear: true,
+            zIndexOffset: 1060
+        });
+
+        // Set default dates for ThaiD Bot modal (First day of current month to today)
+        var botNow = new Date();
+        var botFirstDayOfMonth = new Date(botNow.getFullYear(), botNow.getMonth(), 1);
+
+        $('#bot_start_date_picker').datepicker('setDate', botFirstDayOfMonth);
+        $('#bot_end_date_picker').datepicker('setDate', botNow);
+
+        $('#bot_start_date_picker').val(toThaiDateString(botFirstDayOfMonth));
+        $('#bot_end_date_picker').val(toThaiDateString(botNow));
+
+        var startMonth = ("0" + (botFirstDayOfMonth.getMonth() + 1)).slice(-2);
+        var endMonth = ("0" + (botNow.getMonth() + 1)).slice(-2);
+        var endDay = ("0" + botNow.getDate()).slice(-2);
+
+        $('#bot_start_date').val(botFirstDayOfMonth.getFullYear() + '-' + startMonth + '-01');
+        $('#bot_end_date').val(botNow.getFullYear() + '-' + endMonth + '-' + endDay);
+
+        $('#bot_start_date_picker').on('changeDate', function(e) {
+            if(e.date) {
+                var day = ("0" + e.date.getDate()).slice(-2);
+                var month = ("0" + (e.date.getMonth() + 1)).slice(-2);
+                var year = e.date.getFullYear();
+                $('#bot_start_date').val(year + '-' + month + '-' + day);
+                $(this).val(toThaiDateString(e.date));
+            } else {
+                $('#bot_start_date').val('');
+            }
+        });
+
+        $('#bot_end_date_picker').on('changeDate', function(e) {
+            if(e.date) {
+                var day = ("0" + e.date.getDate()).slice(-2);
+                var month = ("0" + (e.date.getMonth() + 1)).slice(-2);
+                var year = e.date.getFullYear();
+                $('#bot_end_date').val(year + '-' + month + '-' + day);
+                $(this).val(toThaiDateString(e.date));
+            } else {
+                $('#bot_end_date').val('');
+            }
+        });
+
+        // ThaiD Session Status Checker for Smart Money Transfer
+        var smtIsConnected = false;
+        var smtIsChecking = false;
+
+        function checkSmtThaidStatus(silent = false) {
+            if (smtIsChecking) return;
+            smtIsChecking = true;
+
+            if (!silent && !smtIsConnected) {
+                $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning')
+                    .addClass('bg-secondary-subtle text-secondary')
+                    .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+                $('#smtAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ ThaiD...');
+                $('#smtAuthStatusSub').text('ระบบกำลังทดสอบ Session ของผู้ใช้งาน');
+                $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
+            }
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.status') }}",
+                method: "POST",
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    smtIsChecking = false;
+                    if (res && res.connected) {
+                        smtIsConnected = true;
+                        if (window.smtRetryTimer) {
+                            clearInterval(window.smtRetryTimer);
+                            window.smtRetryTimer = null;
+                        }
+
+                        $('#smtAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary')
+                            .addClass('bg-success-subtle text-success')
+                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
+                        $('#smtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary fw-bold">' + (res.user || 'ผู้ใช้งาน ThaiD') + '</span>');
+                        $('#smtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + (res.connected_at ? formatThaiDateTime(res.connected_at) : ''));
+                        $('#btnSmtThaidLogin').html('<i class="bi bi-arrow-repeat me-1"></i> เชื่อมต่อใหม่');
+                        $('#btnSmtLogout').removeClass('d-none');
+
+                        // Enable Search Button
+                        $('#btnBotSmtSearch').prop('disabled', false).removeClass('opacity-50').removeAttr('title').html('<i class="bi bi-search me-1"></i> ค้นหาใน Smart Money Transfer');
+                    } else {
+                        smtIsConnected = false;
+                        $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                            .addClass('bg-warning-subtle text-warning')
+                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                        $('#smtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ ThaiD');
+                        $('#smtAuthStatusSub').text('สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบ');
+                        $('#btnSmtThaidLogin').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)');
+                        $('#btnSmtLogout').addClass('d-none');
+
+                        // Disable Search Button
+                        $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
+
+                        if (!window.smtRetryTimer && $('#smtKidneyModal').hasClass('show')) {
+                            window.smtRetryTimer = setInterval(function() {
+                                if ($('#smtKidneyModal').hasClass('show') && !smtIsConnected) {
+                                    checkSmtThaidStatus(true);
+                                } else {
+                                    clearInterval(window.smtRetryTimer);
+                                    window.smtRetryTimer = null;
+                                }
+                            }, 3000);
+                        }
+                    }
+                },
+                error: function() {
+                    smtIsChecking = false;
+                    smtIsConnected = false;
+                    $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                        .addClass('bg-warning-subtle text-warning')
+                        .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                    $('#smtAuthStatusText').text('ยังไม่ได้เชื่อมต่อ ThaiD');
+                    $('#smtAuthStatusSub').text('กดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อเชื่อมต่อ');
+                    $('#btnSmtLogout').addClass('d-none');
+
+                    // Disable Search Button
+                    $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
+                }
+            });
+        }
+
+        $('#smtKidneyModal').on('show.bs.modal', function () {
+            if (!$('#bot_start_date_picker').val() || $('#bot_start_date_picker').val().indexOf('2026') !== -1 || $('#bot_start_date_picker').val().indexOf('/') !== -1) {
+                var mNow = new Date();
+                var mFirstDay = new Date(mNow.getFullYear(), mNow.getMonth(), 1);
+                $('#bot_start_date_picker').val(toThaiDateString(mFirstDay));
+                $('#bot_end_date_picker').val(toThaiDateString(mNow));
+            }
+            if (!smtIsConnected) {
+                $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
+            }
+            checkSmtThaidStatus();
+            $('#botSmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน</td></tr>');
+            $('#botSmtCountBadge').text('พบ 0 รายการ');
+            $('#selectedBotSmtCount').text('เลือก 0 รายการ');
+            $('#btnStartImportBotSmt').prop('disabled', true);
+            $('#checkAllBotSmt').prop('checked', false);
+        });
+
+        $('#smtKidneyModal').on('hidden.bs.modal', function () {
+            if (window.smtRetryTimer) {
+                clearInterval(window.smtRetryTimer);
+                window.smtRetryTimer = null;
+            }
+        });
+
+        $('#btnSmtThaidLogin').on('click', function () {
+            openEclaimThaidQrModal(checkSmtThaidStatus);
+        });
+
+        $('#btnSmtLogout').on('click', function () {
+            Swal.fire({
+                title: 'ยืนยันตัดการเชื่อมต่อ?',
+                text: 'ระบบจะล้าง Session e-Claim / ThaiD ออกจากระบบ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('eclaim_session_token');
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.logout') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function () {
+                            checkSmtThaidStatus();
+                            $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
+                            $('#botSmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน</td></tr>');
+                            $('#botSmtCountBadge').text('พบ 0 รายการ');
+                            $('#selectedBotSmtCount').text('เลือก 0 รายการ');
+                            $('#btnStartImportBotSmt').prop('disabled', true);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตัดการเชื่อมต่อแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Search in Smart Money
+        $('#btnBotSmtSearch').on('click', function() {
+            if (!smtIsConnected) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
+                    text: 'กรุณากดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อสแกน QR Code ก่อนค้นหาข้อมูล',
+                    confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
+                    showCancelButton: true,
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#0d6efd'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        openEclaimThaidQrModal(checkSmtThaidStatus);
+                    }
+                });
+                return;
+            }
+
+            var startDate = $('#bot_start_date').val() || $('#bot_start_date_picker').val();
+            var endDate = $('#bot_end_date').val() || $('#bot_end_date_picker').val();
+            var keyword = $('#botSmtKeywordFilter').val();
+
+            $('#botSmtTableBody').html(`
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2 text-muted fw-bold">กำลังดึงข้อมูลเงินโอน Smart Money Transfer (LGO-HD) จาก สปสช. แบบ Real-time ...</div>
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: "{{ route('import.stm_lgo_kidney.search_smt') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    start_date: startDate,
+                    end_date: endDate,
+                    keyword: keyword
+                },
+                success: function(res) {
+                    if (res.status === 'success') {
+                        renderLgoSmtTable(res.data, res.count);
+                    } else {
+                        $('#botSmtTableBody').html(`
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-danger">
+                                    <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
+                                    <strong>${res.message || 'ไม่พบข้อมูล'}</strong>
+                                </td>
+                            </tr>
+                        `);
+                    }
+                },
+                error: function(xhr) {
+                    var msg = 'เกิดข้อผิดพลาดในการค้นหาข้อมูล';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (xhr.status === 401) {
+                        checkSmtThaidStatus();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
+                            text: msg,
+                            confirmButtonText: 'เข้าสู่ระบบ (ThaiD)',
+                            showCancelButton: true,
+                            cancelButtonText: 'ยกเลิก',
+                            confirmButtonColor: '#0d6efd'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                openEclaimThaidQrModal(checkSmtThaidStatus);
+                            }
+                        });
+                    }
+                    $('#botSmtTableBody').html(`
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-danger">
+                                <i class="bi bi-x-circle-fill fs-3 mb-2 d-block"></i>
+                                <strong>${msg}</strong>
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        });
+
+        // Render SMT Table
+        function renderLgoSmtTable(items, count) {
+            $('#botSmtCountBadge').html(`พบ <strong>${count || items.length}</strong> รายการ`);
+            $('#checkAllBotSmt').prop('checked', false);
+            updateSelectedSmtCount();
+
+            if (!items || items.length === 0) {
+                $('#botSmtTableBody').html(`
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
+                            ไม่พบรายการเงินโอน LGO-HD ในช่วงวันที่ที่เลือก
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            var html = '';
+            items.forEach(function(item, idx) {
+                var statusBadge = '';
+                var isChecked = false;
+
+                if (!item.is_imported) {
+                    statusBadge = `<span class="badge bg-secondary-subtle text-secondary px-2 py-1"><i class="bi bi-dash-circle me-1"></i>ยังไม่นำเข้า</span>`;
+                    isChecked = true;
+                } else {
+                    statusBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>นำเข้าแล้ว (${item.existing_count} คน)</span>`;
+                    isChecked = false;
+                }
+
+                var itemJson = encodeURIComponent(JSON.stringify(item));
+
+                html += `
+                    <tr>
+                        <td class="text-center">
+                            <input class="form-check-input bot-smt-check" type="checkbox" data-item="${itemJson}" ${isChecked ? 'checked' : ''}>
+                        </td>
+                        <td class="text-center text-nowrap small">${item.transfer_date_thai || item.transfer_date}</td>
+                        <td class="text-center text-nowrap fw-bold text-primary">${item.batch_no}</td>
+                        <td class="text-center text-nowrap font-monospace small">${item.round_no}</td>
+                        <td class="text-center text-nowrap font-monospace small text-secondary">${item.account_code || '-'}</td>
+                        <td class="text-start">
+                            <div class="fw-semibold text-dark lh-sm">${item.fund_main || '-'}</div>
+                            <div class="text-muted small lh-1 mt-0.5" style="font-size: 11px;">${item.fund_sub || ''}</div>
+                        </td>
+                        <td class="text-end text-nowrap fw-bold text-success font-monospace">${item.net_amount_formatted}</td>
+                        <td class="text-center text-nowrap">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            $('#botSmtTableBody').html(html);
+            updateSelectedSmtCount();
+        }
+
+        // Toggle Select All
+        $('#checkAllBotSmt').on('change', function () {
+            var checked = $(this).prop('checked');
+            $('.bot-smt-check').prop('checked', checked);
+            updateSelectedSmtCount();
+        });
+
+        // Toggle Single Item
+        $(document).on('change', '.bot-smt-check', function () {
+            var total = $('.bot-smt-check').length;
+            var checked = $('.bot-smt-check:checked').length;
+            $('#checkAllBotSmt').prop('checked', total > 0 && total === checked);
+            updateSelectedSmtCount();
+        });
+
+        // Update Counter
+        function updateSelectedSmtCount() {
+            var selected = $('.bot-smt-check:checked').length;
+            $('#selectedBotSmtCount').text('เลือก ' + selected + ' รายการ');
+            $('#btnStartImportBotSmt').prop('disabled', selected === 0);
+        }
+
+        // Import Selected Batches to RiMS
+        $('#btnStartImportBotSmt').on('click', function () {
+            var selectedItems = [];
+            $('.bot-smt-check:checked').each(function () {
+                var raw = $(this).attr('data-item');
+                if (raw) {
+                    try {
+                        selectedItems.push(JSON.parse(decodeURIComponent(raw)));
+                    } catch (e) {
+                        console.error("Parse item error: ", e);
+                    }
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกอย่างน้อย 1 รายการเพื่อนำเข้า', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการนำเข้าข้อมูล STM ฟอกไต?',
+                html: `
+                    <div class="text-start p-3 bg-light rounded-4 mb-3 small">
+                        <div class="mb-2">📄 <strong>จำนวนงวดที่เลือก:</strong> <span class="text-primary fw-bold fs-6">${selectedItems.length}</span> งวด</div>
+                        <div class="text-muted">🛡️ ระบบจะดาวน์โหลดรายละเอียดและบันทึกผู้ป่วยรายคนลงตาราง <strong>stm_lgo_kidney</strong> ให้อัตโนมัติ</div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '🚀 เริ่มนำเข้าทันที',
+                cancelButtonText: 'ยกเลิก',
+                customClass: { popup: 'rounded-4' }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    var total = selectedItems.length;
+
+                    Swal.fire({
+                        title: 'กำลังนำเข้าข้อมูล STM ฟอกไต...',
+                        html: `
+                            <div class="text-center p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                                    <span class="small text-muted fw-semibold" id="smtProgressStep">กำลังเตรียมข้อมูล...</span>
+                                    <span class="badge bg-success fs-6 fw-bold px-3 py-1 shadow-sm" id="smtProgressPercent" style="border-radius: 12px;">0%</span>
+                                </div>
+                                <div class="progress mb-3 shadow-inner" style="height: 22px; border-radius: 12px; background-color: #e9ecef; overflow: hidden; padding: 2px;">
+                                    <div id="smtProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%; border-radius: 10px; font-weight: bold; font-size: 12px; transition: width 0.25s ease;">
+                                    </div>
+                                </div>
+                                <div class="card border-0 bg-light-subtle rounded-3 p-2 text-start">
+                                    <div class="small fw-semibold text-dark" id="smtProgressDetail"><i class="bi bi-arrow-repeat me-1 spinner-border spinner-border-sm"></i> กำลังเชื่อมต่อไปยัง สปสช. ...</div>
+                                </div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-4 shadow' }
+                    });
+
+                    var successCount = 0;
+                    var totalPatients = 0;
+                    var errors = [];
+
+                    for (var i = 0; i < total; i++) {
+                        var item = selectedItems[i];
+                        var pct = Math.round(((i) / total) * 100);
+                        $('#smtProgressBar').css('width', pct + '%');
+                        $('#smtProgressPercent').text(pct + '%');
+                        $('#smtProgressStep').text(`งวดที่ ${i + 1} จาก ${total} งวด`);
+                        $('#smtProgressDetail').html(`<i class="bi bi-arrow-repeat me-1 spinner-border spinner-border-sm"></i> กำลังประมวลผลงวด <strong>${item.round_no}</strong> (Batch ${item.batch_no})...`);
+
+                        try {
+                            var res = await $.ajax({
+                                url: "{{ route('import.stm_lgo_kidney.import_smt') }}",
+                                method: "POST",
+                                data: {
+                                    _token: "{{ csrf_token() }}",
+                                    items: [item]
+                                }
+                            });
+
+                            if (res.status === 'success') {
+                                successCount++;
+                                totalPatients += (res.inserted_details || 0);
+                            } else {
+                                errors.push(item.round_no + ': ' + (res.message || 'ไม่ทราบสาเหตุ'));
+                            }
+                        } catch (err) {
+                            var errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                            errors.push(item.round_no + ': ' + errMsg);
+                        }
+                    }
+
+                    $('#smtProgressBar').css('width', '100%');
+                    $('#smtProgressPercent').text('100%');
+                    $('#smtProgressStep').text('เสร็จสิ้นกระบวนการ');
+
+                    if (errors.length === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'นำเข้าข้อมูลสำเร็จ!',
+                            html: `นำเข้าข้อมูลลง stm_lgo_kidney สำเร็จครบ <strong>${successCount}</strong> งวด<br>รวมผู้ป่วยทั้งหมด <strong>${totalPatients.toLocaleString('th-TH')}</strong> รายการ`,
+                            confirmButtonText: 'ตกลง',
+                            confirmButtonColor: '#10b981'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: successCount > 0 ? 'warning' : 'error',
+                            title: successCount > 0 ? 'นำเข้าสำเร็จบางส่วน' : 'เกิดข้อผิดพลาด',
+                            html: `สำเร็จ ${successCount}/${total} งวด (${totalPatients} รายการ)<br><div class="text-danger small mt-2 text-start">${errors.join('<br>')}</div>`,
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            if (successCount > 0) {
+                                location.reload();
+                            }
+                        });
+                    }
                 }
             });
         });

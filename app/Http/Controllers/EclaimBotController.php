@@ -773,6 +773,25 @@ class EclaimBotController extends Controller
                 $probePassed = false;
             }
 
+            // ตรวจสอบสำรอง: หากเป็น ThaiD SSO Session (KEYCLOAK_IDENTITY / ACCESS_TOKEN) ที่ยังไม่หมดอายุ (สำหรับ Smart Money และ STM ฟอกไต)
+            if (!$probePassed) {
+                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
+                    $parts = explode('.', $mJwt[1]);
+                    if (count($parts) >= 2) {
+                        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+                        if (!empty($payload['exp']) && time() < $payload['exp']) {
+                            $probePassed = true;
+                            if (empty($userSessionUser)) {
+                                $userSessionUser = $payload['name'] ?? $payload['nameTh'] ?? (auth()->check() ? auth()->user()->name : 'ผู้ใช้งาน ThaiD');
+                            }
+                            if (empty($userAuthMethod)) {
+                                $userAuthMethod = 'ThaiD SSO (สปสช.)';
+                            }
+                        }
+                    }
+                }
+            }
+
             if ($probePassed) {
                 Session::put('eclaim_session_token', $userToken);
                 Session::put('eclaim_session_user', $userSessionUser);

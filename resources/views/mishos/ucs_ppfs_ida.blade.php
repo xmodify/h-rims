@@ -244,7 +244,7 @@
         });
 
         window.initDataTables = function() {
-            const tableIds = ['#t_search_child_6_12', '#t_search_child_3_5', '#t_search_female_13_24', '#t_claim'];
+            const tableIds = ['#t_search_child_6_12', '#t_search_child_3_5', '#t_search_female_13_49', '#t_search_female_13_24', '#t_claim'];
 
             tableIds.forEach(function(id) {
                 if ($.fn.DataTable.isDataTable(id)) {

@@ -84,14 +84,14 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link px-3 py-1 fw-bold rounded-pill shadow-sm" id="female1324-tab" data-bs-toggle="pill" data-bs-target="#female1324" type="button" role="tab" style="font-size: 0.82rem;">
-                                    <i class="bi bi-gender-female me-1 text-danger"></i> หญิง 13 – 24 ปี (ADP 13001)
-                                    <span class="badge bg-danger text-white rounded-pill ms-1">{{ count($search_female_13_24) }}</span>
+                                <button class="nav-link px-3 py-1 fw-bold rounded-pill shadow-sm" id="female1349-tab" data-bs-toggle="pill" data-bs-target="#female1349" type="button" role="tab" style="font-size: 0.82rem;">
+                                    <i class="bi bi-gender-female me-1 text-danger"></i> หญิง 13 – 49 ปี
+                                    <span class="badge bg-danger text-white rounded-pill ms-1">{{ count($search_female_13_49 ?? $search_female_13_24) }}</span>
                                 </button>
                             </li>
                         </ul>
                         <div class="small text-muted">
-                            <i class="bi bi-info-circle me-1"></i> เด็ก 6–12 ด. และ 3–6 ปี (Hb/Hct 30 บาท) | หญิง 13–24 ปี (ADP 13001)
+                            <i class="bi bi-info-circle me-1"></i> เด็ก 6–12 ด. และ 3–6 ปี (Hb/Hct 30 บาท) | หญิง 13–49 ปี
                         </div>
                     </div>
 
@@ -347,10 +347,10 @@
                             </div>
                         </div>
 
-                        <!-- Sub-tab 3: หญิง 13 - 24 ปี -->
-                        <div class="tab-pane fade" id="female1324" role="tabpanel">
+                        <!-- Sub-tab 3: หญิง 13 - 49 ปี -->
+                        <div class="tab-pane fade" id="female1349" role="tabpanel">
                             <div class="table-responsive">            
-                                <table id="t_search_female_13_24" class="table table-modern w-100">
+                                <table id="t_search_female_13_49" class="table table-modern w-100">
                                     <thead>
                                         <tr>
                                             <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
@@ -374,13 +374,13 @@
                                     </thead> 
                                     <tbody> 
                                         @php 
-                                            $count = 1; 
-                                            $sum_income = 0; 
-                                            $sum_rcpt_money = 0; 
-                                            $sum_claim_price = 0; 
-                                            $sum_receive_total = 0;
+                                             $count = 1; 
+                                             $sum_income = 0; 
+                                             $sum_rcpt_money = 0; 
+                                             $sum_claim_price = 0; 
+                                             $sum_receive_total = 0;
                                         @endphp
-                                        @foreach($search_female_13_24 as $row) 
+                                        @foreach(($search_female_13_49 ?? $search_female_13_24) as $row) 
                                         <tr>
                                             <td class="text-center" style="vertical-align: middle;">
                                                 @if(!empty($row->can_export_fdh))
@@ -442,17 +442,17 @@
                                             <td class="text-center small">{{ $row->repno ?? '-' }}</td>
                                         </tr>
                                         @php 
-                                            $count++; 
-                                            $sum_income += $row->income; 
-                                            $sum_rcpt_money += $row->rcpt_money; 
-                                            $sum_claim_price += $row->claim_price; 
-                                            $sum_receive_total += $row->receive_total;
+                                             $count++; 
+                                             $sum_income += $row->income; 
+                                             $sum_rcpt_money += $row->rcpt_money; 
+                                             $sum_claim_price += $row->claim_price; 
+                                             $sum_receive_total += $row->receive_total;
                                         @endphp
                                         @endforeach                 
                                     </tbody>
                                     <tfoot class="bg-light-soft">
                                         <tr>
-                                            <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (หญิง 13-24 ปี):</th>
+                                            <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (หญิง 13-49 ปี):</th>
                                             <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                             <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                             <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>

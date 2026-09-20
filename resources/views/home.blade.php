@@ -19,25 +19,25 @@
     <div class="row">      
         <div class="col-12 px-3">
           <div class="page-header-box mt-2" style="border-left-color: #3b82f6 !important;">
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
               <h6 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-activity me-1"></i> DASHBOARD OVERVIEW
               </h6>
-              <small class="text-muted ms-2 fw-normal dashboard-date-info">
+              <small class="text-muted ms-sm-2 fw-normal dashboard-date-info">
                 Visit ล่าสุด <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}} 
                 <i class="bi bi-clock-history ms-2 me-1"></i> {{ $latest_vsttime }}
               </small>
             </div>
-            <div class="d-flex align-items-center gap-3">
-              <div class="px-3 border-end">
+            <div class="d-flex align-items-center flex-wrap gap-2 gap-sm-3 mt-2 mt-md-0">
+              <div class="px-2 px-sm-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">OPD TOTAL</small>
                 <div class="h6 mb-0 fw-bold text-dark text-center">{{$opd_total}}</div>
               </div>
-              <div class="px-3 border-end">
+              <div class="px-2 px-sm-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">Authen</small>
                 <div class="h6 mb-0 fw-bold text-success text-center">{{$opd_auth}}</div>
               </div>
-              <div class="px-3 border-end">
+              <div class="px-2 px-sm-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">ปิดสิทธิ สปสช.</small>
                 <div class="h6 mb-0 fw-bold text-primary text-center">{{$endpoint}}</div>
               </div>
@@ -52,7 +52,7 @@
           </div>
         </div>
       <!-- OPD Metrics Cards -->
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-1">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-credit-card-2-front me-1 icon-color-1"></i> OFC Visit : รูดบัตร : ปิดสิทธิ</span>
@@ -63,7 +63,7 @@
             </div>
           </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-2">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-shield-lock me-1 icon-color-2"></i> ไม่ขอ AuthenCode</span>
@@ -74,7 +74,7 @@
             </div>
           </div>
       </div>        
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-3">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-building me-1 icon-color-3"></i> ไม่บันทึกสถานพยาบาลหลัก</span>
@@ -85,7 +85,7 @@
             </div>
           </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
         <div class="card dash-card accent-4">
           <div class="card-body">
             <span class="card-label"><i class="bi bi-check2-square me-1 icon-color-4"></i> PPFS : ปิดสิทธิ </span>
@@ -96,7 +96,7 @@
           </div>
         </div>
       </div>      
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
         <div class="card dash-card accent-5">
           <div class="card-body">
             <span class="card-label"><i class="bi bi-star me-1 icon-color-5"></i> UC บริการเฉพาะ : ปิดสิทธิ</span>
@@ -107,7 +107,7 @@
           </div>
         </div>
       </div>        
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
         <div class="card dash-card accent-6">
           <div class="card-body">
             <span class="card-label"><i class="bi bi-flower1 me-1 icon-color-6"></i> UC ยาสมุนไพร : ปิดสิทธิ</span>
@@ -118,7 +118,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
         <div class="card dash-card accent-7">
           <div class="card-body">
             <span class="card-label"><i class="bi bi-hospital me-1 icon-color-7"></i> UC แพทย์แผนไทย : ปิดสิทธิ </span>
@@ -129,7 +129,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-8">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-geo-alt me-1 icon-color-8"></i> UC Anywhere : ปิดสิทธิ</span>
@@ -140,7 +140,7 @@
             </div>
           </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-13">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-droplet me-1 icon-color-13"></i> UC ฟอกไต : ปิดสิทธิ</span>
@@ -155,21 +155,21 @@
       <!-- IPD Section -->
       <div class="col-12 px-3 mt-1">
         <div class="page-header-box" style="border-left-color: #198754 !important;">
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
             <h6 class="text-success mb-0 fw-bold">
               <i class="bi bi-door-open me-2"></i> INPATIENT ADMISSIONS 
             </h6>
-            <small class="text-muted ms-2 fw-normal dashboard-date-info">
+            <small class="text-muted ms-sm-2 fw-normal dashboard-date-info">
               Admit ล่าสุด <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}}
               <i class="bi bi-clock-history me-1"></i> {{ $latest_regtime }} 
-              <span class="ms-3">ADMIT NOW: <span class="text-dark fw-bold">{{$admit_now}}</span> AN</span>
+              <span class="ms-md-3 d-inline-block">ADMIT NOW: <span class="text-dark fw-bold">{{$admit_now}}</span> AN</span>
             </small>
           </div>
         </div>
       </div>
 
       <!-- IPD Metrics Cards -->
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
         <div class="card dash-card accent-9">
           <div class="card-body">
             <span class="card-label"><i class="bi bi-house me-1 icon-color-9"></i> Admit Homeward : Authen</span>
@@ -180,7 +180,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-10">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-file-earmark-medical me-1 icon-color-10"></i> Chart รอแพทย์สรุป : รอบันทึก ICD10</span>
@@ -191,7 +191,7 @@
             </div>
           </div>
       </div>        
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-11">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-arrow-left-right me-1 icon-color-11"></i> รอโอนค่าใช้จ่าย</span>
@@ -202,7 +202,7 @@
             </div>
           </div>
       </div>
-      <div class="col-sm-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3 mb-3">
           <div class="card dash-card accent-12">
             <div class="card-body">
               <span class="card-label"><i class="bi bi-cash-coin me-1 icon-color-12"></i> รอชำระเงินสด : จำนวนเงิน</span>

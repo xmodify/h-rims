@@ -646,13 +646,14 @@ class ClaimValidator
         if ($adpCode === '13001' || $adpCode === '30104') {
             $isChild612 = ($age !== null && $age <= 1);
             $isChild35  = ($age !== null && $age >= 3 && $age <= 5);
-            $isFemale1324 = ($age !== null && $age >= 13 && $age <= 24 && $sex === 'F');
+            $maxFemaleAge = ($adpCode === '13001') ? 49 : 24;
+            $isFemaleGroup = ($age !== null && $age >= 13 && $age <= $maxFemaleAge && $sex === 'F');
 
-            if (!$isChild612 && !$isChild35 && !$isFemale1324) {
-                if ($age !== null && $age >= 13 && $age <= 24 && $sex !== 'F') {
-                    $errors[] = "รหัส {$adpCode}: กลุ่มอายุ 13-24 ปี จำกัดเฉพาะเพศหญิง [ปัจจุบันเพศ " . ($sex === 'M' ? 'ชาย' : ($sex ?: '-')) . "] อาจติด C: 201";
+            if (!$isChild612 && !$isChild35 && !$isFemaleGroup) {
+                if ($age !== null && $age >= 13 && $age <= $maxFemaleAge && $sex !== 'F') {
+                    $errors[] = "รหัส {$adpCode}: กลุ่มอายุ 13-{$maxFemaleAge} ปี จำกัดเฉพาะเพศหญิง [ปัจจุบันเพศ " . ($sex === 'M' ? 'ชาย' : ($sex ?: '-')) . "] อาจติด C: 201";
                 } elseif ($age !== null) {
-                    $errors[] = "รหัส {$adpCode}: อายุ {$age} ปี ไม่อยู่ในเกณฑ์ (เด็ก 6-12ด., 3-5ปี หรือ หญิง 13-24ปี) อาจติด C: 202";
+                    $errors[] = "รหัส {$adpCode}: อายุ {$age} ปี ไม่อยู่ในเกณฑ์ (เด็ก 6-12ด., 3-5ปี หรือ หญิง 13-{$maxFemaleAge}ปี) อาจติด C: 202";
                 }
             }
         } else {

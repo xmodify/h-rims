@@ -3063,7 +3063,7 @@ class MishosController extends Controller
         $ida_adp_in = '"13001", "30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000"';
 
         if (!$request->input('skip_chart')) {
-            $chartCacheKey = 'chart_mis_ucs_ppfs_ida_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
+            $chartCacheKey = 'chart_mis_ucs_ppfs_ida_v2_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
             $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b, $ida_adp_in) {
                 $sum_month_sql = '
 
@@ -3081,11 +3081,17 @@ class MishosController extends Controller
                     
                     INNER JOIN (
                         SELECT vn FROM opitemrece 
-                        WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                        WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND (
+                            icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                            OR icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                        )
                     ) o1 ON o1.vn=o.vn
                     LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
                     WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-                    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . ')) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+                    AND (
+                        op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                        OR op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                    ) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                     LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                         FROM hrims.stm_ucs 
                         WHERE vstdate BETWEEN ? AND ?
@@ -3094,11 +3100,23 @@ class MishosController extends Controller
                     WHERE (o.an ="" OR o.an IS NULL)       
                     AND o.vstdate BETWEEN ? AND ?
                     AND (
-                        (v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL))
-                        OR (v.age_y BETWEEN 1 AND 2)
-                        OR (v.age_y BETWEEN 3 AND 6)
-                        OR (pt.sex = "2" AND v.age_y BETWEEN 13 AND 24)
-                        OR EXISTS (SELECT 1 FROM opitemrece opx JOIN nondrugitems ndx ON ndx.icode=opx.icode WHERE opx.vn=o.vn AND ndx.nhso_adp_code = "13001")
+                        (
+                            ((v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL)) OR (v.age_y BETWEEN 1 AND 6))
+                            AND EXISTS (
+                                SELECT 1 FROM opitemrece opc 
+                                WHERE opc.vn = o.vn AND opc.paidst = "02" AND (
+                                    opc.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000", "13001"))
+                                    OR opc.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN ("30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000", "13001"))
+                                )
+                            )
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM opitemrece opw 
+                            WHERE opw.vn = o.vn AND opw.paidst = "02" AND (
+                                opw.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code = "13001")
+                                OR opw.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code = "13001")
+                            )
+                        )
                     ) 
                     GROUP BY o.vn ) AS a
                 ';
@@ -3171,6 +3189,13 @@ class MishosController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             
             
+			INNER JOIN (
+                SELECT vn FROM opitemrece 
+                WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND (
+                    icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                    OR icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                )
+            ) oinner ON oinner.vn=o.vn
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND (
                 o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
                 OR o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
@@ -3190,14 +3215,25 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             AND (
-                (v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL))
-                OR (v.age_y BETWEEN 1 AND 2)
-                OR (v.age_y BETWEEN 3 AND 6)
-                OR (pt.sex = "2" AND v.age_y BETWEEN 13 AND 24)
-                OR EXISTS (SELECT 1 FROM opitemrece opx JOIN nondrugitems ndx ON ndx.icode=opx.icode WHERE opx.vn=o.vn AND ndx.nhso_adp_code = "13001")
+                (
+                    ((v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL)) OR (v.age_y BETWEEN 1 AND 6))
+                    AND EXISTS (
+                        SELECT 1 FROM opitemrece opc 
+                        WHERE opc.vn = o.vn AND opc.paidst = "02" AND (
+                            opc.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000", "13001"))
+                            OR opc.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN ("30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000", "13001"))
+                        )
+                    )
+                )
+                OR EXISTS (
+                    SELECT 1 FROM opitemrece opw 
+                    WHERE opw.vn = o.vn AND opw.paidst = "02" AND (
+                        opw.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code = "13001")
+                        OR opw.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code = "13001")
+                    )
+                )
             )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
             ';
@@ -3248,7 +3284,7 @@ class MishosController extends Controller
         $claim = [];
         $search_child_6_12 = [];
         $search_child_3_5 = [];
-        $search_female_13_24 = [];
+        $search_female_13_49 = [];
 
         foreach ($all_visits as $row) {
             $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
@@ -3260,24 +3296,24 @@ class MishosController extends Controller
                 $age_y = isset($row->age_y) ? intval($row->age_y) : null;
                 $sex = isset($row->sex) ? (string)$row->sex : '';
 
-                if ($row->has_adp_13001 == 1 || ($sex === '2' && $age_y !== null && $age_y >= 13 && $age_y <= 24)) {
-                    $search_female_13_24[] = $row;
+                if ($row->has_adp_13001 == 1) {
+                    $search_female_13_49[] = $row;
                 } elseif ($age_y !== null && $age_y <= 2) {
                     $search_child_6_12[] = $row;
                 } elseif ($age_y !== null && $age_y >= 3 && $age_y <= 6) {
                     $search_child_3_5[] = $row;
-                } elseif ($sex === '2' && $age_y !== null && $age_y >= 13) {
-                    $search_female_13_24[] = $row;
                 } else {
-                    $search_child_6_12[] = $row;
+                    $search_female_13_49[] = $row;
                 }
             }
         }
 
+        $search_female_13_24 = $search_female_13_49; // alias for backwards compatibility
+
         $table_html = view('mishos.ucs_ppfs_ida_table', compact(
             'budget_year', 'start_date', 'end_date',
             'search', 'claim',
-            'search_child_6_12', 'search_child_3_5', 'search_female_13_24'
+            'search_child_6_12', 'search_child_3_5', 'search_female_13_49', 'search_female_13_24'
         ))->render();
         $patient_items = array_merge(
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),

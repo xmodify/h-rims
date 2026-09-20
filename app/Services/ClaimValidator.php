@@ -642,26 +642,41 @@ class ClaimValidator
         $hosxpDiags = "ปัจจุบัน PDX: " . ($pdx ?: '-') . ($sdx ? ", SDX: {$sdx}" : "");
         $hosxpProc = "ปัจจุบัน: " . (!empty($procedures) ? implode(',', $procedures) : 'ไม่พบหัตถการ');
 
-        // Sex
-        if (!empty($rule['sex'])) {
-            $expectedSex = strtoupper($rule['sex']);
-            if ($sex && $sex !== $expectedSex) {
-                $genderName = $expectedSex === 'F' ? 'หญิง' : 'ชาย';
-                $currGender = $sex === 'F' ? 'หญิง' : ($sex === 'M' ? 'ชาย' : ($sex ?: '-'));
-                $errors[] = "รหัส {$adpCode}: จำกัดเฉพาะเพศ {$genderName} [ปัจจุบันเพศ {$currGender}] อาจติด C: 201";
-            }
-        }
+        // Sex & Age for 13001 & 30104 (IDA Screening)
+        if ($adpCode === '13001' || $adpCode === '30104') {
+            $isChild612 = ($age !== null && $age <= 1);
+            $isChild35  = ($age !== null && $age >= 3 && $age <= 5);
+            $isFemale1324 = ($age !== null && $age >= 13 && $age <= 24 && $sex === 'F');
 
-        // Age
-        if (isset($rule['age'])) {
-            $minAge = $rule['age']['min'] ?? null;
-            $maxAge = $rule['age']['max'] ?? null;
-            if ($age !== null) {
-                if ($minAge !== null && $age < $minAge) {
-                    $errors[] = "รหัส {$adpCode}: อายุไม่อยู่ในเกณฑ์ ({$minAge}-{$maxAge} ปี) [ปัจจุบัน {$age} ปี] อาจติด C: 202";
+            if (!$isChild612 && !$isChild35 && !$isFemale1324) {
+                if ($age !== null && $age >= 13 && $age <= 24 && $sex !== 'F') {
+                    $errors[] = "รหัส {$adpCode}: กลุ่มอายุ 13-24 ปี จำกัดเฉพาะเพศหญิง [ปัจจุบันเพศ " . ($sex === 'M' ? 'ชาย' : ($sex ?: '-')) . "] อาจติด C: 201";
+                } elseif ($age !== null) {
+                    $errors[] = "รหัส {$adpCode}: อายุ {$age} ปี ไม่อยู่ในเกณฑ์ (เด็ก 6-12ด., 3-5ปี หรือ หญิง 13-24ปี) อาจติด C: 202";
                 }
-                if ($maxAge !== null && $age > $maxAge) {
-                    $errors[] = "รหัส {$adpCode}: อายุไม่อยู่ในเกณฑ์ ({$minAge}-{$maxAge} ปี) [ปัจจุบัน {$age} ปี] อาจติด C: 202";
+            }
+        } else {
+            // Sex
+            if (!empty($rule['sex'])) {
+                $expectedSex = strtoupper($rule['sex']);
+                if ($sex && $sex !== $expectedSex) {
+                    $genderName = $expectedSex === 'F' ? 'หญิง' : 'ชาย';
+                    $currGender = $sex === 'F' ? 'หญิง' : ($sex === 'M' ? 'ชาย' : ($sex ?: '-'));
+                    $errors[] = "รหัส {$adpCode}: จำกัดเฉพาะเพศ {$genderName} [ปัจจุบันเพศ {$currGender}] อาจติด C: 201";
+                }
+            }
+
+            // Age
+            if (isset($rule['age'])) {
+                $minAge = $rule['age']['min'] ?? null;
+                $maxAge = $rule['age']['max'] ?? null;
+                if ($age !== null) {
+                    if ($minAge !== null && $age < $minAge) {
+                        $errors[] = "รหัส {$adpCode}: อายุไม่อยู่ในเกณฑ์ ({$minAge}-{$maxAge} ปี) [ปัจจุบัน {$age} ปี] อาจติด C: 202";
+                    }
+                    if ($maxAge !== null && $age > $maxAge) {
+                        $errors[] = "รหัส {$adpCode}: อายุไม่อยู่ในเกณฑ์ ({$minAge}-{$maxAge} ปี) [ปัจจุบัน {$age} ปี] อาจติด C: 202";
+                    }
                 }
             }
         }

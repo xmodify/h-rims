@@ -1189,7 +1189,7 @@
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('mishos/ucs_ppfs_ferrofolic') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการยาเม็ดเสริมธาตุเหล็ก</a>
+                                                        href="{{ url('mishos/ucs_ppfs_ferrofolic') }}"><i class="bi bi-chevron-right text-muted me-1"></i> บริการยาเสริมธาตุเหล็ก</a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item dropdown-item-modern"

@@ -15,7 +15,7 @@
             <div class="d-flex justify-content-between align-items-end mb-3">
                 <div class="d-flex align-items-center gap-3">
                     <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้รับบริการคัดกรองโลหิตจางจากการขาดธาตุเหล็ก
+                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้รับบริการคัดกรองโลหิตจางจากการขาดธาตุเหล็ก (IDA)
                     </h6>
                     <span class="text-muted small">
                         วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
@@ -40,6 +40,9 @@
                             <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importHubModal">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> นำเข้าข้อมูล
                             </button>
+                            <button type="button" class="btn text-white fw-bold px-3 shadow-sm" style="background: linear-gradient(135deg, #0e939a 0%, #15b7bd 100%); border: none;" onclick="exportSelectedF16FDH('UCS_PPFS_IDA')">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> ส่งออก 16 แฟ้ม
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -48,140 +51,436 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
                         <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
-                     <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
+                        <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span>
+                    </button>
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
                         <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
-                     <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span></button>
+                        <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span>
+                    </button>
                 </li>
             </ul>
         </div>
         <div class="card-body px-4 pb-4 pt-0">
             
             <div class="tab-content" id="myTabContent">
-                <!-- Tab 1: Waiting for Claim -->
+                <!-- Tab 1: Waiting for Claim (with 3 sub-tabs for target groups) -->
                 <div class="tab-pane fade show active" id="search" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_search" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>
-                                    <th class="text-center">ตรวจสอบ</th>
-                                    
-                                    <th class="text-center" width="8%">วันที่รับบริการ</th>
-                                    <th class="text-center">Queue</th>
-                                    <th class="text-center">ห้องตรวจ</th>
-                                    <th class="text-center">HN</th>
-                                    <th class="text-start" width="12%">ชื่อ-สกุล</th>
-                                    <th class="text-start" width="15%">สิทธิการรักษา</th>
-                                    <th class="text-center">อายุ</th>
-                                    <th class="text-start">รายการเรียกเก็บ</th>
-                                    <th class="text-end">ค่ารักษาทั้งหมด</th>
-                                    <th class="text-end">ชำระเอง</th>
-                                    <th class="text-end text-primary">เรียกเก็บ</th>
-                                    <th class="text-end text-success">ชดเชย</th>
-                                    <th class="text-end">ส่วนต่าง</th>
-                                                                    <th class="text-center" width="8%">Repno</th>
-</tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_claim_price = 0; 
-                                    $sum_receive_total = 0;
-                                @endphp
-                                @foreach($search as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
-                                        @if(!$row->claim_valid)
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif(!empty($row->validation_warnings))
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif($row->endpoint_valid)
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @else
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                    
-                                    <td class="text-center small">
-                                        {{ DateThai($row->vstdate) }}<br>
-                                        <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
-                                    </td>
-                                    <td class="text-center small">{{ $row->oqueue }}</td>
-                                    <td class="text-start small">
-                                        <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
-                                            {{ $row->main_dep_name ?? '-' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
-                                    <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
-                                    <td class="text-start small text-muted">
-                                        <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                                        <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
-                                    </td>
-                                    <td class="text-center small">{{$row->age_y}}</td>
-                                    <td class="text-start small text-muted">{{$row->claim_list}}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
-                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ number_format($row->receive_total,2) }}
-                                    </td>
-                                    <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
-                                    </td>
-                                                                    <td class="text-center small">{{ $row->repno ?? '-' }}</td>
-</tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                    $sum_receive_total += $row->receive_total;
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2)}}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
-                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
-                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ number_format($sum_receive_total,2)}}
-                                    </th>
-                                    <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ number_format($sum_receive_total-$sum_claim_price,2)}}
-                                    </th>
-                                                                    <th></th>
-</tr>
-                            </tfoot>
-                        </table>
+                    
+                    <!-- Sub-tabs Navigation for Target Groups -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 pt-3 border-bottom pb-2">
+                        <ul class="nav nav-pills gap-2" id="search-sub-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active px-3 py-1 fw-bold rounded-pill shadow-sm" id="child612-tab" data-bs-toggle="pill" data-bs-target="#child612" type="button" role="tab" style="font-size: 0.82rem;">
+                                    <i class="bi bi-person-heart me-1 text-info"></i> เด็ก 6 – 12 เดือน
+                                    <span class="badge bg-info text-dark rounded-pill ms-1">{{ count($search_child_6_12) }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link px-3 py-1 fw-bold rounded-pill shadow-sm" id="child35-tab" data-bs-toggle="pill" data-bs-target="#child35" type="button" role="tab" style="font-size: 0.82rem;">
+                                    <i class="bi bi-balloon-heart me-1 text-primary"></i> เด็ก 3 – 6 ปี
+                                    <span class="badge bg-primary text-white rounded-pill ms-1">{{ count($search_child_3_5) }}</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link px-3 py-1 fw-bold rounded-pill shadow-sm" id="female1324-tab" data-bs-toggle="pill" data-bs-target="#female1324" type="button" role="tab" style="font-size: 0.82rem;">
+                                    <i class="bi bi-gender-female me-1 text-danger"></i> หญิง 13 – 24 ปี (ADP 13001)
+                                    <span class="badge bg-danger text-white rounded-pill ms-1">{{ count($search_female_13_24) }}</span>
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> เด็ก 6–12 ด. และ 3–6 ปี (Hb/Hct 30 บาท) | หญิง 13–24 ปี (ADP 13001)
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="searchSubTabContent">
+                        
+                        <!-- Sub-tab 1: เด็ก 6 - 12 เดือน -->
+                        <div class="tab-pane fade show active" id="child612" role="tabpanel">
+                            <div class="table-responsive">            
+                                <table id="t_search_child_6_12" class="table table-modern w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                            <th class="text-center">#</th>
+                                            <th class="text-center">ตรวจสอบ</th>
+                                            <th class="text-center" width="8%">วันที่รับบริการ</th>
+                                            <th class="text-center">Queue</th>
+                                            <th class="text-center">ห้องตรวจ</th>
+                                            <th class="text-center">HN</th>
+                                            <th class="text-start" width="12%">ชื่อ-สกุล</th>
+                                            <th class="text-start" width="15%">สิทธิการรักษา</th>
+                                            <th class="text-center">อายุ</th>
+                                            <th class="text-start">รายการเรียกเก็บ</th>
+                                            <th class="text-end">ค่ารักษาทั้งหมด</th>
+                                            <th class="text-end">ชำระเอง</th>
+                                            <th class="text-end text-primary">เรียกเก็บ</th>
+                                            <th class="text-end text-success">ชดเชย</th>
+                                            <th class="text-end">ส่วนต่าง</th>
+                                            <th class="text-center" width="8%">Repno</th>
+                                        </tr>
+                                    </thead> 
+                                    <tbody> 
+                                        @php 
+                                            $count = 1; 
+                                            $sum_income = 0; 
+                                            $sum_rcpt_money = 0; 
+                                            $sum_claim_price = 0; 
+                                            $sum_receive_total = 0;
+                                        @endphp
+                                        @foreach($search_child_6_12 as $row) 
+                                        <tr>
+                                            <td class="text-center" style="vertical-align: middle;">
+                                                @if(!empty($row->can_export_fdh))
+                                                    <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->vn ?? $row->seq }}" data-vn="{{ $row->vn ?? $row->seq }}">
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-muted border px-1" style="font-size: 0.65rem;" title="สิทธิ {{ $row->pttype ?? '-' }} ({{ $row->hipdata_code ?? 'Non-FDH' }}) ไม่สามารถส่งออก FDH กองทุน PPFS ได้ (เปิดให้เฉพาะสิทธิ UCS / STP)">
+                                                        <i class="bi bi-slash-circle"></i>
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center text-muted small">{{ $count }}</td>
+                                            <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
+                                                @if(!$row->claim_valid)
+                                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif(!empty($row->validation_warnings))
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif($row->endpoint_valid)
+                                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            
+                                            <td class="text-center small">
+                                                {{ DateThai($row->vstdate) }}<br>
+                                                <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
+                                            </td>
+                                            <td class="text-center small">{{ $row->oqueue }}</td>
+                                            <td class="text-start small">
+                                                <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                                    {{ $row->main_dep_name ?? '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
+                                            <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
+                                            <td class="text-start small text-muted">
+                                                <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
+                                                <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
+                                            </td>
+                                            <td class="text-center small">
+                                                @if(isset($row->age_y) && $row->age_y == 0 && isset($row->age_m))
+                                                    <span class="badge bg-info-subtle text-info-emphasis border">{{ $row->age_m }} ด.</span>
+                                                @else
+                                                    <span>{{ $row->age_y ?? '-' }} ปี</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-start small text-muted">{{$row->claim_list}}</td>
+                                            <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                            <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
+                                            <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total,2) }}
+                                            </td>
+                                            <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                            </td>
+                                            <td class="text-center small">{{ $row->repno ?? '-' }}</td>
+                                        </tr>
+                                        @php 
+                                            $count++; 
+                                            $sum_income += $row->income; 
+                                            $sum_rcpt_money += $row->rcpt_money; 
+                                            $sum_claim_price += $row->claim_price; 
+                                            $sum_receive_total += $row->receive_total;
+                                        @endphp
+                                        @endforeach                 
+                                    </tbody>
+                                    <tfoot class="bg-light-soft">
+                                        <tr>
+                                            <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (เด็ก 6-12 ด.):</th>
+                                            <th class="text-end small">{{ number_format($sum_income,2)}}</th>
+                                            <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
+                                            <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
+                                            <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total,2)}}
+                                            </th>
+                                            <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total-$sum_claim_price,2)}}
+                                            </th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sub-tab 2: เด็ก 3 - 5 ปี -->
+                        <div class="tab-pane fade" id="child35" role="tabpanel">
+                            <div class="table-responsive">            
+                                <table id="t_search_child_3_5" class="table table-modern w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                            <th class="text-center">#</th>
+                                            <th class="text-center">ตรวจสอบ</th>
+                                            <th class="text-center" width="8%">วันที่รับบริการ</th>
+                                            <th class="text-center">Queue</th>
+                                            <th class="text-center">ห้องตรวจ</th>
+                                            <th class="text-center">HN</th>
+                                            <th class="text-start" width="12%">ชื่อ-สกุล</th>
+                                            <th class="text-start" width="15%">สิทธิการรักษา</th>
+                                            <th class="text-center">อายุ</th>
+                                            <th class="text-start">รายการเรียกเก็บ</th>
+                                            <th class="text-end">ค่ารักษาทั้งหมด</th>
+                                            <th class="text-end">ชำระเอง</th>
+                                            <th class="text-end text-primary">เรียกเก็บ</th>
+                                            <th class="text-end text-success">ชดเชย</th>
+                                            <th class="text-end">ส่วนต่าง</th>
+                                            <th class="text-center" width="8%">Repno</th>
+                                        </tr>
+                                    </thead> 
+                                    <tbody> 
+                                        @php 
+                                            $count = 1; 
+                                            $sum_income = 0; 
+                                            $sum_rcpt_money = 0; 
+                                            $sum_claim_price = 0; 
+                                            $sum_receive_total = 0;
+                                        @endphp
+                                        @foreach($search_child_3_5 as $row) 
+                                        <tr>
+                                            <td class="text-center" style="vertical-align: middle;">
+                                                @if(!empty($row->can_export_fdh))
+                                                    <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->vn ?? $row->seq }}" data-vn="{{ $row->vn ?? $row->seq }}">
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-muted border px-1" style="font-size: 0.65rem;" title="สิทธิ {{ $row->pttype ?? '-' }} ({{ $row->hipdata_code ?? 'Non-FDH' }}) ไม่สามารถส่งออก FDH กองทุน PPFS ได้ (เปิดให้เฉพาะสิทธิ UCS / STP)">
+                                                        <i class="bi bi-slash-circle"></i>
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center text-muted small">{{ $count }}</td>
+                                            <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
+                                                @if(!$row->claim_valid)
+                                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif(!empty($row->validation_warnings))
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif($row->endpoint_valid)
+                                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            
+                                            <td class="text-center small">
+                                                {{ DateThai($row->vstdate) }}<br>
+                                                <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
+                                            </td>
+                                            <td class="text-center small">{{ $row->oqueue }}</td>
+                                            <td class="text-start small">
+                                                <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                                    {{ $row->main_dep_name ?? '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
+                                            <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
+                                            <td class="text-start small text-muted">
+                                                <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
+                                                <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
+                                            </td>
+                                            <td class="text-center small">{{$row->age_y}} ปี</td>
+                                            <td class="text-start small text-muted">{{$row->claim_list}}</td>
+                                            <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                            <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
+                                            <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total,2) }}
+                                            </td>
+                                            <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                            </td>
+                                            <td class="text-center small">{{ $row->repno ?? '-' }}</td>
+                                        </tr>
+                                        @php 
+                                            $count++; 
+                                            $sum_income += $row->income; 
+                                            $sum_rcpt_money += $row->rcpt_money; 
+                                            $sum_claim_price += $row->claim_price; 
+                                            $sum_receive_total += $row->receive_total;
+                                        @endphp
+                                        @endforeach                 
+                                    </tbody>
+                                    <tfoot class="bg-light-soft">
+                                        <tr>
+                                            <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (เด็ก 3-6 ปี):</th>
+                                            <th class="text-end small">{{ number_format($sum_income,2)}}</th>
+                                            <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
+                                            <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
+                                            <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total,2)}}
+                                            </th>
+                                            <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total-$sum_claim_price,2)}}
+                                            </th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sub-tab 3: หญิง 13 - 24 ปี -->
+                        <div class="tab-pane fade" id="female1324" role="tabpanel">
+                            <div class="table-responsive">            
+                                <table id="t_search_female_13_24" class="table table-modern w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
+                                            <th class="text-center">#</th>
+                                            <th class="text-center">ตรวจสอบ</th>
+                                            <th class="text-center" width="8%">วันที่รับบริการ</th>
+                                            <th class="text-center">Queue</th>
+                                            <th class="text-center">ห้องตรวจ</th>
+                                            <th class="text-center">HN</th>
+                                            <th class="text-start" width="12%">ชื่อ-สกุล</th>
+                                            <th class="text-start" width="15%">สิทธิการรักษา</th>
+                                            <th class="text-center">อายุ</th>
+                                            <th class="text-start">รายการเรียกเก็บ</th>
+                                            <th class="text-end">ค่ารักษาทั้งหมด</th>
+                                            <th class="text-end">ชำระเอง</th>
+                                            <th class="text-end text-primary">เรียกเก็บ</th>
+                                            <th class="text-end text-success">ชดเชย</th>
+                                            <th class="text-end">ส่วนต่าง</th>
+                                            <th class="text-center" width="8%">Repno</th>
+                                        </tr>
+                                    </thead> 
+                                    <tbody> 
+                                        @php 
+                                            $count = 1; 
+                                            $sum_income = 0; 
+                                            $sum_rcpt_money = 0; 
+                                            $sum_claim_price = 0; 
+                                            $sum_receive_total = 0;
+                                        @endphp
+                                        @foreach($search_female_13_24 as $row) 
+                                        <tr>
+                                            <td class="text-center" style="vertical-align: middle;">
+                                                @if(!empty($row->can_export_fdh))
+                                                    <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->vn ?? $row->seq }}" data-vn="{{ $row->vn ?? $row->seq }}">
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-muted border px-1" style="font-size: 0.65rem;" title="สิทธิ {{ $row->pttype ?? '-' }} ({{ $row->hipdata_code ?? 'Non-FDH' }}) ไม่สามารถส่งออก FDH กองทุน PPFS ได้ (เปิดให้เฉพาะสิทธิ UCS / STP)">
+                                                        <i class="bi bi-slash-circle"></i>
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center text-muted small">{{ $count }}</td>
+                                            <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
+                                                @if(!$row->claim_valid)
+                                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif(!empty($row->validation_warnings))
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีคำเตือน 16 แฟ้ม | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @elseif($row->endpoint_valid)
+                                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข 16 แฟ้ม + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="16 แฟ้มครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                        <i class="bi bi-eye-fill"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            
+                                            <td class="text-center small">
+                                                {{ DateThai($row->vstdate) }}<br>
+                                                <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
+                                            </td>
+                                            <td class="text-center small">{{ $row->oqueue }}</td>
+                                            <td class="text-start small">
+                                                <span class="badge bg-light text-dark border text-truncate" style="max-width: 130px; font-weight: 500;" title="{{ $row->main_dep_name ?? '-' }}">
+                                                    {{ $row->main_dep_name ?? '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
+                                            <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
+                                            <td class="text-start small text-muted">
+                                                <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
+                                                <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
+                                            </td>
+                                            <td class="text-center small">{{$row->age_y}} ปี</td>
+                                            <td class="text-start small text-muted">{{$row->claim_list}}</td>
+                                            <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                            <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
+                                            <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total,2) }}
+                                            </td>
+                                            <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                            </td>
+                                            <td class="text-center small">{{ $row->repno ?? '-' }}</td>
+                                        </tr>
+                                        @php 
+                                            $count++; 
+                                            $sum_income += $row->income; 
+                                            $sum_rcpt_money += $row->rcpt_money; 
+                                            $sum_claim_price += $row->claim_price; 
+                                            $sum_receive_total += $row->receive_total;
+                                        @endphp
+                                        @endforeach                 
+                                    </tbody>
+                                    <tfoot class="bg-light-soft">
+                                        <tr>
+                                            <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (หญิง 13-24 ปี):</th>
+                                            <th class="text-end small">{{ number_format($sum_income,2)}}</th>
+                                            <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
+                                            <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
+                                            <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total,2)}}
+                                            </th>
+                                            <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                                {{ number_format($sum_receive_total-$sum_claim_price,2)}}
+                                            </th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-                <!-- Tab 2: Sent Claim -->
+
+                <!-- Tab 2: Sent Claim (Unified view) -->
                 <div class="tab-pane fade" id="claim" role="tabpanel">
-                    <div class="table-responsive">            
+                    <div class="table-responsive pt-3">            
                         <table id="t_claim" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    <th class="text-center no-sort" width="45" style="width: 45px; min-width: 45px; max-width: 45px; vertical-align: middle;"><input type="checkbox" class="form-check-input select_all_f16" title="เลือกทั้งหมด"></th>
                                     <th class="text-center">#</th>
                                     <th class="text-center">ตรวจสอบ</th>
-                                    
-                                    
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
                                     <th class="text-center">ห้องตรวจ</th>
@@ -196,8 +495,8 @@
                                     <th class="text-center text-danger">Error</th>
                                     <th class="text-end text-success">ชดเชย</th>
                                     <th class="text-end">ส่วนต่าง</th>
-                                                                    <th class="text-center" width="8%">Repno</th>
-</tr>
+                                    <th class="text-center" width="8%">Repno</th>
+                                </tr>
                             </thead> 
                             <tbody> 
                                 @php 
@@ -209,6 +508,15 @@
                                 @endphp
                                 @foreach($claim as $row) 
                                 <tr>
+                                    <td class="text-center" style="vertical-align: middle;">
+                                        @if(!empty($row->can_export_fdh))
+                                            <input type="checkbox" class="form-check-input f16-select-item" value="{{ $row->vn ?? $row->seq }}" data-vn="{{ $row->vn ?? $row->seq }}">
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-muted border px-1" style="font-size: 0.65rem;" title="สิทธิ {{ $row->pttype ?? '-' }} ({{ $row->hipdata_code ?? 'Non-FDH' }}) ไม่สามารถส่งออก FDH กองทุน PPFS ได้ (เปิดให้เฉพาะสิทธิ UCS / STP)">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td class="text-center text-muted small">{{ $count }}</td>
                                     <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->claim_valid ? 0 : ($row->endpoint_valid && empty($row->validation_warnings) ? 2 : 1) }}">
                                         @if(!$row->claim_valid)
@@ -230,7 +538,6 @@
                                         @endif
                                     </td>
                                     
-                                    
                                     <td class="text-center small">
                                         {{ DateThai($row->vstdate) }}<br>
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
@@ -247,7 +554,13 @@
                                         <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                         <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
                                     </td>
-                                    <td class="text-center small">{{$row->age_y}}</td>
+                                    <td class="text-center small">
+                                        @if(isset($row->age_y) && $row->age_y == 0 && isset($row->age_m))
+                                            <span class="badge bg-info-subtle text-info-emphasis border">{{ $row->age_m }} ด.</span>
+                                        @else
+                                            <span>{{ $row->age_y ?? '-' }} ปี</span>
+                                        @endif
+                                    </td>
                                     <td class="text-start small text-muted">{{$row->claim_list}}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
@@ -267,8 +580,8 @@
                                     <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($row->receive_total-$row->claim_price,2) }}
                                     </td>
-                                                                    <td class="text-center small">{{ $row->repno ?: ($row->rep_error_code ? '-' : ($row->rep_repno ?: '-')) }}</td>
-</tr>
+                                    <td class="text-center small">{{ $row->repno ?: ($row->rep_error_code ? '-' : ($row->rep_repno ?: '-')) }}</td>
+                                </tr>
                                 @php 
                                     $count++; 
                                     $sum_income += $row->income; 
@@ -280,7 +593,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="11" class="text-end small text-muted px-3">รวมทั้งหมด (ส่ง Claim แล้ว):</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
@@ -291,8 +604,8 @@
                                     <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($sum_receive_total-$sum_claim_price,2)}}
                                     </th>
-                                                                    <th></th>
-</tr>
+                                    <th></th>
+                                </tr>
                             </tfoot>
                         </table>
                     </div>
@@ -300,4 +613,3 @@
             </div>
         </div>
     </div>
-</div>

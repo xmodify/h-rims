@@ -3060,10 +3060,11 @@ class MishosController extends Controller
         $claim_price = [];
         $claim_sent_price = [];
         $receive_total = [];
+        $ida_adp_in = '"13001", "30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000"';
 
         if (!$request->input('skip_chart')) {
             $chartCacheKey = 'chart_mis_ucs_ppfs_ida_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
-            $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b) {
+            $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b, $ida_adp_in) {
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
@@ -3080,18 +3081,25 @@ class MishosController extends Controller
                     
                     INNER JOIN (
                         SELECT vn FROM opitemrece 
-                        WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
+                        WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
                     ) o1 ON o1.vn=o.vn
                     LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
                     WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-                    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+                    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . ')) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                     LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                         FROM hrims.stm_ucs 
                         WHERE vstdate BETWEEN ? AND ?
                         GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                         AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                     WHERE (o.an ="" OR o.an IS NULL)       
-                    AND o.vstdate BETWEEN ? AND ? 
+                    AND o.vstdate BETWEEN ? AND ?
+                    AND (
+                        (v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL))
+                        OR (v.age_y BETWEEN 1 AND 2)
+                        OR (v.age_y BETWEEN 3 AND 6)
+                        OR (pt.sex = "2" AND v.age_y BETWEEN 13 AND 24)
+                        OR EXISTS (SELECT 1 FROM opitemrece opx JOIN nondrugitems ndx ON ndx.icode=opx.icode WHERE opx.vn=o.vn AND ndx.nhso_adp_code = "13001")
+                    ) 
                     GROUP BY o.vn ) AS a
                 ';
                 $chart_placeholders = substr_count($sum_month_sql, '?');
@@ -3102,7 +3110,8 @@ class MishosController extends Controller
                 }
                 $sum_month = DB::connection('hosxp')->select($sum_month_sql, $chart_bindings);
 
-                $this->allocatePpfs($sum_month, ["13001"], 'vn');
+                $adp_codes = ["13001", "30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000"];
+                $this->allocatePpfs($sum_month, $adp_codes, 'vn');
                 $grouped = [];
                 foreach ($sum_month as $row) {
                     $time = strtotime($row->vstdate);
@@ -3139,11 +3148,18 @@ class MishosController extends Controller
             $search_sql = '
 
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
+            p.`name` AS pttype, p.hipdata_code, vp.pttype AS pttype_code, vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
-            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            GROUP_CONCAT(DISTINCT COALESCE(sd.`name`, nt.`name`)) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, v.age_m, v.age_d, pt.birthday, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+            CASE WHEN EXISTS (
+                SELECT 1 FROM opitemrece opx 
+                WHERE opx.vn=o.vn AND opx.paidst="02" AND (
+                    opx.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code = "13001")
+                    OR opx.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code = "13001")
+                )
+            ) THEN 1 ELSE 0 END AS has_adp_13001,
                         doc.name AS doctor_name, doc.licenseno AS doctor_license,
                         k.department AS main_dep_name
                         FROM ovst o
@@ -3155,12 +3171,19 @@ class MishosController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             
             
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND (
+                o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                OR o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+            )
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
+			LEFT JOIN nondrugitems nt ON nt.icode=o1.icode
 			LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+			AND (
+                op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+                OR op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ida_adp_in . '))
+            ) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
@@ -3169,6 +3192,13 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)  
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
+            AND (
+                (v.age_y = 0 AND (v.age_m >= 6 OR v.age_m IS NULL))
+                OR (v.age_y BETWEEN 1 AND 2)
+                OR (v.age_y BETWEEN 3 AND 6)
+                OR (pt.sex = "2" AND v.age_y BETWEEN 13 AND 24)
+                OR EXISTS (SELECT 1 FROM opitemrece opx JOIN nondrugitems ndx ON ndx.icode=opx.icode WHERE opx.vn=o.vn AND ndx.nhso_adp_code = "13001")
+            )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
             ';
             $search_placeholders = substr_count($search_sql, '?');
@@ -3204,25 +3234,51 @@ class MishosController extends Controller
                 $row->repno = null;
             }
             $row->claim_price = floatval($row->claim_price);
+            $hip = strtoupper(trim((string)($row->hipdata_code ?? '')));
+            $row->can_export_fdh = in_array($hip, ['UCS', 'WEL', 'STP', 'UC']);
         }
 
         // Extra allocations
-        $this->allocatePpfs($all_visits, ["13001"], 'seq');
+        $adp_codes = ["13001", "30104", "38601", "0621201", "0621401", "HE01010000", "HE01020000"];
+        $this->allocatePpfs($all_visits, $adp_codes, 'seq');
 
         $this->validateUcsPpfsRows($all_visits);
 
         $search = [];
         $claim = [];
+        $search_child_6_12 = [];
+        $search_child_3_5 = [];
+        $search_female_13_24 = [];
+
         foreach ($all_visits as $row) {
             $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
             if ($isSent) {
                 $claim[] = $row;
             } else {
                 $search[] = $row;
+
+                $age_y = isset($row->age_y) ? intval($row->age_y) : null;
+                $sex = isset($row->sex) ? (string)$row->sex : '';
+
+                if ($row->has_adp_13001 == 1 || ($sex === '2' && $age_y !== null && $age_y >= 13 && $age_y <= 24)) {
+                    $search_female_13_24[] = $row;
+                } elseif ($age_y !== null && $age_y <= 2) {
+                    $search_child_6_12[] = $row;
+                } elseif ($age_y !== null && $age_y >= 3 && $age_y <= 6) {
+                    $search_child_3_5[] = $row;
+                } elseif ($sex === '2' && $age_y !== null && $age_y >= 13) {
+                    $search_female_13_24[] = $row;
+                } else {
+                    $search_child_6_12[] = $row;
+                }
             }
         }
 
-        $table_html = view('mishos.ucs_ppfs_ida_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+            'budget_year', 'start_date', 'end_date',
+            'search', 'claim',
+            'search_child_6_12', 'search_child_3_5', 'search_female_13_24'
+        ))->render();
         $patient_items = array_merge(
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
@@ -3276,10 +3332,12 @@ class MishosController extends Controller
         $claim_price = [];
         $claim_sent_price = [];
         $receive_total = [];
+        $ferro_adp_in = '"14001"';
+        $syrup_tmt_in = '"689609", "855606", "737839", "715594", "767382", "776520", "695963", "1159183", "1146213", "37390"';
 
         if (!$request->input('skip_chart')) {
             $chartCacheKey = 'chart_mis_ucs_ppfs_ferrofolic_' . $budget_year . '_' . $start_date_b . '_' . $end_date_b;
-            $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b) {
+            $chartData = \Illuminate\Support\Facades\Cache::remember($chartCacheKey, 300, function () use ($start_date_b, $end_date_b, $ferro_adp_in, $syrup_tmt_in) {
                 $sum_month_sql = '
 
                 SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
@@ -3294,13 +3352,28 @@ class MishosController extends Controller
                     LEFT JOIN pttype p ON p.pttype=vp.pttype          
                     LEFT JOIN vn_stat v ON v.vn = o.vn
                     
-                    INNER JOIN (
-                        SELECT vn FROM opitemrece 
-                        WHERE vstdate BETWEEN ? AND ? AND paidst = "02" AND icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
-                    ) o1 ON o1.vn=o.vn
+                    INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND (
+                        -- 1. ยาเม็ดเสริมธาตุเหล็ก หญิง 13-45 ปี: ดึงเฉพาะรหัส ADP 14001 ของ nondrugitems
+                        (
+                            pt.sex = "2" AND v.age_y BETWEEN 13 AND 45 AND (
+                                o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                                OR o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                            )
+                        )
+                        -- 2. ยาน้ำเสริมธาตุเหล็ก เด็ก 2 ด.-5 ปี และ 6-12 ปี: ดึงเฉพาะยาจาก drugitems (TMT / ชื่อยาน้ำธาตุเหล็กเด็ก)
+                        OR (
+                            ((v.age_y = 0 AND (v.age_m >= 2 OR v.age_m IS NULL)) OR (v.age_y BETWEEN 1 AND 12)) AND (
+                                o1.icode IN (SELECT icode FROM drugitems WHERE tmt_tp_code IN (' . $syrup_tmt_in . ') OR tmt_gp_code IN (' . $syrup_tmt_in . ') OR name LIKE "%ferrokid%" OR name LIKE "%eurofer%" OR name LIKE "%ironfumarate%" OR name LIKE "%ferdex%")
+                            )
+                        )
+                    )
                     LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
                     WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-                    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+                    AND (
+                        op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                        OR op.icode IN (SELECT icode FROM drugitems WHERE tmt_tp_code IN (' . $syrup_tmt_in . ') OR tmt_gp_code IN (' . $syrup_tmt_in . ') OR name LIKE "%ferrokid%" OR name LIKE "%eurofer%" OR name LIKE "%ironfumarate%" OR name LIKE "%ferdex%")
+                        OR op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                    ) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                     LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                         FROM hrims.stm_ucs 
                         WHERE vstdate BETWEEN ? AND ?
@@ -3355,11 +3428,24 @@ class MishosController extends Controller
             $search_sql = '
 
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
+            p.`name` AS pttype, p.hipdata_code, vp.pttype AS pttype_code, vp.hospmain,v.pdx,"" AS icd10,IFNULL((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND paidst = "02"),0) AS income,IFNULL((SELECT SUM(total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND a.rcpno IS NULL),0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
-            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            GROUP_CONCAT(DISTINCT COALESCE(sd.`name`, nt.`name`, d.`name`)) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, v.age_m, v.age_d, pt.birthday, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep,
+            CASE WHEN EXISTS (
+                SELECT 1 FROM opitemrece opx 
+                WHERE opx.vn=o.vn AND opx.paidst="02" AND (
+                    opx.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                    OR opx.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                )
+            ) THEN 1 ELSE 0 END AS has_adp_14001,
+            CASE WHEN EXISTS (
+                SELECT 1 FROM opitemrece opx 
+                WHERE opx.vn=o.vn AND opx.paidst="02" AND opx.icode IN (
+                    SELECT icode FROM drugitems WHERE tmt_tp_code IN (' . $syrup_tmt_in . ') OR tmt_gp_code IN (' . $syrup_tmt_in . ') OR name LIKE "%ferrokid%" OR name LIKE "%eurofer%" OR name LIKE "%ironfumarate%" OR name LIKE "%ferdex%"
+                )
+            ) THEN 1 ELSE 0 END AS has_syrup_drug,
                         doc.name AS doctor_name, doc.licenseno AS doctor_license,
                         k.department AS main_dep_name
                         FROM ovst o
@@ -3371,19 +3457,38 @@ class MishosController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             
             
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND (
+                -- 1. ยาเม็ดเสริมธาตุเหล็ก หญิง 13-45 ปี: ดึงเฉพาะรหัส ADP 14001 ของ nondrugitems
+                (
+                    pt.sex = "2" AND v.age_y BETWEEN 13 AND 45 AND (
+                        o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                        OR o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                    )
+                )
+                -- 2. ยาน้ำเสริมธาตุเหล็ก เด็ก 2 ด.-5 ปี และ 6-12 ปี: ดึงเฉพาะยาจาก drugitems (TMT / ชื่อยาน้ำธาตุเหล็กเด็ก)
+                OR (
+                    ((v.age_y = 0 AND (v.age_m >= 2 OR v.age_m IS NULL)) OR (v.age_y BETWEEN 1 AND 12)) AND (
+                        o1.icode IN (SELECT icode FROM drugitems WHERE tmt_tp_code IN (' . $syrup_tmt_in . ') OR tmt_gp_code IN (' . $syrup_tmt_in . ') OR name LIKE "%ferrokid%" OR name LIKE "%eurofer%" OR name LIKE "%ironfumarate%" OR name LIKE "%ferdex%")
+                    )
+                )
+            )
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
+			LEFT JOIN nondrugitems nt ON nt.icode=o1.icode
+			LEFT JOIN drugitems d ON d.icode=o1.icode
 			LEFT JOIN (SELECT seq FROM hrims.fdh_claim_status WHERE seq IS NOT NULL GROUP BY seq) fdh ON fdh.seq = o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+			AND (
+                op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+                OR op.icode IN (SELECT icode FROM drugitems WHERE tmt_tp_code IN (' . $syrup_tmt_in . ') OR tmt_gp_code IN (' . $syrup_tmt_in . ') OR name LIKE "%ferrokid%" OR name LIKE "%eurofer%" OR name LIKE "%ironfumarate%" OR name LIKE "%ferdex%")
+                OR op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE nhso_adp_code IN (' . $ferro_adp_in . '))
+            ) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime
             ';
@@ -3420,6 +3525,8 @@ class MishosController extends Controller
                 $row->repno = null;
             }
             $row->claim_price = floatval($row->claim_price);
+            $hip = strtoupper(trim((string)($row->hipdata_code ?? '')));
+            $row->can_export_fdh = in_array($hip, ['UCS', 'WEL', 'STP', 'UC']);
         }
 
         // Extra allocations
@@ -3429,16 +3536,43 @@ class MishosController extends Controller
 
         $search = [];
         $claim = [];
+        $search_tablet = [];
+        $search_syrup = [];
+        $search_syrup_preschool = [];
+        $search_syrup_school = [];
+
         foreach ($all_visits as $row) {
             $isSent = ($row->is_sent == 1) || ($row->claim == 'Y') || !empty($row->repno) || ($row->receive_total > 0) || !empty($row->rep_repno);
             if ($isSent) {
                 $claim[] = $row;
             } else {
                 $search[] = $row;
+
+                $age_y = isset($row->age_y) ? intval($row->age_y) : null;
+                $sex = isset($row->sex) ? (string)$row->sex : '';
+
+                if ($row->has_adp_14001 == 1 && $sex === '2' && $age_y !== null && $age_y >= 13 && $age_y <= 45) {
+                    $search_tablet[] = $row;
+                } elseif ($row->has_syrup_drug == 1 || ($age_y !== null && $age_y <= 12)) {
+                    if ($age_y !== null && $age_y <= 5) {
+                        $search_syrup[] = $row;
+                        $search_syrup_preschool[] = $row;
+                    } elseif ($age_y !== null && $age_y >= 6 && $age_y <= 12) {
+                        $search_syrup[] = $row;
+                        $search_syrup_school[] = $row;
+                    }
+                } elseif ($row->has_adp_14001 == 1) {
+                    $search_tablet[] = $row;
+                }
             }
         }
 
-        $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+            'budget_year', 'start_date', 'end_date',
+            'search', 'claim',
+            'search_tablet', 'search_syrup',
+            'search_syrup_preschool', 'search_syrup_school'
+        ))->render();
         $patient_items = array_merge(
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
@@ -4910,12 +5044,27 @@ class MishosController extends Controller
         foreach ($vnChunks as $chunk) {
             $placeholders = implode(',', array_fill(0, count($chunk), '?'));
             
-            $rawItems = DB::connection('hosxp')->select("
-                SELECT op.vn, op.icode, op.sum_price, li.nhso_adp_code
+            $adpPlaceholders = implode(',', array_fill(0, count($adpCodes), '?'));
+            $rawItemsQuery = "
+                SELECT op.vn, op.icode, op.sum_price, 
+                COALESCE(
+                    NULLIF(li.nhso_adp_code, ''), 
+                    nd.nhso_adp_code, 
+                    d.nhso_adp_code,
+                    CASE WHEN (d.name LIKE '%ferro%' OR d.name LIKE '%iron%' OR d.name LIKE '%folic%' OR d.name LIKE '%ธาตุเหล็ก%' OR nd.name LIKE '%ธาตุเหล็ก%') THEN '14001' ELSE NULL END
+                ) AS nhso_adp_code
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
-                WHERE op.vn IN ($placeholders) AND op.paidst = '02' AND li.ppfs = 'Y'
-            ", $chunk);
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN nondrugitems nd ON nd.icode = op.icode
+                LEFT JOIN drugitems d ON d.icode = op.icode
+                WHERE op.vn IN ($placeholders) AND op.paidst = '02'
+                AND (
+                    li.ppfs = 'Y' 
+                    OR COALESCE(NULLIF(li.nhso_adp_code, ''), nd.nhso_adp_code, d.nhso_adp_code) IN ($adpPlaceholders)
+                    OR (d.name LIKE '%ferro%' OR d.name LIKE '%iron%' OR d.name LIKE '%folic%' OR d.name LIKE '%ธาตุเหล็ก%' OR nd.name LIKE '%ธาตุเหล็ก%')
+                )
+            ";
+            $rawItems = DB::connection('hosxp')->select($rawItemsQuery, array_merge($chunk, $adpCodes));
             
             foreach ($rawItems as $item) {
                 $itemsByVn[$item->vn][] = $item;

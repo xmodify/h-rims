@@ -34483,6 +34483,18 @@
                 "default": null,
                 "extra": ""
             },
+            "file_name_wait": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "file_name_debt": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "receive_no": {
                 "type": "varchar(50)",
                 "nullable": true,

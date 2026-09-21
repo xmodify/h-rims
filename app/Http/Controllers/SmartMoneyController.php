@@ -105,7 +105,9 @@ class SmartMoneyController extends Controller
                     'batch_no' => $bNo,
                     'transfer_date' => $row->transfer_date,
                     'budget_year' => $row->budget_year,
-                    'file_name' => $row->file_name,
+                    'file_name' => (!empty($row->file_name) && !str_starts_with($row->file_name, 'NHSO_SMT_') && !str_ends_with(strtolower($row->file_name), '.xlsx')) ? $row->file_name : null,
+                    'file_name_wait' => $row->file_name_wait,
+                    'file_name_debt' => $row->file_name_debt,
                     'receive_no' => $row->receive_no,
                     'receipt_date' => $row->receipt_date,
                     'receipt_by' => $row->receipt_by,
@@ -150,8 +152,14 @@ class SmartMoneyController extends Controller
                 $groupedBatches[$bNo]->receipt_date = $row->receipt_date;
                 $groupedBatches[$bNo]->receipt_by = $row->receipt_by;
             }
-            if (!empty($row->file_name) && empty($groupedBatches[$bNo]->file_name)) {
+            if (!empty($row->file_name) && !str_starts_with($row->file_name, 'NHSO_SMT_') && !str_ends_with(strtolower($row->file_name), '.xlsx') && empty($groupedBatches[$bNo]->file_name)) {
                 $groupedBatches[$bNo]->file_name = $row->file_name;
+            }
+            if (!empty($row->file_name_wait) && empty($groupedBatches[$bNo]->file_name_wait)) {
+                $groupedBatches[$bNo]->file_name_wait = $row->file_name_wait;
+            }
+            if (!empty($row->file_name_debt) && empty($groupedBatches[$bNo]->file_name_debt)) {
+                $groupedBatches[$bNo]->file_name_debt = $row->file_name_debt;
             }
             $groupedBatches[$bNo]->items->push($row);
         }
@@ -461,6 +469,10 @@ class SmartMoneyController extends Controller
             });
         }
 
+        if ($request->filled('sub_fund')) {
+            $this->applySubFundFilterQuery($query, $batch_no, $request->sub_fund);
+        }
+
         if ($request->export === 'excel') {
             return $this->exportDetailExcel($batch, $query->get());
         }
@@ -512,6 +524,10 @@ class SmartMoneyController extends Controller
             });
         }
 
+        if ($request->filled('sub_fund')) {
+            $this->applySubFundFilterQuery($query, $batch_no, $request->sub_fund);
+        }
+
         $perPage = (int)($request->per_page ?: 50);
         $details = $query->orderBy('id')->paginate($perPage);
 
@@ -544,6 +560,40 @@ class SmartMoneyController extends Controller
             ];
         });
 
+        $subFundsMeta = $batches->map(function($b) {
+            return [
+                'account_code' => $b->account_code,
+                'round_no' => $b->round_no,
+                'fund_main' => $b->fund_main,
+                'fund_sub' => $b->fund_sub ?: $b->fund_main,
+                'net_amount' => (float)$b->net_amount ?: (float)$b->amount,
+                'net_amount_formatted' => number_format((float)$b->net_amount ?: (float)$b->amount, 2),
+            ];
+        })->values();
+
+        // Distinct Clinical Subfunds from Details
+        $detailSubFunds = SmartMoneyDetail::where(function($q) use ($batch_no, $roundNos) {
+            $q->where('batch_no', $batch_no);
+            if (!empty($roundNos)) {
+                $q->orWhereIn('round_no', $roundNos);
+            }
+        })
+        ->whereNotNull('sub_fund')
+        ->where('sub_fund', '<>', '')
+        ->select('sub_fund', DB::raw('count(*) as count'), DB::raw('sum(receive_total) as total_amount'))
+        ->groupBy('sub_fund')
+        ->get()
+        ->map(function($d) {
+            return [
+                'key' => $d->sub_fund,
+                'label' => $d->sub_fund,
+                'count' => (int)$d->count,
+                'total_amount' => (float)$d->total_amount,
+                'total_amount_formatted' => number_format((float)$d->total_amount, 2),
+            ];
+        })
+        ->values();
+
         return response()->json([
             'status' => 'success',
             'batch' => [
@@ -554,6 +604,8 @@ class SmartMoneyController extends Controller
                 'round_nos' => $roundNos,
                 'account_codes' => $accountCodes,
                 'fund_subs' => $fundSubs,
+                'sub_funds_meta' => $subFundsMeta,
+                'detail_sub_funds' => $detailSubFunds,
                 'receive_no' => $firstBatch->receive_no ?: '',
                 'receipt_date' => $firstBatch->receipt_date ? DateThai($firstBatch->receipt_date) : '',
                 'receipt_by' => $firstBatch->receipt_by ?: '',
@@ -567,6 +619,7 @@ class SmartMoneyController extends Controller
                 'total_amount_formatted' => number_format((float)$totalReceiveAmount, 2),
             ],
             'data' => $formattedDetails,
+            'detail_sub_funds' => $detailSubFunds,
             'pagination' => [
                 'current_page' => $details->currentPage(),
                 'last_page' => $details->lastPage(),
@@ -574,6 +627,106 @@ class SmartMoneyController extends Controller
                 'total' => $details->total(),
             ]
         ]);
+    }
+
+    /**
+     * Apply intelligent Sub-Fund / Chart-of-Account Filtering
+     */
+    private function applySubFundFilterQuery($query, $batch_no, $sub)
+    {
+        $sub = trim($sub);
+        if (!$sub) return;
+
+        // 1. Direct match with clinical sub_fund or main_fund in details (e.g. 'HERB_FS', 'TELEMED', 'CBC', 'MTB_ACF')
+        $directDetailExists = SmartMoneyDetail::where('batch_no', $batch_no)
+            ->where(function($q) use ($sub) {
+                $q->where('sub_fund', $sub)
+                  ->orWhere('sub_fund_desc', $sub)
+                  ->orWhere('main_fund', $sub);
+            })
+            ->exists();
+
+        if ($directDetailExists) {
+            $query->where(function($q) use ($sub) {
+                $q->where('sub_fund', $sub)
+                  ->orWhere('sub_fund_desc', $sub)
+                  ->orWhere('main_fund', $sub);
+            });
+            return;
+        }
+
+        // 2. Lookup in smart_money_batches
+        $batchRow = SmartMoneyBatch::where('batch_no', $batch_no)
+            ->where(function($q) use ($sub) {
+                $q->where('fund_sub', $sub)
+                  ->orWhere('fund_main', $sub)
+                  ->orWhere('account_code', $sub)
+                  ->orWhere('round_no', $sub);
+            })
+            ->first();
+
+        $fMain = $batchRow ? $batchRow->fund_main : $sub;
+        $fSub = $batchRow ? $batchRow->fund_sub : $sub;
+
+        $query->where(function($q) use ($sub, $fMain, $fSub) {
+            // HIV Prevention
+            if ((str_contains($fSub, 'ป้องกัน') && str_contains($fSub, 'HIV')) || (str_contains($sub, 'ป้องกัน') && str_contains($sub, 'HIV')) || str_contains($sub, 'NAP_PREV')) {
+                $q->where('main_fund', 'like', 'NAP_PREV%')
+                  ->orWhere('sub_fund', 'like', '%PrEP%')
+                  ->orWhere('sub_fund', 'like', '%PEP%')
+                  ->orWhere('sub_fund_desc', 'like', '%ป้องกัน%');
+            }
+            // HIV Treatment / NAP
+            elseif (str_contains($fSub, 'ยาต้าน') || str_contains($sub, 'ยาต้าน') || (str_contains($fMain, 'เอดส์') && !str_contains($fSub, 'ป้องกัน'))) {
+                $q->where(function($subQ) {
+                    $subQ->where('main_fund', 'like', 'NAP_FU%')
+                         ->orWhere('main_fund', 'like', 'NAP_LAB%')
+                         ->orWhere('main_fund', 'like', 'NAP_TRANSPORT%')
+                         ->orWhere('sub_fund', 'like', '%F/U%')
+                         ->orWhere('sub_fund', 'like', '%CD4%')
+                         ->orWhere('sub_fund', 'like', '%VL%')
+                         ->orWhereIn('sub_fund', ['CBC', 'Chol.', 'Cr.', 'FBS', 'sGPT(ALT)', 'TG', 'F/U ค่าบริการให้คำปรึกษาและติดตามผล', 'ค่าวัสดุ/ขนส่ง CD4', 'ค่าวัสดุ/ขนส่ง VL']);
+                });
+            }
+            // Thai Traditional Medicine / Herbal
+            elseif (str_contains($fMain, 'แพทย์แผนไทย') || str_contains($fSub, 'แพทย์แผนไทย') || str_contains($fSub, 'สมุนไพร') || str_contains($fMain, 'สมุนไพร') || str_contains($sub, 'แพทย์แผนไทย') || str_contains($sub, 'HERB')) {
+                $q->where(function($subQ) {
+                    $subQ->where('sub_fund', 'HERB_FS')
+                         ->orWhere('main_fund', 'HC22')
+                         ->orWhere('sub_fund', 'like', '%HERB%');
+                });
+            }
+            // Primary Care / Telemed / Drug Delivery
+            elseif (str_contains($fMain, 'ปฐมภูมิ') || str_contains($fSub, 'ปฐมภูมิ') || str_contains($sub, 'ปฐมภูมิ')) {
+                $q->where(function($subQ) {
+                    $subQ->whereIn('sub_fund', ['TELEMED', 'DRUG_DELIVERY', 'PRIMARY_CARE'])
+                         ->orWhereIn('main_fund', ['HC14', 'HC15']);
+                });
+            }
+            // Tuberculosis Screening / ACF (P&P Basic Service)
+            elseif (str_contains($fMain, 'สร้างเสริมสุขภาพและป้องกันโรค') || str_contains($fSub, 'BASIC SERVICE') || str_contains($fSub, 'พื้นฐาน') || str_contains($sub, 'BASIC SERVICE')) {
+                $q->where(function($subQ) {
+                    $subQ->where('main_fund', 'MTB_ACF')
+                         ->orWhere('sub_fund', 'like', '%IGRA%')
+                         ->orWhere('sub_fund_desc', 'like', '%กลุ่มเสี่ยงสูง%');
+                });
+            }
+            // Tuberculosis Case Specific (CENTRAL REIMBURSE)
+            elseif (str_contains($fMain, 'CENTRAL REIMBURSE') || str_contains($fSub, 'บริการกรณีเฉพาะ') || str_contains($sub, 'บริการกรณีเฉพาะ')) {
+                $q->where(function($subQ) {
+                    $subQ->whereIn('main_fund', ['MTB_FOL', 'MTB_LAB'])
+                         ->orWhere('sub_fund_desc', 'like', '%ติดตามการรักษา%');
+                });
+            }
+            // Default fallback
+            else {
+                $q->where('sub_fund', $sub)
+                  ->orWhere('sub_fund', 'like', "%{$sub}%")
+                  ->orWhere('sub_fund_desc', 'like', "%{$sub}%")
+                  ->orWhere('main_fund', $sub)
+                  ->orWhere('main_fund', 'like', "%{$sub}%");
+            }
+        });
     }
 
     /**
@@ -1229,14 +1382,6 @@ class SmartMoneyController extends Controller
      */
     public function searchBotStatements(Request $request)
     {
-        $bearerToken = $this->getActiveSmartMoneyToken();
-        if (!$bearerToken) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ ThaiD หรือ Session หมดอายุ กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล'
-            ], 401);
-        }
-
         $startDate = $this->parseDate($request->start_date);
         $endDate = $this->parseDate($request->end_date);
         $keyword = trim((string)$request->keyword);
@@ -1258,6 +1403,8 @@ class SmartMoneyController extends Controller
         $hospcode = $hospcode ?: '10989';
         $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
 
+        $bearerToken = $this->getActiveSmartMoneyToken();
+
         try {
             $postData = [
                 'vendorSearchConditionCode' => '1',
@@ -1273,21 +1420,22 @@ class SmartMoneyController extends Controller
                 'isTest' => '',
             ];
 
-            $res = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-                'Authorization' => 'Bearer ' . $bearerToken,
+            $headers = [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json, text/plain, */*',
                 'Origin' => 'https://smt.nhso.go.th',
                 'Referer' => 'https://smt.nhso.go.th/smtf/',
-            ])->withoutVerifying()->timeout(25)->post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReport/search', $postData);
+            ];
 
-            if (in_array($res->status(), [401, 403])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Session การเชื่อมต่อกับ สปสช. (ThaiD) หมดอายุ กรุณากดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อเชื่อมต่อใหม่'
-                ], 401);
+            if ($bearerToken) {
+                $headers['Authorization'] = 'Bearer ' . $bearerToken;
             }
+
+            $res = Http::withHeaders($headers)
+                ->withoutVerifying()
+                ->timeout(25)
+                ->post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReport/search', $postData);
 
             if ($res->status() !== 200) {
                 return response()->json([
@@ -1331,6 +1479,8 @@ class SmartMoneyController extends Controller
                 $offsetAmt = (float)($item['odbt'] ?? 0);
                 $netAmt = (float)($item['total'] ?? 0);
                 $paymFile = trim((string)($item['downloadPAYMFileName'] ?? ''));
+                $waitFile = trim((string)($item['downloadWaitFileName'] ?? ''));
+                $debtFile = trim((string)($item['downloadDEBTFileName'] ?? ''));
 
                 // Keyword filter
                 if (!empty($keyword)) {
@@ -1375,8 +1525,12 @@ class SmartMoneyController extends Controller
                         'offset_amount' => $offsetAmt,
                         'net_amount' => $netAmt,
                         'net_amount_formatted' => number_format($netAmt, 2),
-                        'file_name' => $paymFile ?: "NHSO_SMT_{$bNo}.pdf",
+                        'file_name' => $paymFile ?: (($existing && !str_starts_with($existing->file_name, 'NHSO_SMT_') && !str_ends_with(strtolower($existing->file_name), '.xlsx')) ? $existing->file_name : ''),
+                        'file_name_wait' => $waitFile ?: ($existing ? $existing->file_name_wait : ''),
+                        'file_name_debt' => $debtFile ?: ($existing ? $existing->file_name_debt : ''),
                         'download_paym_file' => $paymFile,
+                        'download_wait_file' => $waitFile,
+                        'download_debt_file' => $debtFile,
                         'is_imported' => !empty($existing),
                         'has_receipt' => !empty($existing && $existing->receive_no),
                         'receive_no' => $existing ? ($existing->receive_no ?: '') : '',
@@ -1445,7 +1599,12 @@ class SmartMoneyController extends Controller
                 $netAmount = $this->cleanNumber($item['net_amount'] ?? 0);
                 $fundMain = trim($item['fund_main'] ?? '');
                 $fundSub = trim($item['fund_sub'] ?? '');
-                $fileName = trim($item['file_name'] ?? '');
+                $fileName = trim($item['file_name'] ?? ($item['download_paym_file'] ?? ''));
+                if (str_starts_with($fileName, 'NHSO_SMT_') || str_ends_with(strtolower($fileName), '.xlsx')) {
+                    $fileName = '';
+                }
+                $fileNameWait = trim($item['file_name_wait'] ?? ($item['download_wait_file'] ?? ''));
+                $fileNameDebt = trim($item['file_name_debt'] ?? ($item['download_debt_file'] ?? ''));
                 $receiveNo = trim($item['receive_no'] ?? '');
                 $receiptDate = !empty($item['receipt_date']) ? $this->parseDate($item['receipt_date']) : null;
                 $receiptBy = trim($item['receipt_by'] ?? '');
@@ -1484,6 +1643,8 @@ class SmartMoneyController extends Controller
                     if ($offsetAmount > 0) $batch->offset_amount = $offsetAmount;
                     if ($netAmount > 0) $batch->net_amount = $netAmount;
                     if (!empty($fileName)) $batch->file_name = $fileName;
+                    if (!empty($fileNameWait)) $batch->file_name_wait = $fileNameWait;
+                    if (!empty($fileNameDebt)) $batch->file_name_debt = $fileNameDebt;
 
                     // If existing receive_no is empty and new receive_no is provided, save it
                     if (empty($batch->receive_no) && !empty($receiveNo)) {
@@ -1511,6 +1672,8 @@ class SmartMoneyController extends Controller
                         'offset_amount' => $offsetAmount,
                         'net_amount' => $netAmount,
                         'file_name' => $fileName,
+                        'file_name_wait' => $fileNameWait,
+                        'file_name_debt' => $fileNameDebt,
                         'receive_no' => !empty($receiveNo) ? $receiveNo : null,
                         'receipt_date' => !empty($receiveNo) ? $receiptDate : null,
                         'receipt_by' => !empty($receiveNo) ? ($receiptBy ?: (auth()->check() ? auth()->user()->name : null)) : null,
@@ -1707,13 +1870,13 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Auto-import or link matching detail files for a batch (Smart Money Details only)
+     * Auto-import or link matching detail files for a batch (Smart Money Details DB link only)
      */
     protected function autoImportMatchingDetailFiles($batchNo, $roundNo, $accountCode, $budgetYear, $transferDate = null)
     {
         if (empty($roundNo) && empty($accountCode)) return 0;
 
-        // 1. Link any existing details with this round_no
+        // 1. Link any existing details in DB with this round_no
         if (!empty($roundNo) && !empty($batchNo)) {
             SmartMoneyDetail::where('round_no', $roundNo)
                 ->where(function($q) {
@@ -1735,41 +1898,6 @@ class SmartMoneyController extends Controller
 
         if ($existingDetails > 0) {
             return $existingDetails;
-        }
-
-        // 3. If 0 details found, automatically download strictly from SMT Live via worker
-        if (!empty($roundNo) && $roundNo !== '-') {
-            try {
-                $scriptPath = base_path('tools/smt/download_detail.js');
-                if (file_exists($scriptPath)) {
-                    $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
-                    $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
-                    $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
-                    $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
-                    $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
-
-                    $cmd = sprintf(
-                        '%s "%s" %s %s %s %s %s %s',
-                        $nodeExe,
-                        $scriptPath,
-                        escapeshellarg($batchNo),
-                        escapeshellarg($roundNo),
-                        escapeshellarg($transferDate ?: date('Y-m-d')),
-                        escapeshellarg($accountCode ?: ''),
-                        escapeshellarg($hcode),
-                        escapeshellarg($cookieFile)
-                    );
-
-                    $res = \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
-                    $rawOutput = $res['output'] ?? '';
-                    $result = json_decode($rawOutput, true);
-                    if ($result && isset($result['status']) && $result['status'] === 'success') {
-                        return (int)($result['count'] ?? 0);
-                    }
-                }
-            } catch (\Exception $e) {
-                Log::warning("Auto-download SMT details failed for batch {$batchNo}: " . $e->getMessage());
-            }
         }
 
         return 0;
@@ -1824,11 +1952,20 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Sync Patient Details strictly from Smart Money Transfer (SMTF) Live
+     * Sync Patient Details strictly from Smart Money Transfer (SMTF) Live (On-Demand)
      */
     public function syncDetailFromSmt(Request $request, $batch_no)
     {
         ini_set('max_execution_time', 300);
+
+        // 0. Verify active ThaiD token before proceeding
+        $bearerToken = $this->getActiveSmartMoneyToken();
+        if (!$bearerToken) {
+            return response()->json([
+                'status' => 'unauthenticated',
+                'message' => 'ยังไม่ได้เชื่อมต่อกับระบบ ThaiD หรือ Session หมดอายุ กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนดึงข้อมูลรายคน'
+            ], 401);
+        }
 
         $batch = SmartMoneyBatch::where('batch_no', $batch_no)->first();
         if (!$batch) {
@@ -1854,7 +1991,16 @@ class SmartMoneyController extends Controller
             ]);
         }
 
-        // 2. Live download strictly from SMT (Smart Money Transfer) via Worker
+        // 2. Prepare cookies for live download from SMT
+        $cookieFile = $this->preparePlaywrightCookies();
+        if (!$cookieFile || !file_exists($cookieFile)) {
+            return response()->json([
+                'status' => 'unauthenticated',
+                'message' => 'ไม่พบ Session ThaiD สำหรับดาวน์โหลด กรุณาเข้าสู่ระบบด้วย ThaiD อีกครั้ง'
+            ], 401);
+        }
+
+        // 3. Live download strictly from SMT (Smart Money Transfer) via Worker
         $scriptPath = base_path('tools/smt/download_detail.js');
         if (!file_exists($scriptPath)) {
             return response()->json(['status' => 'error', 'message' => 'ไม่พบสคริปต์ดาวน์โหลด SMT'], 500);
@@ -1864,7 +2010,6 @@ class SmartMoneyController extends Controller
         $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
         $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
         $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
-        $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
 
         $cmd = sprintf(
             '%s "%s" %s %s %s %s %s %s',
@@ -2110,33 +2255,49 @@ class SmartMoneyController extends Controller
     }
 
     /**
-     * Download or View Official PAYM (ใบแจ้งโอนเงิน / ใบสำคัญการจ่ายเงิน) from NHSO SMT
+     * Download or View Official Vouchers (ใบแจ้งโอน PAYM / ใบแจ้งชะลอ WAIT / ใบแจ้งรอหักกลบ DEBT) from NHSO SMT
      */
     public function downloadPaym(Request $request, $batchNo)
     {
-        $batch = SmartMoneyBatch::where('batch_no', $batchNo)
-            ->whereNotNull('file_name')
-            ->where('file_name', '!=', '')
-            ->first();
+        $type = strtoupper(trim((string)$request->type)) ?: 'PAYM'; // PAYM, WAIT, DEBT
+        $directToken = trim((string)$request->token);
 
-        if (!$batch) {
-            abort(404, "ไม่พบข้อมูลใบแจ้งโอนของ Batch {$batchNo}");
+        $fileName = '';
+        if (!empty($directToken)) {
+            $fileName = $directToken;
+        } else {
+            $batch = SmartMoneyBatch::where('batch_no', $batchNo)->first();
+
+            if (!$batch) {
+                abort(404, "ไม่พบข้อมูล Batch {$batchNo}");
+            }
+
+            if ($type === 'WAIT') {
+                $fileName = trim((string)$batch->file_name_wait);
+            } elseif ($type === 'DEBT') {
+                $fileName = trim((string)$batch->file_name_debt);
+            } else {
+                $fileName = trim((string)$batch->file_name);
+            }
+
+            if (empty($fileName) || str_starts_with($fileName, 'NHSO_SMT_') || str_ends_with(strtolower($fileName), '.xlsx')) {
+                $docLabel = ($type === 'WAIT' ? 'ใบแจ้งชะลอโอนเงิน' : ($type === 'DEBT' ? 'ใบแจ้งจำนวนเงินรอหักกลบ' : 'ใบแจ้งโอนเงิน'));
+                abort(404, "ไม่พบข้อมูล {$docLabel} ของ Batch {$batchNo}");
+            }
         }
 
-        $fileName = trim($batch->file_name);
-
-        // Directory for cached PAYM files
+        // Directory for cached voucher files
         $storageDir = storage_path('app/smt_paym');
         if (!file_exists($storageDir)) {
             @mkdir($storageDir, 0777, true);
         }
-        $cachedFile = $storageDir . DIRECTORY_SEPARATOR . "PAYM_{$batchNo}.pdf";
+        $cachedFile = $storageDir . DIRECTORY_SEPARATOR . "{$type}_{$batchNo}.pdf";
 
         // 1. If cached already and valid size (> 1KB)
         if (file_exists($cachedFile) && filesize($cachedFile) > 1000) {
             return response()->file($cachedFile, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="NHSO_PAYM_' . $batchNo . '.pdf"'
+                'Content-Disposition' => 'inline; filename="NHSO_' . $type . '_' . $batchNo . '.pdf"'
             ]);
         }
 
@@ -2151,7 +2312,7 @@ class SmartMoneyController extends Controller
 
         // 3. Fetch from NHSO SMT API via File Token
         $headers = [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             'Accept' => '*/*',
             'Origin' => 'https://smt.nhso.go.th',
             'Referer' => 'https://smt.nhso.go.th/smtf/',
@@ -2170,17 +2331,19 @@ class SmartMoneyController extends Controller
                 @file_put_contents($cachedFile, $res->body());
                 return response()->file($cachedFile, [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="NHSO_PAYM_' . $batchNo . '.pdf"'
+                    'Content-Disposition' => 'inline; filename="NHSO_' . $type . '_' . $batchNo . '.pdf"'
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("downloadPaym error for batch {$batchNo}: " . $e->getMessage());
+            Log::error("downloadPaym error for {$type} batch {$batchNo}: " . $e->getMessage());
         }
+
+        $docTitle = ($type === 'WAIT' ? 'ใบแจ้งชะลอโอนเงิน' : ($type === 'DEBT' ? 'ใบแจ้งจำนวนเงินรอหักกลบ' : 'ใบแจ้งโอนเงิน'));
 
         return response()->make(
             '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Download Error</title>' .
             '<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script></head><body>' .
-            '<script>Swal.fire({icon: "error", title: "ไม่สามารถดาวน์โหลดได้", text: "ไม่สามารถดาวน์โหลดไฟล์ใบแจ้งโอนจาก สปสช. ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"}).then(() => window.close());</script></body></html>',
+            '<script>Swal.fire({icon: "error", title: "ไม่สามารถดาวน์โหลดได้", text: "ไม่สามารถดาวน์โหลด' . $docTitle . ' จาก สปสช. ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"}).then(() => window.close());</script></body></html>',
             500,
             ['Content-Type' => 'text/html; charset=utf-8']
         );

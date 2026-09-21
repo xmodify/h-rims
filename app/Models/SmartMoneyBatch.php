@@ -28,6 +28,8 @@ class SmartMoneyBatch extends Model
         'offset_amount',
         'net_amount',
         'file_name',
+        'file_name_wait',
+        'file_name_debt',
         'receive_no',
         'receipt_date',
         'receipt_by',

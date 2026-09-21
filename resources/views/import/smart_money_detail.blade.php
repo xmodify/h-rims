@@ -21,6 +21,9 @@
 
         {{-- Actions --}}
         <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" id="btnThaidLoginDetail">
+                <i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)
+            </button>
             <button type="button" class="btn btn-info btn-sm rounded-pill px-3 shadow-sm fw-semibold text-white" onclick="syncDetailFromSmt('{{ $batch->batch_no }}')">
                 <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงรายคนจาก SMT
             </button>
@@ -28,7 +31,7 @@
                 class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-semibold text-white">
                 <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
             </a>
-            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#importDetailModal">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#importDetailModal">
                 <i class="bi bi-upload me-1"></i> นำเข้าไฟล์ Excel รายตัว
             </button>
         </div>
@@ -104,22 +107,54 @@
                     <tbody>
                         @forelse($details as $index => $row)
                         <tr>
+                            @php
+                                $isNapNo = !empty($row->cid) && (str_starts_with($row->cid, 'D4-') || str_starts_with($row->cid, 'NAP') || (strlen($row->cid) === 14 && str_contains($row->cid, '-')));
+                                $isHivFund = str_starts_with($row->main_fund ?? '', 'NAP') || str_contains($row->sub_fund ?? '', 'CD4') || str_contains($row->sub_fund ?? '', 'VL') || str_contains($row->sub_fund ?? '', 'ยาต้าน') || str_contains($row->sub_fund ?? '', 'HIV');
+                            @endphp
                             <td class="text-center small text-muted">{{ $details->firstItem() + $index }}</td>
-                            <td class="text-center fw-bold text-primary font-monospace small">{{ $row->hn }}</td>
+                            <td class="text-center text-nowrap">
+                                @if(!empty($row->hn) && $row->hn !== '-')
+                                    <span class="fw-bold text-primary font-monospace small">{{ $row->hn }}</span>
+                                @elseif($isNapNo || $isHivFund)
+                                    <span class="text-muted small fst-italic" title="สงวนสิทธิ์ไม่ระบุ HN ใน Statement กองทุน NAP">-</span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
                             <td class="text-center small text-dark font-monospace">{{ $row->an ?: '-' }}</td>
                             <td class="text-center small">
-                                <span class="badge {{ $row->pt_type === 'ผู้ป่วยใน' ? 'bg-danger-subtle text-danger' : 'bg-info-subtle text-primary' }} rounded-pill px-2">
-                                    {{ $row->pt_type }}
+                                <span class="badge {{ $row->pt_type === 'ผู้ป่วยใน' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill px-2">
+                                    {{ $row->pt_type === 'ผู้ป่วยใน' ? 'IPD' : 'OPD' }}
                                 </span>
                             </td>
-                            <td class="text-center small font-monospace text-muted">{{ $row->cid }}</td>
-                            <td class="text-start small fw-semibold text-dark">{{ $row->pt_name }}</td>
+                            <td class="text-center small text-nowrap">
+                                @if(!empty($row->cid))
+                                    @if($isNapNo)
+                                        <span class="badge bg-secondary-subtle text-dark border font-monospace" title="รหัสประจำตัวผู้รับบริการ NAP (สปสช.)">{{ $row->cid }}</span>
+                                    @else
+                                        <span class="font-monospace text-dark">{{ $row->cid }}</span>
+                                    @endif
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
+                            <td class="text-start small text-nowrap">
+                                @if(!empty($row->pt_name) && $row->pt_name !== '-')
+                                    <span class="fw-semibold text-dark">{{ $row->pt_name }}</span>
+                                @elseif($isNapNo || $isHivFund)
+                                    <span class="badge bg-light text-secondary border font-normal fw-normal py-1 px-2" title="สปสช. ปิดบังชื่อผู้ป่วยใน Statement กองทุนเอดส์ (NAP) เพื่อรักษาความลับผู้ป่วย">
+                                        <i class="bi bi-shield-lock-fill text-muted me-1"></i>สงวนชื่อ (กองทุนเอดส์ NAP)
+                                    </span>
+                                @else
+                                    <span class="text-muted opacity-50">-</span>
+                                @endif
+                            </td>
                             <td class="text-center small">{{ !empty($row->vstdate) ? DateThai($row->vstdate) : '-' }}</td>
                             <td class="text-end fw-bold text-success">{{ number_format($row->receive_total, 2) }}</td>
                             <td class="text-center small text-muted font-monospace">{{ $row->repno }}</td>
                             <td class="text-center small"><span class="badge bg-light text-dark border">{{ $row->main_fund }}</span></td>
                             <td class="text-center small"><span class="badge bg-light text-primary border">{{ $row->sub_fund }}</span></td>
-                            <td class="text-start small text-muted text-truncate" style="max-width: 150px;">{{ $row->sub_fund_desc }}</td>
+                            <td class="text-start small text-muted text-truncate" style="max-width: 150px;" title="{{ $row->sub_fund_desc }}">{{ $row->sub_fund_desc }}</td>
                         </tr>
                         @empty
                         <tr>
@@ -284,15 +319,69 @@
         });
     });
 
+    var thaidDetailConnected = false;
+    function checkThaidStatusDetail() {
+        $.ajax({
+            url: "{{ route('import.eclaim-bot.status') }}",
+            method: "POST",
+            data: { 
+                _token: "{{ csrf_token() }}",
+                auth_type: 'access_token'
+            },
+            success: function(res) {
+                if (res && res.connected) {
+                    thaidDetailConnected = true;
+                    $('#btnThaidLoginDetail').html('<i class="bi bi-shield-check me-1"></i> ThaiD: ' + (res.user || 'ออนไลน์')).removeClass('btn-primary').addClass('btn-outline-success');
+                } else {
+                    thaidDetailConnected = false;
+                    $('#btnThaidLoginDetail').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)').removeClass('btn-outline-success').addClass('btn-primary');
+                }
+            },
+            error: function() {
+                thaidDetailConnected = false;
+                $('#btnThaidLoginDetail').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)').removeClass('btn-outline-success').addClass('btn-primary');
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        checkThaidStatusDetail();
+        $('#btnThaidLoginDetail').on('click', function() {
+            openEclaimThaidQrModal(checkThaidStatusDetail);
+        });
+    });
+
     window.syncDetailFromSmt = function(batchNo) {
         if (!batchNo) return;
+
+        if (!thaidDetailConnected) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
+                text: 'กรุณาเข้าสู่ระบบด้วย ThaiD เพื่อดึงข้อมูลรายบุคคลจาก สปสช. อัตโนมัติ',
+                confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
+                showCancelButton: true,
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#0d6efd',
+                customClass: { popup: 'rounded-4' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    openEclaimThaidQrModal(function() {
+                        checkThaidStatusDetail();
+                        syncDetailFromSmt(batchNo);
+                    });
+                }
+            });
+            return;
+        }
+
         Swal.fire({
             title: 'กำลังดึงข้อมูลรายคน...',
             html: `
                 <div class="text-center p-3">
                     <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-                    <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคล...</div>
-                    <div class="small text-muted">ระบบจะค้นหาจากฐานข้อมูลและดาวน์โหลดรายงานจาก SMT อัตโนมัติ</div>
+                    <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคลจาก SMT...</div>
+                    <div class="small text-muted">ระบบกำลังดาวน์โหลดรายงานรายบุคคลจาก สปสช. กรุณารอสักครู่</div>
                 </div>
             `,
             allowOutsideClick: false,
@@ -331,14 +420,38 @@
                     });
                 }
             },
-            error: function(err) {
-                var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: msg,
-                    customClass: { popup: 'rounded-4' }
-                });
+            error: function(xhr) {
+                var msg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                if (xhr.status === 401) {
+                    checkThaidStatusDetail();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Session ThaiD หมดอายุ',
+                        text: msg,
+                        confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
+                        showCancelButton: true,
+                        cancelButtonText: 'ยกเลิก',
+                        confirmButtonColor: '#0d6efd',
+                        customClass: { popup: 'rounded-4' }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            openEclaimThaidQrModal(function() {
+                                checkThaidStatusDetail();
+                                syncDetailFromSmt(batchNo);
+                            });
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: msg,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                }
             }
         });
     };

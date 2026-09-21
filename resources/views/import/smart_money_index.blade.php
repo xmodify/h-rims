@@ -35,6 +35,36 @@
     .dt-buttons button.buttons-excel i {
         color: #ffffff !important;
     }
+
+    /* Action Dropdown Styling */
+    .smart-action-dropdown .dropdown-menu {
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        min-width: 220px;
+        padding: 6px;
+        z-index: 1055 !important;
+    }
+    .smart-action-dropdown .dropdown-item {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px;
+        transition: all 0.15s ease;
+    }
+    .smart-action-dropdown .dropdown-item:hover {
+        background-color: #f1f5f9;
+    }
+    .smart-action-dropdown .dropdown-header {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px;
+        padding: 4px 12px;
+        color: #94a3b8;
+    }
+    #smartMoneyTable td {
+        vertical-align: middle;
+    }
 </style>
 <div class="container-fluid py-3 px-4">
     {{-- Top Breadcrumb / Title Bar --}}
@@ -55,7 +85,13 @@
         </div>
 
         {{-- Action Buttons --}}
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {{-- ThaiD Connection Status Button on Main Page --}}
+            <button type="button" class="btn btn-sm rounded-pill px-3 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5 btn-outline-secondary" id="mainThaidStatusBtn" title="สถานะการเชื่อมต่อ ThaiD SSO สำหรับดึงข้อมูล สปสช. (คลิกเพื่อเข้าสู่ระบบ/เปลี่ยนบัญชี)">
+                <span class="spinner-border spinner-border-sm text-secondary" id="mainThaidSpinner" style="width: 12px; height: 12px;"></span>
+                <span id="mainThaidStatusText">ThaiD: ตรวจสอบสถานะ...</span>
+            </button>
+
             <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-normal" id="btnOpenTrendChartModal" data-bs-toggle="modal" data-bs-target="#smtTrendChartModal" title="ดูกราฟแนวโน้มเงินโอน 12 เดือน และเปรียบเทียบรายกองทุน">
                 <i class="bi bi-graph-up-arrow me-1"></i> กราฟแนวโน้ม 12 เดือน
             </button>
@@ -69,10 +105,6 @@
                     <i class="bi bi-robot me-1"></i> ดึงจาก SMTF
                 </button>
             @endif
-
-            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-normal" data-bs-toggle="modal" data-bs-target="#importExcelModal">
-                <i class="bi bi-file-earmark-excel me-1"></i> นำเข้าไฟล์ Excel
-            </button>
         </div>
     </div>
 
@@ -91,18 +123,18 @@
     @endif
 
     {{-- KPI Summary Cards --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3">
         {{-- Card 1: Total Transfer --}}
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted small fw-bold">ยอดเงินโอนเข้าบัญชีรวม</span>
-                    <div class="badge bg-primary-subtle text-primary rounded-circle p-2">
-                        <i class="bi bi-cash-stack fs-5"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-2.5 px-3" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="text-muted small fw-bold" style="font-size: 12px;">ยอดเงินโอนเข้าบัญชีรวม</span>
+                    <div class="badge bg-primary-subtle text-primary rounded-circle p-1.5">
+                        <i class="bi bi-cash-stack fs-6"></i>
                     </div>
                 </div>
-                <h3 class="fw-bold mb-1" style="color: #059669 !important; font-weight: 800; font-size: 1.75rem;">{{ number_format($total_net_amount, 2) }} <span class="fs-6 text-muted fw-normal">บาท</span></h3>
-                <div class="text-muted small">
+                <h4 class="fw-bold mb-1" style="color: #059669 !important; font-weight: 800; font-size: 1.55rem;">{{ number_format($total_net_amount, 2) }} <span class="fs-6 text-muted fw-normal">บาท</span></h4>
+                <div class="text-muted small" style="font-size: 11.5px;">
                     <i class="bi bi-layers me-1 text-primary"></i> ทั้งหมด <strong>{{ number_format($total_count) }}</strong> รายการ/Batch
                 </div>
             </div>
@@ -110,15 +142,15 @@
 
         {{-- Card 2: Issued Receipts --}}
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-success small fw-bold">ออกใบเสร็จรับเงินแล้ว</span>
-                    <div class="badge bg-success-subtle text-success rounded-circle p-2">
-                        <i class="bi bi-check-circle-fill fs-5"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-2.5 px-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="text-success small fw-bold" style="font-size: 12px;">ออกใบเสร็จรับเงินแล้ว</span>
+                    <div class="badge bg-success-subtle text-success rounded-circle p-1.5">
+                        <i class="bi bi-check-circle-fill fs-6"></i>
                     </div>
                 </div>
-                <h3 class="fw-bold text-success mb-1">{{ number_format($issued_amount, 2) }} <span class="fs-6 text-muted">บาท</span></h3>
-                <div class="text-success small">
+                <h4 class="fw-bold text-success mb-1" style="font-weight: 800; font-size: 1.55rem;">{{ number_format($issued_amount, 2) }} <span class="fs-6 text-muted fw-normal">บาท</span></h4>
+                <div class="text-success small" style="font-size: 11.5px;">
                     <i class="bi bi-file-earmark-check me-1"></i> ออกแล้ว <strong>{{ number_format($issued_count) }}</strong> รายการ
                 </div>
             </div>
@@ -126,63 +158,59 @@
 
         {{-- Card 3: Pending Receipts --}}
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-warning small fw-bold">ยังไม่ได้ออกใบเสร็จ</span>
-                    <div class="badge bg-warning-subtle text-warning rounded-circle p-2">
-                        <i class="bi bi-clock-history fs-5"></i>
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-2.5 px-3" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="text-warning small fw-bold" style="font-size: 12px;">ยังไม่ได้ออกใบเสร็จ</span>
+                    <div class="badge bg-warning-subtle text-warning rounded-circle p-1.5">
+                        <i class="bi bi-clock-history fs-6"></i>
                     </div>
                 </div>
-                <h3 class="fw-bold text-warning mb-1">{{ number_format($pending_amount, 2) }} <span class="fs-6 text-muted">บาท</span></h3>
-                <div class="text-warning small">
+                <h4 class="fw-bold text-warning mb-1" style="font-weight: 800; font-size: 1.55rem;">{{ number_format($pending_amount, 2) }} <span class="fs-6 text-muted fw-normal">บาท</span></h4>
+                <div class="text-warning small" style="font-size: 11.5px;">
                     <i class="bi bi-hourglass-split me-1"></i> รอออกใบเสร็จ <strong>{{ number_format($pending_count) }}</strong> รายการ
                 </div>
             </div>
         </div>
 
-        {{-- Card 4: Quick Filter Form (ปีงบประมาณ + ช่วงวันที่อิสระ) --}}
+        {{-- Card 4: Quick Filter Form (ปีงบประมาณ + ช่วงวันที่ รวมแถวเดียวกัน) --}}
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-2.5 px-3 bg-white">
                 <form method="GET" action="{{ route('import.smart_money') }}" id="filterForm">
-                    <div class="d-flex align-items-center justify-content-between mb-1.5">
-                        <span class="small fw-bold text-dark"><i class="bi bi-calendar-range text-primary me-1"></i> เลือกช่วงข้อมูล</span>
-                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-2.5 py-0.5 fw-semibold shadow-xs" style="font-size: 11px;">
-                            <i class="bi bi-search me-1"></i> ค้นหา
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-dark" style="font-size: 11.5px;"><i class="bi bi-funnel-fill text-primary me-1"></i>เลือกช่วงข้อมูล</span>
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-2.5 py-0.5 fw-semibold shadow-xs" style="font-size: 10.5px;">
+                            <i class="bi bi-search me-0.5"></i> ค้นหา
                         </button>
                     </div>
 
-                    {{-- ปีงบประมาณ --}}
-                    <div class="mb-2">
-                        <label class="form-label text-muted fw-semibold mb-0.5" style="font-size: 11px;">ปีงบประมาณ</label>
-                        <select class="form-select form-select-sm rounded-3 shadow-none fw-semibold text-dark" name="budget_year" id="budget_year_select">
-                            @foreach ($budget_year_select as $row)
-                                <option value="{{ $row->LEAVE_YEAR_ID }}" 
-                                    data-begin="{{ $row->DATE_BEGIN }}" 
-                                    data-end="{{ $row->DATE_END }}" 
-                                    {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                                    {{ $row->LEAVE_YEAR_NAME }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- ช่วงวันที่อิสระ (ตั้งแต่วันที่ - ถึงวันที่) --}}
-                    <div class="row g-1">
-                        <div class="col-6">
-                            <label class="form-label text-muted fw-semibold mb-0.5" style="font-size: 11px;">ตั้งแต่วันที่</label>
-                            <input type="hidden" name="start_date" id="filter_start_date" value="{{ $start_date }}">
-                            <input type="text" class="form-control form-control-sm rounded-3 shadow-none datepicker_th font-monospace px-1.5 text-center" 
-                                id="filter_start_date_picker" 
-                                placeholder="วว/ดด/ปปปป" 
-                                style="font-size: 11px; cursor: pointer;" readonly>
+                    {{-- แถวเดียวกัน: ปีงบประมาณ (ซ้าย) + ช่วงวันที่ (ขวา) --}}
+                    <div class="row g-1 align-items-center">
+                        <div class="col-5">
+                            <select class="form-select form-select-sm rounded-3 shadow-none fw-semibold text-dark px-1.5 py-0.5" name="budget_year" id="budget_year_select" style="font-size: 11px; height: 28px;">
+                                @foreach ($budget_year_select as $row)
+                                    <option value="{{ $row->LEAVE_YEAR_ID }}" 
+                                        data-begin="{{ $row->DATE_BEGIN }}" 
+                                        data-end="{{ $row->DATE_END }}" 
+                                        {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                        {{ $row->LEAVE_YEAR_NAME }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label text-muted fw-semibold mb-0.5" style="font-size: 11px;">ถึงวันที่</label>
-                            <input type="hidden" name="end_date" id="filter_end_date" value="{{ $end_date }}">
-                            <input type="text" class="form-control form-control-sm rounded-3 shadow-none datepicker_th font-monospace px-1.5 text-center" 
-                                id="filter_end_date_picker" 
-                                placeholder="วว/ดด/ปปปป" 
-                                style="font-size: 11px; cursor: pointer;" readonly>
+                        <div class="col-7">
+                            <div class="input-group input-group-sm">
+                                <input type="hidden" name="start_date" id="filter_start_date" value="{{ $start_date }}">
+                                <input type="text" class="form-control form-control-sm rounded-start-3 shadow-none datepicker_th font-monospace px-1 text-center py-0.5" 
+                                    id="filter_start_date_picker" 
+                                    placeholder="เริ่มต้น" 
+                                    style="font-size: 10px; height: 28px; cursor: pointer;" readonly>
+                                <span class="input-group-text bg-light text-muted px-1" style="font-size: 9.5px;">-</span>
+                                <input type="hidden" name="end_date" id="filter_end_date" value="{{ $end_date }}">
+                                <input type="text" class="form-control form-control-sm rounded-end-3 shadow-none datepicker_th font-monospace px-1 text-center py-0.5" 
+                                    id="filter_end_date_picker" 
+                                    placeholder="สิ้นสุด" 
+                                    style="font-size: 10px; height: 28px; cursor: pointer;" readonly>
+                            </div>
                         </div>
                     </div>
 
@@ -356,52 +384,108 @@
                             <td class="text-center small text-muted text-truncate" style="max-width: 110px;" title="{{ !empty($row->receive_no) && !empty($row->receipt_by) ? $row->receipt_by : '-' }}" data-order="{{ $row->receipt_by ?? '' }}">
                                 {{ !empty($row->receive_no) && !empty($row->receipt_by) ? $row->receipt_by : '-' }}
                             </td>
-                            <td class="text-center text-nowrap">
-                                <div class="d-flex justify-content-center gap-1">
-                                    {{-- Receipt Button --}}
-                                    @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                        <button type="button"
-                                            class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2.5 py-1 shadow-xs"
-                                            data-batch="{{ $row->batch_no }}"
-                                            data-round="{{ implode(', ', $row->round_nos) }}"
-                                            data-receive="{{ $row->receive_no }}"
-                                            data-date="{{ $row->receipt_date }}"
-                                            data-net="{{ number_format($row->total_net_amount, 2) }}"
-                                            data-account="{{ implode(', ', $row->account_codes) }}"
-                                            title="{{ $row->receive_no ? 'แก้ไขใบเสร็จ' : 'ออกใบเสร็จ' }}">
-                                            <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-0.5"></i>
-                                            {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                        </button>
-                                    @endif
-
-                                    {{-- PAYM Voucher Button (ใบแจ้งโอนเงิน สปสช.) --}}
-                                    @if(!empty($row->file_name))
-                                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}"
-                                            target="_blank"
-                                            class="btn btn-xs btn-outline-danger rounded-pill px-2.5 py-1 shadow-xs"
-                                            title="ดู/พิมพ์ ใบแจ้งโอนเงิน สปสช. (PAYM Voucher PDF)">
-                                            <i class="bi bi-file-earmark-pdf-fill me-0.5"></i> ใบแจ้งโอน
-                                        </a>
-                                    @endif
-
-                                    {{-- Detail Button (Modal) --}}
-                                    <button type="button"
-                                        class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 shadow-xs btn-view-patient-detail"
-                                        data-batch="{{ $row->batch_no }}"
-                                        title="ดูรายชื่อผู้ป่วยรายบุคคล">
-                                        <i class="bi bi-people-fill me-0.5"></i> รายบุคคล
+                            <td class="text-center text-nowrap py-1.5">
+                                <div class="dropdown smart-action-dropdown">
+                                    <button class="btn btn-xs btn-outline-primary dropdown-toggle rounded-pill px-2.5 py-1 shadow-xs fw-semibold"
+                                            type="button" 
+                                            data-bs-toggle="dropdown" 
+                                            data-bs-auto-close="true"
+                                            aria-expanded="false" 
+                                            style="font-size: 11.5px;">
+                                        <i class="bi bi-gear-fill me-1"></i> ทำรายการ
                                     </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-1.5">
+                                        {{-- 1. ออกใบเสร็จรับเงิน / แก้ไขเลขที่ใบเสร็จ --}}
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center {{ $row->receive_no ? 'btn-edit-receipt text-warning' : 'btn-new-receipt text-success' }}"
+                                                   data-batch="{{ $row->batch_no }}"
+                                                   data-round="{{ implode(', ', $row->round_nos) }}"
+                                                   data-receive="{{ $row->receive_no }}"
+                                                   data-date="{{ $row->receipt_date }}"
+                                                   data-net="{{ number_format($row->total_net_amount, 2) }}"
+                                                   data-account="{{ implode(', ', $row->account_codes) }}">
+                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square text-warning' : 'bi-receipt text-success' }} me-2 fs-6"></i>
+                                                    <span class="fw-semibold">{{ $row->receive_no ? 'แก้ไขเลขที่ใบเสร็จ' : 'ออกใบเสร็จรับเงิน' }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
 
-                                    {{-- Delete Button (Admin Only) --}}
-                                    @if(Auth::user()->status == 'admin')
-                                        <button type="button"
-                                            class="btn btn-xs btn-outline-danger rounded-circle p-1 btn-delete-batch shadow-xs"
-                                            data-batch="{{ $row->batch_no }}"
-                                            title="ลบข้อมูล Batch นี้"
-                                            style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    @endif
+                                        {{-- 2. รายละเอียดการโอนเงิน (รายบุคคล) --}}
+                                        <li>
+                                            <a href="javascript:void(0);" 
+                                               class="dropdown-item d-flex align-items-center text-primary btn-view-patient-detail"
+                                               data-batch="{{ $row->batch_no }}"
+                                               data-subfund="">
+                                                <i class="bi bi-person-lines-fill text-primary me-2 fs-6"></i>
+                                                <span>รายละเอียดการโอนเงิน (รายคน)</span>
+                                            </a>
+                                        </li>
+
+                                        {{-- 3. ดาวน์โหลดหนังสือ (แสดงเฉพาะรายการที่มีเอกสารจริงจาก สปสช.) --}}
+                                        @php
+                                            $hasPaym = !empty($row->file_name) && !str_starts_with($row->file_name, 'NHSO_SMT_') && !str_ends_with(strtolower($row->file_name), '.xlsx');
+                                            $hasWait = !empty($row->file_name_wait);
+                                            $hasDebt = !empty($row->file_name_debt);
+                                        @endphp
+                                        @if($hasPaym || $hasWait || $hasDebt)
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li class="dropdown-header">
+                                                <i class="bi bi-file-earmark-arrow-down me-1"></i> ดาวน์โหลดหนังสือ (สปสช.)
+                                            </li>
+                                            
+                                            {{-- ใบแจ้งโอนเงิน (PAYM) --}}
+                                            @if($hasPaym)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center text-danger" 
+                                                       href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=PAYM" 
+                                                       target="_blank">
+                                                        <i class="bi bi-file-earmark-pdf-fill text-danger me-2 fs-6"></i>
+                                                        <span>ใบแจ้งโอนเงิน</span>
+                                                    </a>
+                                                </li>
+                                            @endif
+
+                                            {{-- ใบแจ้งชะลอโอนเงิน (WAIT) --}}
+                                            @if($hasWait)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center text-warning" 
+                                                       href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=WAIT" 
+                                                       target="_blank">
+                                                        <i class="bi bi-pause-circle-fill text-warning me-2 fs-6"></i>
+                                                        <span class="text-dark">ใบแจ้งชะลอการโอนเงิน</span>
+                                                    </a>
+                                                </li>
+                                            @endif
+
+                                            {{-- ใบแจ้งจำนวนเงินรอหักกลบ (DEBT) --}}
+                                            @if($hasDebt)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" 
+                                                       style="color: #6d28d9;"
+                                                       href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=DEBT" 
+                                                       target="_blank">
+                                                        <i class="bi bi-receipt-cutoff me-2 fs-6" style="color: #6d28d9;"></i>
+                                                        <span>ใบแจ้งจำนวนเงินรอหักกลบ</span>
+                                                    </a>
+                                                </li>
+                                            @endif
+                                        @endif
+
+                                        {{-- 4. Delete Batch (Admin Only) --}}
+                                        @if(Auth::user()->status == 'admin')
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center text-danger btn-delete-batch"
+                                                   data-batch="{{ $row->batch_no }}">
+                                                    <i class="bi bi-trash3-fill text-danger me-2 fs-6"></i>
+                                                    <span>ลบข้อมูล Batch นี้</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
@@ -426,13 +510,35 @@
                     <span class="fw-bold text-dark">Batch No. <span class="text-primary font-monospace">{{ $row->batch_no }}</span></span>
                     <span class="badge bg-secondary-subtle text-secondary border">ทั้งหมด {{ $row->items->count() }} รายการ</span>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    @if(!empty($row->file_name))
-                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}"
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @php
+                        $subHasPaym = !empty($row->file_name) && !str_starts_with($row->file_name, 'NHSO_SMT_') && !str_ends_with(strtolower($row->file_name), '.xlsx');
+                        $subHasWait = !empty($row->file_name_wait);
+                        $subHasDebt = !empty($row->file_name_debt);
+                    @endphp
+                    @if($subHasPaym)
+                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=PAYM"
                             target="_blank"
                             class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-0.5 shadow-xs"
                             title="เปิดดู/พิมพ์ ใบแจ้งโอนเงิน สปสช. (PAYM Voucher PDF)">
                             <i class="bi bi-file-earmark-pdf-fill me-1"></i> ใบแจ้งโอน (PDF)
+                        </a>
+                    @endif
+                    @if($subHasWait)
+                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=WAIT"
+                            target="_blank"
+                            class="btn btn-sm btn-outline-warning rounded-pill px-2.5 py-0.5 shadow-xs text-dark"
+                            title="เปิดดู/พิมพ์ ใบแจ้งชะลอโอนเงิน (WAIT Voucher PDF)">
+                            <i class="bi bi-pause-circle-fill me-1 text-warning"></i> ชะลอโอน (PDF)
+                        </a>
+                    @endif
+                    @if($subHasDebt)
+                        <a href="{{ route('import.smart_money.download_paym', $row->batch_no) }}?type=DEBT"
+                            target="_blank"
+                            class="btn btn-sm rounded-pill px-2.5 py-0.5 shadow-xs"
+                            style="color: #6d28d9; background-color: #ede9fe; border: 1px solid #ddd6fe;"
+                            title="เปิดดู/พิมพ์ ใบแจ้งจำนวนเงินรอหักกลบ (DEBT Voucher PDF)">
+                            <i class="bi bi-receipt-cutoff me-1" style="color: #6d28d9;"></i> รอหักกลบ (PDF)
                         </a>
                     @endif
                     <div class="text-muted small">
@@ -447,12 +553,12 @@
                         <tr class="text-nowrap">
                             <th class="text-center" width="4%">#</th>
                             <th class="text-start" width="16%">งวด / เลขที่เบิกจ่าย</th>
-                            <th class="text-start" width="14%">รหัสผังบัญชี</th>
+                            <th class="text-start" width="13%">รหัสผังบัญชี</th>
                             <th class="text-start" width="18%">กองทุน</th>
-                            <th class="text-start" width="18%">กองทุนย่อย</th>
+                            <th class="text-start" width="19%">กองทุนย่อย</th>
                             <th class="text-end" width="10%">จำนวนเงิน</th>
-                            <th class="text-end" width="8%">รายการหัก</th>
-                            <th class="text-end" width="10%">เงินโอนเข้าบัญชี</th>
+                            <th class="text-end" width="9%">รายการหัก</th>
+                            <th class="text-end" width="11%">เงินโอนเข้าบัญชี</th>
                             <th class="text-center" width="10%">เลขที่ใบเสร็จ</th>
                         </tr>
                     </thead>
@@ -462,7 +568,7 @@
                             <td class="text-center text-muted small">{{ $subIdx + 1 }}</td>
                             <td class="text-start fw-bold text-primary font-monospace">{{ $sub->round_no ?: '-' }}</td>
                             <td class="text-start"><span class="badge bg-light text-dark border font-monospace">{{ $sub->account_code }}</span></td>
-                            <td class="text-start text-dark text-truncate" style="max-width: 180px;" title="{{ $sub->fund_main }}">{{ $sub->fund_main }}</td>
+                            <td class="text-start text-dark text-truncate" style="max-width: 170px;" title="{{ $sub->fund_main }}">{{ $sub->fund_main }}</td>
                             <td class="text-start text-muted text-truncate" style="max-width: 200px;" title="{{ $sub->fund_sub }}">{{ $sub->fund_sub }}</td>
                             <td class="text-end fw-semibold text-dark">{{ number_format($sub->amount, 2) }}</td>
                             <td class="text-end">
@@ -579,110 +685,6 @@
     </div>
 </div>
 
-{{-- Modal 2: นำเข้าไฟล์ Excel (รองรับทั้งไฟล์สรุป และ ไฟล์รายบุคคล) --}}
-<div class="modal fade" id="importExcelModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-            <div class="modal-header text-white p-3 px-4" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box me-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border-radius: 10px;">
-                        <i class="bi bi-file-earmark-excel fs-5"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title fw-bold mb-0 text-white">นำเข้าไฟล์ Excel Smart Money</h5>
-                        <div class="text-white-50 small">รองรับทั้งไฟล์สรุปยอดโอน (nhso_*) และไฟล์สรุปรายบุคคล (6908_*)</div>
-                    </div>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4 bg-light">
-                {{-- Nav Tabs --}}
-                <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 shadow-sm border" id="excelImportTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold small rounded-3 py-2" id="tab-summary-btn" data-bs-toggle="pill" data-bs-target="#tab-summary" type="button" role="tab">
-                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> 1. ไฟล์สรุปยอดโอน (nhso_*.xlsx)
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold small rounded-3 py-2" id="tab-detail-btn" data-bs-toggle="pill" data-bs-target="#tab-detail" type="button" role="tab">
-                            <i class="bi bi-people-fill me-1"></i> 2. ไฟล์รายบุคคล (6908_OP / IP_*.xlsx)
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content" id="excelImportTabContent">
-                    {{-- Tab 1: ไฟล์สรุป --}}
-                    <div class="tab-pane fade show active" id="tab-summary" role="tabpanel">
-                        <form id="formImportExcel" enctype="multipart/form-data">
-                            @csrf
-                            <label for="excel_file" class="card border-2 border-dashed rounded-4 p-4 text-center bg-white mb-3 d-block" style="cursor: pointer;">
-                                <i class="bi bi-cloud-arrow-up text-primary fs-1 mb-2"></i>
-                                <h6 class="fw-bold text-dark mb-1">เลือกไฟล์รายงานการโอนเงินหน้ารวม (nhso_*.xlsx)</h6>
-                                <div class="text-muted small">ไฟล์ Excel สรุปยอดเงินโอน และรหัสผังบัญชีจาก Smart Money สปสช.</div>
-                                <input type="file" class="d-none" id="excel_file" name="excel_file" accept=".xlsx, .xls, .csv" onchange="previewSelectedFile(this, 'file_selected_name')">
-                                <div id="file_selected_name" class="mt-2 text-primary fw-bold small d-none"></div>
-                            </label>
-
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
-                                    <i class="bi bi-shield-check me-1"></i> ป้องกันข้อมูลซ้ำ (Smart Upsert)
-                                </span>
-                                <span class="text-muted small">คงเลขที่ใบเสร็จเดิมไว้ 100%</span>
-                            </div>
-                        </form>
-                    </div>
-
-                    {{-- Tab 2: ไฟล์รายบุคคล --}}
-                    <div class="tab-pane fade" id="tab-detail" role="tabpanel">
-                        <form id="formImportDetailExcel" enctype="multipart/form-data">
-                            @csrf
-                            <label for="detail_excel_file" class="card border-2 border-dashed rounded-4 p-4 text-center bg-white mb-3 d-block" style="cursor: pointer;">
-                                <i class="bi bi-cloud-arrow-up text-success fs-1 mb-2"></i>
-                                <h6 class="fw-bold text-dark mb-1">เลือกไฟล์รายงานสรุปรายบุคคล (เลือกได้หลายไฟล์พร้อมกัน)</h6>
-                                <div class="text-muted small">รองรับไฟล์ 6908_OP_*.xlsx, 6908_IP_*.xlsx สามารถกด <kbd>Ctrl</kbd> หรือ <kbd>Shift</kbd> เพื่อเลือกทีละหลายไฟล์ได้</div>
-                                <input type="file" class="d-none" id="detail_excel_file" name="detail_excel[]" multiple accept=".xlsx, .xls, .csv" onchange="previewSelectedMultipleFiles(this, 'detail_file_selected_name')">
-                                <div id="detail_file_selected_name" class="mt-2 text-success fw-bold small d-none"></div>
-                            </label>
-
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1">
-                                        <i class="bi bi-magic me-1"></i> Auto-Match Main Batch
-                                    </span>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
-                                        <i class="bi bi-files me-1"></i> นำเข้าได้หลายไฟล์พร้อมกัน
-                                    </span>
-                                </div>
-                                <span class="text-muted small">ตรวจจับงวดและผังบัญชีเพื่อผูกกับ Batch หลักอัตโนมัติ</span>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                {{-- Progress Indicator with Percentage --}}
-                <div id="importLoading" class="p-3 bg-white rounded-4 border border-light-subtle shadow-sm mb-3 d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="small text-muted fw-bold" id="excelProgressStatusText">กำลังอัปโหลดและประมวลผลไฟล์...</span>
-                        <span class="badge bg-primary fw-bold" id="excelProgressPercent" style="border-radius: 8px;">0%</span>
-                    </div>
-                    <div class="progress mb-2" style="height: 14px; border-radius: 7px; background-color: #e9ecef; overflow: hidden;">
-                        <div id="excelProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
-                    </div>
-                    <div class="text-muted small text-start" style="font-size: 11px;">
-                        <i class="bi bi-info-circle me-1"></i> ระบบกำลังอ่านข้อมูลจากชีต Excel และตรวจสอบรายการซ้ำ
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 p-3 bg-white d-flex justify-content-between">
-                <button type="button" class="btn btn-light px-3 rounded-pill fw-semibold" data-bs-dismiss="modal">ปิด</button>
-                <button type="button" class="btn btn-primary px-4 rounded-pill fw-semibold shadow-sm" id="btnSubmitImport">
-                    <i class="bi bi-upload me-1"></i> เริ่มนำเข้าข้อมูล
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {{-- Modal 4: รายละเอียดผู้ป่วยรายบุคคล (Patient Details Modal) --}}
 <div class="modal fade" id="patientDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-scrollable" style="max-width: 96vw; width: 1360px;">
@@ -706,6 +708,34 @@
 
             {{-- Modal Body --}}
             <div class="modal-body p-3 p-md-4 bg-light">
+                {{-- Section 1: ThaiD Session Connection Status (Top Card) --}}
+                <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="pmodalAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" id="pmodalAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ ThaiD</div>
+                                    <div class="text-muted small" id="pmodalAuthStatusSub">สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบก่อนดึงข้อมูลรายคน</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" id="pmodalBtnThaidLogin">
+                                    <i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm fw-semibold d-none" id="pmodalBtnLogout">
+                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
+                                </button>
+                                <a href="https://smt.nhso.go.th/smtf/#/home/budget/summary" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="เปิดหน้าเว็บ Smart Money Transfer ในแท็บใหม่">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดเว็บ Smart Money Transfer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Batch Summary Info Banner --}}
                 <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
                     <div class="card-body p-3">
@@ -723,42 +753,46 @@
                                 <div class="fw-bold text-secondary font-monospace text-truncate" id="pmodal_account_code">-</div>
                             </div>
                             <div class="col-md-3 text-md-end">
-                                <span class="text-muted small">ยอดเงินโอนเข้าบัญชี:</span>
+                                <span class="text-muted small" id="pmodal_amount_title">ยอดรายการที่แสดง:</span>
                                 <div class="fw-bold text-success fs-5" id="pmodal_net_amount">0.00 บาท</div>
+                                <div class="text-muted small" id="pmodal_batch_total_hint" style="font-size: 11px;">(ยอดรวมทั้ง Batch: 0.00 บาท)</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {{-- Toolbar: Search, Filters, Export & Import --}}
+                {{-- Toolbar: Search, Sub-fund Filter, Stats & Actions --}}
                 <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
                     <div class="card-body p-3">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                            <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
-                                <div class="input-group input-group-sm">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 600px;">
+                                <div class="input-group input-group-sm flex-grow-1">
                                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                                     <input type="text" class="form-control border-start-0 shadow-none" id="pmodal_search_input" placeholder="ค้นหา HN, AN, เลขบัตร, ชื่อผู้ป่วย, REP_NO, กองทุน...">
                                 </div>
+                                <select class="form-select form-select-sm rounded-pill shadow-none" id="pmodal_subfund_filter" style="min-width: 180px; max-width: 260px; font-size: 12px;">
+                                    <option value="">-- ทุกผังย่อยใน Batch --</option>
+                                </select>
                                 <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 text-nowrap" id="pmodal_btn_search">ค้นหา</button>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <span class="badge bg-light text-dark border px-2.5 py-1.5" id="pmodal_stats_badge">
                                     <i class="bi bi-people me-1 text-primary"></i> 0 รายการ (0.00 บาท)
                                 </span>
 
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_sync_smt" title="ดึงรายชื่อผู้ป่วยรายบุคคลจากระบบ SMT อัตโนมัติ">
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_sync_smt" title="ดึงข้อมูลผู้ป่วยรายบุคคลจาก สปสช. (SMT) อัตโนมัติ">
                                     <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงรายคนจาก SMT
                                 </button>
+
+                                <label for="pmodal_upload_file" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm fw-semibold mb-0" style="cursor: pointer;" title="นำเข้าไฟล์ Excel รายบุคคลสำหรับ Batch นี้">
+                                    <i class="bi bi-upload me-1"></i> นำเข้าไฟล์ Excel
+                                    <input type="file" id="pmodal_upload_file" class="d-none" accept=".xlsx, .xls, .csv">
+                                </label>
 
                                 <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_export">
                                     <i class="bi bi-file-earmark-excel-fill me-1"></i> ส่งออก Excel
                                 </button>
-
-                                <label for="pmodal_upload_file" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm fw-semibold mb-0" style="cursor: pointer;" title="นำเข้าไฟล์ Excel รายบุคคลสำหรับ Batch นี้">
-                                    <i class="bi bi-upload me-1"></i> นำเข้าไฟล์รายบุคคล
-                                    <input type="file" id="pmodal_upload_file" class="d-none" accept=".xlsx, .xls, .csv">
-                                </label>
                             </div>
                         </div>
                     </div>
@@ -813,24 +847,27 @@
     </div>
 </div>
 
-{{-- Modal 3: ดึงข้อมูลจาก สปสช. (ThaiD SSO / Smart Money) --}}
+{{-- Modal 3: ดึงข้อมูลจาก สปสช. (Smart Money Transfer) --}}
 <div class="modal fade" id="smtBotModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw; width: 1320px;">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header text-white p-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
                 <div class="d-flex align-items-center">
                     <div class="icon-box me-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #059669, #10b981); border-radius: 14px; color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.4);">
-                        <i class="bi bi-robot fs-4"></i>
+                        <i class="bi bi-cloud-arrow-down-fill fs-4"></i>
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold mb-0 text-white" id="smtBotModalLabel">
-                            ดึงข้อมูล Smart Money Transfer จาก สปสช. (ThaiD) อัตโนมัติ
+                            ดึงข้อมูลเงินโอน Smart Money Transfer จาก สปสช.
                         </h5>
-                        <div class="text-light-50 small mt-0.5 d-flex align-items-center gap-2">
-                            <span>ระบบเชื่อมต่อตรง smt.nhso.go.th</span>
-                            <span class="badge rounded-pill bg-white text-dark py-1 px-2 fw-medium" style="font-size: 10.5px;">
-                                <i class="bi bi-shield-check text-primary me-1"></i> ThaiD SSO Ready
+                        <div class="text-light-50 small mt-1 d-flex flex-wrap align-items-center gap-2">
+                            <span>เชื่อมต่อตรง smt.nhso.go.th</span>
+                            <span class="badge rounded-pill bg-light bg-opacity-25 text-white py-1 px-2.5 fw-medium border border-white-50" style="font-size: 11px;">
+                                <i class="bi bi-hospital me-1 text-info"></i> รหัสหน่วยบริการ: <strong>{{ DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989' }}</strong>
                             </span>
+                            <a href="https://smt.nhso.go.th/smtf/#/home/budget/summary" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5 text-decoration-none shadow-none" style="font-size: 11px;" title="เปิดหน้าเว็บ Smart Money Transfer ในแท็บใหม่">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> เว็บไซต์ SMT
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -838,35 +875,7 @@
             </div>
             
             <div class="modal-body p-4 bg-light">
-                <!-- Section 1: ThaiD Session Connection Status -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body p-3">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center gap-3">
-                                <div id="smtAuthStatusIcon" class="badge rounded-circle p-2 bg-warning-subtle text-warning">
-                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark" id="smtAuthStatusText">ยังไม่ได้เชื่อมต่อกับระบบ ThaiD</div>
-                                    <div class="text-muted small" id="smtAuthStatusSub">สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบ</div>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm fw-semibold" id="btnSmtThaidLogin">
-                                    <i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none" id="btnSmtLogout">
-                                    <i class="bi bi-box-arrow-right me-1"></i> ตัดการเชื่อมต่อ
-                                </button>
-                                <a href="https://smt.nhso.go.th/smtf/#/bs/" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="เปิดหน้าเว็บ Smart Money Transfer ในแท็บใหม่">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดเว็บ Smart Money Transfer
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Search & Filter Box -->
+                <!-- Search & Filter Box -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-3">
                         <div class="row g-2 align-items-center">
@@ -889,8 +898,8 @@
                                 <input type="text" class="form-control form-control-sm rounded-3" id="botSmtKeywordFilter" placeholder="เช่น 3271, 6908_IP, 1102...">
                             </div>
                             <div class="col-md-3 d-flex align-items-end pt-3">
-                                <button class="btn btn-primary btn-sm w-100 rounded-3 py-1.5 fw-bold shadow-sm opacity-50" type="button" id="btnBotSmtSearch" disabled title="กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล">
-                                    <i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer
+                                <button class="btn btn-primary btn-sm w-100 rounded-3 py-1.5 fw-bold shadow-sm" type="button" id="btnBotSmtSearch">
+                                    <i class="bi bi-search me-1"></i> ค้นหาใน Smart Money Transfer
                                 </button>
                             </div>
                         </div>
@@ -914,16 +923,17 @@
                                     </th>
                                     <th class="text-center text-nowrap" style="width: 95px;">วันที่โอน</th>
                                     <th class="text-center text-nowrap" style="width: 85px;">BatchNo.</th>
-                                    <th class="text-center text-nowrap" style="width: 140px;">งวด / เลขที่เบิกจ่าย</th>
-                                    <th class="text-center text-nowrap" style="width: 125px;">รหัสผังบัญชี</th>
+                                    <th class="text-center text-nowrap" style="width: 135px;">งวด / เลขที่เบิกจ่าย</th>
+                                    <th class="text-center text-nowrap" style="width: 120px;">รหัสผังบัญชี</th>
                                     <th class="text-start">กองทุน / กองทุนย่อย</th>
-                                    <th class="text-end text-nowrap" style="width: 135px;">เงินโอนเข้าบัญชี (บาท)</th>
-                                    <th class="text-center text-nowrap" style="width: 165px;">สถานะใน RiMS</th>
+                                    <th class="text-end text-nowrap" style="width: 130px;">เงินโอนเข้าบัญชี (บาท)</th>
+                                    <th class="text-center text-nowrap" style="width: 130px;">ดาวน์โหลดหนังสือ</th>
+                                    <th class="text-center text-nowrap" style="width: 160px;">สถานะใน RiMS</th>
                                 </tr>
                             </thead>
                             <tbody id="botSmtTableBody">
                                 <tr>
-                                    <td colspan="8" class="text-center py-5 text-muted">
+                                    <td colspan="9" class="text-center py-5 text-muted">
                                         <div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>
                                         กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน
                                     </td>
@@ -1353,174 +1363,23 @@
             }
         });
 
-        // ThaiD Session Status Checker for Smart Money Transfer
-        var smtIsConnected = false;
-        var smtIsChecking = false;
-        function checkSmtThaidStatus(silent = false) {
-            if (smtIsChecking) return;
-            smtIsChecking = true;
-
-            if (!silent && !smtIsConnected) {
-                $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning')
-                    .addClass('bg-secondary-subtle text-secondary')
-                    .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-                $('#smtAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ ThaiD...');
-                $('#smtAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ smt.nhso.go.th');
-                $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
-            }
-
-            $.ajax({
-                url: "{{ route('import.eclaim-bot.status') }}",
-                method: "POST",
-                data: { 
-                    _token: "{{ csrf_token() }}",
-                    auth_type: 'access_token'
-                },
-                success: function(res) {
-                    smtIsChecking = false;
-                    if (res && res.connected) {
-                        smtIsConnected = true;
-                        if (window.smtRetryTimer) {
-                            clearInterval(window.smtRetryTimer);
-                            window.smtRetryTimer = null;
-                        }
-
-                        $('#smtAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary')
-                            .addClass('bg-success-subtle text-success')
-                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
-                        $('#smtAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary fw-bold">' + (res.user || 'ผู้ใช้งาน ThaiD') + '</span>');
-                        $('#smtAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + (res.connected_at ? formatThaiDateTime(res.connected_at) : ''));
-                        $('#btnSmtThaidLogin').html('<i class="bi bi-arrow-repeat me-1"></i> เชื่อมต่อใหม่');
-                        $('#btnSmtLogout').removeClass('d-none');
-
-                        // Enable Search Button
-                        $('#btnBotSmtSearch').prop('disabled', false).removeClass('opacity-50').removeAttr('title').html('<i class="bi bi-search me-1"></i> ค้นหาใน Smart Money Transfer');
-                    } else {
-                        smtIsConnected = false;
-                        $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
-                            .addClass('bg-warning-subtle text-warning')
-                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
-                        $('#smtAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ ThaiD');
-                        $('#smtAuthStatusSub').text('สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบ');
-                        $('#btnSmtThaidLogin').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)');
-                        $('#btnSmtLogout').addClass('d-none');
-
-                        // Disable Search Button
-                        $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
-
-                        if (!window.smtRetryTimer && $('#smtBotModal').hasClass('show')) {
-                            window.smtRetryTimer = setInterval(function() {
-                                if ($('#smtBotModal').hasClass('show') && !smtIsConnected) {
-                                    checkSmtThaidStatus(true);
-                                } else {
-                                    clearInterval(window.smtRetryTimer);
-                                    window.smtRetryTimer = null;
-                                }
-                            }, 3000);
-                        }
-                    }
-                },
-                error: function() {
-                    smtIsChecking = false;
-                    smtIsConnected = false;
-                    $('#smtAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
-                        .addClass('bg-warning-subtle text-warning')
-                        .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
-                    $('#smtAuthStatusText').text('ยังไม่ได้เชื่อมต่อ ThaiD');
-                    $('#smtAuthStatusSub').text('กดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อเชื่อมต่อ');
-                    $('#btnSmtLogout').addClass('d-none');
-
-                    // Disable Search Button
-                    $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
-                }
-            });
-        }
-
         $('#smtBotModal').on('show.bs.modal', function () {
-            if (!smtIsConnected) {
-                $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
-            }
-            checkSmtThaidStatus();
-            $('#botSmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน</td></tr>');
+            $('#botSmtTableBody').html('<tr><td colspan="9" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน</td></tr>');
             $('#botSmtCountBadge').text('พบ 0 รายการ');
             $('#selectedBotSmtCount').text('เลือก 0 รายการ');
             $('#btnStartImportBotSmt').prop('disabled', true);
             $('#checkAllBotSmt').prop('checked', false);
         });
 
-        $('#smtBotModal').on('hidden.bs.modal', function () {
-            if (window.smtRetryTimer) {
-                clearInterval(window.smtRetryTimer);
-                window.smtRetryTimer = null;
-            }
-        });
-
-        $('#btnSmtThaidLogin').on('click', function () {
-            openEclaimThaidQrModal(checkSmtThaidStatus);
-        });
-
-        $('#btnSmtLogout').on('click', function () {
-            Swal.fire({
-                title: 'ยืนยันตัดการเชื่อมต่อ?',
-                text: 'ระบบจะล้าง Session e-Claim / ThaiD ออกจากระบบ',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
-                cancelButtonText: 'ยกเลิก'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    localStorage.removeItem('eclaim_session_token');
-                    $.ajax({
-                        url: "{{ route('import.eclaim-bot.logout') }}",
-                        method: "POST",
-                        data: { _token: "{{ csrf_token() }}" },
-                        success: function () {
-                            checkSmtThaidStatus();
-                            $('#btnBotSmtSearch').prop('disabled', true).addClass('opacity-50').attr('title', 'กรุณาเข้าสู่ระบบด้วย ThaiD ก่อนค้นหาข้อมูล').html('<i class="bi bi-lock me-1"></i> ค้นหาใน Smart Money Transfer');
-                            $('#botSmtTableBody').html('<tr><td colspan="8" class="text-center py-5 text-muted"><div class="opacity-50 fs-3 mb-2"><i class="bi bi-cloud-arrow-down"></i></div>กดปุ่ม "ค้นหาใน Smart Money Transfer" เพื่อดึงรายการเงินโอน</td></tr>');
-                            $('#botSmtCountBadge').text('พบ 0 รายการ');
-                            $('#selectedBotSmtCount').text('เลือก 0 รายการ');
-                            $('#btnStartImportBotSmt').prop('disabled', true);
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'ตัดการเชื่อมต่อแล้ว',
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                        }
-                    });
-                }
-            });
-        });
-
         // Search in Smart Money & Compare with DB
         $('#btnBotSmtSearch').on('click', function() {
-            if (!smtIsConnected) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
-                    text: 'กรุณากดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อสแกน QR Code ก่อนค้นหาข้อมูล',
-                    confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
-                    showCancelButton: true,
-                    cancelButtonText: 'ยกเลิก',
-                    confirmButtonColor: '#0d6efd'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        openEclaimThaidQrModal(checkSmtThaidStatus);
-                    }
-                });
-                return;
-            }
-
             var startDate = $('#bot_start_date').val() || $('#bot_start_date_picker').val();
             var endDate = $('#bot_end_date').val() || $('#bot_end_date_picker').val();
             var keyword = $('#botSmtKeywordFilter').val();
 
             $('#botSmtTableBody').html(`
                 <tr>
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
                         <div class="spinner-border text-primary" role="status"></div>
                         <div class="mt-2 text-muted fw-bold">กำลังดึงข้อมูลเงินโอน Smart Money Transfer จาก สปสช. แบบ Real-time ...</div>
                     </td>
@@ -1542,7 +1401,7 @@
                     } else {
                         $('#botSmtTableBody').html(`
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-danger">
+                                <td colspan="9" class="text-center py-5 text-danger">
                                     <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
                                     <strong>${res.message || 'ไม่พบข้อมูล'}</strong>
                                 </td>
@@ -1556,24 +1415,17 @@
                         msg = xhr.responseJSON.message;
                     }
                     if (xhr.status === 401) {
-                        checkSmtThaidStatus();
                         Swal.fire({
                             icon: 'warning',
-                            title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
+                            title: 'ข้อผิดพลาดการเชื่อมต่อ',
                             text: msg,
-                            confirmButtonText: 'เข้าสู่ระบบ (ThaiD)',
-                            showCancelButton: true,
-                            cancelButtonText: 'ยกเลิก',
+                            confirmButtonText: 'ตกลง',
                             confirmButtonColor: '#0d6efd'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                openEclaimThaidQrModal(checkSmtThaidStatus);
-                            }
                         });
                     }
                     $('#botSmtTableBody').html(`
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-danger">
+                            <td colspan="9" class="text-center py-5 text-danger">
                                 <i class="bi bi-x-circle-fill fs-3 mb-2 d-block"></i>
                                 <strong>${msg}</strong>
                             </td>
@@ -1597,7 +1449,7 @@
             if (!items || items.length === 0) {
                 $('#botSmtTableBody').html(`
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
+                        <td colspan="9" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
                             ไม่พบรายการเงินโอน Smart Money Transfer ในช่วงวันที่ที่เลือก
                         </td>
@@ -1622,6 +1474,25 @@
                     isChecked = false;
                 }
 
+                // Render Vouchers Download Badges
+                var docsHtml = '<div class="d-flex justify-content-center gap-1 flex-wrap">';
+                if (item.download_paym_file) {
+                    var paymUrl = "{{ url('import/smart-money/download-paym') }}/" + encodeURIComponent(item.batch_no) + "?type=PAYM&token=" + encodeURIComponent(item.download_paym_file);
+                    docsHtml += `<a href="${paymUrl}" target="_blank" class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-1 text-decoration-none shadow-2xs" title="คลิกดู/พิมพ์ ใบแจ้งโอนเงิน (PAYM)"><i class="bi bi-file-earmark-pdf-fill me-0.5"></i>โอน</a>`;
+                }
+                if (item.download_wait_file) {
+                    var waitUrl = "{{ url('import/smart-money/download-paym') }}/" + encodeURIComponent(item.batch_no) + "?type=WAIT&token=" + encodeURIComponent(item.download_wait_file);
+                    docsHtml += `<a href="${waitUrl}" target="_blank" class="badge bg-warning-subtle text-dark border border-warning-subtle px-1.5 py-1 text-decoration-none shadow-2xs" title="คลิกดู/พิมพ์ ใบแจ้งชะลอโอนเงิน (WAIT)"><i class="bi bi-pause-circle-fill text-warning me-0.5"></i>ชะลอ</a>`;
+                }
+                if (item.download_debt_file) {
+                    var debtUrl = "{{ url('import/smart-money/download-paym') }}/" + encodeURIComponent(item.batch_no) + "?type=DEBT&token=" + encodeURIComponent(item.download_debt_file);
+                    docsHtml += `<a href="${debtUrl}" target="_blank" class="badge border px-1.5 py-1 text-decoration-none shadow-2xs" style="background-color: #ede9fe; color: #6d28d9; border-color: #ddd6fe !important;" title="คลิกดู/พิมพ์ ใบแจ้งจำนวนเงินรอหักกลบ (DEBT)"><i class="bi bi-receipt-cutoff me-0.5" style="color: #6d28d9;"></i>หักกลบ</a>`;
+                }
+                if (!item.download_paym_file && !item.download_wait_file && !item.download_debt_file) {
+                    docsHtml += '<span class="text-muted opacity-50">-</span>';
+                }
+                docsHtml += '</div>';
+
                 var itemJson = encodeURIComponent(JSON.stringify(item));
 
                 html += `
@@ -1638,6 +1509,7 @@
                             <div class="text-muted small lh-1 mt-0.5" style="font-size: 11px;">${item.fund_sub || ''}</div>
                         </td>
                         <td class="text-end text-nowrap fw-bold text-success">${item.net_amount_formatted}</td>
+                        <td class="text-center text-nowrap">${docsHtml}</td>
                         <td class="text-center text-nowrap">${statusBadge}</td>
                     </tr>
                 `;
@@ -1690,7 +1562,7 @@
                 html: `
                     <div class="text-start p-3 bg-light rounded-4 mb-3 small">
                         <div class="mb-2">📄 <strong>จำนวนรายการที่เลือก:</strong> <span class="text-primary fw-bold fs-6">${selectedItems.length}</span> รายการ</div>
-                        <div class="text-muted">🛡️ ระบบจะบันทึกข้อมูล พร้อมค้นหาไฟล์รายชื่อผู้ป่วยรายบุคคลและคงเลขที่ใบเสร็จเดิมไว้ 100%</div>
+                        <div class="text-muted">🛡️ ระบบจะบันทึกข้อมูลยอดเงินโอนและผังบัญชีเข้าสู่ RiMS (ท่านสามารถกดดูหรือดึงข้อมูลรายบุคคลเพิ่มเติมได้ที่ปุ่ม 'รายบุคคล' ของแต่ละงวด)</div>
                     </div>
                 `,
                 icon: 'question',
@@ -1731,8 +1603,8 @@
                                         <span class="text-truncate fw-semibold" id="smtProgressStatusText">กำลังเริ่มต้นการนำเข้า...</span>
                                     </div>
                                     <div class="pt-2 border-top d-flex justify-content-between text-muted" style="font-size: 11px;">
-                                        <span>👥 ผู้ป่วยรายบุคคล: <strong class="text-success" id="smtLiveDetailCount">0</strong> รายการ</span>
                                         <span>🔗 ซิงก์ใบเสร็จ: <strong class="text-info" id="smtLiveStmCount">0</strong> รายการ</span>
+                                        <span class="text-muted"><i class="bi bi-info-circle me-1"></i> ดึงรายคนได้ที่ปุ่ม "รายบุคคล"</span>
                                     </div>
                                 </div>
                             </div>
@@ -1757,7 +1629,7 @@
 
                         var currentNumber = i + 1;
                         $('#smtProgressStep').text(`กำลังนำเข้ารายการที่ ${currentNumber} จาก ${totalItems}`);
-                        $('#smtProgressStatusText').html(`Batch <strong>${batchNo}</strong> (งวด: <strong>${roundNo}</strong>) - กำลังบันทึกและดึงข้อมูลรายคนจาก SMT...`);
+                        $('#smtProgressStatusText').html(`Batch <strong>${batchNo}</strong> (งวด: <strong>${roundNo}</strong>) - กำลังบันทึกข้อมูลเข้าสู่ฐานข้อมูล...`);
 
                         try {
                             var res = await $.ajax({
@@ -1789,7 +1661,6 @@
                         $('#smtProgressBar').css('width', pct + '%');
                         $('#smtProgressPercent').text(pct + '%');
                         $('#smtProgressCount').text(`${currentNumber} / ${totalItems} รายการ`);
-                        $('#smtLiveDetailCount').text(totalSyncedDetails.toLocaleString());
                         $('#smtLiveStmCount').text(totalSyncedStm.toLocaleString());
                     }
 
@@ -1805,11 +1676,10 @@
                                 <div class="mb-1">📄 <strong>รายการทั้งหมดที่เลือก:</strong> <strong>${totalItems}</strong> รายการ</div>
                                 <div class="text-success mb-1">➕ <strong>เพิ่มรายการใหม่:</strong> <strong>${totalInserted}</strong> รายการ</div>
                                 <div class="text-primary mb-1">🔄 <strong>อัปเดตข้อมูลเดิม:</strong> <strong>${totalUpdated}</strong> รายการ</div>
-                                ${totalSyncedDetails > 0 ? `<div class="text-success mb-1">👥 <strong>ดึงรายชื่อผู้ป่วยรายบุคคล:</strong> <strong>${totalSyncedDetails.toLocaleString()}</strong> รายการ</div>` : ''}
                                 ${totalSyncedStm > 0 ? `<div class="text-info mb-1">🔗 <strong>ซิงก์เลขที่ใบเสร็จเข้า STM:</strong> <strong>${totalSyncedStm.toLocaleString()}</strong> รายการ</div>` : ''}
                                 ${failedBatches.length > 0 ? `<div class="text-danger mt-2 pt-2 border-top">⚠️ <strong>รายการที่ไม่สำเร็จ:</strong><br>${failedBatches.join('<br>')}</div>` : ''}
                                 <div class="text-muted mt-2 pt-2 border-top" style="font-size: 11px;">
-                                    🛡️ ป้องกันข้อมูลซ้ำ และคงเลขที่ใบเสร็จเดิมไว้ 100%
+                                    🛡️ ป้องกันข้อมูลซ้ำ และคงเลขที่ใบเสร็จเดิมไว้ 100% (สามารถกดดูรายคนได้ที่ปุ่ม 'รายบุคคล')
                                 </div>
                             </div>
                         `,
@@ -1903,121 +1773,6 @@
             .catch(err => {
                 btn.prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> บันทึกใบเสร็จ');
                 Swal.fire('ผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
-            });
-        });
-
-        // Submit Excel File Import (Supports Summary Tab & Detail Multi-File Tab)
-        // Submit Excel File Import with Progress Percentage (%)
-        $('#btnSubmitImport').on('click', function() {
-            var isDetailTab = $('#tab-detail-btn').hasClass('active');
-            var fileInput = document.getElementById(isDetailTab ? 'detail_excel_file' : 'excel_file');
-
-            if (!fileInput.files || fileInput.files.length === 0) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกไฟล์ Excel ก่อนทำรายการ', 'warning');
-                return;
-            }
-
-            var formData = new FormData();
-            formData.append('budget_year', $('#budget_year_select').val());
-            formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
-
-            var fileCount = fileInput.files.length;
-            if (isDetailTab) {
-                for (var i = 0; i < fileInput.files.length; i++) {
-                    formData.append('detail_excel[]', fileInput.files[i]);
-                }
-            } else {
-                formData.append('excel_file', fileInput.files[0]);
-            }
-
-            var endpoint = isDetailTab ? "{{ route('import.smart_money.import_detail') }}" : "{{ route('import.smart_money.import_summary') }}";
-
-            $('#importLoading').removeClass('d-none');
-            $('#excelProgressBar').css('width', '15%');
-            $('#excelProgressPercent').text('15%');
-            $('#excelProgressStatusText').text(isDetailTab && fileCount > 1 ? `กำลังอัปโหลดและประมวลผล ${fileCount} ไฟล์...` : 'กำลังอัปโหลดไฟล์ไปยังเซิร์ฟเวอร์...');
-            $(this).prop('disabled', true);
-
-            var progressInterval = setInterval(function() {
-                var currentWidth = parseInt($('#excelProgressBar')[0].style.width) || 15;
-                if (currentWidth < 85) {
-                    var nextWidth = currentWidth + Math.floor(Math.random() * 12) + 5;
-                    if (nextWidth > 85) nextWidth = 85;
-                    $('#excelProgressBar').css('width', nextWidth + '%');
-                    $('#excelProgressPercent').text(nextWidth + '%');
-                    if (nextWidth > 50) {
-                        $('#excelProgressStatusText').text(isDetailTab && fileCount > 1 ? `กำลังอ่านข้อมูลจาก ${fileCount} ไฟล์และผูก Batch อัตโนมัติ...` : 'กำลังอ่านข้อมูลจากชีตและเชื่อมโยงข้อมูล...');
-                    }
-                }
-            }, 400);
-
-            fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
-                    "Accept": "application/json"
-                },
-                body: formData
-            })
-            .then(async response => {
-                let data = null;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    if (response.status === 419) {
-                        throw new Error('Session หมดอายุ กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง');
-                    } else if (response.status === 413) {
-                        throw new Error('ไฟล์มีขนาดใหญ่เกินกว่าที่เซิร์ฟเวอร์กำหนด');
-                    } else {
-                        throw new Error('เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (HTTP ' + response.status + ')');
-                    }
-                }
-                if (!response.ok) {
-                    throw new Error((data && data.message) ? data.message : ('HTTP ' + response.status));
-                }
-                return data;
-            })
-            .then(res => {
-                clearInterval(progressInterval);
-                $('#excelProgressBar').css('width', '100%');
-                $('#excelProgressPercent').text('100%');
-                $('#excelProgressStatusText').text('ประมวลผลเสร็จสิ้น 100%');
-
-                setTimeout(function() {
-                    $('#importLoading').addClass('d-none');
-                    $('#btnSubmitImport').prop('disabled', false);
-
-                    if (res && res.status === 'success') {
-                        $('#importExcelModal').modal('hide');
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'นำเข้าข้อมูลสำเร็จ 100%',
-                            text: res.message,
-                            confirmButtonText: 'ตกลง',
-                            customClass: { popup: 'rounded-4' }
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ผิดพลาด',
-                            text: (res && res.message) ? res.message : 'ไม่สามารถนำเข้าข้อมูลได้',
-                            customClass: { popup: 'rounded-4' }
-                        });
-                    }
-                }, 400);
-            })
-            .catch(err => {
-                clearInterval(progressInterval);
-                $('#importLoading').addClass('d-none');
-                $('#btnSubmitImport').prop('disabled', false);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ผิดพลาด',
-                    text: err.message || 'เกิดข้อผิดพลาดในการส่งไฟล์',
-                    customClass: { popup: 'rounded-4' }
-                });
             });
         });
 
@@ -2129,11 +1884,133 @@
         var currentModalBatchNo = '';
         window.currentModalBatchNo = '';
         var currentModalPage = 1;
+        var currentModalSubfund = '';
+        var pmodalThaidConnected = false;
 
-        function loadPatientModalData(batchNo, page = 1, search = '') {
+        function checkPatientModalThaidStatus(silent = false) {
+            if (!silent && !pmodalThaidConnected) {
+                $('#pmodalAuthStatusIcon').removeClass('bg-success-subtle text-success bg-warning-subtle text-warning')
+                    .addClass('bg-secondary-subtle text-secondary')
+                    .html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+                $('#pmodalAuthStatusText').text('กำลังตรวจสอบสถานะการเชื่อมต่อ ThaiD...');
+                $('#pmodalAuthStatusSub').text('ระบบกำลังทดสอบ Session กับ สปสช.');
+            }
+
+            $('#mainThaidSpinner').removeClass('d-none');
+
+            $.ajax({
+                url: "{{ route('import.eclaim-bot.status') }}",
+                method: "POST",
+                data: { 
+                    _token: "{{ csrf_token() }}",
+                    auth_type: 'access_token'
+                },
+                success: function(res) {
+                    $('#mainThaidSpinner').addClass('d-none');
+                    if (res && res.connected) {
+                        pmodalThaidConnected = true;
+                        var userName = res.user || 'ผู้ใช้งาน ThaiD';
+
+                        // 1. Update Main Page Header Button
+                        $('#mainThaidStatusBtn').removeClass('btn-outline-secondary btn-outline-warning text-dark').addClass('btn-outline-success')
+                            .attr('title', 'เชื่อมต่อ ThaiD แล้ว: ' + userName + ' (คลิกเพื่อเปลี่ยนบัญชี / เชื่อมต่อใหม่)');
+                        $('#mainThaidStatusText').html('<i class="bi bi-shield-check text-success me-1"></i> ThaiD: <span class="text-dark fw-bold">' + userName + '</span>');
+
+                        // 2. Update Patient Modal Status Card
+                        $('#pmodalAuthStatusIcon').removeClass('bg-warning-subtle text-warning bg-secondary-subtle text-secondary')
+                            .addClass('bg-success-subtle text-success')
+                            .html('<i class="bi bi-check-circle-fill fs-5"></i>');
+                        $('#pmodalAuthStatusText').html('เชื่อมต่อสำเร็จ: <span class="text-primary fw-bold">' + userName + '</span>');
+                        $('#pmodalAuthStatusSub').html('สถานะ: ออนไลน์พร้อมดึงข้อมูล | เชื่อมต่อเมื่อ: ' + (res.connected_at ? formatThaiDateTime(res.connected_at) : ''));
+                        $('#pmodalBtnThaidLogin').html('<i class="bi bi-arrow-repeat me-1"></i> เชื่อมต่อใหม่').addClass('btn-primary').removeClass('btn-outline-primary');
+                        $('#pmodalBtnLogout').removeClass('d-none');
+                    } else {
+                        pmodalThaidConnected = false;
+
+                        // 1. Update Main Page Header Button
+                        $('#mainThaidStatusBtn').removeClass('btn-outline-success btn-outline-secondary').addClass('btn-outline-warning text-dark')
+                            .attr('title', 'ยังไม่ได้เข้าสู่ระบบ ThaiD (คลิกเพื่อสแกน QR Code เข้าสู่ระบบ)');
+                        $('#mainThaidStatusText').html('<i class="bi bi-qr-code-scan text-primary me-1"></i> เข้าสู่ระบบ ThaiD');
+
+                        // 2. Update Patient Modal Status Card
+                        $('#pmodalAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                            .addClass('bg-warning-subtle text-warning')
+                            .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                        $('#pmodalAuthStatusText').text('ยังไม่ได้เชื่อมต่อกับระบบ ThaiD');
+                        $('#pmodalAuthStatusSub').text('สแกน QR Code ด้วยแอป ThaiD เพื่อเข้าสู่ระบบก่อนดึงข้อมูลรายคน');
+                        $('#pmodalBtnThaidLogin').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)').addClass('btn-primary').removeClass('btn-outline-primary');
+                        $('#pmodalBtnLogout').addClass('d-none');
+                    }
+                },
+                error: function() {
+                    pmodalThaidConnected = false;
+                    $('#mainThaidSpinner').addClass('d-none');
+                    $('#mainThaidStatusBtn').removeClass('btn-outline-success btn-outline-secondary').addClass('btn-outline-warning text-dark');
+                    $('#mainThaidStatusText').html('<i class="bi bi-qr-code-scan text-primary me-1"></i> เข้าสู่ระบบ ThaiD');
+
+                    $('#pmodalAuthStatusIcon').removeClass('bg-success-subtle text-success bg-secondary-subtle text-secondary')
+                        .addClass('bg-warning-subtle text-warning')
+                        .html('<i class="bi bi-exclamation-triangle-fill fs-5"></i>');
+                    $('#pmodalAuthStatusText').text('ยังไม่ได้เชื่อมต่อ ThaiD');
+                    $('#pmodalAuthStatusSub').text('กดปุ่ม "เข้าสู่ระบบ (ThaiD)" เพื่อเชื่อมต่อ');
+                    $('#pmodalBtnThaidLogin').html('<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)').addClass('btn-primary').removeClass('btn-outline-primary');
+                    $('#pmodalBtnLogout').addClass('d-none');
+                }
+            });
+        }
+
+        // Check ThaiD Status on initial page load
+        checkPatientModalThaidStatus(true);
+
+        $('#mainThaidStatusBtn').on('click', function() {
+            openEclaimThaidQrModal(function() {
+                checkPatientModalThaidStatus();
+            });
+        });
+
+        $('#pmodalBtnThaidLogin').on('click', function() {
+            openEclaimThaidQrModal(function() {
+                checkPatientModalThaidStatus();
+            });
+        });
+
+        $('#pmodalBtnLogout').on('click', function () {
+            Swal.fire({
+                title: 'ยืนยันตัดการเชื่อมต่อ?',
+                text: 'ระบบจะล้าง Session e-Claim / ThaiD ออกจากระบบ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ตัดการเชื่อมต่อ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('eclaim_session_token');
+                    $.ajax({
+                        url: "{{ route('import.eclaim-bot.logout') }}",
+                        method: "POST",
+                        data: { _token: "{{ csrf_token() }}" },
+                        success: function () {
+                            checkPatientModalThaidStatus();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตัดการเชื่อมต่อแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        function loadPatientModalData(batchNo, page = 1, search = '', subfund = '') {
             currentModalBatchNo = batchNo;
             window.currentModalBatchNo = batchNo;
             currentModalPage = page;
+            currentModalSubfund = subfund || '';
+            checkPatientModalThaidStatus(true);
 
             $('#pmodal_table_body').html(`
                 <tr>
@@ -2148,6 +2025,9 @@
             if (search) {
                 url += "&search=" + encodeURIComponent(search);
             }
+            if (subfund) {
+                url += "&sub_fund=" + encodeURIComponent(subfund);
+            }
 
             fetch(url, {
                 headers: {
@@ -2160,32 +2040,72 @@
                 if (res.status === 'success') {
                     // 1. Update Header Info
                     var b = res.batch;
+                    var st = res.stats;
                     $('#pmodal_batch_badge').text('Batch No. ' + b.batch_no);
                     $('#pmodal_transfer_date').text(b.transfer_date_thai || '-');
                     $('#pmodal_round_no').text(b.round_nos.join(', ') || '-');
                     $('#pmodal_account_code').text(b.account_codes.join(', ') || '-');
-                    $('#pmodal_net_amount').text(b.total_net_amount_formatted + ' บาท');
+                    
+                    // Show dynamic displayed/filtered amount
+                    $('#pmodal_net_amount').text(st.total_amount_formatted + ' บาท');
+
+                    // Batch Total comparison hint
+                    if (Math.abs(st.total_amount - b.total_net_amount) > 0.01) {
+                        $('#pmodal_batch_total_hint').html(`<span class="text-secondary">ยอดรวมทั้ง Batch: <strong>${b.total_net_amount_formatted} บาท</strong></span>`);
+                    } else {
+                        $('#pmodal_batch_total_hint').html(`<span class="text-muted small">(ตรงกับยอดรวมทั้ง Batch: ${b.total_net_amount_formatted} บาท)</span>`);
+                    }
+
                     $('#pmodal_fullpage_link').attr('href', "{{ url('import/smart-money/detail') }}/" + encodeURIComponent(b.batch_no));
 
+                    // 1.1 Populate Sub-fund Filter dropdown
+                    var totalCount = (res.stats && res.stats.total_count) ? res.stats.total_count : (res.data ? res.data.length : 0);
+                    var optsHtml = '<option value="">-- ทุกผังย่อย / ทุกรายการ (' + totalCount + ' รายการ) --</option>';
+
+                    if (b.sub_funds_meta && b.sub_funds_meta.length > 0) {
+                        optsHtml += '<optgroup label="📂 ผังบัญชีกองทุน">';
+                        b.sub_funds_meta.forEach(function(sf) {
+                            var val = sf.fund_sub || sf.account_code;
+                            var isSel = (subfund && (subfund === val || subfund === sf.account_code || subfund === sf.round_no || subfund === sf.fund_main)) ? 'selected' : '';
+                            var fundTitle = (sf.fund_main && sf.fund_sub && sf.fund_main !== sf.fund_sub) 
+                                ? sf.fund_main + ' - ' + sf.fund_sub 
+                                : (sf.fund_sub || sf.fund_main || sf.account_code);
+                            var label = (sf.round_no ? sf.round_no + ' : ' : '') + fundTitle + ' (' + sf.net_amount_formatted + ' บ.)';
+                            optsHtml += `<option value="${val}" ${isSel}>${label}</option>`;
+                        });
+                        optsHtml += '</optgroup>';
+                    }
+
+                    if (res.detail_sub_funds && res.detail_sub_funds.length > 0) {
+                        optsHtml += '<optgroup label="📋 รายการบริการย่อย (Clinical Services)">';
+                        res.detail_sub_funds.forEach(function(df) {
+                            if (!df.key) return;
+                            var isSel = (subfund && subfund === df.key) ? 'selected' : '';
+                            var label = df.label + ' [' + df.count + ' รายการ | ' + df.total_amount_formatted + ' บ.]';
+                            optsHtml += `<option value="${df.key}" ${isSel}>${label}</option>`;
+                        });
+                        optsHtml += '</optgroup>';
+                    }
+
+                    $('#pmodal_subfund_filter').html(optsHtml);
+                    if (subfund) {
+                        $('#pmodal_subfund_filter').val(subfund);
+                    }
+
                     // 2. Update Stats Badge
-                    var st = res.stats;
                     $('#pmodal_stats_badge').html(`<i class="bi bi-people me-1 text-primary"></i> <strong>${st.total_count}</strong> รายการ (${st.total_amount_formatted} บาท)`);
 
                     // 3. Render Patient Rows
                     if (!res.data || res.data.length === 0) {
+                        var emptyMsg = subfund 
+                            ? `<div class="fw-semibold text-dark mt-2">ยังไม่มีข้อมูลรายคนของผัง <strong>"${subfund}"</strong> ในระบบ</div><div class="small text-muted mt-1">ท่านสามารถกดปุ่ม <span class="badge bg-primary text-white">ดึงรายคนจาก SMT</span> หรือ <span class="badge bg-outline-primary text-primary border">นำเข้าไฟล์ Excel</span> เพื่อดึงข้อมูลเพิ่มได้</div>`
+                            : `<div class="fw-semibold text-dark mt-2">ยังไม่พบรายการรายบุคคลใน Batch นี้</div><div class="small text-muted mt-1">ท่านสามารถกดปุ่ม <span class="badge bg-primary text-white">ดึงรายคนจาก SMT</span> หรือ <span class="badge bg-outline-primary text-primary border">นำเข้าไฟล์ Excel</span> เพื่อนำเข้าข้อมูล</div>`;
+
                         $('#pmodal_table_body').html(`
                             <tr>
                                 <td colspan="11" class="text-center py-5 text-muted">
-                                    <i class="bi bi-inbox fs-3 mb-2 d-block opacity-50"></i>
-                                    ยังไม่พบรายการรายบุคคลใน Batch นี้
-                                    <div class="mt-3 d-flex justify-content-center gap-2">
-                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="syncPatientDetailFromSmt('${b.batch_no}')">
-                                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงข้อมูลรายคนจาก SMT อัตโนมัติ
-                                        </button>
-                                        <label for="pmodal_upload_file" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm mb-0" style="cursor: pointer;">
-                                            <i class="bi bi-upload me-1"></i> นำเข้าไฟล์ Excel
-                                        </label>
-                                    </div>
+                                    <i class="bi bi-inbox fs-2 mb-1 d-block opacity-40"></i>
+                                    ${emptyMsg}
                                 </td>
                             </tr>
                         `);
@@ -2197,17 +2117,36 @@
                                 ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">IPD</span>'
                                 : '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">OPD</span>';
 
-                            var anSeqDisplay = d.an !== '-' ? `<span class="fw-bold font-monospace text-dark">${d.an}</span>` : `<span class="font-monospace text-muted small">${d.seq_no}</span>`;
+                            var anSeqDisplay = (d.an && d.an !== '-') 
+                                ? `<span class="fw-bold font-monospace text-dark">${d.an}</span>` 
+                                : `<span class="font-monospace text-muted small">${d.seq_no || '-'}</span>`;
+
+                            var isNapNo = d.cid && (d.cid.startsWith('D4-') || d.cid.startsWith('NAP') || (d.cid.length === 14 && d.cid.includes('-')));
+                            var isHivFund = (d.main_fund && d.main_fund.startsWith('NAP')) || (d.sub_fund && (d.sub_fund.includes('CD4') || d.sub_fund.includes('VL') || d.sub_fund.includes('ยาต้าน') || d.sub_fund.includes('HIV')));
+
+                            var hnDisplay = (d.hn && d.hn.trim() !== '' && d.hn !== '-')
+                                ? `<span class="fw-bold font-monospace text-primary">${d.hn}</span>`
+                                : (isNapNo || isHivFund ? '<span class="text-muted small fst-italic" title="สงวนสิทธิ์ไม่ระบุ HN ใน Statement กองทุน NAP">-</span>' : '<span class="text-muted opacity-50">-</span>');
+
+                            var cidDisplay = (d.cid && d.cid.trim() !== '' && d.cid !== '-')
+                                ? (isNapNo ? `<span class="badge bg-secondary-subtle text-dark border font-monospace" title="รหัสประจำตัวผู้รับบริการ NAP (สปสช.)">${d.cid}</span>` : `<span class="font-monospace text-dark">${d.cid}</span>`)
+                                : '<span class="text-muted opacity-50">-</span>';
+
+                            var ptNameDisplay = (d.pt_name && d.pt_name.trim() !== '' && d.pt_name !== '-')
+                                ? `<span class="fw-semibold text-dark">${d.pt_name}</span>`
+                                : (isNapNo || isHivFund 
+                                    ? `<span class="badge bg-light text-secondary border font-normal fw-normal py-1 px-2" title="สปสช. ปิดบังชื่อผู้ป่วยใน Statement กองทุนเอดส์ (NAP) เพื่อรักษาความลับผู้ป่วย"><i class="bi bi-shield-lock-fill text-muted me-1"></i>สงวนชื่อ (กองทุนเอดส์ NAP)</span>`
+                                    : '<span class="text-muted opacity-50">-</span>');
 
                             html += `
                                 <tr>
                                     <td class="text-center text-muted small">${startIdx + idx}</td>
                                     <td class="text-center text-nowrap small">${d.transfer_date_thai}</td>
-                                    <td class="text-center fw-bold font-monospace text-primary">${d.hn}</td>
+                                    <td class="text-center text-nowrap">${hnDisplay}</td>
                                     <td class="text-center text-nowrap">${anSeqDisplay}</td>
                                     <td class="text-center text-nowrap">${typeBadge}</td>
-                                    <td class="text-center font-monospace small text-nowrap">${d.cid || '-'}</td>
-                                    <td class="text-start fw-semibold text-dark text-nowrap">${d.pt_name || '-'}</td>
+                                    <td class="text-center text-nowrap">${cidDisplay}</td>
+                                    <td class="text-start text-nowrap">${ptNameDisplay}</td>
                                     <td class="text-center text-nowrap small">${d.vstdate_thai}</td>
                                     <td class="text-end fw-bold text-success text-nowrap">${d.receive_total_formatted}</td>
                                     <td class="text-center font-monospace small text-nowrap">${d.repno || '-'}</td>
@@ -2261,37 +2200,53 @@
 
         window.changeModalPage = function(p) {
             var search = $('#pmodal_search_input').val();
-            loadPatientModalData(currentModalBatchNo, p, search);
+            var subfund = $('#pmodal_subfund_filter').val() || currentModalSubfund;
+            loadPatientModalData(currentModalBatchNo, p, search, subfund);
         };
 
         // Open Patient Modal via click
         $(document).on('click', '.btn-view-patient-detail', function() {
             var batchNo = $(this).data('batch');
+            var subfund = $(this).data('subfund') || '';
             $('#pmodal_search_input').val('');
             $('#patientDetailModal').modal('show');
-            loadPatientModalData(batchNo, 1, '');
+            checkPatientModalThaidStatus();
+            loadPatientModalData(batchNo, 1, '', subfund);
         });
 
         // Search in Patient Modal
         $('#pmodal_btn_search').on('click', function() {
             var search = $('#pmodal_search_input').val();
-            loadPatientModalData(currentModalBatchNo, 1, search);
+            var subfund = $('#pmodal_subfund_filter').val() || '';
+            loadPatientModalData(currentModalBatchNo, 1, search, subfund);
         });
 
         $('#pmodal_search_input').on('keypress', function(e) {
             if (e.which === 13) {
                 var search = $(this).val();
-                loadPatientModalData(currentModalBatchNo, 1, search);
+                var subfund = $('#pmodal_subfund_filter').val() || '';
+                loadPatientModalData(currentModalBatchNo, 1, search, subfund);
             }
+        });
+
+        // Subfund Dropdown Filter Change
+        $('#pmodal_subfund_filter').on('change', function() {
+            var search = $('#pmodal_search_input').val();
+            var subfund = $(this).val() || '';
+            loadPatientModalData(currentModalBatchNo, 1, search, subfund);
         });
 
         // Export Patient Excel
         $('#pmodal_btn_export').on('click', function() {
             if (!currentModalBatchNo) return;
             var search = $('#pmodal_search_input').val();
+            var subfund = $('#pmodal_subfund_filter').val() || '';
             var exportUrl = "{{ url('import/smart-money/detail') }}/" + encodeURIComponent(currentModalBatchNo) + "?export=excel";
             if (search) {
                 exportUrl += "&search=" + encodeURIComponent(search);
+            }
+            if (subfund) {
+                exportUrl += "&sub_fund=" + encodeURIComponent(subfund);
             }
             window.location.href = exportUrl;
         });
@@ -2360,7 +2315,7 @@
                             confirmButtonText: 'ตกลง',
                             customClass: { popup: 'rounded-4' }
                         }).then(() => {
-                            loadPatientModalData(currentModalBatchNo, 1, '');
+                            loadPatientModalData(currentModalBatchNo, 1, '', currentModalSubfund);
                         });
                     } else {
                         Swal.fire({
@@ -2383,17 +2338,40 @@
             });
         });
 
-        // Sync Patient Detail from SMT (Live Download or Local STM Sync)
+        // Sync Patient Detail from SMT (Live Download strictly on-demand)
         window.syncPatientDetailFromSmt = function(batchNo) {
             batchNo = batchNo || window.currentModalBatchNo || currentModalBatchNo;
             if (!batchNo) return;
+
+            // Check ThaiD Status First
+            if (!pmodalThaidConnected) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่ได้เชื่อมต่อ ThaiD',
+                    text: 'กรุณาเข้าสู่ระบบด้วย ThaiD เพื่อดึงข้อมูลรายบุคคลจาก สปสช. อัตโนมัติ',
+                    confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
+                    showCancelButton: true,
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#0d6efd',
+                    customClass: { popup: 'rounded-4' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        openEclaimThaidQrModal(function() {
+                            checkPatientModalThaidStatus();
+                            syncPatientDetailFromSmt(batchNo);
+                        });
+                    }
+                });
+                return;
+            }
+
             Swal.fire({
                 title: 'กำลังดึงข้อมูลรายคน...',
                 html: `
                     <div class="text-center p-3">
                         <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-                        <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคล...</div>
-                        <div class="small text-muted">ระบบจะค้นหาจากฐานข้อมูลและดาวน์โหลดรายงานจาก SMT อัตโนมัติ</div>
+                        <div class="fw-bold text-dark mb-1">กำลังเชื่อมต่อและดึงข้อมูลรายบุคคลจาก SMT...</div>
+                        <div class="small text-muted">ระบบกำลังดาวน์โหลดรายงานรายบุคคลจาก สปสช. กรุณารอสักครู่</div>
                     </div>
                 `,
                 allowOutsideClick: false,
@@ -2421,7 +2399,7 @@
                             `,
                             customClass: { popup: 'rounded-4' }
                         }).then(() => {
-                            loadPatientModalData(batchNo, 1, '');
+                            loadPatientModalData(batchNo, 1, '', currentModalSubfund);
                         });
                     } else {
                         Swal.fire({
@@ -2432,14 +2410,38 @@
                         });
                     }
                 },
-                error: function(err) {
-                    var msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: msg,
-                        customClass: { popup: 'rounded-4' }
-                    });
+                error: function(xhr) {
+                    var msg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (xhr.status === 401) {
+                        checkPatientModalThaidStatus();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Session ThaiD หมดอายุ',
+                            text: msg,
+                            confirmButtonText: '<i class="bi bi-qr-code-scan me-1"></i> เข้าสู่ระบบ (ThaiD)',
+                            showCancelButton: true,
+                            cancelButtonText: 'ยกเลิก',
+                            confirmButtonColor: '#0d6efd',
+                            customClass: { popup: 'rounded-4' }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                openEclaimThaidQrModal(function() {
+                                    checkPatientModalThaidStatus();
+                                    syncPatientDetailFromSmt(batchNo);
+                                });
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: msg,
+                            customClass: { popup: 'rounded-4' }
+                        });
+                    }
                 }
             });
         };

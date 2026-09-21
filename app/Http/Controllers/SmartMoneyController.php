@@ -236,8 +236,12 @@ class SmartMoneyController extends Controller
             $hasBotLicense = \App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid');
         } catch (\Exception $e) {}
 
-        // Hospital code
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        // Hospital code (From main_setting or opdconfig)
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $hospcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        $hospcode = $hospcode ?: '10989';
 
         return view('import.smart_money_index', compact(
             'batches',
@@ -2009,7 +2013,11 @@ class SmartMoneyController extends Controller
         $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
         $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
         $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
-        $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
+        $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $hcode = \Illuminate\Support\Facades\DB::table('opdconfig')->value('hospitalcode');
+        }
+        $hcode = $hcode ?: '10989';
 
         $cmd = sprintf(
             '%s "%s" %s %s %s %s %s %s',

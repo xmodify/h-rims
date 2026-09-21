@@ -863,7 +863,7 @@
                         <div class="text-light-50 small mt-1 d-flex flex-wrap align-items-center gap-2">
                             <span>เชื่อมต่อตรง smt.nhso.go.th</span>
                             <span class="badge rounded-pill bg-light bg-opacity-25 text-white py-1 px-2.5 fw-medium border border-white-50" style="font-size: 11px;">
-                                <i class="bi bi-hospital me-1 text-info"></i> รหัสหน่วยบริการ: <strong>{{ DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989' }}</strong>
+                                <i class="bi bi-hospital me-1 text-info"></i> รหัสหน่วยบริการ: <strong>{{ $hospcode }}</strong>
                             </span>
                             <a href="https://smt.nhso.go.th/smtf/#/home/budget/summary" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5 text-decoration-none shadow-none" style="font-size: 11px;" title="เปิดหน้าเว็บ Smart Money Transfer ในแท็บใหม่">
                                 <i class="bi bi-box-arrow-up-right me-1"></i> เว็บไซต์ SMT

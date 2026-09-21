@@ -119,24 +119,7 @@ class ImportController extends Controller
             (SELECT MAX(sm.receipt_date) FROM smart_money_batches sm 
              WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
              AND sm.receipt_date IS NOT NULL
-            ) AS sm_receipt_date,
-            (SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'batch_no', sm.batch_no,
-                    'round_no', sm.round_no,
-                    'transfer_date', sm.transfer_date,
-                    'fund_main', sm.fund_main,
-                    'fund_sub', sm.fund_sub,
-                    'account_code', sm.account_code,
-                    'amount', sm.amount,
-                    'net_amount', sm.net_amount,
-                    'receive_no', sm.receive_no,
-                    'receipt_date', sm.receipt_date,
-                    'receipt_by', sm.receipt_by
-                )
-             ) FROM smart_money_batches sm 
-             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
-            ) AS sm_batches_json
+            ) AS sm_receipt_date
             FROM stm_ucs s
             WHERE (CAST(SUBSTRING(s.stm_filename, LOCATE('25', s.stm_filename), 4) AS UNSIGNED)
                 + (CAST(SUBSTRING(s.stm_filename, LOCATE('25', s.stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
@@ -164,6 +147,35 @@ class ImportController extends Controller
                 END DESC,
                 dep DESC,
                 s.stm_filename DESC ", [$budget_year]);
+
+        // Attach Smart Money batch details in PHP for database engine compatibility
+        if (!empty($stm_ucs)) {
+            try {
+                $smBatches = DB::table('smart_money_batches')
+                    ->select('batch_no', 'round_no', 'transfer_date', 'fund_main', 'fund_sub', 'account_code', 'amount', 'net_amount', 'receive_no', 'receipt_date', 'receipt_by')
+                    ->get();
+            } catch (\Exception $e) {
+                $smBatches = collect();
+            }
+
+            foreach ($stm_ucs as $row) {
+                $roundNo = trim((string)($row->round_no ?? ''));
+                if ($roundNo !== '' && $smBatches->isNotEmpty()) {
+                    $matched = $smBatches->filter(function ($sm) use ($roundNo) {
+                        $smRound = trim((string)($sm->round_no ?? ''));
+                        if ($smRound === '') {
+                            return false;
+                        }
+                        return $smRound === $roundNo 
+                            || str_starts_with($smRound, $roundNo) 
+                            || str_starts_with($roundNo, $smRound);
+                    })->values();
+                    $row->sm_batches_json = $matched->isNotEmpty() ? json_encode($matched, JSON_UNESCAPED_UNICODE) : '[]';
+                } else {
+                    $row->sm_batches_json = '[]';
+                }
+            }
+        }
 
         return view(
             'import.stm_ucs',
@@ -6937,24 +6949,7 @@ class ImportController extends Controller
             (SELECT MAX(sm.receipt_date) FROM smart_money_batches sm 
              WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
              AND sm.receipt_date IS NOT NULL
-            ) AS sm_receipt_date,
-            (SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'batch_no', sm.batch_no,
-                    'round_no', sm.round_no,
-                    'transfer_date', sm.transfer_date,
-                    'fund_main', sm.fund_main,
-                    'fund_sub', sm.fund_sub,
-                    'account_code', sm.account_code,
-                    'amount', sm.amount,
-                    'net_amount', sm.net_amount,
-                    'receive_no', sm.receive_no,
-                    'receipt_date', sm.receipt_date,
-                    'receipt_by', sm.receipt_by
-                )
-             ) FROM smart_money_batches sm 
-             WHERE (sm.round_no = s.round_no OR sm.round_no LIKE CONCAT(s.round_no, '%') OR s.round_no LIKE CONCAT(sm.round_no, '%'))
-            ) AS sm_batches_json
+            ) AS sm_receipt_date
             FROM stm_lgo s
             WHERE (CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(s.stm_filename, '_', -2), '_', 1 ), 4) AS UNSIGNED)  
 				+ (CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(s.stm_filename, '_', -2),'_', 1), 5, 2) AS UNSIGNED) >= 10)) = ?
@@ -6982,6 +6977,35 @@ class ImportController extends Controller
                 END DESC,
                 dep DESC,
                 s.stm_filename DESC ", [$budget_year]);
+
+        // Attach Smart Money batch details in PHP for database engine compatibility
+        if (!empty($stm_lgo)) {
+            try {
+                $smBatches = DB::table('smart_money_batches')
+                    ->select('batch_no', 'round_no', 'transfer_date', 'fund_main', 'fund_sub', 'account_code', 'amount', 'net_amount', 'receive_no', 'receipt_date', 'receipt_by')
+                    ->get();
+            } catch (\Exception $e) {
+                $smBatches = collect();
+            }
+
+            foreach ($stm_lgo as $row) {
+                $roundNo = trim((string)($row->round_no ?? ''));
+                if ($roundNo !== '' && $smBatches->isNotEmpty()) {
+                    $matched = $smBatches->filter(function ($sm) use ($roundNo) {
+                        $smRound = trim((string)($sm->round_no ?? ''));
+                        if ($smRound === '') {
+                            return false;
+                        }
+                        return $smRound === $roundNo 
+                            || str_starts_with($smRound, $roundNo) 
+                            || str_starts_with($roundNo, $smRound);
+                    })->values();
+                    $row->sm_batches_json = $matched->isNotEmpty() ? json_encode($matched, JSON_UNESCAPED_UNICODE) : '[]';
+                } else {
+                    $row->sm_batches_json = '[]';
+                }
+            }
+        }
 
         return view('import.stm_lgo', compact('stm_lgo', 'budget_year_select', 'budget_year'));
     }

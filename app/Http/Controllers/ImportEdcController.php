@@ -364,7 +364,7 @@ class ImportEdcController extends Controller
 
         $uniqueId = $request->input('unique_id');
         $fileName = basename($request->input('file_name'));
-        $importMode = $request->input('import_mode', 'skip_existing');
+        $importMode = $request->input('import_mode', 'overwrite');
         
         $filePath = storage_path('app/tmp_edc_import/' . $uniqueId . '/' . $fileName);
 

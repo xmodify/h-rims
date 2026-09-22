@@ -327,6 +327,90 @@ class F16EclaimExportService
     }
 
     /**
+     * ทำความสะอาดและแปลงผลแล็บ (LABRESULT) ให้ตรงตามมาตรฐาน e-Claim / FDH
+     * ป้องกัน Java NumberFormatException: For input string: "..."
+     */
+    public static function cleanLabResult(string $labTestCode, ?string $rawResult): string
+    {
+        if ($rawResult === null) {
+            return '';
+        }
+
+        $raw = trim($rawResult);
+        if ($raw === '') {
+            return '';
+        }
+
+        // ลบอักขระคั่นคอลัมน์และ whitespace ส่วนเกิน
+        $raw = str_replace(['|', "\r", "\n", "\t"], '', $raw);
+
+        // 1. LABTEST = 15 (eGFR)
+        // รูปแบบที่เจอบ่อย: "118.7 [ Stage 1 ]", "69.9 [ Stage 2 ]", "> 60", "< 15", "41.3"
+        if ($labTestCode === '15') {
+            $clean = preg_replace('/\[.*?\]|\(.*?\)/', '', $raw);
+            $clean = preg_replace('/stage\s*[0-9a-zA-Z]+/i', '', $clean);
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 2. LABTEST = 14 (Macroalbumin in urine / Urine Protein strip)
+        // รูปแบบ: negative, trace, 1+, 2+, 3+, 4+, -, +/-
+        // มาตรฐานตัวเลข สปสช.: 0=Negative, 1=Trace, 2=1+, 3=2+, 4=3+, 5=4+
+        if ($labTestCode === '14') {
+            $lower = strtolower(trim($raw));
+            if (in_array($lower, ['negative', 'neg', '-', 'nil', 'normal', '0', 'neg.'])) {
+                return '0';
+            }
+            if (in_array($lower, ['trace', 'tr', '+/-', '±', '+-', '1'])) {
+                return '1';
+            }
+            if (in_array($lower, ['1+', '+', 'positive 1+', '2'])) {
+                return '2';
+            }
+            if (in_array($lower, ['2+', '++', 'positive 2+', '3'])) {
+                return '3';
+            }
+            if (in_array($lower, ['3+', '+++', 'positive 3+', '4'])) {
+                return '4';
+            }
+            if (in_array($lower, ['4+', '++++', 'positive 4+', '5'])) {
+                return '5';
+            }
+            // ถ้ามีตัวเลขตามด้วย + เช่น "3+"
+            if (preg_match('/([1-4])\s*\+/', $lower, $m)) {
+                return (string)(intval($m[1]) + 1);
+            }
+            // ถ้าเป็นตัวเลขเดิมอยู่แล้ว (เช่น 0-5 หรือ quantitative mg/dL)
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $lower, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 3. LABTEST = 17 (UPCR: Urine protein creatinine ratio)
+        // รูปแบบ: "30-300 (Abnormal)", "0.15", "35.2"
+        if ($labTestCode === '17') {
+            $clean = preg_replace('/\(.*?\)/', '', $raw);
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 4. LABTEST อื่นๆ ทั้งหมด (01, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 16, 18, 19, 20, 21...)
+        $clean = str_replace([',', '<', '>', '=', ' '], '', $raw);
+        if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+            return $m[1];
+        }
+
+        return '';
+    }
+
+
+
+    /**
      * Normalize Non-ED reason code to standard 2-character code (EA, EB, EC, ED, EE, PA)
      * Note: EF (non-reimbursable) is converted to EC so it can be claimed/reimbursed properly.
      */
@@ -517,7 +601,7 @@ class F16EclaimExportService
             try {
                 $edcRows = DB::table('edc_approve_list')
                     ->whereIn('cid', $cids)
-                    ->select('cid', 'vstdate', 'approve_code', 'post_date', 'post_time', 'id')
+                    ->select('cid', 'vstdate', 'approve_code', 'post_date', 'post_time', 'id', 'amount')
                     ->orderBy('post_date', 'desc')
                     ->orderBy('post_time', 'desc')
                     ->orderBy('id', 'desc')
@@ -535,7 +619,7 @@ class F16EclaimExportService
         if (!empty($vnsList)) {
             try {
                 $ktbEdcRows = collect(DB::connection('hosxp')->select("
-                    SELECT vn, approve_code FROM ktb_edc_transaction WHERE vn IN ($placeholders)
+                    SELECT vn, approval_code FROM ktb_edc_transaction WHERE vn IN ($placeholders)
                 ", $vnsList))->keyBy('vn');
             } catch (\Throwable $ex) {}
         }
@@ -576,16 +660,50 @@ class F16EclaimExportService
                 $edc = '';
                 $key = $v->cid . '_' . $v->vstdate;
                 if (isset($edcRows[$key]) && count($edcRows[$key]) > 0) {
-                    $edc = trim((string)$edcRows[$key]->first()->approve_code);
+                    $candidates = $edcRows[$key];
+                    if ($candidates->count() === 1) {
+                        $edc = trim((string)$candidates->first()->approve_code);
+                    } else {
+                        // มีหลายรายการจากไฟล์นำเข้า KTB ในวันเดียวกัน:
+                        // 1. ตรวจสอบว่ามีรายการไหนที่เลข approve_code ตรงกับที่บันทึกใน HOSxP
+                        $hosxpApprove = trim((string)($ktbEdcRows->get($v->vn)->approval_code ?? ''));
+                        if (empty($hosxpApprove)) {
+                            $hosxpApprove = trim((string)($v->edc_approve_list_text ?? ''));
+                        }
+                        $matchedCandidate = null;
+                        if (!empty($hosxpApprove)) {
+                            $hosxpCodes = array_filter(array_map('trim', explode(',', $hosxpApprove)));
+                            $matchedCandidate = $candidates->first(function($c) use ($hosxpCodes) {
+                                return in_array(trim((string)$c->approve_code), $hosxpCodes);
+                            });
+                        }
+                        // 2. หากไม่พบคู่ที่เลขตรงกัน ให้เทียบยอดเงิน (amount) ที่ใกล้เคียงกับยอดค่ารักษาของ Visit ที่สุด
+                        if (!$matchedCandidate) {
+                            $visitIncome = floatval($v->income ?: ($v->paid_money ?: 0));
+                            $bestDiff = PHP_FLOAT_MAX;
+                            foreach ($candidates as $c) {
+                                $diff = abs(floatval($c->amount) - $visitIncome);
+                                if ($diff < $bestDiff) {
+                                    $bestDiff = $diff;
+                                    $matchedCandidate = $c;
+                                }
+                            }
+                        }
+                        $edc = trim((string)($matchedCandidate ? $matchedCandidate->approve_code : $candidates->first()->approve_code));
+                    }
                 }
                 if (empty($edc) && $ktbEdcRows->has($v->vn)) {
-                    $edc = trim((string)$ktbEdcRows->get($v->vn)->approve_code);
+                    $edc = trim((string)$ktbEdcRows->get($v->vn)->approval_code);
                 }
                 if (empty($edc) && $rcptDebtRows->has($v->vn)) {
                     $edc = trim((string)$rcptDebtRows->get($v->vn)->approve_code);
                 }
                 if (empty($edc)) {
-                    $edc = trim((string)($v->edc_approve_list_text ?? ''));
+                    $rawOq = trim((string)($v->edc_approve_list_text ?? ''));
+                    if (!empty($rawOq)) {
+                        $parts = array_filter(array_map('trim', explode(',', $rawOq)));
+                        $edc = reset($parts) ?: '';
+                    }
                 }
                 $v->permitno = $edc ?: (trim((string)($v->claim_code ?? '')));
             } else {
@@ -1514,11 +1632,12 @@ class F16EclaimExportService
             $labTestCode = self::mapLabTestCode($lab->labtest, $lab->tmlt_code, $lab->provis_labcode, $lab->lab_items_name);
             if (empty($labTestCode)) continue;
 
+            $labResult = self::cleanLabResult($labTestCode, $lab->lab_order_result);
+            if ($labResult === '') continue;
+
             $dateserv = self::formatDate($lab->order_date);
             $seq = $lab->vn;
             $cid = trim((string)$lab->cid);
-            $rawResult = trim((string)$lab->lab_order_result);
-            $labResult = str_replace([',', '|'], '', $rawResult);
 
             $key = "{$seq}_{$labTestCode}";
             if (isset($seenLab[$key])) continue;
@@ -2356,11 +2475,12 @@ class F16EclaimExportService
             $labTestCode = self::mapLabTestCode($lab->labtest, $lab->tmlt_code, $lab->provis_labcode, $lab->lab_items_name);
             if (empty($labTestCode)) continue;
 
+            $labResult = self::cleanLabResult($labTestCode, $lab->lab_order_result);
+            if ($labResult === '') continue;
+
             $dateserv = self::formatDate($lab->order_date);
             $seq = $lab->vn;
             $cid = trim((string)$lab->cid);
-            $rawResult = trim((string)$lab->lab_order_result);
-            $labResult = str_replace([',', '|'], '', $rawResult);
 
             $key = "{$seq}_{$labTestCode}";
             if (isset($seenLab[$key])) continue;

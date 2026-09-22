@@ -106,34 +106,15 @@
 
                 </div>
 
-                <!-- Import Mode Bar -->
-                <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="fw-bold text-dark small"><i class="bi bi-gear-fill me-1 text-secondary"></i> โหมดการนำเข้า:</span>
-                            <div class="form-check form-check-inline mb-0">
-                                <input class="form-check-input" type="radio" name="edc_import_mode" id="mode_skip" value="skip_existing" checked>
-                                <label class="form-check-label small fw-semibold text-success" for="mode_skip" title="ข้ามรายการเดิมที่มีในฐานข้อมูลแล้ว นำเข้าเฉพาะรายการใหม่">
-                                    <i class="bi bi-plus-circle me-1"></i> เพิ่มเฉพาะรายการใหม่ (Skip Duplicates)
-                                </label>
-                            </div>
-                            <div class="form-check form-check-inline mb-0">
-                                <input class="form-check-input" type="radio" name="edc_import_mode" id="mode_overwrite" value="overwrite">
-                                <label class="form-check-label small fw-semibold text-primary" for="mode_overwrite" title="อัปเดตข้อมูลทับรายการเดิมตามเลขอนุมัติ">
-                                    <i class="bi bi-arrow-repeat me-1"></i> เขียนทับข้อมูลเดิม (Overwrite / Update)
-                                </label>
-                            </div>
-                        </div>
-                        <div id="previewSummaryBadge" class="small fw-bold text-muted"></div>
-                    </div>
-                </div>
-
                 <!-- Preview Table Container -->
                 <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white" id="edcPreviewContainer" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="fw-bold text-dark mb-0">
-                            <i class="bi bi-table me-1 text-primary"></i> รายการไฟล์รายงาน EDC ที่พร้อมนำเข้า
-                        </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-table me-1 text-primary"></i> รายการไฟล์รายงาน EDC ที่พร้อมนำเข้า
+                            </h6>
+                            <div id="previewSummaryBadge" class="small fw-semibold text-muted ms-2"></div>
+                        </div>
                         <div class="d-flex gap-2 align-items-center">
                             <span class="badge bg-light text-dark border rounded-pill" id="fileCountBadge">0 ไฟล์</span>
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0" style="font-size: 0.75rem;" onclick="selectAllEdcFiles(true)">เลือกทั้งหมด</button>
@@ -492,7 +473,7 @@ async function importSingleEdcFile(index) {
     const file = currentEdcFiles[index];
     if (!file || !currentEdcUniqueId) return;
 
-    const mode = document.querySelector('input[name="edc_import_mode"]:checked')?.value || 'skip_existing';
+    const mode = 'overwrite';
     const progressArea = document.getElementById('edc-import-progress-area');
     const logDiv = document.getElementById('edc-details-log');
     const progressText = document.getElementById('edc-progress-text');
@@ -500,7 +481,7 @@ async function importSingleEdcFile(index) {
     const progressPercent = document.getElementById('edc-progress-percent');
 
     if (progressArea) progressArea.style.display = 'block';
-    if (logDiv) logDiv.innerHTML = `<div>🚀 เริ่มนำเข้าไฟล์ ${file.file_name} (โหมด: ${mode === 'overwrite' ? 'เขียนทับ' : 'ข้ามที่ซ้ำ'})...</div>`;
+    if (logDiv) logDiv.innerHTML = `<div>🚀 เริ่มนำเข้าไฟล์ ${file.file_name} (อัปเดตข้อมูลอัตโนมัติ)...</div>`;
     if (progressText) progressText.innerText = `กำลังนำเข้า ${file.file_name}...`;
     if (progressBar) {
         progressBar.style.width = '50%';
@@ -571,7 +552,7 @@ async function importAllSelectedEdcFiles() {
         return;
     }
 
-    const mode = document.querySelector('input[name="edc_import_mode"]:checked')?.value || 'skip_existing';
+    const mode = 'overwrite';
     const totalFiles = selectedCbs.length;
 
     const progressArea = document.getElementById('edc-import-progress-area');
@@ -583,7 +564,7 @@ async function importAllSelectedEdcFiles() {
     const cancelBtn = document.getElementById('cancelImportBtn');
 
     if (progressArea) progressArea.style.display = 'block';
-    if (logDiv) logDiv.innerHTML = `<div>🚀 เริ่มต้นการนำเข้า ${totalFiles} ไฟล์ (โหมด: ${mode === 'overwrite' ? 'เขียนทับ' : 'เพิ่มเฉพาะใหม่'})...</div>`;
+    if (logDiv) logDiv.innerHTML = `<div>🚀 เริ่มต้นการนำเข้า ${totalFiles} ไฟล์ (อัปเดตข้อมูลอัตโนมัติ)...</div>`;
     if (importBtn) importBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
 
@@ -666,7 +647,6 @@ async function importAllSelectedEdcFiles() {
                 <div>✔ นำเข้าสำเร็จ: <b>${successCount} / ${totalFiles}</b> ไฟล์</div>
                 <div>➕ เพิ่มรายการใหม่: <b class="text-success">${grandImported}</b> รายการ</div>
                 <div>🔄 ปรับปรุงข้อมูลเดิม: <b class="text-primary">${grandUpdated}</b> รายการ</div>
-                <div>⏭ ข้ามรายการที่ซ้ำ: <b class="text-muted">${grandSkipped}</b> รายการ</div>
             </div>
         `,
         confirmButtonText: 'ตกลง',

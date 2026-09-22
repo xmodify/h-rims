@@ -330,6 +330,90 @@ class F16FdhExportService
     }
 
     /**
+     * ทำความสะอาดและแปลงผลแล็บ (LABRESULT) ให้ตรงตามมาตรฐาน e-Claim / FDH
+     * ป้องกัน Java NumberFormatException: For input string: "..."
+     */
+    public static function cleanLabResult(string $labTestCode, ?string $rawResult): string
+    {
+        if ($rawResult === null) {
+            return '';
+        }
+
+        $raw = trim($rawResult);
+        if ($raw === '') {
+            return '';
+        }
+
+        // ลบอักขระคั่นคอลัมน์และ whitespace ส่วนเกิน
+        $raw = str_replace(['|', "\r", "\n", "\t"], '', $raw);
+
+        // 1. LABTEST = 15 หรือ 09 (eGFR)
+        // รูปแบบที่เจอบ่อย: "118.7 [ Stage 1 ]", "69.9 [ Stage 2 ]", "> 60", "< 15", "41.3"
+        if ($labTestCode === '15' || $labTestCode === '09') {
+            $clean = preg_replace('/\[.*?\]|\(.*?\)/', '', $raw);
+            $clean = preg_replace('/stage\s*[0-9a-zA-Z]+/i', '', $clean);
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 2. LABTEST = 14 (Macroalbumin in urine / Urine Protein strip)
+        // รูปแบบ: negative, trace, 1+, 2+, 3+, 4+, -, +/-
+        // มาตรฐานตัวเลข สปสช.: 0=Negative, 1=Trace, 2=1+, 3=2+, 4=3+, 5=4+
+        if ($labTestCode === '14') {
+            $lower = strtolower(trim($raw));
+            if (in_array($lower, ['negative', 'neg', '-', 'nil', 'normal', '0', 'neg.'])) {
+                return '0';
+            }
+            if (in_array($lower, ['trace', 'tr', '+/-', '±', '+-', '1'])) {
+                return '1';
+            }
+            if (in_array($lower, ['1+', '+', 'positive 1+', '2'])) {
+                return '2';
+            }
+            if (in_array($lower, ['2+', '++', 'positive 2+', '3'])) {
+                return '3';
+            }
+            if (in_array($lower, ['3+', '+++', 'positive 3+', '4'])) {
+                return '4';
+            }
+            if (in_array($lower, ['4+', '++++', 'positive 4+', '5'])) {
+                return '5';
+            }
+            // ถ้ามีตัวเลขตามด้วย + เช่น "3+"
+            if (preg_match('/([1-4])\s*\+/', $lower, $m)) {
+                return (string)(intval($m[1]) + 1);
+            }
+            // ถ้าเป็นตัวเลขเดิมอยู่แล้ว (เช่น 0-5 หรือ quantitative mg/dL)
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $lower, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 3. LABTEST = 17 หรือ 13 (UPCR / Microalbumin in urine)
+        // รูปแบบ: "30-300 (Abnormal)", "0.15", "35.2"
+        if ($labTestCode === '17' || $labTestCode === '13') {
+            $clean = preg_replace('/\(.*?\)/', '', $raw);
+            if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+                return $m[1];
+            }
+            return '';
+        }
+
+        // 4. LABTEST อื่นๆ ทั้งหมด (01, 02, 03, 04, 05, 06, 07, 08, 10, 11, 12, 16, 18, 19, 20...)
+        $clean = str_replace([',', '<', '>', '=', ' '], '', $raw);
+        if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $clean, $m)) {
+            return $m[1];
+        }
+
+        return '';
+    }
+
+
+
+    /**
      * Normalize Non-ED reason code to standard 2-character code (EA, EB, EC, ED, EE, PA)
      * Note: EF (non-reimbursable) is converted to EC so it can be claimed/reimbursed properly.
      */
@@ -1324,11 +1408,12 @@ class F16FdhExportService
             $labTestCode = self::mapLabTestCode($labTest, $tmlt, $provis, $labName);
             if (empty($labTestCode)) continue;
 
+            $labResult = self::cleanLabResult($labTestCode, $lab->lab_order_result);
+            if ($labResult === '') continue;
+
             $dateserv = self::formatDate($lab->order_date);
             $seq = $lab->vn;
             $cid = trim((string)$lab->cid);
-            $rawResult = trim((string)$lab->lab_order_result);
-            $labResult = str_replace([',', '|'], '', $rawResult);
 
             $key = "{$seq}_{$labTestCode}";
             if (isset($seenLab[$key])) continue;

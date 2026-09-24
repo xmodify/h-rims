@@ -181,11 +181,9 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
 
         if (fs.existsSync(actualCookieFile)) {
             try {
-                const rawCookies = JSON.parse(fs.readFileSync(actualCookieFile, 'utf-8'));
-                // Filter out massive ACCESS_TOKEN and corrupt quoted session cookies to prevent F5 WAF 400 Bad Request
+                // Keep ACCESS_TOKEN and clean session cookies for Smart Money (.nhso.go.th)
+                // Only filter out corrupt quoted cookies that trigger F5 WAF 400
                 cleanCookies = rawCookies.filter(c => 
-                    c.name !== 'ACCESS_TOKEN' && 
-                    c.name !== 'KEYCLOAK_IDENTITY' &&
                     !String(c.value).includes('"')
                 ).map(c => {
                     return {
@@ -200,6 +198,15 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                     if (tokCookie && tokCookie.value) {
                         resolvedToken = tokCookie.value;
                     }
+                }
+                // Ensure ACCESS_TOKEN cookie is present for SMT domain
+                if (resolvedToken && !cleanCookies.some(c => c.name === 'ACCESS_TOKEN')) {
+                    cleanCookies.push({
+                        name: 'ACCESS_TOKEN',
+                        value: resolvedToken,
+                        domain: '.nhso.go.th',
+                        path: '/'
+                    });
                 }
             } catch (e) {}
         }

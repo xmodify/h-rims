@@ -124,7 +124,14 @@ async function launchBrowser(options) {
         if (fs.existsSync(actualCookieFile)) {
             try {
                 const rawCookies = JSON.parse(fs.readFileSync(actualCookieFile, 'utf-8'));
-                cleanCookies = rawCookies.filter(c => c.name !== 'ACCESS_TOKEN' && c.name.length < 100);
+                cleanCookies = rawCookies.map(c => {
+                    return {
+                        name: c.name,
+                        value: c.value,
+                        domain: c.domain || '.nhso.go.th',
+                        path: c.path || '/'
+                    };
+                });
                 if (!resolvedToken) {
                     const tokCookie = rawCookies.find(c => c.name === 'ACCESS_TOKEN' || c.name === 'KEYCLOAK_IDENTITY');
                     if (tokCookie && tokCookie.value) {
@@ -161,9 +168,17 @@ async function launchBrowser(options) {
 
         const page = await context.newPage();
 
-        await page.addInitScript(() => {
+        await page.addInitScript((tok) => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        });
+            if (tok) {
+                try {
+                    localStorage.setItem('access_token', tok);
+                    localStorage.setItem('token', tok);
+                    sessionStorage.setItem('access_token', tok);
+                    sessionStorage.setItem('token', tok);
+                } catch(e) {}
+            }
+        }, resolvedToken);
 
         // 2. SSO Login
         await page.goto('https://smt.nhso.go.th/smtf/#/login', { waitUntil: 'networkidle', timeout: 30000 });
@@ -291,10 +306,20 @@ async function launchBrowser(options) {
         }
 
         // 5. Download File
-        const [download] = await Promise.all([
-            page.waitForEvent('download', { timeout: 60000 }),
-            exportBtn.click(),
-        ]);
+        let download;
+        try {
+            [download] = await Promise.all([
+                page.waitForEvent('download', { timeout: 60000 }),
+                exportBtn.click(),
+            ]);
+        } catch (btnErr) {
+            await browser.close();
+            console.error(JSON.stringify({ 
+                status: 'error', 
+                message: `กดปุ่มดาวน์โหลดแล้วหมดเวลา (Timeout) หรือเกิดข้อผิดพลาด: ${btnErr.message}` 
+            }));
+            process.exit(1);
+        }
 
         const tempDir = path.join(__dirname, '../../storage/app/temp');
         if (!fs.existsSync(tempDir)) {
@@ -302,7 +327,17 @@ async function launchBrowser(options) {
         }
 
         const dPath = path.join(tempDir, `${roundNo}_${Date.now()}.xlsx`);
-        await download.saveAs(dPath);
+        try {
+            await download.saveAs(dPath);
+        } catch (saveErr) {
+            const failReason = await download.failure().catch(() => null);
+            await browser.close();
+            console.error(JSON.stringify({ 
+                status: 'error', 
+                message: `การดาวน์โหลดไฟล์ Excel จาก สปสช. ถูกยกเลิก (${failReason || saveErr.message}) - อาจเกิดจาก Session ThaiD/สปสช. หมดอายุ หรือสิทธิ์เข้าถึงไม่ตรง กรุณาลองสแกนเข้าสู่ระบบ ThaiD ใหม่อีกครั้ง` 
+            }));
+            process.exit(1);
+        }
 
         await browser.close();
 

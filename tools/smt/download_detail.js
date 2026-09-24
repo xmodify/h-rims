@@ -177,51 +177,25 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
         }
 
         let cleanCookies = [];
-        let resolvedToken = bearerToken;
-
+        let resolvedToken = bearerToken || '';
         if (fs.existsSync(actualCookieFile)) {
             try {
-                // Keep ACCESS_TOKEN and clean session cookies for Smart Money (.nhso.go.th)
-                // Only filter out corrupt quoted cookies that trigger F5 WAF 400
+                const rawCookies = JSON.parse(fs.readFileSync(actualCookieFile, 'utf-8'));
+                // Filter cookies for SSO: keep Keycloak session cookies, omit ACCESS_TOKEN to prevent F5 WAF 400
                 cleanCookies = rawCookies.filter(c => 
+                    c.name !== 'ACCESS_TOKEN' &&
                     !String(c.value).includes('"')
-                ).map(c => {
-                    return {
-                        name: c.name,
-                        value: c.value,
-                        domain: c.domain || '.nhso.go.th',
-                        path: c.path || '/'
-                    };
-                });
+                ).map(c => ({
+                    name: c.name,
+                    value: c.value,
+                    domain: c.domain || '.nhso.go.th',
+                    path: c.path || '/'
+                }));
                 if (!resolvedToken) {
                     const tokCookie = rawCookies.find(c => c.name === 'ACCESS_TOKEN') || rawCookies.find(c => c.name === 'KEYCLOAK_IDENTITY');
                     if (tokCookie && tokCookie.value) {
                         resolvedToken = tokCookie.value;
                     }
-                }
-                // Ensure ACCESS_TOKEN cookie is present for SMT domain
-                if (resolvedToken && !cleanCookies.some(c => c.name === 'ACCESS_TOKEN')) {
-                    cleanCookies.push({
-                        name: 'ACCESS_TOKEN',
-                        value: resolvedToken,
-                        domain: '.nhso.go.th',
-                        path: '/'
-                    });
-                }
-            } catch (e) {}
-        }
-
-        // Decode JWT payload for user profile injection and check expiry
-        let jwtPayload = {};
-        if (resolvedToken) {
-            try {
-                jwtPayload = JSON.parse(Buffer.from(resolvedToken.split('.')[1], 'base64').toString('utf-8'));
-                if (jwtPayload.exp && (Date.now() / 1000) > jwtPayload.exp) {
-                    console.error(JSON.stringify({ 
-                        status: 'error', 
-                        message: 'Session ThaiD หมดอายุแล้ว (อายุ Session 30 นาที) กรุณากดเชื่อมต่อ ThaiD ใหม่อีกครั้ง' 
-                    }));
-                    process.exit(1);
                 }
             } catch (e) {}
         }
@@ -253,35 +227,25 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
 
         const page = await context.newPage();
 
-        // Inject complete ngx-webstorage Angular credentials
-        await page.addInitScript(({ tok, p }) => {
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-            if (tok) {
-                try {
-                    const jsonTok = JSON.stringify(tok);
-                    localStorage.setItem('ngx-webstorage|token', jsonTok);
-                    localStorage.setItem('ngx-webstorage|username', JSON.stringify(p.preferred_username || p.username || ''));
-                    localStorage.setItem('ngx-webstorage|firstname', JSON.stringify(p.given_name || p.name || ''));
-                    localStorage.setItem('ngx-webstorage|lastname', JSON.stringify(p.family_name || ''));
-                    localStorage.setItem('ngx-webstorage|userId', JSON.stringify(p.userId || 1));
-                    localStorage.setItem('ngx-webstorage|userType', JSON.stringify('H'));
-                    localStorage.setItem('ngx-webstorage|loginProvider', JSON.stringify('CREDENTIAL'));
-                    localStorage.setItem('ngx-webstorage|fullnameTh', JSON.stringify(p.nameTh || p.name || ''));
-
-                    localStorage.setItem('access_token', tok);
-                    localStorage.setItem('token', tok);
-                    sessionStorage.setItem('access_token', tok);
-                    sessionStorage.setItem('token', tok);
-                } catch(e) {}
-            }
-        }, { tok: resolvedToken, p: jwtPayload });
-
-        // 2. SSO Login Check
+        // 2. Perform SMT SSO Login Exchange via Keycloak
         await page.goto('https://smt.nhso.go.th/smtf/#/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
-        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 4000 }).catch(() => null);
-        if (loginBtn) {
+        await page.waitForTimeout(1000);
+        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 5000 }).catch(() => null);
+        if (loginBtn && await loginBtn.isVisible()) {
             await loginBtn.click();
-            await page.waitForTimeout(3000);
+            await page.waitForURL(u => !u.href.includes('/login'), { timeout: 15000 }).catch(() => {});
+            await page.waitForTimeout(2000);
+        }
+
+        // Retrieve fresh smtf token from SMT localStorage
+        let smtToken = await page.evaluate(() => {
+            return localStorage.getItem('ngx-webstorage|token') || localStorage.getItem('token') || localStorage.getItem('access_token');
+        }).catch(() => null);
+
+        if (smtToken) {
+            try {
+                resolvedToken = smtToken.startsWith('"') ? JSON.parse(smtToken) : smtToken;
+            } catch(e) {}
         }
 
         // 3. Resolve Detail Parameters via SMT API

@@ -164,6 +164,15 @@ try {
     $transferDate = $batch ? $batch->transfer_date : null;
     $budgetYear = $batch ? $batch->budget_year : null;
 
+    $passedHcode = $argv[4] ?? null;
+    $systemHcode = $passedHcode ?: ($batch ? $batch->hcode : null);
+    if (!$systemHcode) {
+        $systemHcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$systemHcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $systemHcode = \Illuminate\Support\Facades\DB::table('opdconfig')->value('hospitalcode');
+        }
+    }
+
     $inserted = 0;
     $totalAmount = 0.00;
     $lastHnByCid = [];
@@ -199,7 +208,8 @@ try {
         $mainFund = $colIdxMainFund !== null ? trim((string)($row[$colIdxMainFund] ?? '')) : '';
         $subFund = $colIdxSubFund !== null ? trim((string)($row[$colIdxSubFund] ?? '')) : '';
         $subFundDesc = $colIdxSubFundDesc !== null ? trim((string)($row[$colIdxSubFundDesc] ?? '')) : '';
-        $hcode = $colIdxHCode !== null ? trim((string)($row[$colIdxHCode] ?? '')) : '10989';
+        $hcode = $colIdxHCode !== null ? trim((string)($row[$colIdxHCode] ?? '')) : $systemHcode;
+        if (!$hcode) $hcode = $systemHcode;
 
         // Parse Visit Date
         $vstRaw = '';
@@ -270,7 +280,7 @@ try {
                 'main_fund' => $mainFund,
                 'sub_fund' => $subFund,
                 'sub_fund_desc' => $subFundDesc,
-                'hcode' => $hcode ?: '10989',
+                'hcode' => $hcode ?: $systemHcode,
                 'seq_no' => $seqNo,
                 'invoice_no' => $transId,
                 'budget_year' => $budgetYear,

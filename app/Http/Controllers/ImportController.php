@@ -8030,6 +8030,7 @@ class ImportController extends Controller
     {
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+        $round_no = $request->round_no ?: $request->repno;
 
         if ($request->ajax() || $request->export == 'excel') {
             $query = DB::table('stm_lgo_kidney')
@@ -8046,8 +8047,16 @@ class ImportController extends Controller
                     'receive_no',
                     'receipt_date',
                     'receipt_by'
-                )
-                ->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date]);
+                );
+
+            if ($round_no) {
+                $query->where(function($q) use ($round_no) {
+                    $q->where('repno', $round_no)
+                      ->orWhere('round_no', $round_no);
+                });
+            } else {
+                $query->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date]);
+            }
 
             // Searching
             if ($request->has('search') && !empty($request->search['value'])) {
@@ -8113,9 +8122,17 @@ class ImportController extends Controller
 
             // DataTables Response
             $recordsFiltered = $query->get()->count();
-            $recordsTotal = DB::table('stm_lgo_kidney')
-                ->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date])
-                ->count();
+            
+            $countQuery = DB::table('stm_lgo_kidney');
+            if ($round_no) {
+                $countQuery->where(function($q) use ($round_no) {
+                    $q->where('repno', $round_no)
+                      ->orWhere('round_no', $round_no);
+                });
+            } else {
+                $countQuery->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date]);
+            }
+            $recordsTotal = $countQuery->count();
 
             // Sorting
             if ($request->has('order')) {
@@ -8154,7 +8171,184 @@ class ImportController extends Controller
             ]);
         }
 
-        return view('import.stm_lgo_kidneydetail', compact('start_date', 'end_date'));
+        return view('import.stm_lgo_kidneydetail', compact('start_date', 'end_date', 'round_no'));
+    }
+
+    /**
+     * API: Get Patient details for a specific round in stm_lgo_kidney
+     */
+    public function stm_lgo_kidney_patient_detail(Request $request)
+    {
+        $round_no = $request->round_no;
+        $stm_filename = $request->stm_filename;
+        $search = $request->search;
+        $page = max(1, (int)$request->input('page', 1));
+        $per_page = (int)$request->input('per_page', 50);
+
+        if (!$round_no && !$stm_filename) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบข้อมูลงวดที่ต้องการ'
+            ], 400);
+        }
+
+        $baseQuery = DB::table('stm_lgo_kidney');
+        if ($round_no) {
+            $baseQuery->where(function($q) use ($round_no) {
+                $q->where('repno', $round_no)
+                  ->orWhere('round_no', $round_no);
+            });
+        } elseif ($stm_filename) {
+            $baseQuery->where('stm_filename', $stm_filename);
+        }
+
+        // Summary round info
+        $roundInfo = (clone $baseQuery)
+            ->selectRaw('
+                stm_filename,
+                COALESCE(round_no, repno) AS round_no,
+                COUNT(*) AS total_count,
+                SUM(compensate_kidney) AS total_amount,
+                MAX(receive_no) AS receive_no,
+                MAX(receipt_date) AS receipt_date,
+                MAX(receipt_by) AS receipt_by
+            ')
+            ->groupBy('stm_filename', DB::raw('COALESCE(round_no, repno)'))
+            ->first();
+
+        // Search query
+        $query = clone $baseQuery;
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('hn', 'like', "%{$search}%")
+                  ->orWhere('cid', 'like', "%{$search}%")
+                  ->orWhere('pt_name', 'like', "%{$search}%")
+                  ->orWhere('repno', 'like', "%{$search}%")
+                  ->orWhere('receive_no', 'like', "%{$search}%");
+            });
+        }
+
+        $totalFiltered = (clone $query)->count();
+        $totalAmountFiltered = (clone $query)->sum('compensate_kidney');
+
+        $items = $query->orderBy('datetimeadm', 'asc')
+            ->orderBy('id', 'asc')
+            ->skip(($page - 1) * $per_page)
+            ->take($per_page)
+            ->get();
+
+        $data = $items->map(function($row) {
+            $dateThai = !empty($row->datetimeadm) ? DateThai(substr($row->datetimeadm, 0, 10)) : '-';
+            $receiptDateThai = !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-';
+            return [
+                'id' => $row->id,
+                'dep' => $row->dep ?? 'HD',
+                'repno' => $row->repno,
+                'round_no' => $row->round_no,
+                'hn' => $row->hn ?? '-',
+                'cid' => $row->cid ?? '-',
+                'pt_name' => $row->pt_name ?? '-',
+                'datetimeadm' => $row->datetimeadm,
+                'datetimeadm_thai' => $dateThai,
+                'compensate_kidney' => (float)$row->compensate_kidney,
+                'compensate_kidney_formatted' => number_format((float)$row->compensate_kidney, 2),
+                'note' => $row->note ?? '',
+                'receive_no' => $row->receive_no ?? '',
+                'receipt_date' => $row->receipt_date,
+                'receipt_date_thai' => $receiptDateThai,
+                'receipt_by' => $row->receipt_by ?? '',
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'round_info' => [
+                'round_no' => $roundInfo->round_no ?? $round_no,
+                'stm_filename' => $roundInfo->stm_filename ?? $stm_filename,
+                'total_count' => (int)($roundInfo->total_count ?? 0),
+                'total_amount' => (float)($roundInfo->total_amount ?? 0),
+                'total_amount_formatted' => number_format((float)($roundInfo->total_amount ?? 0), 2),
+                'receive_no' => $roundInfo->receive_no ?? '',
+                'receipt_date' => $roundInfo->receipt_date ?? '',
+                'receipt_date_thai' => !empty($roundInfo->receipt_date) ? DateThai($roundInfo->receipt_date) : '-',
+                'receipt_by' => $roundInfo->receipt_by ?? ''
+            ],
+            'stats' => [
+                'total_count' => $totalFiltered,
+                'total_amount' => (float)$totalAmountFiltered,
+                'total_amount_formatted' => number_format((float)$totalAmountFiltered, 2)
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $per_page,
+                'total' => $totalFiltered,
+                'last_page' => max(1, (int)ceil($totalFiltered / $per_page))
+            ],
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Export Excel: Patient details for a specific round in stm_lgo_kidney
+     */
+    public function stm_lgo_kidney_patient_export(Request $request)
+    {
+        $round_no = $request->round_no;
+        $stm_filename = $request->stm_filename;
+        $search = $request->search;
+
+        $query = DB::table('stm_lgo_kidney');
+        if ($round_no) {
+            $query->where(function($q) use ($round_no) {
+                $q->where('repno', $round_no)
+                  ->orWhere('round_no', $round_no);
+            });
+        } elseif ($stm_filename) {
+            $query->where('stm_filename', $stm_filename);
+        }
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('hn', 'like', "%{$search}%")
+                  ->orWhere('cid', 'like', "%{$search}%")
+                  ->orWhere('pt_name', 'like', "%{$search}%")
+                  ->orWhere('repno', 'like', "%{$search}%")
+                  ->orWhere('receive_no', 'like', "%{$search}%");
+            });
+        }
+
+        $data = $query->orderBy('datetimeadm', 'asc')->orderBy('id', 'asc')->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = ['ลำดับ', 'Dep', 'REP', 'HN', 'CID', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'ชดเชยค่ารักษา', 'หมายเหตุ', 'เลขที่ใบเสร็จ', 'วันที่ออกใบเสร็จ', 'ผู้ออกใบเสร็จ'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowNum = 2;
+        $idx = 1;
+        foreach ($data as $item) {
+            $sheet->setCellValue('A' . $rowNum, $idx++);
+            $sheet->setCellValue('B' . $rowNum, $item->dep ?? 'HD');
+            $sheet->setCellValueExplicit('C' . $rowNum, $item->repno, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('D' . $rowNum, $item->hn, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('E' . $rowNum, $item->cid, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('F' . $rowNum, $item->pt_name);
+            $sheet->setCellValue('G' . $rowNum, $item->datetimeadm);
+            $sheet->setCellValue('H' . $rowNum, $item->compensate_kidney);
+            $sheet->setCellValue('I' . $rowNum, $item->note);
+            $sheet->setCellValue('J' . $rowNum, $item->receive_no);
+            $sheet->setCellValue('K' . $rowNum, $item->receipt_date);
+            $sheet->setCellValue('L' . $rowNum, $item->receipt_by);
+            $rowNum++;
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'stm_lgo_kidney_' . ($round_no ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', $round_no) : date('YmdHis')) . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        $writer->save('php://output');
+        exit;
     }
     //stm_sss_kidney----------------------------------------------------------------------------------------------------------
     public function stm_sss_kidney(Request $request)
@@ -8745,6 +8939,21 @@ class ImportController extends Controller
     }
 
     /**
+     * Get Hospital Code dynamically without fallback to other hospitals
+     */
+    protected function getHospitalCode(): ?string
+    {
+        $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $hcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        if (!$hcode && auth()->check()) {
+            $hcode = auth()->user()->hospital_code ?? null;
+        }
+        return !empty($hcode) ? trim((string)$hcode) : null;
+    }
+
+    /**
      * Search SMT Batches specifically for LGO-HD (stm_lgo_kidney)
      */
     public function searchSmtLgoKidney(Request $request)
@@ -8757,6 +8966,14 @@ class ImportController extends Controller
             ], 401);
         }
 
+        $hospcode = $this->getHospitalCode();
+        if (!$hospcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาไปที่เมนูตั้งค่าระบบเพื่อระบุรหัส รพ. ก่อนค้นหาข้อมูล'
+            ], 422);
+        }
+
         $startDate = $this->parseSmtDate($request->start_date) ?: date('Y-m-01');
         $endDate = $this->parseSmtDate($request->end_date) ?: date('Y-m-d');
         $keyword = trim((string)$request->keyword);
@@ -8766,11 +8983,7 @@ class ImportController extends Controller
         $startThaiStr = date('d/m/', $startTs) . ((int)date('Y', $startTs) + 543);
         $endThaiStr = date('d/m/', $endTs) . ((int)date('Y', $endTs) + 543);
 
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-            $hospcode = DB::table('opdconfig')->value('hospitalcode');
-        }
-        $vendorId = str_pad($hospcode ?: '10989', 10, '0', STR_PAD_LEFT);
+        $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
 
         try {
             $postData = [
@@ -8895,8 +9108,20 @@ class ImportController extends Controller
             return response()->json(['status' => 'error', 'message' => 'กรุณาเลือกรายการที่ต้องการนำเข้าอย่างน้อย 1 รายการ'], 400);
         }
 
+        $hcode = $this->getHospitalCode();
+        if (!$hcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาไปที่เมนูตั้งค่าระบบเพื่อระบุรหัส รพ. ก่อนนำเข้าข้อมูล'
+            ], 422);
+        }
+
+        $bearerToken = $this->getSmartMoneyBearerToken() ?: '';
+        $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
+
         $totalInserted = 0;
         $totalBatches = 0;
+        $failedBatches = [];
 
         foreach ($items as $item) {
             $batchNo = trim($item['batch_no'] ?? '');
@@ -8921,11 +9146,9 @@ class ImportController extends Controller
                     $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
                     $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
                     $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
-                    $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
-                    $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
 
                     $cmd = sprintf(
-                        '%s "%s" %s %s %s %s %s %s',
+                        '%s "%s" %s %s %s %s %s %s %s',
                         $nodeExe,
                         $scriptPath,
                         escapeshellarg($batchNo),
@@ -8933,9 +9156,15 @@ class ImportController extends Controller
                         escapeshellarg($transferDate),
                         escapeshellarg($accountCode),
                         escapeshellarg($hcode),
-                        escapeshellarg($cookieFile)
+                        escapeshellarg($cookieFile),
+                        escapeshellarg($bearerToken)
                     );
-                    \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
+                    $runRes = \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
+                    $rawOutput = $runRes['output'] ?? '';
+                    $runJson = json_decode($rawOutput, true);
+                    if ($runJson && isset($runJson['status']) && $runJson['status'] === 'error') {
+                        $failedBatches[] = "งวด {$roundNo} (Batch {$batchNo}): " . ($runJson['message'] ?? 'ไม่สามารถดึงข้อมูลจาก สปสช. ได้');
+                    }
                 }
 
                 $details = \App\Models\SmartMoneyDetail::where('round_no', $roundNo)
@@ -8985,14 +9214,35 @@ class ImportController extends Controller
                     $totalInserted++;
                 }
                 $totalBatches++;
+            } else {
+                $existsInFail = false;
+                foreach ($failedBatches as $fb) {
+                    if (str_contains($fb, "งวด {$roundNo}")) {
+                        $existsInFail = true;
+                        break;
+                    }
+                }
+                if (!$existsInFail) {
+                    $failedBatches[] = "งวด {$roundNo} (Batch {$batchNo}): ไม่พบข้อมูลผู้ป่วยรายคนจาก สปสช. หรือยังไม่มีรายงานในระบบ";
+                }
             }
         }
 
         Cache::flush();
 
+        if ($totalBatches === 0 && !empty($failedBatches)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => implode('<br>', $failedBatches),
+                'inserted_batches' => 0,
+                'inserted_details' => 0,
+            ], 422);
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล stm_lgo_kidney สำเร็จ {$totalBatches} งวด ({$totalInserted} รายการคนไข้)",
+            'warning' => !empty($failedBatches) ? implode('<br>', $failedBatches) : null,
             'inserted_batches' => $totalBatches,
             'inserted_details' => $totalInserted,
         ]);
@@ -9011,6 +9261,14 @@ class ImportController extends Controller
             ], 401);
         }
 
+        $hospcode = $this->getHospitalCode();
+        if (!$hospcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาไปที่เมนูตั้งค่าระบบเพื่อระบุรหัส รพ. ก่อนค้นหาข้อมูล'
+            ], 422);
+        }
+
         $startDate = $this->parseSmtDate($request->start_date) ?: date('Y-m-01');
         $endDate = $this->parseSmtDate($request->end_date) ?: date('Y-m-d');
         $keyword = trim((string)$request->keyword);
@@ -9020,11 +9278,7 @@ class ImportController extends Controller
         $startThaiStr = date('d/m/', $startTs) . ((int)date('Y', $startTs) + 543);
         $endThaiStr = date('d/m/', $endTs) . ((int)date('Y', $endTs) + 543);
 
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-            $hospcode = DB::table('opdconfig')->value('hospitalcode');
-        }
-        $vendorId = str_pad($hospcode ?: '10989', 10, '0', STR_PAD_LEFT);
+        $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
 
         try {
             $postData = [
@@ -9149,8 +9403,20 @@ class ImportController extends Controller
             return response()->json(['status' => 'error', 'message' => 'กรุณาเลือกรายการที่ต้องการนำเข้าอย่างน้อย 1 รายการ'], 400);
         }
 
+        $hcode = $this->getHospitalCode();
+        if (!$hcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาไปที่เมนูตั้งค่าระบบเพื่อระบุรหัส รพ. ก่อนนำเข้าข้อมูล'
+            ], 422);
+        }
+
+        $bearerToken = $this->getSmartMoneyBearerToken() ?: '';
+        $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
+
         $totalInserted = 0;
         $totalBatches = 0;
+        $failedBatches = [];
 
         foreach ($items as $item) {
             $batchNo = trim($item['batch_no'] ?? '');
@@ -9175,11 +9441,9 @@ class ImportController extends Controller
                     $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
                     $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
                     $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
-                    $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '10989';
-                    $cookieFile = $this->preparePlaywrightCookies() ?: storage_path('app/cookies_for_playwright.json');
 
                     $cmd = sprintf(
-                        '%s "%s" %s %s %s %s %s %s',
+                        '%s "%s" %s %s %s %s %s %s %s',
                         $nodeExe,
                         $scriptPath,
                         escapeshellarg($batchNo),
@@ -9187,9 +9451,15 @@ class ImportController extends Controller
                         escapeshellarg($transferDate),
                         escapeshellarg($accountCode),
                         escapeshellarg($hcode),
-                        escapeshellarg($cookieFile)
+                        escapeshellarg($cookieFile),
+                        escapeshellarg($bearerToken)
                     );
-                    \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
+                    $runRes = \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
+                    $rawOutput = $runRes['output'] ?? '';
+                    $runJson = json_decode($rawOutput, true);
+                    if ($runJson && isset($runJson['status']) && $runJson['status'] === 'error') {
+                        $failedBatches[] = "งวด {$roundNo} (Batch {$batchNo}): " . ($runJson['message'] ?? 'ไม่สามารถดึงข้อมูลจาก สปสช. ได้');
+                    }
                 }
 
                 $details = \App\Models\SmartMoneyDetail::where('round_no', $roundNo)
@@ -9243,14 +9513,35 @@ class ImportController extends Controller
                     $totalInserted++;
                 }
                 $totalBatches++;
+            } else {
+                $existsInFail = false;
+                foreach ($failedBatches as $fb) {
+                    if (str_contains($fb, "งวด {$roundNo}")) {
+                        $existsInFail = true;
+                        break;
+                    }
+                }
+                if (!$existsInFail) {
+                    $failedBatches[] = "งวด {$roundNo} (Batch {$batchNo}): ไม่พบข้อมูลผู้ป่วยรายคนจาก สปสช. หรือยังไม่มีรายงานในระบบ";
+                }
             }
         }
 
         Cache::flush();
 
+        if ($totalBatches === 0 && !empty($failedBatches)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => implode('<br>', $failedBatches),
+                'inserted_batches' => 0,
+                'inserted_details' => 0,
+            ], 422);
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => "นำเข้าข้อมูล stm_ucs_kidney สำเร็จ {$totalBatches} งวด ({$totalInserted} รายการคนไข้)",
+            'warning' => !empty($failedBatches) ? implode('<br>', $failedBatches) : null,
             'inserted_batches' => $totalBatches,
             'inserted_details' => $totalInserted,
         ]);

@@ -7,10 +7,20 @@ const batchNo = process.argv[2];
 const roundNo = process.argv[3];
 const transferDate = process.argv[4] || ''; // format YYYY-MM-DD
 const accountCode = process.argv[5] || '';
-const hcode = process.argv[6] || '10989';
+const hcode = (process.argv[6] || '').trim();
+const cookieFile = process.argv[7] || '';
+const bearerToken = (process.argv[8] || '').trim();
 
 if (!batchNo || !roundNo) {
-    console.error(JSON.stringify({ status: 'error', message: 'Missing batchNo or roundNo' }));
+    console.error(JSON.stringify({ status: 'error', message: 'กรุณาระบุ BatchNo และ RoundNo สำหรับดาวน์โหลด' }));
+    process.exit(1);
+}
+
+if (!hcode) {
+    console.error(JSON.stringify({ 
+        status: 'error', 
+        message: 'ไม่พบรหัสสถานพยาบาล (Hospital Code) ของหน่วยบริการนี้ กรุณาตั้งค่ารหัส รพ. ในระบบก่อนทำรายการ' 
+    }));
     process.exit(1);
 }
 
@@ -80,36 +90,49 @@ async function launchBrowser(options) {
 
 (async () => {
     try {
-        // Calculate Buddhist posting date e.g. 2026-09-15 -> 25690915
+        // Calculate Buddhist posting date e.g. 2026-09-15 -> 25690915 & fiscalYear
         let postingDate = '';
+        let fiscalYear = '';
         if (transferDate) {
             const parts = transferDate.split('-');
             if (parts.length === 3) {
-                const bYear = parseInt(parts[0], 10) + 543;
-                postingDate = `${bYear}${parts[1]}${parts[2]}`;
+                let y = parseInt(parts[0], 10);
+                if (y < 2400) y += 543;
+                const m = parseInt(parts[1], 10);
+                postingDate = `${y}${parts[1].padStart(2, '0')}${parts[2].padStart(2, '0')}`;
+                fiscalYear = String(m >= 10 ? y + 1 : y);
             }
         }
         if (!postingDate) {
-            // Default to current year
             const now = new Date();
-            const bYear = now.getFullYear() + 543;
+            let bYear = now.getFullYear() + 543;
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             postingDate = `${bYear}${mm}${dd}`;
+            fiscalYear = String((now.getMonth() + 1) >= 10 ? bYear + 1 : bYear);
         }
 
-        // 1. Read clean cookies (Argument -> storage/app)
-        let cookieFile = process.argv[7] || '';
-        if (!cookieFile || !fs.existsSync(cookieFile)) {
-            cookieFile = path.join(__dirname, '../../storage/app/cookies_for_playwright.json');
-        }
-        if (!fs.existsSync(cookieFile)) {
-            console.error(JSON.stringify({ status: 'error', message: 'Cookie session file not found' }));
-            process.exit(1);
+        // 1. Read clean cookies & resolve Bearer Token
+        let actualCookieFile = cookieFile;
+        if (!actualCookieFile || !fs.existsSync(actualCookieFile)) {
+            actualCookieFile = path.join(__dirname, '../../storage/app/cookies_for_playwright.json');
         }
 
-        const rawCookies = JSON.parse(fs.readFileSync(cookieFile, 'utf-8'));
-        const cleanCookies = rawCookies.filter(c => c.name !== 'ACCESS_TOKEN' && c.name.length < 100);
+        let cleanCookies = [];
+        let resolvedToken = bearerToken;
+
+        if (fs.existsSync(actualCookieFile)) {
+            try {
+                const rawCookies = JSON.parse(fs.readFileSync(actualCookieFile, 'utf-8'));
+                cleanCookies = rawCookies.filter(c => c.name !== 'ACCESS_TOKEN' && c.name.length < 100);
+                if (!resolvedToken) {
+                    const tokCookie = rawCookies.find(c => c.name === 'ACCESS_TOKEN' || c.name === 'KEYCLOAK_IDENTITY');
+                    if (tokCookie && tokCookie.value) {
+                        resolvedToken = tokCookie.value;
+                    }
+                }
+            } catch (e) {}
+        }
 
         const browser = await launchBrowser({
             headless: true,
@@ -132,7 +155,10 @@ async function launchBrowser(options) {
             ignoreHTTPSErrors: true
         });
 
-        await context.addCookies(cleanCookies);
+        if (cleanCookies.length > 0) {
+            await context.addCookies(cleanCookies);
+        }
+
         const page = await context.newPage();
 
         await page.addInitScript(() => {
@@ -147,25 +173,36 @@ async function launchBrowser(options) {
             await page.waitForTimeout(6000);
         }
 
-        // 3. Construct Detail URL
+        // 3. Construct Detail URL dynamically from NHSO SMT API
         let detailUrl = '';
         let recId = '';
         let fromSystem = '';
         let sfundCd = '13';
         let efundCd = '1';
 
-        const vendorId10 = (hcode || '10989').replace(/\D/g, '').padStart(10, '0');
+        const vendorId10 = hcode.replace(/\D/g, '').padStart(10, '0');
+        const reqHeaders = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
+            'Origin': 'https://smt.nhso.go.th',
+            'Referer': 'https://smt.nhso.go.th/smtf/'
+        };
+        if (resolvedToken) {
+            reqHeaders['Authorization'] = 'Bearer ' + resolvedToken;
+        }
 
+        // Search API with postingDate
         try {
             const apiRes = await context.request.post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReportDetail', {
                 ignoreHTTPSErrors: true,
+                headers: reqHeaders,
                 data: {
-                    fiscalYear: postingDate.substring(0, 4) || '2569',
+                    fiscalYear: fiscalYear,
                     vendorId: vendorId10,
                     postingDate: postingDate,
                     batchNo: batchNo,
                     offset: 0,
-                    count: 50,
+                    count: 100,
                     isTest: ''
                 }
             });
@@ -181,14 +218,58 @@ async function launchBrowser(options) {
             }
         } catch (e) {}
 
+        // Fallback search without postingDate if not matched
+        if (!recId) {
+            try {
+                const apiRes2 = await context.request.post('https://smt.nhso.go.th/smtf/api/budgetreport/budgetSummaryByVendorReportDetail', {
+                    ignoreHTTPSErrors: true,
+                    headers: reqHeaders,
+                    data: {
+                        fiscalYear: fiscalYear,
+                        vendorId: vendorId10,
+                        postingDate: '',
+                        batchNo: batchNo,
+                        offset: 0,
+                        count: 100,
+                        isTest: ''
+                    }
+                });
+                if (apiRes2.ok()) {
+                    const apiData2 = await apiRes2.json();
+                    const matched2 = (apiData2.datas || []).find(d => String(d.batchNo) === String(batchNo) || d.refDocNo === roundNo);
+                    if (matched2) {
+                        if (matched2.recId) recId = String(matched2.recId);
+                        if (matched2.fromSystem) fromSystem = String(matched2.fromSystem).toUpperCase();
+                        if (matched2.sfundCd) sfundCd = String(matched2.sfundCd);
+                        if (matched2.efundCd) efundCd = String(matched2.efundCd);
+                    }
+                }
+            } catch (e) {}
+        }
+
         const accEncoded = encodeURIComponent(accountCode);
         const roundEncoded = encodeURIComponent(roundNo);
+
         if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
-            const rId = recId || '72668';
-            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${rId}?mophId=${accEncoded}`;
+            if (!recId) {
+                await browser.close();
+                console.error(JSON.stringify({ 
+                    status: 'error', 
+                    message: `ไม่พบรหัสรายงาน (recId) สำหรับงวด ${roundNo} (Batch ${batchNo}) ในระบบ สปสช. ของหน่วยบริการ ${hcode} (อาจยังไม่มีการอนุมัติรายงานรายคน)` 
+                }));
+                process.exit(1);
+            }
+            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}?mophId=${accEncoded}`;
         } else if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
-            const rId = recId || '72783';
-            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${rId}/${hcode}/${batchNo}/${postingDate}?mophId=${accEncoded}`;
+            if (!recId) {
+                await browser.close();
+                console.error(JSON.stringify({ 
+                    status: 'error', 
+                    message: `ไม่พบรหัสรายงาน (recId) สำหรับงวด ${roundNo} (Batch ${batchNo}) ในระบบ สปสช. ของหน่วยบริการ ${hcode}` 
+                }));
+                process.exit(1);
+            }
+            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${hcode}/${batchNo}/${postingDate}?mophId=${accEncoded}`;
         } else {
             // Default to DMIS
             detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`;
@@ -204,7 +285,7 @@ async function launchBrowser(options) {
             await browser.close();
             console.error(JSON.stringify({ 
                 status: 'error', 
-                message: 'ไม่พบปุ่ม Export Excel ในหน้ารายละเอียดของ สปสช. (อาจเป็นงบที่ไม่มีรายการผู้ป่วยรายบุคคล เช่น งบเหมาจ่าย/งบปรับเกลี่ย/งบสนับสนุน หรือยังไม่ออกรายงาน)' 
+                message: `ไม่พบปุ่ม Export Excel ในหน้ารายละเอียดของ สปสช. สำหรับงวด ${roundNo} (หน่วยบริการ ${hcode}) อาจเป็นงบที่ไม่มีรายการผู้ป่วยรายบุคคล หรือยังไม่ออกรายงาน` 
             }));
             process.exit(1);
         }
@@ -227,7 +308,7 @@ async function launchBrowser(options) {
 
         // 6. Parse and Insert into DB
         const phpParser = path.join(__dirname, 'parse_detail_excel.php');
-        const cmd = `php "${phpParser}" "${dPath}" "${roundNo}" "${batchNo}"`;
+        const cmd = `php "${phpParser}" "${dPath}" "${roundNo}" "${batchNo}" "${hcode}"`;
         const resultOutput = execSync(cmd, { encoding: 'utf-8' });
 
         // 7. Zero Server File Retention: delete downloaded file

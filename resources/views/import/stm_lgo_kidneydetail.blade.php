@@ -9,7 +9,17 @@
                 <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
                 รายละเอียด Statement เบิกจ่ายตรง อปท.LGO [ฟอกไต HD]
             </h5>
-            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
+            <div class="text-muted small mt-1">
+                รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ
+                @if(!empty($round_no))
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill ms-2">
+                        <i class="bi bi-funnel-fill me-1"></i> เฉพาะงวด: {{ $round_no }}
+                    </span>
+                    <a href="{{ url('import/stm_lgo_kidneydetail') }}" class="btn btn-xs btn-outline-secondary rounded-pill ms-1 py-0 px-2" style="font-size: 11px;">
+                        <i class="bi bi-x"></i> ดูทั้งหมด
+                    </a>
+                @endif
+            </div>
             <div class="mt-2">
                 <a href="{{ url('import/stm_lgo_kidney') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
@@ -19,6 +29,9 @@
         
         <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
+            @if(!empty($round_no))
+                <input type="hidden" name="round_no" id="round_no_filter" value="{{ $round_no }}">
+            @endif
             <div class="d-flex align-items-center gap-2">
                 <span class="text-muted small">วันที่:</span>
                 <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
@@ -111,6 +124,9 @@
             data: function (d) {
                 d.start_date = $('#start_date').val();
                 d.end_date = $('#end_date').val();
+                if ($('#round_no_filter').length) {
+                    d.round_no = $('#round_no_filter').val();
+                }
             }
         },
         columns: [
@@ -164,7 +180,11 @@
                 action: function ( e, dt, node, config ) {
                     var start = $('#start_date').val();
                     var end = $('#end_date').val();
-                    window.location.href = "{{ route('stm_lgo_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                    var exportUrl = "{{ route('stm_lgo_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                    if ($('#round_no_filter').length && $('#round_no_filter').val()) {
+                        exportUrl += "&round_no=" + encodeURIComponent($('#round_no_filter').val());
+                    }
+                    window.location.href = exportUrl;
                 }
             }
         ],

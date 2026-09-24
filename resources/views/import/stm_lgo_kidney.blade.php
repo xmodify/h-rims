@@ -1,6 +1,41 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    /* Action Dropdown Styling */
+    .smart-action-dropdown .dropdown-menu {
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        min-width: 200px;
+        padding: 6px;
+        z-index: 1055 !important;
+    }
+    .smart-action-dropdown .dropdown-item {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px;
+        transition: all 0.15s ease;
+    }
+    .smart-action-dropdown .dropdown-item:hover {
+        background-color: #f1f5f9;
+    }
+    .smart-action-dropdown .dropdown-header {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px;
+        padding: 4px 12px;
+        color: #94a3b8;
+    }
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    .table-responsive:has(.dropdown-menu.show) {
+        overflow: visible !important;
+    }
+</style>
 <div class="container-fluid px-lg-4">
     <!-- Import Form Card -->
     <div class="row justify-content-center mt-3 mb-4">
@@ -87,12 +122,10 @@
                             <th class="text-center">จำนวน</th> 
                             <th class="text-center">ชดเชยค่ารักษา</th> 
                             <th class="text-center">เลขงวด</th>
-                                <th class="text-center">เลขที่ใบเสร็จ</th>
-                                <th class="text-center">วันที่ออกใบเสร็จ</th>
-                                <th class="text-center">ผู้ออกใบเสร็จ</th>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center" width="15%">การจัดการ</th>
-                            @endif 
+                            <th class="text-center">เลขที่ใบเสร็จ</th>
+                            <th class="text-center">วันที่ออกใบเสร็จ</th>
+                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                            <th class="text-center" style="width: 8%;">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -101,7 +134,19 @@
                             <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>                                                            
                             <td class="text-end fw-bold">{{ number_format($row->count_no) }}</td>                                   
                             <td class="text-end text-success fw-bold">{{ number_format($row->compensate_kidney,2) }}</td>
-                            <td class="text-center text-primary fw-bold">{{ $row->round_no }}</td>
+                            <td class="text-center text-primary fw-bold btn-view-patient-detail"
+                                style="cursor: pointer;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#patientDetailModal"
+                                data-round="{{ $row->round_no }}"
+                                data-filename="{{ $row->stm_filename }}"
+                                data-count="{{ $row->count_no }}"
+                                data-amount="{{ number_format($row->compensate_kidney, 2) }}"
+                                data-receive="{{ $row->receive_no }}"
+                                data-date="{{ $row->receipt_date }}"
+                                title="คลิกเพื่อดูรายละเอียดรายคน">
+                                {{ $row->round_no }}
+                            </td>
                             <td class="text-center">
                                 @if(!empty($row->receive_no))
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1" style="font-size: 11px;">
@@ -115,37 +160,66 @@
                             </td>
                             <td class="text-center small">{{ !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <td class="text-center text-nowrap">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        @if(!empty($row->round_no))
-                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                                <button type="button"
-                                                    class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2"
-                                                    data-round="{{ $row->round_no }}"
-                                                    data-receive="{{ $row->receive_no }}"
-                                                    data-date="{{ $row->receipt_date }}"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#receiptModal"
-                                                    title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
-                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                                </button>
-                                            @endif
-                                            
-                                            @if(Auth::user()->status == 'admin')
-                                                <button type="button"
-                                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-action-delete"
-                                                    data-filename="{{ $row->stm_filename }}"
-                                                    data-type="stm_lgo_kidney"
-                                                    title="ลบข้อมูลนำเข้า">
-                                                    <i class="bi bi-trash-fill me-1"></i> ลบ
-                                                </button>
-                                            @endif
+                            <td class="text-center text-nowrap py-1.5">
+                                <div class="dropdown smart-action-dropdown">
+                                    <button class="btn btn-xs btn-outline-primary dropdown-toggle rounded-pill px-2.5 py-1 shadow-xs fw-semibold"
+                                            type="button" 
+                                            data-bs-toggle="dropdown" 
+                                            data-bs-auto-close="true"
+                                            aria-expanded="false" 
+                                            style="font-size: 11.5px;">
+                                        <i class="bi bi-gear-fill me-1"></i> ทำรายการ
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-1.5">
+                                        {{-- 1. ออกใบเสร็จรับเงิน / แก้ไขเลขที่ใบเสร็จ --}}
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center {{ $row->receive_no ? 'btn-edit-receipt text-warning' : 'btn-new-receipt text-success' }}"
+                                                   data-round="{{ $row->round_no }}"
+                                                   data-receive="{{ $row->receive_no }}"
+                                                   data-date="{{ $row->receipt_date }}"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#receiptModal">
+                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square text-warning' : 'bi-receipt text-success' }} me-2 fs-6"></i>
+                                                    <span class="fw-semibold">{{ $row->receive_no ? 'แก้ไขเลขที่ใบเสร็จ' : 'ออกใบเสร็จรับเงิน' }}</span>
+                                                </a>
+                                            </li>
                                         @endif
-                                    </div>
-                                </td>
-                            @endif     
+
+                                        {{-- 2. รายละเอียดรายคน --}}
+                                        <li>
+                                            <a href="javascript:void(0);" 
+                                               class="dropdown-item d-flex align-items-center text-primary btn-view-patient-detail"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#patientDetailModal"
+                                               data-round="{{ $row->round_no }}"
+                                               data-filename="{{ $row->stm_filename }}"
+                                               data-count="{{ $row->count_no }}"
+                                               data-amount="{{ number_format($row->compensate_kidney, 2) }}"
+                                               data-receive="{{ $row->receive_no }}"
+                                               data-date="{{ $row->receipt_date }}">
+                                                <i class="bi bi-person-lines-fill text-primary me-2 fs-6"></i>
+                                                <span>รายละเอียดรายคน</span>
+                                            </a>
+                                        </li>
+
+                                        {{-- 3. ลบข้อมูลงวดนี้ --}}
+                                        @if(Auth::user()->status == 'admin')
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center text-danger btn-action-delete"
+                                                   data-filename="{{ $row->stm_filename }}"
+                                                   data-type="stm_lgo_kidney">
+                                                    <i class="bi bi-trash3-fill text-danger me-2 fs-6"></i>
+                                                    <span>ลบข้อมูลงวดนี้</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </div>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -243,6 +317,128 @@
     </div>
 </div>
 {{-- End Modal ออกใบเสร็จ --}}
+
+{{-- Modal: รายละเอียดผู้ป่วยรายคน --}}
+<div class="modal fade" id="patientDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-scrollable" style="max-width: 95vw; width: 1360px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            {{-- Modal Header --}}
+            <div class="modal-header text-white p-3 px-4" style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%);">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box me-3" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border-radius: 12px;">
+                        <i class="bi bi-person-lines-fill fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="modal-title fw-bold mb-0 text-white">รายละเอียดผู้ป่วยรายคน</h5>
+                            <span class="badge bg-white text-dark font-monospace px-2.5 py-1" id="pmodal_round_badge" style="font-size: 13px;">งวด -</span>
+                        </div>
+                        <div class="text-white-50 small mt-0.5" id="pmodal_subtitle">Statement สิทธิเบิกจ่ายตรง อปท.LGO [ฟอกไต HD]</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            {{-- Modal Body --}}
+            <div class="modal-body p-3 p-md-4 bg-light">
+                {{-- Round Summary Info Card --}}
+                <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-3">
+                                <span class="text-muted small">เลขงวด:</span>
+                                <div class="fw-bold text-primary font-monospace fs-6" id="pmodal_round_no">-</div>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="text-muted small">ชื่อไฟล์ Statement:</span>
+                                <div class="fw-semibold text-dark text-truncate small" id="pmodal_filename" title="-">-</div>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="text-muted small">เลขที่ใบเสร็จ:</span>
+                                <div id="pmodal_receipt_display">-</div>
+                            </div>
+                            <div class="col-md-3 text-md-end">
+                                <span class="text-muted small">ยอดชดเชยค่ารักษารวม:</span>
+                                <div class="fw-bold text-success fs-5" id="pmodal_total_amount">0.00 บาท</div>
+                                <div class="text-muted small" id="pmodal_total_count_hint">(0 รายการ)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Toolbar: Search, Stats & Actions --}}
+                <div class="card border-0 shadow-sm rounded-4 mb-3 bg-white">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 500px;">
+                                <div class="input-group input-group-sm flex-grow-1">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control border-start-0 shadow-none" id="pmodal_search_input" placeholder="ค้นหา HN, CID, ชื่อ-สกุล, REP...">
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-nowrap" id="pmodal_btn_search">ค้นหา</button>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge bg-light text-dark border px-2.5 py-1.5" id="pmodal_stats_badge">
+                                    <i class="bi bi-people me-1 text-primary"></i> 0 รายการ (0.00 บาท)
+                                </span>
+
+                                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-semibold" id="pmodal_btn_export">
+                                    <i class="bi bi-file-earmark-excel-fill me-1"></i> ส่งออก Excel งวดนี้
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Patient Table Card --}}
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+                    <div class="table-responsive" style="max-height: 480px;">
+                        <table class="table table-hover table-bordered align-middle mb-0 small" id="pmodal_table" style="width: 100%;">
+                            <thead class="table-light sticky-top">
+                                <tr class="text-muted small text-nowrap">
+                                    <th class="text-center" style="width: 45px;">ลำดับ</th>
+                                    <th class="text-center" style="width: 70px;">Dep</th>
+                                    <th class="text-center" style="width: 130px;">REP</th>
+                                    <th class="text-center" style="width: 90px;">HN</th>
+                                    <th class="text-center" style="width: 130px;">เลขบัตรประชาชน</th>
+                                    <th class="text-start" style="min-width: 160px;">ชื่อ-สกุล</th>
+                                    <th class="text-center" style="width: 110px;">วันเข้ารักษา</th>
+                                    <th class="text-end" style="width: 110px;">ชดเชยค่ารักษา</th>
+                                    <th class="text-start" style="min-width: 120px;">หมายเหตุ</th>
+                                    <th class="text-center" style="width: 100px;">เลขที่ใบเสร็จ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pmodal_table_body">
+                                <tr>
+                                    <td colspan="10" class="text-center py-5 text-muted">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <div class="mt-2 fw-semibold">กำลังโหลดข้อมูล...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Table Pagination --}}
+                    <div class="card-footer bg-white p-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="text-muted small" id="pmodal_page_info">แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ</div>
+                        <div class="d-flex align-items-center gap-1" id="pmodal_pagination_controls"></div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="modal-footer p-3 bg-white border-top d-flex justify-content-between">
+                <a href="{{ url('/import/stm_lgo_kidneydetail') }}" id="pmodal_fullpage_link" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดดูหน้ารวมรายละเอียดทั้งหมด
+                </a>
+                <button type="button" class="btn btn-secondary px-4 rounded-pill fw-semibold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- End Modal รายละเอียดผู้ป่วยรายคน --}}
 
 {{-- Modal ดึงข้อมูลจาก สปสช. (ThaiD SSO / Smart Money) - LGO HD --}}
 <div class="modal fade" id="smtKidneyModal" tabindex="-1" aria-hidden="true">
@@ -422,26 +618,27 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             /* ===== เปิด modal (ออกใหม่ / แก้ไข) ===== */
-            document.querySelectorAll('.btn-new-receipt, .btn-edit-receipt')
-                .forEach(btn => {
-                    btn.addEventListener('click', function () {
+            $(document).on('click', '.btn-new-receipt, .btn-edit-receipt', function () {
+                var round = $(this).data('round') || '';
+                var receive = $(this).data('receive') || '';
+                var date = $(this).data('date') || '';
 
-                        document.getElementById('round_no').value =
-                            this.dataset.round;
+                $('#round_no').val(round);
+                $('#receive_no').val(receive);
+                $('#receipt_date').val(date);
 
-                        document.getElementById('receive_no').value =
-                            this.dataset.receive ?? '';
+                if (receive) {
+                    $('#receiptModalTitle').text('แก้ไขเลขที่ใบเสร็จ (งวด ' + round + ')');
+                } else {
+                    $('#receiptModalTitle').text('ออกใบเสร็จรับเงิน (งวด ' + round + ')');
+                }
 
-                        document.getElementById('receipt_date').value =
-                            this.dataset.date ?? '';
-
-                        if(this.dataset.date) {
-                            $('#receipt_date_display').datepicker('setDate', new Date(this.dataset.date));
-                        } else {
-                            $('#receipt_date_display').datepicker('clearDates');
-                        }
-                    });
-                });
+                if (date) {
+                    $('#receipt_date_display').datepicker('setDate', new Date(date));
+                } else {
+                    $('#receipt_date_display').datepicker('clearDates');
+                }
+            });
             /* ===== บันทึก (AJAX) ===== */
             document.getElementById('btnSaveReceipt')
                 .addEventListener('click', function () {
@@ -1321,8 +1518,15 @@
                             });
 
                             if (res.status === 'success') {
-                                successCount++;
-                                totalPatients += (res.inserted_details || 0);
+                                if (res.inserted_details > 0) {
+                                    successCount++;
+                                    totalPatients += (res.inserted_details || 0);
+                                    if (res.warning) {
+                                        errors.push(res.warning);
+                                    }
+                                } else {
+                                    errors.push(item.round_no + ': ' + (res.warning || res.message || 'ไม่พบรายการผู้ป่วย'));
+                                }
                             } else {
                                 errors.push(item.round_no + ': ' + (res.message || 'ไม่ทราบสาเหตุ'));
                             }
@@ -1336,7 +1540,7 @@
                     $('#smtProgressPercent').text('100%');
                     $('#smtProgressStep').text('เสร็จสิ้นกระบวนการ');
 
-                    if (errors.length === 0) {
+                    if (errors.length === 0 && totalPatients > 0) {
                         Swal.fire({
                             icon: 'success',
                             title: 'นำเข้าข้อมูลสำเร็จ!',
@@ -1345,6 +1549,13 @@
                             confirmButtonColor: '#10b981'
                         }).then(() => {
                             location.reload();
+                        });
+                    } else if (totalPatients === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่พบรายการผู้ป่วยรายคน',
+                            html: `ไม่สามารถนำเข้ารายละเอียดรายคนได้<br><div class="text-danger small mt-2 text-start">${errors.join('<br>') || 'ไม่พบรายงานผู้ป่วยรายคนในระบบ สปสช.'}</div>`,
+                            confirmButtonText: 'ปิด'
                         });
                     } else {
                         Swal.fire({
@@ -1361,5 +1572,214 @@
                 }
             });
         });
+
+        // ==========================================
+        // Patient Details Modal (รายคน)
+        // ==========================================
+            var currentModalRoundNo = '';
+            var currentModalFilename = '';
+
+            $(document).on('click', '.btn-view-patient-detail', function() {
+                var roundNo = $(this).data('round') || '';
+                var filename = $(this).data('filename') || '';
+
+                currentModalRoundNo = roundNo;
+                currentModalFilename = filename;
+
+                $('#pmodal_search_input').val('');
+                $('#pmodal_round_badge').text(roundNo ? 'งวด ' + roundNo : filename);
+                $('#pmodal_round_no').text(roundNo || '-');
+                $('#pmodal_filename').text(filename || '-').attr('title', filename || '-');
+
+                var count = $(this).data('count');
+                var amount = $(this).data('amount');
+                var receive = $(this).data('receive');
+                var date = $(this).data('date');
+
+                if (amount) {
+                    $('#pmodal_total_amount').text(amount + ' บาท');
+                } else {
+                    $('#pmodal_total_amount').text('0.00 บาท');
+                }
+                if (count) {
+                    $('#pmodal_total_count_hint').text('(' + Number(count).toLocaleString() + ' รายการ)');
+                } else {
+                    $('#pmodal_total_count_hint').text('(0 รายการ)');
+                }
+                if (receive) {
+                    $('#pmodal_receipt_display').html('<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i> ' + receive + '</span>');
+                } else {
+                    $('#pmodal_receipt_display').html('<span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium px-2 py-1"><i class="bi bi-clock-history me-1"></i> ยังไม่ออก</span>');
+                }
+
+                if (roundNo) {
+                    $('#pmodal_fullpage_link').attr('href', "{{ url('import/stm_lgo_kidneydetail') }}?round_no=" + encodeURIComponent(roundNo));
+                } else {
+                    $('#pmodal_fullpage_link').attr('href', "{{ url('import/stm_lgo_kidneydetail') }}");
+                }
+
+                var modalEl = document.getElementById('patientDetailModal');
+                if (modalEl) {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    } else if (window.bootstrap && window.bootstrap.Modal) {
+                        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    } else if (typeof $ !== 'undefined' && typeof $(modalEl).modal === 'function') {
+                        $(modalEl).modal('show');
+                    }
+                }
+
+                loadLgoPatientModalData(roundNo, filename, 1, '');
+            });
+
+            window.loadLgoPatientModalData = function(roundNo, filename, page, search) {
+                page = page || 1;
+                search = search !== undefined ? search : ($('#pmodal_search_input').val() || '');
+
+                $('#pmodal_table_body').html(`
+                    <tr>
+                        <td colspan="10" class="text-center py-5 text-muted">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="mt-2 fw-semibold">กำลังโหลดข้อมูลผู้ป่วย...</div>
+                        </td>
+                    </tr>
+                `);
+
+                var url = "{{ route('import.stm_lgo_kidney.patient_detail') }}?round_no=" + encodeURIComponent(roundNo) + "&stm_filename=" + encodeURIComponent(filename) + "&page=" + page;
+                if (search) {
+                    url += "&search=" + encodeURIComponent(search);
+                }
+
+                fetch(url, {
+                    headers: {
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
+                        "Accept": "application/json"
+                    }
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        var info = res.round_info;
+                        var st = res.stats;
+
+                        $('#pmodal_round_badge').text('งวด ' + (info.round_no || roundNo));
+                        $('#pmodal_round_no').text(info.round_no || roundNo || '-');
+                        $('#pmodal_filename').text(info.stm_filename || filename || '-').attr('title', info.stm_filename || filename || '-');
+                        $('#pmodal_total_amount').text(info.total_amount_formatted + ' บาท');
+                        $('#pmodal_total_count_hint').text('(' + Number(info.total_count).toLocaleString() + ' รายการ)');
+
+                        if (info.receive_no) {
+                            var recHtml = '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i> ' + info.receive_no;
+                            if (info.receipt_date_thai && info.receipt_date_thai !== '-') {
+                                recHtml += ' (' + info.receipt_date_thai + ')';
+                            }
+                            recHtml += '</span>';
+                            $('#pmodal_receipt_display').html(recHtml);
+                        } else {
+                            $('#pmodal_receipt_display').html('<span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-medium px-2 py-1"><i class="bi bi-clock-history me-1"></i> ยังไม่ออก</span>');
+                        }
+
+                        $('#pmodal_stats_badge').html('<i class="bi bi-people me-1 text-primary"></i> <strong>' + Number(st.total_count).toLocaleString() + '</strong> รายการ (' + st.total_amount_formatted + ' บาท)');
+
+                        // Rows
+                        if (!res.data || res.data.length === 0) {
+                            $('#pmodal_table_body').html(`
+                                <tr>
+                                    <td colspan="10" class="text-center py-5 text-muted">
+                                        <i class="bi bi-inbox fs-2 mb-1 d-block opacity-40"></i>
+                                        <div class="fw-semibold text-dark mt-2">ไม่พบรายการผู้ป่วยในเงื่อนไขที่เลือก</div>
+                                    </td>
+                                </tr>
+                            `);
+                        } else {
+                            var html = '';
+                            var startIdx = ((res.pagination.current_page - 1) * res.pagination.per_page) + 1;
+                            res.data.forEach(function(d, idx) {
+                                var depBadge = '<span class="badge bg-light text-dark border">' + (d.dep || 'HD') + '</span>';
+                                var cidDisplay = (d.cid && d.cid !== '-') ? '<span class="font-monospace text-dark">' + d.cid + '</span>' : '<span class="text-muted opacity-50">-</span>';
+                                var hnDisplay = (d.hn && d.hn !== '-') ? '<span class="fw-bold font-monospace text-primary">' + d.hn + '</span>' : '<span class="text-muted opacity-50">-</span>';
+                                var ptNameDisplay = (d.pt_name && d.pt_name !== '-') ? '<span class="fw-semibold text-dark">' + d.pt_name + '</span>' : '<span class="text-muted opacity-50">-</span>';
+                                var recDisplay = d.receive_no ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' + d.receive_no + '</span>' : '<span class="text-muted small">-</span>';
+
+                                html += `
+                                    <tr>
+                                        <td class="text-center text-muted small">${startIdx + idx}</td>
+                                        <td class="text-center">${depBadge}</td>
+                                        <td class="text-center font-monospace small">${d.repno || '-'}</td>
+                                        <td class="text-center">${hnDisplay}</td>
+                                        <td class="text-center font-monospace">${cidDisplay}</td>
+                                        <td class="text-start">${ptNameDisplay}</td>
+                                        <td class="text-center small">${d.datetimeadm_thai}</td>
+                                        <td class="text-end fw-bold text-success font-monospace">${d.compensate_kidney_formatted}</td>
+                                        <td class="text-start small text-muted">${d.note || '-'}</td>
+                                        <td class="text-center">${recDisplay}</td>
+                                    </tr>
+                                `;
+                            });
+                            $('#pmodal_table_body').html(html);
+                        }
+
+                        // Pagination
+                        var pg = res.pagination;
+                        var from = ((pg.current_page - 1) * pg.per_page) + 1;
+                        var to = Math.min(pg.current_page * pg.per_page, pg.total);
+                        $('#pmodal_page_info').text(`แสดง ${pg.total > 0 ? from : 0} ถึง ${to} จากทั้งหมด ${pg.total} รายการ`);
+
+                        var pagHtml = '';
+                        if (pg.last_page > 1) {
+                            pagHtml += `<button class="btn btn-xs btn-outline-secondary ${pg.current_page === 1 ? 'disabled' : ''}" onclick="changeLgoModalPage(${pg.current_page - 1})"><i class="bi bi-chevron-left"></i></button>`;
+                            for (var i = Math.max(1, pg.current_page - 2); i <= Math.min(pg.last_page, pg.current_page + 2); i++) {
+                                pagHtml += `<button class="btn btn-xs ${i === pg.current_page ? 'btn-primary' : 'btn-outline-secondary'}" onclick="changeLgoModalPage(${i})">${i}</button>`;
+                            }
+                            pagHtml += `<button class="btn btn-xs btn-outline-secondary ${pg.current_page === pg.last_page ? 'disabled' : ''}" onclick="changeLgoModalPage(${pg.current_page + 1})"><i class="bi bi-chevron-right"></i></button>`;
+                        }
+                        $('#pmodal_pagination_controls').html(pagHtml);
+                    } else {
+                        $('#pmodal_table_body').html(`
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-danger">
+                                    <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
+                                    ${res.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล'}
+                                </td>
+                            </tr>
+                        `);
+                    }
+                })
+                .catch(err => {
+                    $('#pmodal_table_body').html(`
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-danger">
+                                <i class="bi bi-x-circle-fill fs-3 mb-2 d-block"></i>
+                                เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์
+                            </td>
+                        </tr>
+                    `);
+                });
+            };
+
+            window.changeLgoModalPage = function(page) {
+                var search = $('#pmodal_search_input').val();
+                loadLgoPatientModalData(currentModalRoundNo, currentModalFilename, page, search);
+            };
+
+            $('#pmodal_btn_search').on('click', function() {
+                loadLgoPatientModalData(currentModalRoundNo, currentModalFilename, 1, $('#pmodal_search_input').val());
+            });
+
+            $('#pmodal_search_input').on('keypress', function(e) {
+                if (e.which === 13) {
+                    loadLgoPatientModalData(currentModalRoundNo, currentModalFilename, 1, $(this).val());
+                }
+            });
+
+            $('#pmodal_btn_export').on('click', function() {
+                if (!currentModalRoundNo && !currentModalFilename) return;
+                var search = $('#pmodal_search_input').val();
+                var exportUrl = "{{ route('import.stm_lgo_kidney.patient_export') }}?round_no=" + encodeURIComponent(currentModalRoundNo) + "&stm_filename=" + encodeURIComponent(currentModalFilename);
+                if (search) {
+                    exportUrl += "&search=" + encodeURIComponent(search);
+                }
+                window.location.href = exportUrl;
+            });
     </script>
 @endpush

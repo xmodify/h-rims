@@ -241,12 +241,8 @@ class SmartMoneyController extends Controller
             $hasBotLicense = \App\Services\LicenseVerificationService::isModuleLicensed('sync_eclaim_thaid');
         } catch (\Exception $e) {}
 
-        // Hospital code (From main_setting or opdconfig)
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-            $hospcode = DB::table('opdconfig')->value('hospitalcode');
-        }
-        $hospcode = $hospcode ?: '10989';
+        // Hospital code
+        $hospcode = $this->getHospitalCode() ?: '';
 
         return view('import.smart_money_index', compact(
             'batches',
@@ -1406,11 +1402,13 @@ class SmartMoneyController extends Controller
         $endThaiStr = date('d/m/', $endTs) . ((int)date('Y', $endTs) + 543);
         $budgetYear = (string)$this->getBudgetYear($endDate);
 
-        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        if (!$hospcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-            $hospcode = DB::table('opdconfig')->value('hospitalcode');
+        $hospcode = $this->getHospitalCode();
+        if (!$hospcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาไปที่เมนูตั้งค่าระบบเพื่อระบุรหัส รพ. ก่อนค้นหาข้อมูล'
+            ], 422);
         }
-        $hospcode = $hospcode ?: '10989';
         $vendorId = str_pad($hospcode, 10, '0', STR_PAD_LEFT);
 
         $bearerToken = $this->getActiveSmartMoneyToken();
@@ -2018,15 +2016,16 @@ class SmartMoneyController extends Controller
 
         $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
         $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
-        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
-        $hcode = \Illuminate\Support\Facades\DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        if (!$hcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
-            $hcode = \Illuminate\Support\Facades\DB::table('opdconfig')->value('hospitalcode');
+        $hcode = $this->getHospitalCode();
+        if (!$hcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาล (Hospital Code) ในระบบ กรุณาตั้งค่ารหัส รพ. ก่อนดึงข้อมูลรายคน'
+            ], 422);
         }
-        $hcode = $hcode ?: '10989';
 
         $cmd = sprintf(
-            '%s "%s" %s %s %s %s %s %s',
+            '%s "%s" %s %s %s %s %s %s %s',
             $nodeExe,
             $scriptPath,
             escapeshellarg($batch->batch_no),
@@ -2034,7 +2033,8 @@ class SmartMoneyController extends Controller
             escapeshellarg($batch->transfer_date ?: date('Y-m-d')),
             escapeshellarg($batch->account_code ?: ''),
             escapeshellarg($hcode),
-            escapeshellarg($cookieFile)
+            escapeshellarg($cookieFile),
+            escapeshellarg($bearerToken)
         );
 
         $res = \App\Helpers\PlaywrightHelper::runSyncCommand($cmd, base_path(), $extraEnv);
@@ -2361,5 +2361,20 @@ class SmartMoneyController extends Controller
             500,
             ['Content-Type' => 'text/html; charset=utf-8']
         );
+    }
+
+    /**
+     * Get Hospital Code dynamically without fallback to other hospitals
+     */
+    protected function getHospitalCode(): ?string
+    {
+        $hcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+        if (!$hcode && \Illuminate\Support\Facades\Schema::hasTable('opdconfig')) {
+            $hcode = DB::table('opdconfig')->value('hospitalcode');
+        }
+        if (!$hcode && auth()->check()) {
+            $hcode = auth()->user()->hospital_code ?? null;
+        }
+        return !empty($hcode) ? trim((string)$hcode) : null;
     }
 }

@@ -1323,8 +1323,15 @@
                             });
 
                             if (res.status === 'success') {
-                                successCount++;
-                                totalPatients += (res.inserted_details || 0);
+                                if (res.inserted_details > 0) {
+                                    successCount++;
+                                    totalPatients += (res.inserted_details || 0);
+                                    if (res.warning) {
+                                        errors.push(res.warning);
+                                    }
+                                } else {
+                                    errors.push(item.round_no + ': ' + (res.warning || res.message || 'ไม่พบรายการผู้ป่วย'));
+                                }
                             } else {
                                 errors.push(item.round_no + ': ' + (res.message || 'ไม่ทราบสาเหตุ'));
                             }
@@ -1338,7 +1345,7 @@
                     $('#smtProgressPercent').text('100%');
                     $('#smtProgressStep').text('เสร็จสิ้นกระบวนการ');
 
-                    if (errors.length === 0) {
+                    if (errors.length === 0 && totalPatients > 0) {
                         Swal.fire({
                             icon: 'success',
                             title: 'นำเข้าข้อมูลสำเร็จ!',
@@ -1347,6 +1354,13 @@
                             confirmButtonColor: '#10b981'
                         }).then(() => {
                             location.reload();
+                        });
+                    } else if (totalPatients === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่พบรายการผู้ป่วยรายคน',
+                            html: `ไม่สามารถนำเข้ารายละเอียดรายคนได้<br><div class="text-danger small mt-2 text-start">${errors.join('<br>') || 'ไม่พบรายงานผู้ป่วยรายคนในระบบ สปสช.'}</div>`,
+                            confirmButtonText: 'ปิด'
                         });
                     } else {
                         Swal.fire({

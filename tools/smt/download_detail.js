@@ -102,8 +102,10 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
         'button:has(mat-icon:has-text("file_download"))',
         'button:has(mat-icon:has-text("download"))',
         'button:has(mat-icon:has-text("cloud_download"))',
+        'button:has(mat-icon:has-text("get_app"))',
         'mat-icon:has-text("file_download")',
         'mat-icon:has-text("download")',
+        'mat-icon:has-text("get_app")',
         '[title*="Export" i]',
         '[title*="Excel" i]',
         '[title*="ดาวน์โหลด" i]',
@@ -116,9 +118,9 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
 
     const startTime = Date.now();
     while (Date.now() - startTime < timeoutMs) {
-        // Dismiss any blocking dialogs if present
+        // Dismiss any blocking dialogs/announcements if present
         try {
-            const dismissBtn = await page.$('mat-dialog-container button:has-text("ตกลง"), mat-dialog-container button:has-text("ปิด"), mat-dialog-container button:has-text("OK")');
+            const dismissBtn = await page.$('button:has-text("เข้าสู่เว็บไซต์"), mat-dialog-container button:has-text("ตกลง"), mat-dialog-container button:has-text("ปิด"), mat-dialog-container button:has-text("OK")');
             if (dismissBtn && await dismissBtn.isVisible()) {
                 await dismissBtn.click().catch(() => {});
                 await page.waitForTimeout(500);
@@ -165,6 +167,9 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
             fiscalYear = String((now.getMonth() + 1) >= 10 ? bYear + 1 : bYear);
         }
 
+        const vendorId5Digit = hcode.replace(/\D/g, '');
+        const vendorId10 = vendorId5Digit.padStart(10, '0');
+
         // 1. Read clean cookies & resolve Bearer Token
         let actualCookieFile = cookieFile;
         if (!actualCookieFile || !fs.existsSync(actualCookieFile)) {
@@ -177,7 +182,12 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
         if (fs.existsSync(actualCookieFile)) {
             try {
                 const rawCookies = JSON.parse(fs.readFileSync(actualCookieFile, 'utf-8'));
-                cleanCookies = rawCookies.map(c => {
+                // Filter out massive ACCESS_TOKEN and corrupt quoted session cookies to prevent F5 WAF 400 Bad Request
+                cleanCookies = rawCookies.filter(c => 
+                    c.name !== 'ACCESS_TOKEN' && 
+                    c.name !== 'KEYCLOAK_IDENTITY' &&
+                    !String(c.value).includes('"')
+                ).map(c => {
                     return {
                         name: c.name,
                         value: c.value,
@@ -191,6 +201,14 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                         resolvedToken = tokCookie.value;
                     }
                 }
+            } catch (e) {}
+        }
+
+        // Decode JWT payload for user profile injection
+        let jwtPayload = {};
+        if (resolvedToken) {
+            try {
+                jwtPayload = JSON.parse(Buffer.from(resolvedToken.split('.')[1], 'base64').toString('utf-8'));
             } catch (e) {}
         }
 
@@ -221,24 +239,35 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
 
         const page = await context.newPage();
 
-        await page.addInitScript((tok) => {
+        // Inject complete ngx-webstorage Angular credentials
+        await page.addInitScript(({ tok, p }) => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             if (tok) {
                 try {
+                    const jsonTok = JSON.stringify(tok);
+                    localStorage.setItem('ngx-webstorage|token', jsonTok);
+                    localStorage.setItem('ngx-webstorage|username', JSON.stringify(p.preferred_username || p.username || ''));
+                    localStorage.setItem('ngx-webstorage|firstname', JSON.stringify(p.given_name || p.name || ''));
+                    localStorage.setItem('ngx-webstorage|lastname', JSON.stringify(p.family_name || ''));
+                    localStorage.setItem('ngx-webstorage|userId', JSON.stringify(p.userId || 1));
+                    localStorage.setItem('ngx-webstorage|userType', JSON.stringify('H'));
+                    localStorage.setItem('ngx-webstorage|loginProvider', JSON.stringify('CREDENTIAL'));
+                    localStorage.setItem('ngx-webstorage|fullnameTh', JSON.stringify(p.nameTh || p.name || ''));
+
                     localStorage.setItem('access_token', tok);
                     localStorage.setItem('token', tok);
                     sessionStorage.setItem('access_token', tok);
                     sessionStorage.setItem('token', tok);
                 } catch(e) {}
             }
-        }, resolvedToken);
+        }, { tok: resolvedToken, p: jwtPayload });
 
-        // 2. SSO Login
-        await page.goto('https://smt.nhso.go.th/smtf/#/login', { waitUntil: 'networkidle', timeout: 30000 });
-        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 6000 }).catch(() => null);
+        // 2. SSO Login Check
+        await page.goto('https://smt.nhso.go.th/smtf/#/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 4000 }).catch(() => null);
         if (loginBtn) {
             await loginBtn.click();
-            await page.waitForTimeout(5000);
+            await page.waitForTimeout(3000);
         }
 
         // 3. Resolve Detail Parameters via SMT API
@@ -246,8 +275,8 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
         let fromSystem = '';
         let sfundCd = '13';
         let efundCd = '1';
+        let batchMophId = accountCode || '';
 
-        const vendorId10 = hcode.replace(/\D/g, '').padStart(10, '0');
         const reqHeaders = {
             'Content-Type': 'application/json',
             'Accept': 'application/json, text/plain, */*',
@@ -281,6 +310,7 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                     if (matched.fromSystem) fromSystem = String(matched.fromSystem).toUpperCase();
                     if (matched.sfundCd) sfundCd = String(matched.sfundCd);
                     if (matched.efundCd) efundCd = String(matched.efundCd);
+                    if (matched.mophId) batchMophId = String(matched.mophId);
                 }
             }
         } catch (e) {}
@@ -309,95 +339,10 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                         if (matched2.fromSystem) fromSystem = String(matched2.fromSystem).toUpperCase();
                         if (matched2.sfundCd) sfundCd = String(matched2.sfundCd);
                         if (matched2.efundCd) efundCd = String(matched2.efundCd);
+                        if (matched2.mophId) batchMophId = String(matched2.mophId);
                     }
                 }
             } catch (e) {}
-        }
-
-        const accEncoded = encodeURIComponent(accountCode);
-        const roundEncoded = encodeURIComponent(roundNo);
-
-        // Build list of candidate URLs to try in priority order
-        const candidateUrls = [];
-
-        if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
-            if (recId) {
-                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}?mophId=${accEncoded}`);
-                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId10}/${recId}?mophId=${accEncoded}`);
-                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}`);
-            }
-            // Fallback to DMIS route if LGOHD route fails
-            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
-            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
-        } else if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
-            if (recId) {
-                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${hcode}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
-                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${vendorId10}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
-            }
-            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
-        } else {
-            // Default to DMIS
-            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
-            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
-        }
-
-        let exportBtn = null;
-        for (const dUrl of candidateUrls) {
-            try {
-                await page.goto(dUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                // Wait for any loading spinner to detach
-                await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
-                await page.waitForTimeout(2000);
-
-                exportBtn = await findExportExcelButton(page, 10000);
-                if (exportBtn) {
-                    break;
-                }
-            } catch (e) {}
-        }
-
-        // 4. If direct URLs failed, Fallback to Summary UI navigation
-        if (!exportBtn) {
-            try {
-                const summaryUrl = 'https://smt.nhso.go.th/smtf/#/home/budget/summary';
-                await page.goto(summaryUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
-                await page.waitForTimeout(2000);
-
-                // Try finding and clicking the row with batchNo or roundNo
-                const rowLink = await page.$(`tr:has-text("${batchNo}") a, tr:has-text("${roundNo}") a, tr:has-text("${batchNo}") button, tr:has-text("${roundNo}") button, tr:has-text("${batchNo}") mat-icon, tr:has-text("${roundNo}") mat-icon`);
-                if (rowLink) {
-                    await rowLink.click();
-                    await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
-                    await page.waitForTimeout(3000);
-                    exportBtn = await findExportExcelButton(page, 15000);
-                }
-            } catch (e) {}
-        }
-
-        if (!exportBtn) {
-            await browser.close();
-            console.error(JSON.stringify({ 
-                status: 'error', 
-                message: `ไม่พบปุ่ม Export Excel ในหน้ารายละเอียดของ สปสช. สำหรับงวด ${roundNo} (หน่วยบริการ ${hcode}) อาจเป็นงบที่ไม่มีรายการผู้ป่วยรายบุคคล หรือยังไม่ออกรายงาน` 
-            }));
-            process.exit(1);
-        }
-
-        // 5. Download File
-        let download;
-        try {
-            [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: 60000 }),
-                exportBtn.click(),
-            ]);
-        } catch (btnErr) {
-            await browser.close();
-            console.error(JSON.stringify({ 
-                status: 'error', 
-                message: `กดปุ่มดาวน์โหลดแล้วหมดเวลา (Timeout) หรือเกิดข้อผิดพลาด: ${btnErr.message}` 
-            }));
-            process.exit(1);
         }
 
         const tempDir = path.join(__dirname, '../../storage/app/temp');
@@ -405,29 +350,192 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        const dPath = path.join(tempDir, `${roundNo}_${Date.now()}.xlsx`);
-        try {
-            await download.saveAs(dPath);
-        } catch (saveErr) {
-            const failReason = await download.failure().catch(() => null);
-            await browser.close();
-            console.error(JSON.stringify({ 
-                status: 'error', 
-                message: `การดาวน์โหลดไฟล์ Excel จาก สปสช. ถูกยกเลิก (${failReason || saveErr.message}) - อาจเกิดจาก Session ThaiD/สปสช. หมดอายุ หรือสิทธิ์เข้าถึงไม่ตรง กรุณาลองสแกนเข้าสู่ระบบ ThaiD ใหม่อีกครั้ง` 
-            }));
-            process.exit(1);
+        let downloadedPath = null;
+
+        // Fast Path: Try Direct SMT Export API
+        const exportConfigs = [];
+        if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
+            exportConfigs.push({
+                url: 'https://smt.nhso.go.th/smtf/api/eclaim-d1/export/eclaim-d1',
+                data: { refDocNo: roundNo, vendorId: vendorId5Digit, batchNo: String(batchNo), postingDate: postingDate, fcode: '', subFund: '', description: '', mophId: batchMophId }
+            });
+        }
+        if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
+            if (recId) {
+                exportConfigs.push({
+                    url: 'https://smt.nhso.go.th/smtf/api/lgohd/export/lgohd',
+                    data: { recId: recId, vendorId: vendorId5Digit, mophId: batchMophId }
+                });
+                exportConfigs.push({
+                    url: 'https://smt.nhso.go.th/smtf/api/lgohd/export/lgohd-ap',
+                    data: { recId: recId, vendorId: vendorId5Digit, mophId: batchMophId }
+                });
+            }
+        }
+        if (fromSystem === 'DMIS' || roundNo.startsWith('DM')) {
+            exportConfigs.push({
+                url: 'https://smt.nhso.go.th/smtf/api/dmis/export/dmis',
+                data: { refDocNo: roundNo, vendorId: vendorId5Digit, postingDate: postingDate, sfundCd: sfundCd, efundCd: efundCd, batchNo: String(batchNo), mophId: batchMophId }
+            });
+        }
+
+        for (const ec of exportConfigs) {
+            try {
+                const expRes = await context.request.post(ec.url, {
+                    ignoreHTTPSErrors: true,
+                    headers: reqHeaders,
+                    data: ec.data
+                });
+                if (expRes.ok()) {
+                    const bodyBuf = await expRes.body();
+                    if (bodyBuf.length > 500) {
+                        const savePath = path.join(tempDir, `${roundNo}_${Date.now()}.xlsx`);
+                        fs.writeFileSync(savePath, bodyBuf);
+                        downloadedPath = savePath;
+                        break;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // Browser UI Navigation Path (if direct export was not available)
+        if (!downloadedPath) {
+            const accEncoded = encodeURIComponent(batchMophId);
+            const roundEncoded = encodeURIComponent(roundNo);
+
+            // Build list of candidate URLs to try in priority order
+            const candidateUrls = [];
+
+            if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
+                if (recId) {
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd-ap/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgo-hd/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId10}/${recId}?mophId=${accEncoded}`);
+                }
+                // Fallback to DMIS route if LGOHD route fails
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+            } else if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
+                if (recId) {
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${vendorId5Digit}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim/${roundEncoded}/${recId}/${vendorId5Digit}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${vendorId10}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
+                }
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+            } else {
+                // Default to DMIS
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+            }
+
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/`);
+
+            let exportBtn = null;
+            for (const dUrl of candidateUrls) {
+                try {
+                    await page.goto(dUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    // Wait for any loading spinner to detach
+                    await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                    await page.waitForTimeout(2000);
+
+                    // Dismiss any blocking dialogs
+                    const dismissBtn = await page.$('button:has-text("เข้าสู่เว็บไซต์"), mat-dialog-container button:has-text("ตกลง"), mat-dialog-container button:has-text("ปิด")');
+                    if (dismissBtn && await dismissBtn.isVisible()) {
+                        await dismissBtn.click().catch(() => {});
+                        await page.waitForTimeout(500);
+                    }
+
+                    exportBtn = await findExportExcelButton(page, 8000);
+                    if (exportBtn) {
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            // Fallback to Summary UI navigation if direct URL didn't find export button
+            if (!exportBtn) {
+                try {
+                    const summaryUrl = 'https://smt.nhso.go.th/smtf/#/home/budget/summary';
+                    await page.goto(summaryUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                    await page.waitForTimeout(2000);
+
+                    // Dismiss announcement
+                    const dismissBtn = await page.$('button:has-text("เข้าสู่เว็บไซต์")');
+                    if (dismissBtn && await dismissBtn.isVisible()) {
+                        await dismissBtn.click().catch(() => {});
+                        await page.waitForTimeout(1000);
+                    }
+
+                    // Try finding and clicking the row with batchNo or roundNo
+                    const rowLink = await page.$(`tr:has-text("${batchNo}") a, tr:has-text("${roundNo}") a, tr:has-text("${batchNo}") button, tr:has-text("${roundNo}") button, tr:has-text("${batchNo}") mat-icon, tr:has-text("${roundNo}") mat-icon, mat-row:has-text("${batchNo}") mat-cell a, mat-row:has-text("${roundNo}") mat-cell a`);
+                    if (rowLink) {
+                        await rowLink.click();
+                        await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                        await page.waitForTimeout(3000);
+                        exportBtn = await findExportExcelButton(page, 12000);
+                    }
+                } catch (e) {}
+            }
+
+            if (!exportBtn) {
+                await browser.close();
+                console.error(JSON.stringify({ 
+                    status: 'error', 
+                    message: `ไม่พบปุ่ม Export Excel ในหน้ารายละเอียดของ สปสช. สำหรับงวด ${roundNo} (หน่วยบริการ ${hcode}) อาจเป็นงบที่ไม่มีรายการผู้ป่วยรายบุคคล หรือยังไม่ออกรายงาน` 
+                }));
+                process.exit(1);
+            }
+
+            // Download File via browser event
+            let download;
+            try {
+                [download] = await Promise.all([
+                    page.waitForEvent('download', { timeout: 60000 }),
+                    exportBtn.click(),
+                ]);
+            } catch (btnErr) {
+                await browser.close();
+                console.error(JSON.stringify({ 
+                    status: 'error', 
+                    message: `กดปุ่มดาวน์โหลดแล้วหมดเวลา (Timeout) หรือเกิดข้อผิดพลาด: ${btnErr.message}` 
+                }));
+                process.exit(1);
+            }
+
+            const dPath = path.join(tempDir, `${roundNo}_${Date.now()}.xlsx`);
+            try {
+                await download.saveAs(dPath);
+                downloadedPath = dPath;
+            } catch (saveErr) {
+                const failReason = await download.failure().catch(() => null);
+                await browser.close();
+                console.error(JSON.stringify({ 
+                    status: 'error', 
+                    message: `การดาวน์โหลดไฟล์ Excel จาก สปสช. ถูกยกเลิก (${failReason || saveErr.message}) - อาจเกิดจาก Session ThaiD/สปสช. หมดอายุ หรือสิทธิ์เข้าถึงไม่ตรง กรุณาลองสแกนเข้าสู่ระบบ ThaiD ใหม่อีกครั้ง` 
+                }));
+                process.exit(1);
+            }
         }
 
         await browser.close();
 
+        if (!downloadedPath || !fs.existsSync(downloadedPath)) {
+            console.error(JSON.stringify({ 
+                status: 'error', 
+                message: `ไม่พบไฟล์ที่ดาวน์โหลดสำหรับงวด ${roundNo}` 
+            }));
+            process.exit(1);
+        }
+
         // 6. Parse and Insert into DB
         const phpParser = path.join(__dirname, 'parse_detail_excel.php');
-        const cmd = `php "${phpParser}" "${dPath}" "${roundNo}" "${batchNo}" "${hcode}"`;
+        const cmd = `php "${phpParser}" "${downloadedPath}" "${roundNo}" "${batchNo}" "${vendorId5Digit}"`;
         const resultOutput = execSync(cmd, { encoding: 'utf-8' });
 
         // 7. Zero Server File Retention: delete downloaded file
-        if (fs.existsSync(dPath)) {
-            fs.unlinkSync(dPath);
+        if (fs.existsSync(downloadedPath)) {
+            fs.unlinkSync(downloadedPath);
         }
 
         // Print final JSON result

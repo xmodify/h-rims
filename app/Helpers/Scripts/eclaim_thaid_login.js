@@ -384,7 +384,8 @@ async function run() {
                             else if (payload.organize_id) detectedHcode = payload.organize_id;
                             else if (payload.hospCode) detectedHcode = payload.hospCode;
 
-                            if (payload.cid) detectedCid = payload.cid;
+                            if (payload.personalId) detectedCid = payload.personalId;
+                            else if (payload.cid) detectedCid = payload.cid;
                             else if (payload.id_card) detectedCid = payload.id_card;
                             else if (payload.pid) detectedCid = payload.pid;
 

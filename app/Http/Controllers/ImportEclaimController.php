@@ -603,8 +603,17 @@ class ImportEclaimController extends Controller
 
         // กรณีระบุ auth_type = 'access_token' ชัดเจน
         if (in_array($authType, ['access_token', 'jwt', 'smt', 'smart_money', 'smart-money', 'client'])) {
-            if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
-                $parts = explode('.', $mJwt[1]);
+            $jwtStr = null;
+            if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $jwtStr = $mJwt[1];
+            } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $jwtStr = $mJwt[1];
+            } elseif (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
+                $jwtStr = $token;
+            }
+
+            if ($jwtStr) {
+                $parts = explode('.', $jwtStr);
                 if (count($parts) >= 2) {
                     $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
                     if (!empty($payload['exp']) && time() < $payload['exp']) {
@@ -652,8 +661,17 @@ class ImportEclaimController extends Controller
 
         // ตรวจสอบสำรองเฉพาะกรณีไม่ได้บังคับ auth_type = 'jsessionid'
         if (!$probePassed && $authType !== 'jsessionid') {
-            if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
-                $parts = explode('.', $mJwt[1]);
+            $jwtStr = null;
+            if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $jwtStr = $mJwt[1];
+            } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $mJwt)) {
+                $jwtStr = $mJwt[1];
+            } elseif (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
+                $jwtStr = $token;
+            }
+
+            if ($jwtStr) {
+                $parts = explode('.', $jwtStr);
                 if (count($parts) >= 2) {
                     $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
                     if (!empty($payload['exp']) && time() < $payload['exp']) {

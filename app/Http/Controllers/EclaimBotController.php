@@ -209,7 +209,9 @@ class EclaimBotController extends Controller
                 }
 
                 // ดึงชื่อผู้ใช้งานจริงจาก JWT Token หรือ HTML (ตัดข้อความที่เป็นประกาศทิ้ง)
-                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm)) {
+                $jm = [];
+                if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm) ||
+                    preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm)) {
                     try {
                         $parts = explode('.', $jm[1]);
                         if (count($parts) >= 2) {
@@ -295,12 +297,14 @@ class EclaimBotController extends Controller
         // ถอดรหัส CID จาก JWT Token ใน Cookie ของ e-Claim เพื่อระบุตัวบุคคลเจ้าของบัตร ThaiD
         if (!$targetUserId) {
             $tokenCid = null;
-            if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm)) {
+            $jm = [];
+            if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm) ||
+                preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $jm)) {
                 try {
                     $parts = explode('.', $jm[1]);
                     if (count($parts) >= 2) {
                         $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-                        $tokenCid = $payload['cid'] ?? ($payload['id_card'] ?? ($payload['pid'] ?? null));
+                        $tokenCid = $payload['personalId'] ?? ($payload['cid'] ?? ($payload['id_card'] ?? ($payload['pid'] ?? null)));
                     }
                 } catch (\Exception $e) {}
             }
@@ -384,7 +388,8 @@ class EclaimBotController extends Controller
                             }
 
                             if (!$detectedCid) {
-                                if (!empty($payload['cid'])) $detectedCid = (string)$payload['cid'];
+                                if (!empty($payload['personalId'])) $detectedCid = (string)$payload['personalId'];
+                                elseif (!empty($payload['cid'])) $detectedCid = (string)$payload['cid'];
                                 elseif (!empty($payload['id_card'])) $detectedCid = (string)$payload['id_card'];
                                 elseif (!empty($payload['pid'])) $detectedCid = (string)$payload['pid'];
                             }
@@ -752,7 +757,9 @@ class EclaimBotController extends Controller
             // =========================================================================
             if (in_array($authType, ['access_token', 'jwt', 'smt', 'smart_money', 'smart-money', 'client'])) {
                 $jwtStr = null;
-                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
+                if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
+                    $jwtStr = $mJwt[1];
+                } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $userToken, $mJwt)) {
                     $jwtStr = $mJwt[1];
                 } elseif (strpos($userToken, '.') !== false && substr_count($userToken, '.') >= 2) {
                     $jwtStr = $userToken;
@@ -1557,7 +1564,9 @@ class EclaimBotController extends Controller
                 // ดึงข้อมูลสดจาก Smart Money API หากมี Session ThaiD (ACCESS_TOKEN)
                 $thaiDToken = $sessionToken;
                 $bearerToken = null;
-                if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $thaiDToken, $mJwt)) {
+                if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $thaiDToken, $mJwt)) {
+                    $bearerToken = $mJwt[1];
+                } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $thaiDToken, $mJwt)) {
                     $bearerToken = $mJwt[1];
                 } elseif (strpos($thaiDToken, '.') !== false && substr_count($thaiDToken, '.') >= 2) {
                     $bearerToken = $thaiDToken;

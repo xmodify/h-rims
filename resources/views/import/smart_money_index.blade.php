@@ -39,11 +39,11 @@
     /* Action Dropdown Styling */
     .smart-action-dropdown .dropdown-menu {
         border-radius: 12px !important;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
         border: 1px solid rgba(226, 232, 240, 0.9) !important;
         min-width: 220px;
         padding: 6px;
-        z-index: 1055 !important;
+        z-index: 1065 !important;
     }
     .smart-action-dropdown .dropdown-item {
         font-size: 12px !important;
@@ -222,7 +222,7 @@
     </div>
 
     {{-- Main Card --}}
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card border-0 shadow-sm rounded-4" style="overflow: visible !important;">
         {{-- Card Header & Filter Tabs --}}
         <div class="card-header bg-white p-3 border-0">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -270,9 +270,8 @@
         </div>
 
         {{-- Table --}}
-        {{-- Table --}}
-        <div class="card-body p-0">
-            <div class="table-responsive">
+        <div class="card-body p-0" style="overflow: visible !important;">
+            <div class="table-responsive" style="overflow: visible !important;">
                 <table class="table table-hover align-middle mb-0" id="smartMoneyTable" style="width: 100%;">
                     <thead class="table-light">
                         <tr class="text-nowrap small text-muted">

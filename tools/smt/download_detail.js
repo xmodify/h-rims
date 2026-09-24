@@ -196,7 +196,7 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                     };
                 });
                 if (!resolvedToken) {
-                    const tokCookie = rawCookies.find(c => c.name === 'ACCESS_TOKEN' || c.name === 'KEYCLOAK_IDENTITY');
+                    const tokCookie = rawCookies.find(c => c.name === 'ACCESS_TOKEN') || rawCookies.find(c => c.name === 'KEYCLOAK_IDENTITY');
                     if (tokCookie && tokCookie.value) {
                         resolvedToken = tokCookie.value;
                     }
@@ -204,11 +204,18 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
             } catch (e) {}
         }
 
-        // Decode JWT payload for user profile injection
+        // Decode JWT payload for user profile injection and check expiry
         let jwtPayload = {};
         if (resolvedToken) {
             try {
                 jwtPayload = JSON.parse(Buffer.from(resolvedToken.split('.')[1], 'base64').toString('utf-8'));
+                if (jwtPayload.exp && (Date.now() / 1000) > jwtPayload.exp) {
+                    console.error(JSON.stringify({ 
+                        status: 'error', 
+                        message: 'Session ThaiD หมดอายุแล้ว (อายุ Session 30 นาที) กรุณากดเชื่อมต่อ ThaiD ใหม่อีกครั้ง' 
+                    }));
+                    process.exit(1);
+                }
             } catch (e) {}
         }
 
@@ -408,11 +415,13 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
 
             if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
                 if (recId) {
+                    candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId5Digit}/${recId}?&from=/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/LGO&mophId=${accEncoded}`);
                     candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
                     candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd-ap/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
                     candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgo-hd/${roundEncoded}/${vendorId5Digit}/${recId}?mophId=${accEncoded}`);
                     candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId10}/${recId}?mophId=${accEncoded}`);
                 }
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/LGO`);
                 // Fallback to DMIS route if LGOHD route fails
                 candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
             } else if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
@@ -422,10 +431,12 @@ async function findExportExcelButton(page, timeoutMs = 12000) {
                     candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${vendorId10}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
                 }
                 candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/UC`);
             } else {
                 // Default to DMIS
                 candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId5Digit}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
                 candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/null`);
             }
 
             candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail/${vendorId10}/${postingDate}/${batchNo}/${fiscalYear}/${vendorId5Digit}/`);

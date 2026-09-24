@@ -1371,16 +1371,29 @@ class SmartMoneyController extends Controller
 
         if (!$token) return null;
 
-        // Extract ACCESS_TOKEN (JWT)
-        if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
-            return $m[1];
+        // Extract ACCESS_TOKEN (JWT) - prioritize ACCESS_TOKEN (typ: Bearer) over KEYCLOAK_IDENTITY (typ: Serialized-ID)
+        $rawJwt = null;
+        if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
+            $rawJwt = $m[1];
+        } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
+            $rawJwt = $m[1];
+        } elseif (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
+            $rawJwt = trim($token);
         }
 
-        if (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
-            return trim($token);
+        if (!$rawJwt) return null;
+
+        // Check if token has expired
+        $parts = explode('.', $rawJwt);
+        if (isset($parts[1])) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (isset($payload['exp']) && time() > $payload['exp']) {
+                // Token has expired (Keycloak access tokens last 30 minutes)
+                return null;
+            }
         }
 
-        return null;
+        return $rawJwt;
     }
 
     /**

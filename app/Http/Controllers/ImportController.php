@@ -8873,15 +8873,27 @@ class ImportController extends Controller
 
         if (!$token) return null;
 
-        if (preg_match('/(?:ACCESS_TOKEN|KEYCLOAK_IDENTITY)=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
-            return $m[1];
+        $rawJwt = null;
+        if (preg_match('/ACCESS_TOKEN=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
+            $rawJwt = $m[1];
+        } elseif (preg_match('/KEYCLOAK_IDENTITY=([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+)/i', $token, $m)) {
+            $rawJwt = $m[1];
+        } elseif (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
+            $rawJwt = trim($token);
         }
 
-        if (strpos($token, '.') !== false && substr_count($token, '.') >= 2) {
-            return trim($token);
+        if (!$rawJwt) return null;
+
+        // Check if token has expired
+        $parts = explode('.', $rawJwt);
+        if (isset($parts[1])) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (isset($payload['exp']) && time() > $payload['exp']) {
+                return null;
+            }
         }
 
-        return null;
+        return $rawJwt;
     }
 
     /**

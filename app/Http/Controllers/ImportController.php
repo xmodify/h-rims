@@ -9594,6 +9594,781 @@ class ImportController extends Controller
         @file_put_contents($cookieFile, json_encode($cookies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         return $cookieFile;
     }
+
+    /**
+     * Universal STM Patient Detail API for Modal View
+     */
+    public function stm_universal_patient_detail(Request $request)
+    {
+        $type = $request->input('type');
+        $round_no = $request->input('round_no');
+        $stm_filename = $request->input('stm_filename');
+        $dep = strtoupper($request->input('dep', ''));
+        $search = $request->input('search');
+        $page = max(1, (int)$request->input('page', 1));
+        $per_page = (int)$request->input('per_page', 50);
+
+        if (!$round_no && !$stm_filename) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบข้อมูลงวดที่ต้องการ'
+            ], 400);
+        }
+
+        $config = $this->getStmTypeConfig($type, $dep, $round_no, $stm_filename);
+        if (!$config) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบรูปแบบประเภท Statement (' . $type . ')'
+            ], 400);
+        }
+
+        $table = $config['table'];
+        $baseQuery = DB::table($table);
+
+        if (!empty($config['filter_callback'])) {
+            $config['filter_callback']($baseQuery);
+        }
+
+        // Summary round info
+        $roundInfo = (clone $baseQuery)
+            ->selectRaw($config['summary_select'])
+            ->first();
+
+        // Search query
+        $query = clone $baseQuery;
+        if (!empty($search) && !empty($config['search_callback'])) {
+            $config['search_callback']($query, $search);
+        }
+
+        $totalFiltered = (clone $query)->count();
+        $totalAmountFiltered = (clone $query)->sum(DB::raw($config['amount_raw']));
+
+        $items = $query->orderBy($config['order_by_date'], 'asc')
+            ->orderBy($config['order_by_id'] ?? 'id', 'asc')
+            ->skip(($page - 1) * $per_page)
+            ->take($per_page)
+            ->get();
+
+        $data = $items->map(function($row) use ($config) {
+            return $config['row_formatter']($row);
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'type' => $type,
+            'title' => $config['title'],
+            'round_info' => [
+                'round_no' => $roundInfo->round_no ?? $round_no,
+                'stm_filename' => $roundInfo->stm_filename ?? $stm_filename,
+                'total_count' => (int)($roundInfo->total_count ?? 0),
+                'total_amount' => (float)($roundInfo->total_amount ?? 0),
+                'total_amount_formatted' => number_format((float)($roundInfo->total_amount ?? 0), 2),
+                'receive_no' => $roundInfo->receive_no ?? '',
+                'receipt_date' => $roundInfo->receipt_date ?? '',
+                'receipt_date_thai' => !empty($roundInfo->receipt_date) ? DateThai($roundInfo->receipt_date) : '-',
+                'receipt_by' => $roundInfo->receipt_by ?? ''
+            ],
+            'stats' => [
+                'total_count' => $totalFiltered,
+                'total_amount' => (float)$totalAmountFiltered,
+                'total_amount_formatted' => number_format((float)$totalAmountFiltered, 2)
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $per_page,
+                'total' => $totalFiltered,
+                'last_page' => max(1, (int)ceil($totalFiltered / $per_page))
+            ],
+            'fullpage_url' => $config['fullpage_url'],
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Universal STM Patient Export to Excel
+     */
+    public function stm_universal_patient_export(Request $request)
+    {
+        $type = $request->input('type');
+        $round_no = $request->input('round_no');
+        $stm_filename = $request->input('stm_filename');
+        $dep = strtoupper($request->input('dep', ''));
+        $search = $request->input('search');
+
+        if (!$round_no && !$stm_filename) {
+            abort(400, 'ไม่พบข้อมูลงวดที่ต้องการ');
+        }
+
+        $config = $this->getStmTypeConfig($type, $dep, $round_no, $stm_filename);
+        if (!$config) {
+            abort(400, 'ไม่พบรูปแบบประเภท Statement');
+        }
+
+        $baseQuery = DB::table($config['table']);
+        if (!empty($config['filter_callback'])) {
+            $config['filter_callback']($baseQuery);
+        }
+
+        $query = clone $baseQuery;
+        if (!empty($search) && !empty($config['search_callback'])) {
+            $config['search_callback']($query, $search);
+        }
+
+        $items = $query->orderBy($config['order_by_date'], 'asc')
+            ->orderBy($config['order_by_id'] ?? 'id', 'asc')
+            ->get();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Patient Detail');
+
+        $headers = ['ลำดับ', 'แผนก', 'ชื่อไฟล์ Statement', 'เลข REP/งวด', 'HN', 'CID / AN', 'ชื่อ-สกุล', 'วันรับบริการ', 'ยอดชดเชย (บาท)', 'หมายเหตุ', 'เลขที่ใบเสร็จ', 'วันที่ออกใบเสร็จ', 'ผู้ออกใบเสร็จ'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $sheet->getStyle('A1:M1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:M1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFE0F2FE');
+
+        $rowNum = 2;
+        foreach ($items as $idx => $item) {
+            $f = $config['row_formatter']($item);
+            $sheet->setCellValue('A' . $rowNum, $idx + 1);
+            $sheet->setCellValue('B' . $rowNum, $f['dep'] ?? '');
+            $sheet->setCellValue('C' . $rowNum, $item->stm_filename ?? $stm_filename);
+            $sheet->setCellValueExplicit('D' . $rowNum, (string)($f['repno'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('E' . $rowNum, (string)($f['hn'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('F' . $rowNum, (string)($f['cid_or_an'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('G' . $rowNum, $f['pt_name'] ?? '');
+            $sheet->setCellValue('H' . $rowNum, $f['datetimeadm_thai'] ?? '');
+            $sheet->setCellValue('I' . $rowNum, (float)($f['amount'] ?? 0));
+            $sheet->setCellValue('J' . $rowNum, $f['note'] ?? '');
+            $sheet->setCellValueExplicit('K' . $rowNum, (string)($f['receive_no'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('L' . $rowNum, $f['receipt_date_thai'] ?? '');
+            $sheet->setCellValue('M' . $rowNum, $f['receipt_by'] ?? '');
+            $rowNum++;
+        }
+
+        $sheet->getStyle('I2:I' . ($rowNum - 1))->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (range('A', 'M') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = ($type ?: 'stm') . ($dep ? '_' . strtolower($dep) : '') . '_round_' . ($round_no ?: 'detail') . '_' . date('YmdHis') . '.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * Get STM Type Configuration for Universal Detail
+     */
+    protected function getStmTypeConfig($type, $dep, $round_no, $stm_filename)
+    {
+        switch ($type) {
+            case 'stm_lgo_kidney':
+                return [
+                    'table' => 'stm_lgo_kidney',
+                    'title' => 'Statement สิทธิเบิกจ่ายตรง อปท.LGO [ฟอกไต HD]',
+                    'amount_raw' => 'COALESCE(compensate_kidney, 0)',
+                    'order_by_date' => 'datetimeadm',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(compensate_kidney, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        } elseif ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => $row->dep ?? 'HD',
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => $row->cid ?? '-',
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->datetimeadm) ? DateThai(substr($row->datetimeadm, 0, 10)) : '-',
+                            'amount' => (float)($row->compensate_kidney ?? 0),
+                            'amount_formatted' => number_format((float)($row->compensate_kidney ?? 0), 2),
+                            'note' => $row->note ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_lgo_kidneydetail') . ($round_no ? '?round_no=' . urlencode($round_no) : '')
+                ];
+
+            case 'stm_ucs_kidney':
+                return [
+                    'table' => 'stm_ucs_kidney',
+                    'title' => 'Statement สิทธิหลักประกันสุขภาพ UCS [ฟอกไต HD]',
+                    'amount_raw' => 'COALESCE(receive_total, 0)',
+                    'order_by_date' => 'datetimeadm',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(receive_total, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        } elseif ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => 'HD',
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->cid) ? $row->cid : ($row->an ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->datetimeadm) ? DateThai(substr($row->datetimeadm, 0, 10)) : '-',
+                            'amount' => (float)($row->receive_total ?? 0),
+                            'amount_formatted' => number_format((float)($row->receive_total ?? 0), 2),
+                            'note' => $row->note ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_ucs_kidneydetail') . ($round_no ? '?round_no=' . urlencode($round_no) : '')
+                ];
+
+            case 'stm_sss_kidney':
+                return [
+                    'table' => 'stm_sss_kidney',
+                    'title' => 'Statement สิทธิประกันสังคม SSS [ฟอกไต HD]',
+                    'amount_raw' => 'COALESCE(amount, 0)',
+                    'order_by_date' => 'dttran',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, rid) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(amount, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('rid', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        } elseif ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('station', 'like', "%{$search}%")
+                                ->orWhere('rid', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => $row->station ?? 'SSS HD',
+                            'repno' => $row->rid ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => $row->cid ?? '-',
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->dttran) ? DateThai(substr($row->dttran, 0, 10)) : '-',
+                            'amount' => (float)($row->amount ?? 0),
+                            'amount_formatted' => number_format((float)($row->amount ?? 0), 2),
+                            'note' => '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_sss_kidneydetail') . ($round_no ? '?round_no=' . urlencode($round_no) : '')
+                ];
+
+            case 'stm_bkk_kidney':
+                return [
+                    'table' => 'stm_bkk_kidney',
+                    'title' => 'Statement สิทธิเบิกจ่ายตรง กทม. BKK [ฟอกไต HD]',
+                    'amount_raw' => 'COALESCE(receive_total, 0)',
+                    'order_by_date' => 'datetimeadm',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(receive_total, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        } elseif ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => 'HD',
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->cid) ? $row->cid : ($row->an ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->datetimeadm) ? DateThai(substr($row->datetimeadm, 0, 10)) : '-',
+                            'amount' => (float)($row->receive_total ?? 0),
+                            'amount_formatted' => number_format((float)($row->receive_total ?? 0), 2),
+                            'note' => $row->note ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_bkk_kidneydetail') . ($round_no ? '?round_no=' . urlencode($round_no) : '')
+                ];
+
+            case 'stm_bmt_kidney':
+                return [
+                    'table' => 'stm_bmt_kidney',
+                    'title' => 'Statement สิทธิข้าราชการ กทม. BMT [ฟอกไต HD]',
+                    'amount_raw' => 'COALESCE(receive_total, 0)',
+                    'order_by_date' => 'datetimeadm',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(receive_total, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        } elseif ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => 'HD',
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->cid) ? $row->cid : ($row->an ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->datetimeadm) ? DateThai(substr($row->datetimeadm, 0, 10)) : '-',
+                            'amount' => (float)($row->receive_total ?? 0),
+                            'amount_formatted' => number_format((float)($row->receive_total ?? 0), 2),
+                            'note' => $row->note ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_bmt_kidneydetail') . ($round_no ? '?round_no=' . urlencode($round_no) : '')
+                ];
+
+            case 'stm_ucs':
+                $title = 'Statement สิทธิประกันสุขภาพถ้วนหน้า UCS' . ($dep ? ' [' . $dep . ']' : '');
+                $orderDate = (strtolower($dep) === 'ipd' ? 'datetimedch' : 'datetimeadm');
+                $fullUrl = url('import/stm_ucs_detail_' . (strtolower($dep) === 'ipd' ? 'ipd' : 'opd'));
+
+                return [
+                    'table' => 'stm_ucs',
+                    'title' => $title,
+                    'amount_raw' => 'COALESCE(receive_total, 0)',
+                    'order_by_date' => $orderDate,
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(receive_total, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename, $dep) {
+                        if ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        } elseif ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        }
+                        if ($dep === 'OPD') {
+                            $q->whereRaw('SUBSTRING(stm_filename, 11) LIKE "O%"');
+                        } elseif ($dep === 'IPD') {
+                            $q->whereRaw('SUBSTRING(stm_filename, 11) LIKE "I%"');
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) use ($dep) {
+                        $amt = (float)($row->receive_total ?? 0);
+                        $dateCol = (strtolower($dep) === 'ipd' && !empty($row->datetimedch)) ? $row->datetimedch : (!empty($row->datetimeadm) ? $row->datetimeadm : ($row->vstdate ?? ''));
+                        return [
+                            'id' => $row->id,
+                            'dep' => $dep ?: (str_starts_with(substr($row->stm_filename ?? '', 10), 'I') ? 'IPD' : 'OPD'),
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->an) ? $row->an : ($row->cid ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($dateCol) ? DateThai(substr($dateCol, 0, 10)) : '-',
+                            'amount' => $amt,
+                            'amount_formatted' => number_format($amt, 2),
+                            'note' => $row->projcode ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => $fullUrl
+                ];
+
+            case 'stm_lgo':
+                $title = 'Statement สิทธิเบิกจ่ายตรง อปท. LGO' . ($dep ? ' [' . $dep . ']' : '');
+                $orderDate = (strtolower($dep) === 'ipd' ? 'datetimedch' : 'datetimeadm');
+                $fullUrl = url('import/stm_lgo_detail_' . (strtolower($dep) === 'ipd' ? 'ipd' : 'opd'));
+
+                return [
+                    'table' => 'stm_lgo',
+                    'title' => $title,
+                    'amount_raw' => 'COALESCE(compensate_treatment, 0)',
+                    'order_by_date' => $orderDate,
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(compensate_treatment, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename, $dep) {
+                        if ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        } elseif ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        }
+                        if ($dep === 'OPD') {
+                            $q->where(function($sub) {
+                                $sub->where('dep', 'OP')->orWhere('dep', 'OPD')->orWhereRaw('SUBSTRING(stm_filename, 11) LIKE "O%"');
+                            });
+                        } elseif ($dep === 'IPD') {
+                            $q->where(function($sub) {
+                                $sub->where('dep', 'IP')->orWhere('dep', 'IPD')->orWhereRaw('SUBSTRING(stm_filename, 11) LIKE "I%"');
+                            });
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) use ($dep) {
+                        $amt = (float)($row->compensate_treatment ?? 0);
+                        $dateCol = (strtolower($dep) === 'ipd' && !empty($row->datetimedch)) ? $row->datetimedch : (!empty($row->datetimeadm) ? $row->datetimeadm : ($row->vstdate ?? ''));
+                        return [
+                            'id' => $row->id,
+                            'dep' => !empty($row->dep) ? $row->dep : ($dep ?: 'OPD'),
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->an) ? $row->an : ($row->cid ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($dateCol) ? DateThai(substr($dateCol, 0, 10)) : '-',
+                            'amount' => $amt,
+                            'amount_formatted' => number_format($amt, 2),
+                            'note' => $row->error_code ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => $fullUrl
+                ];
+
+            case 'stm_ofc':
+            case 'stm_bkk':
+            case 'stm_bmt':
+            case 'stm_pvt':
+            case 'stm_srt':
+                $titles = [
+                    'stm_ofc' => 'Statement สิทธิสวัสดิการข้าราชการ OFC',
+                    'stm_bkk' => 'Statement สิทธิเบิกจ่ายตรง กทม. BKK',
+                    'stm_bmt' => 'Statement สิทธิข้าราชการ กทม. BMT',
+                    'stm_pvt' => 'Statement สิทธิประกันสังคม ทุพพลภาพ PVT',
+                    'stm_srt' => 'Statement สิทธิเบิกจ่ายตรง การรถไฟฯ SRT'
+                ];
+
+                $title = ($titles[$type] ?? 'Statement') . ($dep ? ' [' . $dep . ']' : '');
+                $orderDate = (strtolower($dep) === 'ipd' ? 'datetimedch' : 'datetimeadm');
+                $fullUrl = url('import/' . $type . '_detail_' . (strtolower($dep) === 'ipd' ? 'ipd' : 'opd'));
+
+                return [
+                    'table' => $type,
+                    'title' => $title,
+                    'amount_raw' => 'COALESCE(receive_total, 0)',
+                    'order_by_date' => $orderDate,
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, repno) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(receive_total, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename, $dep) {
+                        if ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        } elseif ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('repno', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        }
+                        if ($dep === 'OPD') {
+                            $q->whereRaw('SUBSTRING(stm_filename, 11) LIKE "O%"');
+                        } elseif ($dep === 'IPD') {
+                            $q->whereRaw('SUBSTRING(stm_filename, 11) LIKE "I%"');
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('an', 'like', "%{$search}%")
+                                ->orWhere('cid', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('repno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) use ($dep) {
+                        $amt = (float)($row->receive_total ?? 0);
+                        $dateCol = (strtolower($dep) === 'ipd' && !empty($row->datetimedch)) ? $row->datetimedch : (!empty($row->datetimeadm) ? $row->datetimeadm : ($row->vstdate ?? ''));
+                        return [
+                            'id' => $row->id,
+                            'dep' => $dep ?: (str_starts_with(substr($row->stm_filename ?? '', 10), 'I') ? 'IPD' : 'OPD'),
+                            'repno' => $row->repno ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => !empty($row->an) ? $row->an : ($row->cid ?? '-'),
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($dateCol) ? DateThai(substr($dateCol, 0, 10)) : '-',
+                            'amount' => $amt,
+                            'amount_formatted' => number_format($amt, 2),
+                            'note' => $row->projcode ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => $fullUrl
+                ];
+
+            case 'stm_ofc_cipn':
+                return [
+                    'table' => 'stm_ofc_cipn',
+                    'title' => 'Statement สิทธิสวัสดิการข้าราชการ CIPN',
+                    'amount_raw' => 'COALESCE(gtotal, 0)',
+                    'order_by_date' => 'datedsc',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, rid) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(gtotal, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        } elseif ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('rid', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('an', 'like', "%{$search}%")
+                                ->orWhere('namepat', 'like', "%{$search}%")
+                                ->orWhere('rid', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => 'CIPN',
+                            'repno' => $row->rid ?? ($row->round_no ?? '-'),
+                            'hn' => '-',
+                            'cid_or_an' => $row->an ?? '-',
+                            'pt_name' => $row->namepat ?? '-',
+                            'datetimeadm_thai' => !empty($row->datedsc) ? DateThai(substr($row->datedsc, 0, 10)) : '-',
+                            'amount' => (float)($row->gtotal ?? 0),
+                            'amount_formatted' => number_format((float)($row->gtotal ?? 0), 2),
+                            'note' => $row->ptype ?? '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_ofc_cipndetail')
+                ];
+
+            case 'stm_ofc_csop':
+                return [
+                    'table' => 'stm_ofc_csop',
+                    'title' => 'Statement สิทธิสวัสดิการข้าราชการ CSOP / ฟอกไต',
+                    'amount_raw' => 'COALESCE(amount, 0)',
+                    'order_by_date' => 'vstdate',
+                    'order_by_id' => 'id',
+                    'summary_select' => '
+                        stm_filename,
+                        COALESCE(round_no, rid) AS round_no,
+                        COUNT(*) AS total_count,
+                        SUM(COALESCE(amount, 0)) AS total_amount,
+                        MAX(receive_no) AS receive_no,
+                        MAX(receipt_date) AS receipt_date,
+                        MAX(receipt_by) AS receipt_by
+                    ',
+                    'filter_callback' => function($q) use ($round_no, $stm_filename) {
+                        if ($stm_filename) {
+                            $q->where('stm_filename', $stm_filename);
+                        } elseif ($round_no) {
+                            $q->where(function($sub) use ($round_no) {
+                                $sub->where('rid', $round_no)->orWhere('round_no', $round_no);
+                            });
+                        }
+                    },
+                    'search_callback' => function($q, $search) {
+                        $q->where(function($sub) use ($search) {
+                            $sub->where('hn', 'like', "%{$search}%")
+                                ->orWhere('pt_name', 'like', "%{$search}%")
+                                ->orWhere('rid', 'like', "%{$search}%")
+                                ->orWhere('invno', 'like', "%{$search}%")
+                                ->orWhere('receive_no', 'like', "%{$search}%");
+                        });
+                    },
+                    'row_formatter' => function($row) {
+                        return [
+                            'id' => $row->id,
+                            'dep' => 'CSOP',
+                            'repno' => $row->rid ?? ($row->round_no ?? '-'),
+                            'hn' => $row->hn ?? '-',
+                            'cid_or_an' => '-',
+                            'pt_name' => $row->pt_name ?? '-',
+                            'datetimeadm_thai' => !empty($row->vstdate) ? DateThai(substr($row->vstdate, 0, 10)) : '-',
+                            'amount' => (float)($row->amount ?? 0),
+                            'amount_formatted' => number_format((float)($row->amount ?? 0), 2),
+                            'note' => '',
+                            'receive_no' => $row->receive_no ?? '',
+                            'receipt_date_thai' => !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-',
+                            'receipt_by' => $row->receipt_by ?? ''
+                        ];
+                    },
+                    'fullpage_url' => url('import/stm_ofc_csopdetail')
+                ];
+
+            default:
+                return null;
+        }
+    }
 }
 
 

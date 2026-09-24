@@ -1,6 +1,42 @@
 @extends('layouts.app')
  
 @section('content')
+<style>
+    /* Action Dropdown Styling */
+    .smart-action-dropdown .dropdown-menu {
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        min-width: 200px;
+        padding: 6px;
+        z-index: 1055 !important;
+    }
+    .smart-action-dropdown .dropdown-item {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        border-radius: 8px !important;
+        margin-bottom: 2px;
+        transition: all 0.15s ease;
+    }
+    .smart-action-dropdown .dropdown-item:hover {
+        background-color: #f1f5f9;
+    }
+    .smart-action-dropdown .dropdown-header {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px;
+        padding: 4px 12px;
+        color: #94a3b8;
+    }
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    .table-responsive:has(.dropdown-menu.show) {
+        padding-bottom: 90px;
+        margin-bottom: -90px;
+    }
+</style>
 <div class="container-fluid px-lg-4">
     <!-- Import Form Card -->
     <div class="row justify-content-center mt-3 mb-4">
@@ -97,9 +133,7 @@
                             <th class="text-center">เลขที่ใบเสร็จ</th>
                             <th class="text-center">วันที่ออกใบเสร็จ</th>
                             <th class="text-center">ผู้ออกใบเสร็จ</th>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center" width="15%">การจัดการ</th>
-                            @endif
+                            <th class="text-center" width="12%">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -136,37 +170,68 @@
                             </td>
                             <td class="text-center small">{{ !empty($row->receipt_date) ? DateThai($row->receipt_date) : '-' }}</td>
                             <td class="text-center small text-muted">{{ $row->receipt_by ?? '-' }}</td>
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                <td class="text-center text-nowrap">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        @if(!empty($row->round_no))
-                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
-                                                <button type="button"
-                                                    class="btn btn-xs {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-success btn-new-receipt' }} rounded-pill px-2"
-                                                    data-round="{{ $row->round_no }}"
-                                                    data-receive="{{ $row->receive_no }}"
-                                                    data-date="{{ $row->receipt_date }}"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#receiptModal"
-                                                    title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
-                                                    <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                                </button>
-                                            @endif
-                                            
-                                            @if(Auth::user()->status == 'admin')
-                                                <button type="button"
-                                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 btn-action-delete"
-                                                    data-filename="{{ $row->stm_filename }}"
-                                                    data-type="stm_srt"
-                                                    title="ลบข้อมูลนำเข้า">
-                                                    <i class="bi bi-trash-fill me-1"></i> ลบ
-                                                </button>
-                                            @endif
+                            <td class="text-center text-nowrap py-1.5">
+                                <div class="dropdown smart-action-dropdown">
+                                    <button class="btn btn-xs btn-outline-primary dropdown-toggle rounded-pill px-2.5 py-1 shadow-xs fw-semibold"
+                                            type="button" 
+                                            data-bs-toggle="dropdown" 
+                                            data-bs-auto-close="true"
+                                            aria-expanded="false" 
+                                            style="font-size: 11.5px;">
+                                        <i class="bi bi-gear-fill me-1"></i> ทำรายการ
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-1.5">
+                                        {{-- 1. ออกใบเสร็จ / แก้ไขเลขที่ใบเสร็จ --}}
+                                        @if(Auth::user()->status == 'admin' || Auth::user()->allow_receipt == 'Y')
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center {{ !empty($row->receive_no) ? 'btn-edit-receipt text-warning' : 'btn-new-receipt text-success' }}"
+                                                   data-round="{{ $row->round_no }}"
+                                                   data-receive="{{ $row->receive_no }}"
+                                                   data-date="{{ $row->receipt_date }}"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#receiptModal">
+                                                    <i class="bi {{ !empty($row->receive_no) ? 'bi-pencil-square text-warning' : 'bi-receipt text-success' }} me-2 fs-6"></i>
+                                                    <span class="fw-semibold">{{ !empty($row->receive_no) ? 'แก้ไขเลขที่ใบเสร็จ' : 'ออกใบเสร็จรับเงิน' }}</span>
+                                                </a>
+                                            </li>
                                         @endif
-                                    </div>
-                                </td>
-                            @endif
+
+                                        {{-- 2. ดูรายละเอียดงวด --}}
+                                        <li>
+                                            <a href="javascript:void(0);" 
+                                               class="dropdown-item d-flex align-items-center text-primary btn-view-patient-detail"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#patientDetailModal"
+                                               data-type="stm_srt"
+                                               data-dep="{{ $row->dep ?? 'OPD' }}"
+                                               data-round="{{ $row->round_no }}"
+                                               data-filename="{{ $row->stm_filename }}"
+                                               data-count="{{ $row->count_cid ?? 0 }}"
+                                               data-amount="{{ number_format($row->sum_receive_total ?? 0, 2) }}"
+                                               data-receive="{{ $row->receive_no }}"
+                                               data-date="{{ $row->receipt_date }}">
+                                                <i class="bi {{ $row->dep === 'IPD' ? 'bi-hospital' : 'bi-person-lines-fill' }} text-primary me-2 fs-6"></i>
+                                                <span>รายละเอียด ({{ $row->dep ?? 'OPD' }})</span>
+                                            </a>
+                                        </li>
+
+                                        {{-- 3. ลบข้อมูลงวดนี้ --}}
+                                        @if(Auth::user()->status == 'admin')
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a href="javascript:void(0);" 
+                                                   class="dropdown-item d-flex align-items-center text-danger btn-action-delete"
+                                                   data-filename="{{ $row->stm_filename }}"
+                                                   data-type="stm_srt">
+                                                    <i class="bi bi-trash3-fill text-danger me-2 fs-6"></i>
+                                                    <span>ลบข้อมูลงวดนี้</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </div>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -175,6 +240,8 @@
         </div>
     </div>
 </div>
+
+@include('import.components.patient_detail_modal')
 
 {{-- Modal: Monthly Summary Chart --}}
 <div class="modal fade" id="chartModal" tabindex="-1">

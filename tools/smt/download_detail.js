@@ -88,7 +88,60 @@ async function launchBrowser(options) {
     return await chromium.launch(opts);
 }
 
+// Helper to find export button with comprehensive selectors
+async function findExportExcelButton(page, timeoutMs = 12000) {
+    const exportSelectors = [
+        'mat-chip:has-text("Export Excel")',
+        'button:has-text("Export Excel")',
+        'a:has-text("Export Excel")',
+        ':text("Export Excel")',
+        'button:has-text("Export")',
+        'button:has-text("ส่งออก")',
+        'button:has-text("Excel")',
+        'button:has-text("ดาวน์โหลด")',
+        'button:has(mat-icon:has-text("file_download"))',
+        'button:has(mat-icon:has-text("download"))',
+        'button:has(mat-icon:has-text("cloud_download"))',
+        'mat-icon:has-text("file_download")',
+        'mat-icon:has-text("download")',
+        '[title*="Export" i]',
+        '[title*="Excel" i]',
+        '[title*="ดาวน์โหลด" i]',
+        '[aria-label*="Export" i]',
+        '[aria-label*="Excel" i]',
+        'a:has-text("Excel")',
+        '.btn-excel',
+        '.export-excel'
+    ];
+
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeoutMs) {
+        // Dismiss any blocking dialogs if present
+        try {
+            const dismissBtn = await page.$('mat-dialog-container button:has-text("ตกลง"), mat-dialog-container button:has-text("ปิด"), mat-dialog-container button:has-text("OK")');
+            if (dismissBtn && await dismissBtn.isVisible()) {
+                await dismissBtn.click().catch(() => {});
+                await page.waitForTimeout(500);
+            }
+        } catch (e) {}
+
+        // Check if any export button is visible
+        for (const sel of exportSelectors) {
+            try {
+                const el = await page.$(sel);
+                if (el && await el.isVisible()) {
+                    return el;
+                }
+            } catch (e) {}
+        }
+
+        await page.waitForTimeout(1000);
+    }
+    return null;
+}
+
 (async () => {
+    let browser;
     try {
         // Calculate Buddhist posting date e.g. 2026-09-15 -> 25690915 & fiscalYear
         let postingDate = '';
@@ -141,7 +194,7 @@ async function launchBrowser(options) {
             } catch (e) {}
         }
 
-        const browser = await launchBrowser({
+        browser = await launchBrowser({
             headless: true,
             args: [
                 '--disable-blink-features=AutomationControlled',
@@ -182,14 +235,13 @@ async function launchBrowser(options) {
 
         // 2. SSO Login
         await page.goto('https://smt.nhso.go.th/smtf/#/login', { waitUntil: 'networkidle', timeout: 30000 });
-        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 8000 }).catch(() => null);
+        const loginBtn = await page.waitForSelector('button:has-text("เข้าสู่ระบบผ่าน OSS สปสช.")', { timeout: 6000 }).catch(() => null);
         if (loginBtn) {
             await loginBtn.click();
-            await page.waitForTimeout(6000);
+            await page.waitForTimeout(5000);
         }
 
-        // 3. Construct Detail URL dynamically from NHSO SMT API
-        let detailUrl = '';
+        // 3. Resolve Detail Parameters via SMT API
         let recId = '';
         let fromSystem = '';
         let sfundCd = '13';
@@ -265,36 +317,63 @@ async function launchBrowser(options) {
         const accEncoded = encodeURIComponent(accountCode);
         const roundEncoded = encodeURIComponent(roundNo);
 
+        // Build list of candidate URLs to try in priority order
+        const candidateUrls = [];
+
         if (fromSystem === 'LGO-HD' || roundNo.includes('LGO-HD') || roundNo.includes('LGOHD') || roundNo.startsWith('HD-')) {
-            if (!recId) {
-                await browser.close();
-                console.error(JSON.stringify({ 
-                    status: 'error', 
-                    message: `ไม่พบรหัสรายงาน (recId) สำหรับงวด ${roundNo} (Batch ${batchNo}) ในระบบ สปสช. ของหน่วยบริการ ${hcode} (อาจยังไม่มีการอนุมัติรายงานรายคน)` 
-                }));
-                process.exit(1);
+            if (recId) {
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${vendorId10}/${recId}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}`);
             }
-            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-lgohd/${roundEncoded}/${hcode}/${recId}?mophId=${accEncoded}`;
+            // Fallback to DMIS route if LGOHD route fails
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
         } else if (fromSystem === 'E-CLAIM-D1' || roundNo.includes('_IP') || roundNo.includes('_OP')) {
-            if (!recId) {
-                await browser.close();
-                console.error(JSON.stringify({ 
-                    status: 'error', 
-                    message: `ไม่พบรหัสรายงาน (recId) สำหรับงวด ${roundNo} (Batch ${batchNo}) ในระบบ สปสช. ของหน่วยบริการ ${hcode}` 
-                }));
-                process.exit(1);
+            if (recId) {
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${hcode}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
+                candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${vendorId10}/${batchNo}/${postingDate}?mophId=${accEncoded}`);
             }
-            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-eclaim-d1/${roundEncoded}/${recId}/${hcode}/${batchNo}/${postingDate}?mophId=${accEncoded}`;
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
         } else {
             // Default to DMIS
-            detailUrl = `https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`;
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${hcode}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
+            candidateUrls.push(`https://smt.nhso.go.th/smtf/#/home/budget/summary-detail-dmis/${roundEncoded}/${vendorId10}/${postingDate}/${batchNo}/${sfundCd}/${efundCd}?mophId=${accEncoded}`);
         }
 
-        await page.goto(detailUrl, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
-        await page.waitForTimeout(4000);
+        let exportBtn = null;
+        for (const dUrl of candidateUrls) {
+            try {
+                await page.goto(dUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                // Wait for any loading spinner to detach
+                await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                await page.waitForTimeout(2000);
 
-        // 4. Wait for Export Excel Button
-        const exportBtn = await page.waitForSelector('mat-chip:has-text("Export Excel"), button:has-text("Export Excel"), :text("Export Excel")', { timeout: 20000 }).catch(() => null);
+                exportBtn = await findExportExcelButton(page, 10000);
+                if (exportBtn) {
+                    break;
+                }
+            } catch (e) {}
+        }
+
+        // 4. If direct URLs failed, Fallback to Summary UI navigation
+        if (!exportBtn) {
+            try {
+                const summaryUrl = 'https://smt.nhso.go.th/smtf/#/home/budget/summary';
+                await page.goto(summaryUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                await page.waitForTimeout(2000);
+
+                // Try finding and clicking the row with batchNo or roundNo
+                const rowLink = await page.$(`tr:has-text("${batchNo}") a, tr:has-text("${roundNo}") a, tr:has-text("${batchNo}") button, tr:has-text("${roundNo}") button, tr:has-text("${batchNo}") mat-icon, tr:has-text("${roundNo}") mat-icon`);
+                if (rowLink) {
+                    await rowLink.click();
+                    await page.waitForSelector('mat-spinner, .mat-progress-bar, ngx-spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+                    await page.waitForTimeout(3000);
+                    exportBtn = await findExportExcelButton(page, 15000);
+                }
+            } catch (e) {}
+        }
 
         if (!exportBtn) {
             await browser.close();
@@ -354,6 +433,9 @@ async function launchBrowser(options) {
         // Print final JSON result
         console.log(resultOutput.trim());
     } catch (err) {
+        if (browser) {
+            try { await browser.close(); } catch(e) {}
+        }
         console.error(JSON.stringify({ status: 'error', message: err.message }));
         process.exit(1);
     }

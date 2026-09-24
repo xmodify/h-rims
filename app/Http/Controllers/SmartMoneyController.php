@@ -2016,6 +2016,7 @@ class SmartMoneyController extends Controller
 
         $nodeExe = \App\Helpers\PlaywrightHelper::findNodeExecutable() ?: 'node';
         $customPath = \App\Helpers\PlaywrightHelper::getCustomBrowsersPath();
+        $extraEnv = ['PLAYWRIGHT_BROWSERS_PATH' => $customPath, 'HOME' => '/tmp'];
         $hcode = $this->getHospitalCode();
         if (!$hcode) {
             return response()->json([

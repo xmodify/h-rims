@@ -227,7 +227,7 @@
             border-radius: 16px !important;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            overflow: hidden !important;
+            overflow: visible !important;
             height: 100% !important;
             position: relative !important;
         }
@@ -524,7 +524,58 @@
             width: 100% !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 8px !important;
-            overflow: hidden !important;
+            overflow: visible !important;
+        }
+
+        .table thead tr:first-child th:first-child {
+            border-top-left-radius: 7px !important;
+        }
+        .table thead tr:first-child th:last-child {
+            border-top-right-radius: 7px !important;
+        }
+        .table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 7px !important;
+        }
+        .table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 7px !important;
+        }
+
+        /* Action Dropdown Global Styling */
+        .smart-action-dropdown {
+            position: relative;
+        }
+        .smart-action-dropdown .dropdown-menu {
+            border-radius: 12px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+            border: 1px solid rgba(226, 232, 240, 0.9) !important;
+            min-width: 190px;
+            padding: 6px;
+            z-index: 1065 !important;
+        }
+        .smart-action-dropdown .dropdown-item {
+            font-size: 12px !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            margin-bottom: 2px;
+            transition: all 0.15s ease;
+        }
+        .smart-action-dropdown .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+        .smart-action-dropdown .dropdown-header {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+            padding: 4px 12px;
+            color: #94a3b8;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: visible !important;
+        }
+        .table-responsive:has(.dropdown-menu.show),
+        .table-responsive:has(.smart-action-dropdown) {
+            overflow: visible !important;
         }
 
         /* Zebra Striping */

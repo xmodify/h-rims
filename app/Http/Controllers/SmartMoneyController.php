@@ -54,10 +54,15 @@ class SmartMoneyController extends Controller
 
         $budget_year = $request->budget_year ?: $budget_year_now;
 
-        // Default start and end dates based on budget year
-        $currBudgetYearObj = $budget_year_select->firstWhere('LEAVE_YEAR_ID', $budget_year);
-        $defaultStartDate = $currBudgetYearObj && !empty($currBudgetYearObj->DATE_BEGIN) ? $currBudgetYearObj->DATE_BEGIN : (($budget_year - 544) . '-10-01');
-        $defaultEndDate = $currBudgetYearObj && !empty($currBudgetYearObj->DATE_END) ? $currBudgetYearObj->DATE_END : (($budget_year - 543) . '-09-30');
+        // Default start and end dates based on budget year (ถ้าเป็นปีงบประมาณปัจจุบันให้เริ่มด้วยเดือนปัจจุบัน)
+        if ((int)$budget_year === (int)$budget_year_now) {
+            $defaultStartDate = date('Y-m-01');
+            $defaultEndDate = date('Y-m-t');
+        } else {
+            $currBudgetYearObj = $budget_year_select->firstWhere('LEAVE_YEAR_ID', $budget_year);
+            $defaultStartDate = $currBudgetYearObj && !empty($currBudgetYearObj->DATE_BEGIN) ? $currBudgetYearObj->DATE_BEGIN : (($budget_year - 544) . '-10-01');
+            $defaultEndDate = $currBudgetYearObj && !empty($currBudgetYearObj->DATE_END) ? $currBudgetYearObj->DATE_END : (($budget_year - 543) . '-09-30');
+        }
 
         $start_date = $request->filled('start_date') ? $this->parseDate($request->start_date) : $defaultStartDate;
         $end_date = $request->filled('end_date') ? $this->parseDate($request->end_date) : $defaultEndDate;
@@ -247,6 +252,7 @@ class SmartMoneyController extends Controller
             'batches',
             'budget_year_select',
             'budget_year',
+            'budget_year_now',
             'start_date',
             'end_date',
             'receipt_status',

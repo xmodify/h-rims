@@ -1294,13 +1294,32 @@
             }
         });
 
-        // When Budget Year is changed: update datepickers from data-begin / data-end and submit
+        // When Budget Year is changed: update datepickers and submit
         $('#budget_year_select').on('change', function() {
             var opt = $(this).find('option:selected');
+            var selectedYear = $(this).val();
+            var currentBudgetYear = "{{ $budget_year_now }}";
             var beginDate = opt.data('begin');
             var endDate = opt.data('end');
 
-            if (beginDate && endDate) {
+            if (selectedYear == currentBudgetYear) {
+                var now = new Date();
+                var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+                var sM = ("0" + (firstDay.getMonth() + 1)).slice(-2);
+                var eM = ("0" + (lastDay.getMonth() + 1)).slice(-2);
+                var eD = ("0" + lastDay.getDate()).slice(-2);
+
+                var sStr = firstDay.getFullYear() + '-' + sM + '-01';
+                var eStr = lastDay.getFullYear() + '-' + eM + '-' + eD;
+
+                $('#filter_start_date').val(sStr);
+                $('#filter_end_date').val(eStr);
+
+                $('#filter_start_date_picker').datepicker('setDate', firstDay);
+                $('#filter_end_date_picker').datepicker('setDate', lastDay);
+            } else if (beginDate && endDate) {
                 $('#filter_start_date').val(beginDate);
                 $('#filter_end_date').val(endDate);
 

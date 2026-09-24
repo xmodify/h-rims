@@ -1590,9 +1590,12 @@
                     <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted">ชื่อ-นามสกุล</label>
-                                <input type="text" class="form-control bg-light text-muted"
-                                    value="{{ auth()->user()->name }}" readonly tabindex="-1">
+                                <label class="form-label fw-bold small text-muted">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control bg-white @error('name') is-invalid @enderror"
+                                    name="name" value="{{ old('name', auth()->user()->name) }}" required autocomplete="name">
+                                @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">อีเมล (Email)</label>
@@ -1909,6 +1912,17 @@
         <script>
             $(document).ready(function () {
                 // Re-open modal if there are errors
+                @if ($errors->has('name') || $errors->has('cid'))
+                    var profileModalEl = document.getElementById('editProfileModal');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(profileModalEl).show();
+                    } else if (window.bootstrap && window.bootstrap.Modal) {
+                        window.bootstrap.Modal.getOrCreateInstance(profileModalEl).show();
+                    } else if (typeof $ !== 'undefined') {
+                        $('#editProfileModal').modal('show');
+                    }
+                @endif
+
                 @if ($errors->has('current_password') || $errors->has('new_password'))
                     var modalEl = document.getElementById('changePasswordModal');
                     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {

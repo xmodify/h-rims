@@ -41,15 +41,19 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'cid' => ['nullable', 'string', 'max:13'],
             'fdh_user' => ['nullable', 'string', 'max:255'],
             'fdh_pass' => ['nullable', 'string', 'max:255'],
             'fdh_secretKey' => ['nullable', 'string', 'max:255'],
             'eclaim_user' => ['nullable', 'string', 'max:255'],
             'eclaim_pass' => ['nullable', 'string', 'max:255'],
+        ], [
+            'name.required' => 'กรุณากรอกชื่อ-นามสกุล',
         ]);
 
         $updateData = [
+            'name' => trim($request->name),
             'cid' => $request->cid ? trim($request->cid) : null,
             'fdh_user' => $request->fdh_user ? trim($request->fdh_user) : null,
             'fdh_pass' => $request->fdh_pass ? trim($request->fdh_pass) : null,

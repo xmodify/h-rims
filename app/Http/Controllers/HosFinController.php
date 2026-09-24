@@ -4350,10 +4350,19 @@ class HosFinController extends Controller
                 $pm = intval($parts[1] ?? 0);
                 return (($pm >= 10 && $py === $budgetYear - 1) || ($pm <= 9 && $py === $budgetYear));
             }));
-            $selectedPeriod = in_array("{$budgetYear}-07", $yearPeriods) ? "{$budgetYear}-07" : ($yearPeriods[0] ?? "{$budgetYear}-07");
+            $selectedPeriod = !empty($yearPeriods) ? $yearPeriods[0] : "{$budgetYear}-07";
         } else {
-            $budgetYear = self::getCurrentBudgetYear() ?: 2569;
-            $selectedPeriod = in_array("{$budgetYear}-07", $availablePeriods) ? "{$budgetYear}-07" : (in_array('2569-07', $availablePeriods) ? '2569-07' : ($availablePeriods[0] ?? '2569-07'));
+            // ตอนเปิดครั้งแรก: เลือกงวดล่าสุดที่มีการนำเข้าข้อมูลงบทดลอง
+            if (!empty($availablePeriods)) {
+                $selectedPeriod = $availablePeriods[0];
+                $pParts = explode('-', $selectedPeriod);
+                $py = intval($pParts[0] ?? 2569);
+                $pm = intval($pParts[1] ?? 7);
+                $budgetYear = ($pm >= 10) ? ($py + 1) : $py;
+            } else {
+                $budgetYear = self::getCurrentBudgetYear() ?: 2569;
+                $selectedPeriod = "{$budgetYear}-07";
+            }
         }
 
         // Derive fiscal years dynamically from selected period

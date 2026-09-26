@@ -744,7 +744,7 @@ class ImportDrugcatController extends Controller
             SELECT  
                 d.icode AS HospDrugCode,
                 d.sks_product_category_id AS ProductCat,
-                d.sks_drug_code AS TMTID,
+                COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS TMTID,
                 {$s_spec} AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
                 IFNULL(d.trade_name, {$s_trade}) AS TradeName,
@@ -756,7 +756,7 @@ class ImportDrugcatController extends Controller
                 dr.comp AS Distributor,
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
                 CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                d.did AS NDC24,
+                COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS NDC24,
                 CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
                 d.unitprice AS Packprice,
                 '{$updateFlag}' AS UpdateFlag,
@@ -765,8 +765,10 @@ class ImportDrugcatController extends Controller
                 {$dateEffectiveExpr},
                 NULL AS Reimbprice
             FROM drugitems d
-            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''))
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''))
             LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
             {$s_join}
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
@@ -1006,8 +1008,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
@@ -1030,8 +1032,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm
             FROM drugitems d
@@ -1054,8 +1056,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm    
             FROM drugitems d
@@ -1078,8 +1080,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm   
             FROM drugitems d
@@ -1089,7 +1091,7 @@ class ImportDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> d3.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.tmtid <> COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '')
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('import.drugcat_fdh', compact('drug'));
@@ -1102,8 +1104,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm 
             FROM drugitems d
@@ -1113,7 +1115,7 @@ class ImportDrugcatController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> d2.ref_code
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' AND nd.ndc24 <> COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '')
             ORDER BY d.NAME,d.strength,d.units");
 
         return view('import.drugcat_fdh', compact('drug'));
@@ -1126,8 +1128,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
@@ -1150,8 +1152,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
@@ -1176,8 +1178,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
@@ -1188,7 +1190,7 @@ class ImportDrugcatController extends Controller
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
-              AND (d2.ref_code IS NULL OR d2.ref_code = '') 
+              AND (d2.ref_code IS NULL OR d2.ref_code = '') AND (d.did IS NULL OR d.did = '')
               AND nd.ndc24 IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
@@ -1202,8 +1204,8 @@ class ImportDrugcatController extends Controller
         $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
 			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
-            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
-            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
             CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
@@ -1214,7 +1216,7 @@ class ImportDrugcatController extends Controller
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
                 FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode 
             WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d.`name` NOT LIKE 'ยาเดิม%' AND d.`name` NOT LIKE 'ยาผู้ป่วย%' AND d.`name` NOT LIKE '%รพ.อื่น%' 
-              AND (d3.ref_code IS NULL OR d3.ref_code = '') 
+              AND (d3.ref_code IS NULL OR d3.ref_code = '') AND (d.sks_drug_code IS NULL OR d.sks_drug_code = '')
               AND nd.tmtid IS NOT NULL
             ORDER BY d.NAME,d.strength,d.units");
 
@@ -1251,7 +1253,7 @@ class ImportDrugcatController extends Controller
             SELECT  
                 d.icode AS HospDrugCode,
                 IFNULL(d.sks_product_category_id, '1') AS ProductCat,
-                IFNULL(d.sks_drug_code, '') AS TMTID,
+                COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''), '') AS TMTID,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
                 IFNULL(d.trade_name, IFNULL({$s_trade}, '')) AS TradeName,
                 IFNULL(d.sks_dfs_code, IFNULL({$s_dfs}, '')) AS DFSCode,
@@ -1262,7 +1264,7 @@ class ImportDrugcatController extends Controller
                 CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN IFNULL(tc.manufacturer, '') ELSE dr.manufacturer END AS Manufacturer,
                 CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '' OR d.drugaccount IS NULL) THEN 'N' ELSE 'E' END AS ISED,
                 {$s_spec} AS SpecPrep,
-                IFNULL(d.did, '') AS NDC24,
+                COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''), '') AS NDC24,
                 CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE IFNULL(p.provis_medication_unit_name, d.units) END AS Packsize,
                 d.unitprice AS Packprice,
                 nd.datechange AS fdh_datechange,
@@ -1275,8 +1277,10 @@ class ImportDrugcatController extends Controller
                 IFNULL(nd.filename, '') AS FileName,
                 '{$hosp_code}' AS HospCode
             FROM drugitems d
-            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = COALESCE(NULLIF(d3.ref_code, ''), NULLIF(d.sks_drug_code, ''))
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = COALESCE(NULLIF(d2.ref_code, ''), NULLIF(d.did, ''))
             LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
             {$s_join}
             LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 

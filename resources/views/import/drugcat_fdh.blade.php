@@ -147,7 +147,7 @@
                                 <input type="checkbox" name="selected_drugs[]" value="{{ $row->icode }}" class="form-check-input drug-checkbox">
                             </td>
                             @php
-                                $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->code_24_hos) || (strlen($row->code_24_hos) != 24) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
+                                $has_error = empty($row->code_tmt_hos);
                             @endphp
                             <td class="text-center" style="vertical-align: middle;" data-order="{{ $has_error ? 0 : 1 }}">
                                 <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}')">
@@ -432,7 +432,7 @@
                 
                 $('#previewTable').DataTable({
                     pageLength: 10,
-                    lengthMenu: [5, 10, 25, 50, 100],
+                    lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "ทั้งหมด"]],
                     scrollX: false,
                     language: {
                         search: "ค้นหาในตารางพรีวิว:",
@@ -553,6 +553,8 @@
       @endif
 
       const table = $('#drug').DataTable({
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, 250, 500, -1], [10, 25, 50, 100, 250, 500, "ทั้งหมด"]],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' +
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +

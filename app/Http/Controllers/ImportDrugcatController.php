@@ -689,218 +689,11 @@ class ImportDrugcatController extends Controller
         return view('import.drugcat_chi', compact('drug'));
     }
 
-    //ส่งออกรายการใหม่ สกส (กรณีไม่พบที่ สกส) - UpdateFlag = A-------------------------------------------------------------------------------------------------
-    public function drugcat_chi_export_new(Request $request, $seq = '0001')
+    //ดึงและประมวลผลข้อมูลสำหรับส่งออก สกส (CSMBS)------------------------------------------------------------------
+    private function getChiExportDrugs($icodes, $type = 'new')
     {
-        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
-        
-        $icodes = $request->input('icodes', []);
         if (empty($icodes) || !is_array($icodes)) {
-            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
-        }
-
-        $local_db = config('database.connections.mysql.database');
-        $quoted = array_map(function($val) {
-            return DB::connection('hosxp')->getPdo()->quote($val);
-        }, $icodes);
-        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
-        
-        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
-        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
-        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
-        $s_trade = $has_sks ? "s.TradeName" : "NULL";
-        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
-        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
-        $s_strength = $has_sks ? "s.Strength" : "NULL";
-        $s_date = $has_sks ? "s.DateEffective" : "NULL";
-
-        $drugs = DB::connection('hosxp')->select("
-            SELECT  
-                d.icode AS HospDrugCode,
-                d.sks_product_category_id AS ProductCat,
-                d.sks_drug_code AS TMTID,
-                {$s_spec} AS SpecPrep,
-                IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                IFNULL(d.strength, {$s_strength}) AS Strength,
-                IFNULL(d.dosageform, {$s_dose}) AS Content,
-                d.unitprice AS UnitPrice,
-                dr.comp AS Distributor,
-                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                d.did AS NDC24,
-                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
-                d.unitprice AS Packprice,
-                'A' AS UpdateFlag,
-                '' AS DateChange,
-                '' AS DateUpdate,
-                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective,
-                NULL AS Reimbprice
-            FROM drugitems d
-            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
-            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            {$s_join}
-            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
-              {$where_icode}
-            ORDER BY d.icode
-        ");
-
-        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
-    }
-
-    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขข้อมูลผลิตภัณฑ์) - UpdateFlag = E--------------------------------------------------------------------------------------
-    public function drugcat_chi_export_edit(Request $request, $seq = '0001')
-    {
-        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
-        
-        $icodes = $request->input('icodes', []);
-        if (empty($icodes) || !is_array($icodes)) {
-            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
-        }
-
-        $local_db = config('database.connections.mysql.database');
-        $quoted = array_map(function($val) {
-            return DB::connection('hosxp')->getPdo()->quote($val);
-        }, $icodes);
-        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
-        
-        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
-        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
-        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
-        $s_trade = $has_sks ? "s.TradeName" : "NULL";
-        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
-        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
-        $s_strength = $has_sks ? "s.Strength" : "NULL";
-        $s_date = $has_sks ? "s.DateEffective" : "NULL";
-
-        $drugs = DB::connection('hosxp')->select("
-            SELECT  
-                d.icode AS HospDrugCode,
-                d.sks_product_category_id AS ProductCat,
-                d.sks_drug_code AS TMTID,
-                {$s_spec} AS SpecPrep,
-                IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                IFNULL(d.strength, {$s_strength}) AS Strength,
-                IFNULL(d.dosageform, {$s_dose}) AS Content,
-                d.unitprice AS UnitPrice,
-                dr.comp AS Distributor,
-                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                d.did AS NDC24,
-                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
-                d.unitprice AS Packprice,
-                'E' AS UpdateFlag,
-                DATE_FORMAT(IFNULL(d.last_update, NOW()), '%d/%m/%Y') AS DateChange,
-                '' AS DateUpdate,
-                DATE_FORMAT(CASE 
-                    WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
-                    WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                    WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
-                    ELSE CURRENT_DATE()
-                END, '%d/%m/%Y') AS DateEffective,
-                NULL AS Reimbprice
-            FROM drugitems d
-            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
-            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
-            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
-              {$where_icode}
-            ORDER BY d.icode
-        ");
-
-        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
-    }
-
-    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขราคาส่งขาย) - UpdateFlag = U--------------------------------------------------------------------------------------
-    public function drugcat_chi_export_update(Request $request, $seq = '0001')
-    {
-        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
-        
-        $icodes = $request->input('icodes', []);
-        if (empty($icodes) || !is_array($icodes)) {
-            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
-        }
-
-        $local_db = config('database.connections.mysql.database');
-        $quoted = array_map(function($val) {
-            return DB::connection('hosxp')->getPdo()->quote($val);
-        }, $icodes);
-        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
-
-        $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
-        $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
-        $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
-        $s_trade = $has_sks ? "s.TradeName" : "NULL";
-        $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
-        $s_dose = $has_sks ? "s.DosageForm" : "NULL";
-        $s_strength = $has_sks ? "s.Strength" : "NULL";
-        $s_date = $has_sks ? "s.DateEffective" : "NULL";
-
-        $drugs = DB::connection('hosxp')->select("
-            SELECT  
-                d.icode AS HospDrugCode,
-                d.sks_product_category_id AS ProductCat,
-                d.sks_drug_code AS TMTID,
-                {$s_spec} AS SpecPrep,
-                IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                IFNULL(d.strength, {$s_strength}) AS Strength,
-                IFNULL(d.dosageform, {$s_dose}) AS Content,
-                d.unitprice AS UnitPrice,
-                dr.comp AS Distributor,
-                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                d.did AS NDC24,
-                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
-                d.unitprice AS Packprice,
-                'U' AS UpdateFlag,
-                '' AS DateChange,
-                DATE_FORMAT(IFNULL(d.lastupdatestdprice, NOW()), '%d/%m/%Y') AS DateUpdate,
-                DATE_FORMAT(CASE 
-                    WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
-                    WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                    WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
-                    ELSE CURRENT_DATE()
-                END, '%d/%m/%Y') AS DateEffective,
-                NULL AS Reimbprice
-            FROM drugitems d
-            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
-            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-            {$s_join}
-            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
-              {$where_icode}
-            ORDER BY d.icode
-        ");
-
-        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
-    }
-
-    public function drugcat_chi_export_preview(Request $request)
-    {
-        $type = $request->input('type', 'new');
-        $icodes = $request->input('icodes', []);
-        
-        if (empty($icodes) || !is_array($icodes)) {
-            return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการยาอย่างน้อย 1 รายการ', 'data' => []]);
+            return [];
         }
 
         $local_db = config('database.connections.mysql.database');
@@ -923,13 +716,17 @@ class ImportDrugcatController extends Controller
         $dateUpdateExpr = "'' AS DateUpdate";
         $dateEffectiveExpr = "DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective";
         
+        $sksEffectiveCondition = $has_sks 
+            ? "WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)" 
+            : "";
+
         if ($type === 'edit') {
             $updateFlag = 'E';
             $dateChangeExpr = "DATE_FORMAT(IFNULL(d.last_update, NOW()), '%d/%m/%Y') AS DateChange";
             $dateEffectiveExpr = "DATE_FORMAT(CASE 
                 WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
                 WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
+                {$sksEffectiveCondition}
                 ELSE CURRENT_DATE()
             END, '%d/%m/%Y') AS DateEffective";
         } elseif ($type === 'update') {
@@ -938,47 +735,97 @@ class ImportDrugcatController extends Controller
             $dateEffectiveExpr = "DATE_FORMAT(CASE 
                 WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
                 WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
-                WHEN {$s_date} IS NOT NULL AND {$s_date} >= CURRENT_DATE() THEN DATE_ADD({$s_date}, INTERVAL 1 DAY)
+                {$sksEffectiveCondition}
                 ELSE CURRENT_DATE()
             END, '%d/%m/%Y') AS DateEffective";
         }
 
+        $drugs = DB::connection('hosxp')->select("
+            SELECT  
+                d.icode AS HospDrugCode,
+                d.sks_product_category_id AS ProductCat,
+                d.sks_drug_code AS TMTID,
+                {$s_spec} AS SpecPrep,
+                IFNULL(d.generic_name, d.`name`) AS GenericName,
+                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
+                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
+                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
+                IFNULL(d.strength, {$s_strength}) AS Strength,
+                IFNULL(d.dosageform, {$s_dose}) AS Content,
+                d.unitprice AS UnitPrice,
+                dr.comp AS Distributor,
+                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                d.did AS NDC24,
+                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                d.unitprice AS Packprice,
+                '{$updateFlag}' AS UpdateFlag,
+                {$dateChangeExpr},
+                {$dateUpdateExpr},
+                {$dateEffectiveExpr},
+                NULL AS Reimbprice
+            FROM drugitems d
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
+            {$s_join}
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
+              {$where_icode}
+            ORDER BY d.icode
+        ");
+
+        return $drugs;
+    }
+
+    //ส่งออกรายการใหม่ สกส (กรณีไม่พบที่ สกส) - UpdateFlag = A-------------------------------------------------------------------------------------------------
+    public function drugcat_chi_export_new(Request $request, $seq = '0001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        $drugs = $this->getChiExportDrugs($icodes, 'new');
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
+    }
+
+    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขข้อมูลผลิตภัณฑ์) - UpdateFlag = E--------------------------------------------------------------------------------------
+    public function drugcat_chi_export_edit(Request $request, $seq = '0001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        $drugs = $this->getChiExportDrugs($icodes, 'edit');
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugE' . $seq . '.xlsx');
+    }
+
+    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขราคาส่งขาย) - UpdateFlag = U--------------------------------------------------------------------------------------
+    public function drugcat_chi_export_update(Request $request, $seq = '0001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 4, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        $drugs = $this->getChiExportDrugs($icodes, 'update');
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugU' . $seq . '.xlsx');
+    }
+
+    public function drugcat_chi_export_preview(Request $request)
+    {
+        $type = $request->input('type', 'new');
+        $icodes = $request->input('icodes', []);
+        
+        if (empty($icodes) || !is_array($icodes)) {
+            return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการยาอย่างน้อย 1 รายการ', 'data' => []]);
+        }
+
         try {
-            $drugs = DB::connection('hosxp')->select("
-                SELECT  
-                    d.icode AS HospDrugCode,
-                    d.sks_product_category_id AS ProductCat,
-                    d.sks_drug_code AS TMTID,
-                    {$s_spec} AS SpecPrep,
-                    IFNULL(d.generic_name, d.`name`) AS GenericName,
-                    IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                    IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                    IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                    IFNULL(d.strength, {$s_strength}) AS Strength,
-                    IFNULL(d.dosageform, {$s_dose}) AS Content,
-                    d.unitprice AS UnitPrice,
-                    dr.comp AS Distributor,
-                    CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                    CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                    d.did AS NDC24,
-                    CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
-                    d.unitprice AS Packprice,
-                    '{$updateFlag}' AS UpdateFlag,
-                    {$dateChangeExpr},
-                    {$dateUpdateExpr},
-                    {$dateEffectiveExpr},
-                    NULL AS Reimbprice
-                FROM drugitems d
-                LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-                LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
-                LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-                {$s_join}
-                LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                    FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
-                WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
-                  {$where_icode}
-                ORDER BY d.icode
-            ");
+            $drugs = $this->getChiExportDrugs($icodes, $type);
             
             return response()->json([
                 'success' => true,
@@ -1017,7 +864,11 @@ class ImportDrugcatController extends Controller
             $colIndex = 1;
             foreach ((array)$row as $key => $val) {
                 $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($colLetter . $rowNum, $val);
+                if (in_array($colIndex, [1, 3, 15])) { // HOSPDRUGCODE, TMTID, NDC24
+                    $sheet->setCellValueExplicit($colLetter . $rowNum, (string)($val ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue($colLetter . $rowNum, $val);
+                }
                 $colIndex++;
             }
             $rowNum++;
@@ -1052,13 +903,13 @@ class ImportDrugcatController extends Controller
             $spreadsheet = IOFactory::load($the_file->getRealPath());
             $sheet        = $spreadsheet->setActiveSheetIndex(0);
             $row_limit    = $sheet->getHighestDataRow();
-            $row_range    = range('6', $row_limit);
+            $row_range    = range(2, $row_limit);
 
             $parseExcelDate = function ($value) {
-                if (empty($value) || $value === '-' || trim($value) === '') {
+                if (empty($value) || $value === '-' || trim((string)$value) === '') {
                     return null;
                 }
-                $value = trim($value);
+                $value = trim((string)$value);
                 if (is_numeric($value)) {
                     try {
                         return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
@@ -1066,39 +917,46 @@ class ImportDrugcatController extends Controller
                         // ignore
                     }
                 }
-                foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y', 'Y-m-d\TH:i:s\Z', 'Y-m-d H:i:s', 'd-m-Y H:i'] as $format) {
+                foreach (['d/m/Y H:i:s', 'd/m/Y H:i', 'd/m/Y', 'Y-m-d\TH:i:s\Z', 'Y-m-d\TH:i:s.u\Z', 'Y-m-d\TH:i:s', 'Y-m-d H:i:s', 'Y-m-d', 'd-m-Y H:i:s', 'd-m-Y H:i', 'd-m-Y'] as $format) {
                     try {
-                        return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                        $dt = \Carbon\Carbon::createFromFormat($format, $value);
+                        if ($dt->year > 2400) {
+                            $dt->subYears(543);
+                        }
+                        return $dt->format('Y-m-d');
                     } catch (\Exception $e) {
                         // continue
                     }
                 }
                 try {
-                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                    $dt = \Carbon\Carbon::parse($value);
+                    if ($dt->year > 2400) {
+                        $dt->subYears(543);
+                    }
+                    return $dt->format('Y-m-d');
                 } catch (\Exception $e) {
                     return null;
                 }
             };
 
             $cleanExcelRate = function ($val) {
-                if ($val === null || $val === '-' || trim($val) === '') {
+                if ($val === null || $val === '-' || trim((string)$val) === '') {
                     return null;
                 }
-                $val = str_replace(',', '', $val);
+                $val = str_replace(',', '', (string)$val);
                 return is_numeric($val) ? (float) $val : null;
             };
 
             $data = array();
             foreach ($row_range as $row) {
-                $hospdrugcode = $sheet->getCell('B' . $row)->getValue();
+                $hospdrugcode = trim((string)$sheet->getCell('B' . $row)->getValue());
                 if (empty($hospdrugcode)) {
                     continue;
                 }
 
-                $unitprice = $cleanExcelRate($sheet->getCell('I' . $row)->getValue());
-                $packprice = $cleanExcelRate($sheet->getCell('P' . $row)->getValue());
+                $unitprice = $cleanExcelRate($sheet->getCell('J' . $row)->getValue());
+                $packprice = $cleanExcelRate($sheet->getCell('Q' . $row)->getValue());
                 
-                $date_import = $parseExcelDate($sheet->getCell('Q' . $row)->getValue());
                 $datechange = $parseExcelDate($sheet->getCell('R' . $row)->getValue());
                 $dateupdate = $parseExcelDate($sheet->getCell('S' . $row)->getValue());
                 $dateeffective = $parseExcelDate($sheet->getCell('T' . $row)->getValue());
@@ -1109,22 +967,23 @@ class ImportDrugcatController extends Controller
                     'tmtid'             => $sheet->getCell('D' . $row)->getValue(),
                     'genericname'       => $sheet->getCell('E' . $row)->getValue(),
                     'tradename'         => $sheet->getCell('F' . $row)->getValue(),
-                    'dosageform'        => $sheet->getCell('G' . $row)->getValue(),
-                    'strength'          => $sheet->getCell('H' . $row)->getValue(),
+                    'dfscode'           => $sheet->getCell('G' . $row)->getValue(),
+                    'dosageform'        => $sheet->getCell('H' . $row)->getValue(),
+                    'strength'          => $sheet->getCell('I' . $row)->getValue(),
                     'unitprice'         => $unitprice,
-                    'distributor'       => $sheet->getCell('J' . $row)->getValue(),
-                    'manufacturer'      => $sheet->getCell('K' . $row)->getValue(),
-                    'ised'              => $sheet->getCell('L' . $row)->getValue(),
-                    'specprep'          => $sheet->getCell('M' . $row)->getValue(),
-                    'ndc24'             => $sheet->getCell('N' . $row)->getValue(),
-                    'packsize'          => $sheet->getCell('O' . $row)->getValue(),
+                    'distributor'       => $sheet->getCell('K' . $row)->getValue(),
+                    'manufacturer'      => $sheet->getCell('L' . $row)->getValue(),
+                    'ised'              => $sheet->getCell('M' . $row)->getValue(),
+                    'specprep'          => $sheet->getCell('N' . $row)->getValue(),
+                    'ndc24'             => (string)$sheet->getCell('O' . $row)->getValue(),
+                    'packsize'          => $sheet->getCell('P' . $row)->getValue(),
                     'packprice'         => $packprice,
-                    'date_import'       => $date_import,
                     'datechange'        => $datechange,
                     'dateupdate'        => $dateupdate,
                     'dateeffective'     => $dateeffective,
                     'filename'          => $sheet->getCell('U' . $row)->getValue(),
-                    'hospcode'          => $sheet->getCell('V' . $row)->getValue(),
+                    'hospcode'          => (string)$sheet->getCell('V' . $row)->getValue(),
+                    'date_import'       => date('Y-m-d'),
                     'stm_filename'      => $file_name,
                 ];
             }
@@ -1362,15 +1221,13 @@ class ImportDrugcatController extends Controller
         return view('import.drugcat_fdh', compact('drug'));
     }
 
-    //ส่งออกรายการ FDH-------------------------------------------------------------------------------------------------
-    public function drugcat_fdh_export(Request $request, $seq = '001')
+    //ดึงและประมวลผลข้อมูลสำหรับส่งออก FDH------------------------------------------------------------------
+    private function getFdhExportDrugs($icodes)
     {
         $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
-        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
         
-        $icodes = $request->input('icodes', []);
         if (empty($icodes) || !is_array($icodes)) {
-            return $this->exportToExcelFDH([], $hosp_code . 'DrugFDH' . $seq . '.xlsx');
+            return [];
         }
 
         $local_db = config('database.connections.mysql.database');
@@ -1387,28 +1244,34 @@ class ImportDrugcatController extends Controller
         $s_dose = $has_sks ? "s.DosageForm" : "NULL";
         $s_strength = $has_sks ? "s.Strength" : "NULL";
         $s_date = $has_sks ? "s.DateEffective" : "NULL";
+        $s_datechange = $has_sks ? "s.DateChange" : "NULL";
+        $s_dateupdate = $has_sks ? "s.DateUpdate" : "NULL";
 
-        $drugs = DB::connection('hosxp')->select("
+        $rawDrugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
-                d.sks_product_category_id AS ProductCat,
-                d.sks_drug_code AS TMTID,
+                IFNULL(d.sks_product_category_id, '1') AS ProductCat,
+                IFNULL(d.sks_drug_code, '') AS TMTID,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                IFNULL(d.strength, {$s_strength}) AS Strength,
+                IFNULL(d.trade_name, IFNULL({$s_trade}, '')) AS TradeName,
+                IFNULL(d.sks_dfs_code, IFNULL({$s_dfs}, '')) AS DFSCode,
+                IFNULL(d.dosageform, IFNULL({$s_dose}, '')) AS DosageForm,
+                IFNULL(d.strength, IFNULL({$s_strength}, '')) AS Strength,
                 d.unitprice AS UnitPrice,
-                dr.comp AS Distributor,
-                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                IFNULL(dr.comp, '') AS Distributor,
+                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN IFNULL(tc.manufacturer, '') ELSE dr.manufacturer END AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '' OR d.drugaccount IS NULL) THEN 'N' ELSE 'E' END AS ISED,
                 {$s_spec} AS SpecPrep,
-                d.did AS NDC24,
-                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                IFNULL(d.did, '') AS NDC24,
+                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE IFNULL(p.provis_medication_unit_name, d.units) END AS Packsize,
                 d.unitprice AS Packprice,
-                '' AS DateChange,
-                '' AS DateUpdate,
-                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
+                nd.datechange AS fdh_datechange,
+                nd.dateupdate AS fdh_dateupdate,
+                nd.dateeffective AS fdh_dateeffective,
+                {$s_datechange} AS sks_datechange,
+                {$s_dateupdate} AS sks_dateupdate,
+                {$s_date} AS sks_dateeffective,
+                d.last_update,
                 IFNULL(nd.filename, '') AS FileName,
                 '{$hosp_code}' AS HospCode
             FROM drugitems d
@@ -1423,13 +1286,77 @@ class ImportDrugcatController extends Controller
             ORDER BY d.icode
         ");
 
+        $today = \Carbon\Carbon::now();
+        $formatDate = function($val, $fallback = null) use ($today) {
+            if (empty($val) || $val === '0000-00-00' || $val === '0000-00-00 00:00:00') {
+                $val = $fallback;
+            }
+            if (empty($val) || $val === '0000-00-00' || $val === '0000-00-00 00:00:00') {
+                $val = $today;
+            }
+            try {
+                $dt = \Carbon\Carbon::parse($val);
+                if ($dt->year > 2400) {
+                    $dt->subYears(543);
+                }
+                if ($dt->gt($today)) {
+                    $dt = $today->copy();
+                }
+                return $dt->format('Y-m-d');
+            } catch (\Exception $e) {
+                return $today->format('Y-m-d');
+            }
+        };
+
+        $drugs = [];
+        foreach ($rawDrugs as $row) {
+            $dateEffective = $formatDate($row->fdh_dateeffective, $row->sks_dateeffective ?: ($row->last_update ?: $today));
+            $dateUpdate    = $formatDate($row->fdh_dateupdate, $row->sks_dateupdate ?: ($row->last_update ?: $dateEffective));
+            $dateChange    = $formatDate($row->fdh_datechange, $row->sks_datechange ?: ($row->last_update ?: $dateEffective));
+
+            $drugs[] = (object)[
+                'HospDrugCode' => (string)($row->HospDrugCode ?? ''),
+                'ProductCat'   => (string)($row->ProductCat ?? '1'),
+                'TMTID'        => (string)($row->TMTID ?? ''),
+                'GenericName'  => (string)($row->GenericName ?? ''),
+                'TradeName'    => (string)($row->TradeName ?? ''),
+                'DFSCode'      => (string)($row->DFSCode ?? ''),
+                'DosageForm'   => (string)($row->DosageForm ?? ''),
+                'Strength'     => (string)($row->Strength ?? ''),
+                'UnitPrice'    => $row->UnitPrice !== null ? (float)$row->UnitPrice : 0,
+                'Distributor'  => (string)($row->Distributor ?? ''),
+                'Manufacturer' => (string)($row->Manufacturer ?? ''),
+                'ISED'         => (string)($row->ISED ?? 'N'),
+                'SpecPrep'     => (string)($row->SpecPrep ?? ''),
+                'NDC24'        => (string)($row->NDC24 ?? ''),
+                'Packsize'     => (string)($row->Packsize ?? ''),
+                'Packprice'    => $row->Packprice !== null ? (float)$row->Packprice : ($row->UnitPrice !== null ? (float)$row->UnitPrice : 0),
+                'DateChange'   => $dateChange,
+                'DateUpdate'   => $dateUpdate,
+                'DateEffective'=> $dateEffective,
+                'FileName'     => (string)($row->FileName ?? ''),
+                'HospCode'     => (string)($row->HospCode ?? $hosp_code),
+            ];
+        }
+
+        return $drugs;
+    }
+
+    //ส่งออกรายการ FDH-------------------------------------------------------------------------------------------------
+    public function drugcat_fdh_export(Request $request, $seq = '001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        $drugs = $this->getFdhExportDrugs($icodes);
+
         return $this->exportToExcelFDH($drugs, $hosp_code . 'DrugFDH' . $seq . '.xlsx');
     }
 
     //ส่งออก Preview FDH-------------------------------------------------------------------------------------------------
     public function drugcat_fdh_export_preview(Request $request)
     {
-        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
         $icodes = $request->input('icodes', []);
         
         if (empty($icodes) || !is_array($icodes)) {
@@ -1439,56 +1366,8 @@ class ImportDrugcatController extends Controller
             ]);
         }
 
-        $local_db = config('database.connections.mysql.database');
-        $quoted = array_map(function($val) {
-            return DB::connection('hosxp')->getPdo()->quote($val);
-        }, $icodes);
-        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
-
         try {
-            $has_sks = Schema::connection('hosxp')->hasTable('sks_drugcatalog');
-            $s_join = $has_sks ? "LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode" : "";
-            $s_spec = $has_sks ? "IFNULL(s.SpecPrep, '')" : "''";
-            $s_trade = $has_sks ? "s.TradeName" : "NULL";
-            $s_dfs = $has_sks ? "s.DSFCode" : "NULL";
-            $s_dose = $has_sks ? "s.DosageForm" : "NULL";
-            $s_strength = $has_sks ? "s.Strength" : "NULL";
-            $s_date = $has_sks ? "s.DateEffective" : "NULL";
-
-            $drugs = DB::connection('hosxp')->select("
-                SELECT  
-                    d.icode AS HospDrugCode,
-                    d.sks_product_category_id AS ProductCat,
-                    d.sks_drug_code AS TMTID,
-                    IFNULL(d.generic_name, d.`name`) AS GenericName,
-                    IFNULL(d.trade_name, {$s_trade}) AS TradeName,
-                    IFNULL(d.sks_dfs_code, {$s_dfs}) AS DFSCode,
-                    IFNULL(d.dosageform, {$s_dose}) AS DosageForm,
-                    IFNULL(d.strength, {$s_strength}) AS Strength,
-                    d.unitprice AS UnitPrice,
-                    dr.comp AS Distributor,
-                    CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
-                    CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
-                    {$s_spec} AS SpecPrep,
-                    d.did AS NDC24,
-                    CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
-                    d.unitprice AS Packprice,
-                    '' AS DateChange,
-                    '' AS DateUpdate,
-                    DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL({$s_date}, IFNULL(d.last_update, NOW()))), '%Y-%m-%d') AS DateEffective,
-                    IFNULL(nd.filename, '') AS FileName,
-                    '{$hosp_code}' AS HospCode
-                FROM drugitems d
-                LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
-                LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
-                LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
-                {$s_join}
-                LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_fdh dc WHERE dc.id = (SELECT MAX(dc1.id) 
-                    FROM {$local_db}.drugcat_fdh dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode)) nd ON nd.hospdrugcode=d.icode
-                WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
-                  {$where_icode}
-                ORDER BY d.icode
-            ");
+            $drugs = $this->getFdhExportDrugs($icodes);
             
             return response()->json([
                 'success' => true,
@@ -1554,7 +1433,11 @@ class ImportDrugcatController extends Controller
             $colIndex = 1;
             foreach ($rowData as $val) {
                 $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($colLetter . $rowNum, $val);
+                if (in_array($colIndex, [2, 4, 15, 22])) {
+                    $sheet->setCellValueExplicit($colLetter . $rowNum, (string)$val, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue($colLetter . $rowNum, $val);
+                }
                 $colIndex++;
             }
             $rowNum++;

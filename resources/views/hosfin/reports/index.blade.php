@@ -115,10 +115,25 @@
 <div class="container-fluid pt-2 pb-5 px-lg-5" style="background-color: #f8fafc; min-height: 90vh;">
     <div class="row">
         <!-- Back Button -->
-        <div class="col-12 px-3 mb-3">
-            <a href="{{ url('hosfin') }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;">
-                <i class="bi bi-arrow-left"></i> ย้อนกลับ HosFin Dashboard
+        <div class="col-12 px-3 mb-1">
+            <a href="{{ url('hosfin') }}{{ isset($budgetYear) ? '?budget_year='.$budgetYear : '' }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;" title="ย้อนกลับ HosFin Dashboard">
+                <i class="bi bi-arrow-left"></i> ย้อนกลับ
             </a>
+        </div>
+
+        <!-- Header Banner -->
+        <div class="col-12 px-3 mb-3">
+            <div class="page-header-box mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2" 
+                 style="border-left: 4px solid #8b5cf6 !important; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); padding: 16px 22px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div>
+                    <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color: #7c3aed;">
+                        <i class="bi bi-file-earmark-bar-graph fs-4"></i> ศูนย์รวมรายงานการเงินและข้อมูลบริการ (Reports Hub)
+                    </h5>
+                    <small class="text-muted">รายงานข้อมูลบริการประกอบงบ (HOSxP) และระบบข้อมูลการเงินการคลัง (HFA Open-API)</small>
+                </div>
+
+                @include('hosfin.partials.header_nav')
+            </div>
         </div>
 
         <!-- Reports Grid Catalog -->

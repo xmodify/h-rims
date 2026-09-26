@@ -278,61 +278,7 @@
                     </h5>
 
                     <!-- Action Buttons (ขวาสุด) -->
-                    <div class="d-flex align-items-center gap-1.5 flex-wrap ms-auto">
-                        @if(\App\Services\LicenseVerificationService::isModuleLicensed('ai_knowledge') && \App\Services\Ai\AiService::isActive())
-                            @php
-                                $hasAiAccess = Auth::check() && (Auth::user()->status === 'admin' || Auth::user()->allow_ai_copilot === 'Y');
-                            @endphp
-                            <button type="button" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom text-white" 
-                                    onclick="{{ $hasAiAccess ? 'openHosFinAiModal()' : 'showAiAccessDeniedAlert()' }}"
-                                    style="font-size: 0.82rem; height: 36px; font-weight: 700; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;"
-                                    title="{{ $hasAiAccess ? 'คลิกเพื่อดูบทวิเคราะห์วิกฤตทางการเงินด้วย AI' : 'คุณไม่ได้รับสิทธิ์ใช้งาน AI' }}">
-                                <i class="bi bi-robot"></i> AI วิเคราะห์
-                            </button>
-                        @endif
-
-                        <a href="{{ url('hosfin/cash_register') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669; transition: all 0.25s ease;"
-                           title="ทะเบียนรับ-จ่ายเงินสดและเงินฝากธนาคาร (Cash Register)">
-                            <i class="bi bi-cash-stack"></i> รับ-จ่าย (Cash)
-                        </a>
-
-                        <a href="{{ url('hosfin/ap_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626; transition: all 0.25s ease;"
-                           title="รายงานเจ้าหนี้การค้าและบิลค้างชำระ (AP)">
-                            <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
-                        </a>
-
-                        <a href="{{ url('hosfin/ar_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1; transition: all 0.25s ease;"
-                           title="รายงานลูกหนี้ค่ารักษาพยาบาลแยกตามสิทธิ (AR)">
-                            <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
-                        </a>
-
-                        <a href="{{ url('hosfin/cost_report') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309; transition: all 0.25s ease;"
-                           title="รายงานวิเคราะห์ต้นทุนบริการ (LC / MC / CC)">
-                            <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
-                        </a>
-
-                        <a href="{{ url('hosfin/trial_balance') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom btn-tb-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #10b981; color: #059669; transition: all 0.25s ease;"
-                           title="รายงานและนำเข้างบทดลอง (Trial Balance)">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> งบทดลอง
-                        </a>
-
-                        <a href="{{ url('hosfin/planfin') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #6366f1; color: #4f46e5; transition: all 0.25s ease;"
-                           title="ระบบบริหารและติดตามแผนเงินบำรุง (PlanFin)">
-                            <i class="bi bi-graph-up-arrow"></i> PlanFin
-                        </a>
-
-                        <a href="{{ url('hosfin/reports') }}" class="btn rounded-pill px-2.5 d-flex align-items-center gap-1.5 shadow-sm btn-nav-custom" 
-                           style="font-size: 0.82rem; height: 36px; font-weight: 700; background: #ffffff; border: 1.5px solid #8b5cf6; color: #7c3aed; transition: all 0.25s ease;"
-                           title="ศูนย์รวมรายงานการเงินและข้อมูลบริการ (Reports Hub)">
-                            <i class="bi bi-file-earmark-bar-graph"></i> รายงาน
-                        </a>
-                    </div>
+                    @include('hosfin.partials.header_nav', ['showAiButton' => true, 'budgetYear' => $budgetYear ?? null])
                 </div>
 
                 <!-- Row 2: Status Badges (Period, Risk Score, Last Sync) -->

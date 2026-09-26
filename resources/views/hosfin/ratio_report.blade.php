@@ -86,7 +86,7 @@
     <div class="row">
         <!-- Back Button -->
         <div class="col-12 px-3 mb-1">
-            <a href="{{ url('hosfin/trial_balance') }}?budget_year={{ $budgetYear }}&period={{ $selectedPeriod ?? 'all' }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;" title="ย้อนกลับไปหน้างบทดลอง">
+            <a href="{{ url('hosfin') }}?budget_year={{ $budgetYear }}" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3 d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border-color: #cbd5e1; color: #475569; background-color: #fff;" title="ย้อนกลับ HosFin Dashboard">
                 <i class="bi bi-arrow-left"></i> ย้อนกลับ
             </a>
         </div>
@@ -122,6 +122,8 @@
                     <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm text-nowrap rounded-pill px-3" style="height: 40px; font-size: 0.85rem; background: #fff;" onclick="openMappingsModal()" title="ตรวจสอบการจับคู่ผังบัญชี">
                         <i class="bi bi-gear text-secondary"></i> ผังบัญชี
                     </button>
+
+                    @include('hosfin.partials.header_nav', ['budgetYear' => $budgetYear])
                 </div>
             </div>
         </div>

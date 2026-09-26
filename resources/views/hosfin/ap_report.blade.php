@@ -83,6 +83,38 @@
         border-bottom: 2px solid #cbd5e1 !important;
         white-space: nowrap;
     }
+    /* Period Navigation Tabs */
+    .nav-tabs-custom {
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .nav-tabs-custom .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.86rem;
+        padding: 10px 15px;
+        transition: all 0.2s ease-in-out;
+        background: transparent;
+    }
+    .nav-tabs-custom .nav-link:hover {
+        color: #ef4444;
+        border-bottom-color: #fca5a5;
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: #dc2626;
+        border-bottom-color: #dc2626;
+        font-weight: 700;
+        background: transparent;
+    }
+    .status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
     /* Searchable Checkbox Dropdown Styling */
     .hover-bg {
         transition: background-color 0.15s ease;
@@ -154,22 +186,57 @@
                         </select>
                     </div>
 
-                    <a href="{{ url('hosfin/cash_register') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #059669; color: #059669;">
-                        <i class="bi bi-cash-stack"></i> รับ-จ่าย (Cash)
-                    </a>
-                    <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ef4444; border: 1.5px solid #ef4444; color: #ffffff;">
-                        <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
-                    </a>
-                    <a href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1;">
-                        <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
-                    </a>
-                    <a href="{{ url('hosfin/cost_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #b45309;">
-                        <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
-                    </a>
+                    @include('hosfin.partials.header_nav', ['budgetYear' => $budgetYear])
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Tabs Navigation -->
+    <div class="row px-3 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4 bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+                    <ul class="nav nav-tabs nav-tabs-custom flex-nowrap overflow-auto" id="apPeriodTabs" role="tablist" style="white-space: nowrap;">
+                        <!-- All year tab -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ $selectedPeriod === 'all' ? 'active' : '' }}" 
+                               href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}&period=all&tab={{ $activeTab }}">
+                                <i class="bi bi-calendar-range me-1"></i> ภาพรวมทั้งปี (สะสม)
+                            </a>
+                        </li>
+                        <!-- Monthly tabs -->
+                        @foreach($periods as $p)
+                            @php
+                                $hasData = in_array($p['fiscal_month'], $existingMonths);
+                            @endphp
+                            <li class="nav-item">
+                                <a class="nav-link {{ $selectedPeriod === $p['period'] ? 'active' : '' }}" 
+                                   href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}&period={{ $p['period'] }}&tab={{ $activeTab }}">
+                                    {{ $p['label'] }}
+                                    @if($hasData)
+                                        <span class="status-dot bg-success" title="มีข้อมูลรายการ"></span>
+                                    @else
+                                        <span class="status-dot bg-secondary bg-opacity-25" title="ยังไม่มีข้อมูล"></span>
+                                    @endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <div class="card-body py-2 px-4 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-top: 1px solid #f1f5f9 !important;">
+                    <div class="small text-muted d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-danger"></i>
+                        <span>กำลังแสดงผล: <strong class="text-dark">{{ $selectedPeriodLabel }}</strong></span>
+                        @if($selectedPeriod === 'all')
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">ภาพรวมสะสมตลอดทั้งปีงบประมาณ</span>
+                        @else
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">เฉพาะรายการเกิดหนี้/จ่ายชำระประจำงวด</span>
+                        @endif
+                    </div>
+                    <div class="small text-muted">
+                        ปีงบประมาณ <strong>{{ $budgetYear }}</strong> (ต.ค. {{ substr((string)($budgetYear - 1), -2) }} - ก.ย. {{ substr((string)$budgetYear, -2) }})
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,7 +273,7 @@
                                     @if($crossMismatchesCount > 0)
                                         <span class="d-inline-block me-3">
                                             <i class="bi bi-arrow-left-right text-primary me-1"></i> <strong>ตัดจ่ายข้ามหมวดผังบัญชี (Cross-Account):</strong> 
-                                            <span class="badge bg-white text-dark border px-2 py-0.5">{{ $crossMismatchesCount }} บิล</span>
+                                             <span class="badge bg-white text-dark border px-2 py-0.5">{{ $crossMismatchesCount }} บิล</span>
                                             <span class="text-muted">(เช่น ตั้งหนี้ 134-ยา แต่ตัดจ่าย 135-เวชภัณฑ์ — <em>ระบบปรับกระทบยอดให้อัตโนมัติแล้ว</em>)</span>
                                         </span>
                                     @endif
@@ -236,97 +303,195 @@
 
     <!-- 4 KPI Highlight Cards -->
     <div class="row g-3 px-3 mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
-                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดหนี้ค้างจ่ายรวม (Unpaid)</span>
-                            <div class="fw-black mt-1 text-danger" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
-                                {{ number_format($totalUnpaidSum, 2) }}
-                                <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+        @if($selectedPeriod === 'all')
+            <!-- Full Year Cumulative Mode Cards -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดหนี้ค้างจ่ายรวม (Unpaid)</span>
+                                <div class="fw-black mt-1 text-danger" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($totalUnpaidSum, 2) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-exclamation-octagon-fill fs-4"></i>
                             </div>
                         </div>
-                        <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
-                            <i class="bi bi-exclamation-octagon-fill fs-4"></i>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ภาระหนี้สินคงค้าง</span>
+                            <small class="text-muted" style="font-size: 0.73rem;">{{ number_format($totalUnpaidBillsCount) }} บิล</small>
                         </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ภาระหนี้สินคงค้าง</span>
-                        <small class="text-muted" style="font-size: 0.73rem;">{{ number_format($totalUnpaidBillsCount) }} บิล</small>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
-                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">จำนวนบิลค้างชำระ</span>
-                            <div class="fw-black mt-1 text-dark" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
-                                {{ number_format($totalUnpaidBillsCount) }}
-                                <span style="font-size: 0.8rem; font-weight: 600;">ใบ</span>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">จำนวนบิลค้างชำระ</span>
+                                <div class="fw-black mt-1 text-dark" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($totalUnpaidBillsCount) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">ใบ</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-receipt fs-4"></i>
                             </div>
                         </div>
-                        <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
-                            <i class="bi bi-receipt fs-4"></i>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">รอการเบิกจ่ายชำระ</span>
+                            <small class="text-muted" style="font-size: 0.73rem;">บริษัทคู่ค้า {{ number_format($totalVendorsCount) }} แห่ง</small>
                         </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">รอการเบิกจ่ายชำระ</span>
-                        <small class="text-muted" style="font-size: 0.73rem;">บริษัทคู่ค้า {{ number_format($totalVendorsCount) }} แห่ง</small>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
-                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">บริษัทคู่ค้าที่ค้างชำระ</span>
-                            <div class="fw-black mt-1 text-primary" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
-                                {{ number_format($totalVendorsCount) }}
-                                <span style="font-size: 0.8rem; font-weight: 600;">บริษัท</span>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">บริษัทคู่ค้าที่ค้างชำระ</span>
+                                <div class="fw-black mt-1 text-primary" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($totalVendorsCount) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บริษัท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-building fs-4"></i>
                             </div>
                         </div>
-                        <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
-                            <i class="bi bi-building fs-4"></i>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยา / เวชภัณฑ์ / จ้างเหมา</span>
+                            <small class="text-muted" style="font-size: 0.73rem;">เฉลี่ย {{ $totalVendorsCount > 0 ? number_format($totalUnpaidSum / $totalVendorsCount, 0) : 0 }} บ./บริษัท</small>
                         </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยา / เวชภัณฑ์ / จ้างเหมา</span>
-                        <small class="text-muted" style="font-size: 0.73rem;">เฉลี่ย {{ $totalVendorsCount > 0 ? number_format($totalUnpaidSum / $totalVendorsCount, 0) : 0 }} บ./บริษัท</small>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
-                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">บิลที่ชำระครบแล้ว (Paid)</span>
-                            <div class="fw-black mt-1 text-success" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
-                                {{ number_format($totalPaidBillsCount) }}
-                                <span style="font-size: 0.8rem; font-weight: 600;">ใบ</span>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">บิลที่ชำระครบแล้ว (Paid)</span>
+                                <div class="fw-black mt-1 text-success" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($totalPaidBillsCount) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">ใบ</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-success bg-opacity-10 text-success" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-check-circle-fill fs-4"></i>
                             </div>
                         </div>
-                        <div class="rounded-3 p-2 bg-success bg-opacity-10 text-success" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
-                            <i class="bi bi-check-circle-fill fs-4"></i>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">จ่ายชำระแล้วเรียบร้อย</span>
+                            <small class="text-success fw-bold" style="font-size: 0.73rem;">{{ number_format($totalPaidSum, 2) }} บ.</small>
                         </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">จ่ายชำระแล้วเรียบร้อย</span>
-                        <small class="text-success fw-bold" style="font-size: 0.73rem;">{{ number_format($totalPaidSum, 2) }} บ.</small>
                     </div>
                 </div>
             </div>
-        </div>
+        @else
+            <!-- Monthly Period Mode Cards -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดเกิดหนี้งวดนี้ (Credit)</span>
+                                <div class="fw-black mt-1 text-danger" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($monthCreditSum, 2) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-plus-circle-fill fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยอดตั้งหนี้ประจำงวด</span>
+                            <small class="text-muted" style="font-size: 0.73rem;">{{ number_format($totalUnpaidBillsCount) }} รายการบิล</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดจ่ายชำระงวดนี้ (Debit)</span>
+                                <div class="fw-black mt-1 text-success" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($monthDebitSum, 2) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-success bg-opacity-10 text-success" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-cash-coin fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยอดตัดจ่ายประจำงวด</span>
+                            <small class="text-success fw-bold" style="font-size: 0.73rem;">เบิกจ่ายเงินในงวด</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ผลต่างหนี้สุทธิ (Net Cr-Dr)</span>
+                                <div class="fw-black mt-1 {{ $monthNetSum > 0 ? 'text-danger' : ($monthNetSum < 0 ? 'text-success' : 'text-dark') }}" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($monthNetSum, 2) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-warning bg-opacity-10 text-warning" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-calculator-fill fs-4 text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge {{ $monthNetSum > 0 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle' }} rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                                {{ $monthNetSum > 0 ? 'เกิดหนี้เพิ่มขึ้น' : ($monthNetSum < 0 ? 'จ่ายชำระ > หนี้' : 'ยอดพอดีกัน') }}
+                            </span>
+                            <small class="text-muted" style="font-size: 0.73rem;">หนี้สุทธิประจำเดือน</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">บริษัทคู่ค้าในงวดนี้</span>
+                                <div class="fw-black mt-1 text-primary" style="font-size: 1.5rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                    {{ number_format($totalVendorsCount) }}
+                                    <span style="font-size: 0.8rem; font-weight: 600;">บริษัท</span>
+                                </div>
+                            </div>
+                            <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                <i class="bi bi-building fs-4"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">คู่ค้าที่มีรายการในงวด</span>
+                            <small class="text-muted" style="font-size: 0.73rem;">เฉลี่ย {{ $totalVendorsCount > 0 ? number_format($monthCreditSum / $totalVendorsCount, 0) : 0 }} บ./บริษัท</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 
     <!-- Navigation Tabs -->
@@ -346,6 +511,13 @@
                     <i class="bi bi-card-checklist me-1"></i> รายการบิลค้างชำระรายใบ (All Invoices)
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {{ $activeTab === 'trends' ? 'active' : '' }} rounded-pill fw-bold px-4 py-2" 
+                        id="trends-tab" data-bs-toggle="pill" data-bs-target="#trends-tab-pane" type="button" role="tab" 
+                        onclick="setTab('trends')" style="font-size: 0.88rem;">
+                    <i class="bi bi-graph-up-arrow me-1"></i> กราฟแนวโน้มรายเดือน (Monthly Trends)
+                </button>
+            </li>
         </ul>
     </div>
 
@@ -356,8 +528,8 @@
             <div class="card border-0 shadow-sm rounded-4 bg-white">
                 <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns-reverse me-2 text-danger"></i> ทะเบียนบริษัทคู่ค้าและยอดหนี้คงค้าง</h6>
-                        <small class="text-muted">เรียงลำดับตามยอดหนี้คงค้างสูงสุด (Cr - Dr) สามารถคลิกหัวตารางเพื่อเรียงลำดับ หรือค้นหาได้ทันที</small>
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-columns-reverse me-2 text-danger"></i> ทะเบียนบริษัทคู่ค้าและยอดหนี้{{ $selectedPeriod === 'all' ? 'คงค้าง' : 'ประจำงวด' }}</h6>
+                        <small class="text-muted">{{ $selectedPeriod === 'all' ? 'เรียงลำดับตามยอดหนี้คงค้างสูงสุด (Cr - Dr) สามารถคลิกหัวตารางเพื่อเรียงลำดับ หรือค้นหาได้ทันที' : 'แสดงยอดเกิดหนี้ (Cr) ยอดจ่ายชำระ (Dr) และผลต่างสุทธิประจำงวด ' . $selectedPeriodLabel }}</small>
                     </div>
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                         <div class="d-flex align-items-center gap-1.5">
@@ -426,7 +598,11 @@
                             </div>
                         </div>
                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-bold">
-                            หนี้คงค้างรวม {{ number_format($totalUnpaidSum, 2) }} บาท
+                            @if($selectedPeriod === 'all')
+                                หนี้คงค้างรวม {{ number_format($totalUnpaidSum, 2) }} บาท
+                            @else
+                                เกิดหนี้งวดนี้ {{ number_format($monthCreditSum, 2) }} บ. (จ่าย {{ number_format($monthDebitSum, 2) }} บ.)
+                            @endif
                         </span>
                     </div>
                 </div>
@@ -527,7 +703,7 @@
                     <div>
                         <h6 class="mb-1 fw-bold text-dark d-flex align-items-center gap-2">
                             <i class="bi bi-card-checklist text-primary"></i>
-                            รายการบิลเจ้าหนี้การค้าทั้งหมด (All AP Invoices)
+                            รายการบิลเจ้าหนี้การค้า{{ $selectedPeriod === 'all' ? 'ทั้งหมด (All AP Invoices)' : 'ประจำงวด (' . $selectedPeriodLabel . ')' }}
                         </h6>
                         <span class="text-muted small">
                             รวมบิลทั้งหมด {{ number_format($bills->count()) }} ใบ สามารถค้นหา จัดเรียงลำดับ และส่งออก Excel ได้ทันที
@@ -642,7 +818,14 @@
                             @foreach($bills as $b)
                                 <tr class="bill-row" data-account-code="{{ $b->account_code }}">
                                     <td class="ps-3 text-center fw-bold text-muted" data-order="{{ $bIdx }}">{{ $bIdx++ }}</td>
-                                    <td class="fw-bold font-monospace text-primary">{{ $b->bill_no }}</td>
+                                    <td class="fw-bold font-monospace text-primary">
+                                        {{ $b->bill_no }}
+                                        @if(!empty($b->voucher_numbers))
+                                            <div class="text-muted fw-normal" style="font-size: 0.72rem;">
+                                                <i class="bi bi-file-earmark-text text-secondary"></i> {{ $b->voucher_numbers }}
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="text-center small text-nowrap" data-order="{{ $b->parsed_bill_date }}">{{ $b->thai_bill_date }}</td>
                                     <td class="text-center" data-order="{{ $b->aging_days }}">
                                         @if($b->is_paid)
@@ -700,6 +883,207 @@
                                 <th class="text-end font-monospace py-2.5 text-danger pe-3 fs-6" id="btTotalRemaining">
                                     {{ number_format($bills->sum('remaining_debt'), 2) }}
                                 </th>
+                                <th class="text-center py-2.5"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Monthly Trends (Option 1: Combo Chart) -->
+        <div class="tab-pane fade {{ $activeTab === 'trends' ? 'show active' : '' }}" id="trends-tab-pane" role="tabpanel">
+            <!-- 4 Summary KPI Cards for 12 Months -->
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดเกิดหนี้รวม 12 เดือน (Credit)</span>
+                                    <div class="fw-black mt-1 text-danger" style="font-size: 1.45rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                        {{ number_format($totalYearCredit, 2) }}
+                                        <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="rounded-3 p-2 bg-danger bg-opacity-10 text-danger" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                    <i class="bi bi-plus-circle-fill fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">สูงสุด: {{ $peakCreditMonth['month'] }}</span>
+                                <small class="text-muted" style="font-size: 0.73rem;">{{ number_format($peakCreditMonth['amount'], 0) }} บ.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ยอดจ่ายชำระรวม 12 เดือน (Debit)</span>
+                                    <div class="fw-black mt-1 text-success" style="font-size: 1.45rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                        {{ number_format($totalYearDebit, 2) }}
+                                        <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="rounded-3 p-2 bg-success bg-opacity-10 text-success" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                    <i class="bi bi-cash-coin fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">สูงสุด: {{ $peakDebitMonth['month'] }}</span>
+                                <small class="text-success fw-bold" style="font-size: 0.73rem;">{{ number_format($peakDebitMonth['amount'], 0) }} บ.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">ผลต่างสุทธิทั้งปี (Net Cr-Dr)</span>
+                                    <div class="fw-black mt-1 {{ $totalYearNet > 0 ? 'text-danger' : 'text-success' }}" style="font-size: 1.45rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                        {{ number_format($totalYearNet, 2) }}
+                                        <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="rounded-3 p-2 bg-warning bg-opacity-10 text-warning" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                    <i class="bi bi-calculator-fill fs-4 text-warning"></i>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                <span class="badge {{ $totalYearNet > 0 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle' }} rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                                    {{ $totalYearNet > 0 ? 'เกิดหนี้เพิ่มขึ้น' : 'จ่ายชำระ > หนี้' }}
+                                </span>
+                                <small class="text-muted" style="font-size: 0.73rem;">ปีงบประมาณ {{ $budgetYear }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 ap-card bg-white" style="border: 1.5px solid #e2e8f0 !important;">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="text-muted fw-bold text-uppercase" style="font-size: 0.76rem; letter-spacing: 0.3px;">หนี้สะสมยกไปสิ้นปีงบ</span>
+                                    <div class="fw-black mt-1 text-primary" style="font-size: 1.45rem; font-family: monospace; font-weight: 900; line-height: 1.2;">
+                                        {{ number_format(end($chartCumulatives) ?: 0, 2) }}
+                                        <span style="font-size: 0.8rem; font-weight: 600;">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                                    <i class="bi bi-wallet2 fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">ยอดยกมา: {{ number_format($openingDebt, 0) }} บ.</span>
+                                <small class="text-muted" style="font-size: 0.73rem;">สิ้น ก.ย. {{ substr((string)$budgetYear, -2) }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Combo Chart Card -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-1 fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-graph-up-arrow text-danger"></i>
+                            แนวโน้มการเกิดหนี้ใหม่ (Credit) & การจ่ายชำระหนี้ (Debit) รายเดือน
+                        </h6>
+                        <small class="text-muted">
+                            ปีงบประมาณ {{ $budgetYear }} | แท่งสีแดง = ตั้งหนี้ใหม่ (CR) | แท่งสีเขียว = จ่ายชำระ (DR) | เส้นสีส้ม = ภาระหนี้สะสมยกไปสิ้นเดือน (Cumulative)
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-bold">
+                            <i class="bi bi-arrow-up-circle me-1"></i> เกิดหนี้สูงสุด: {{ $peakCreditMonth['month'] }} ({{ number_format($peakCreditMonth['amount'], 2) }} บ.)
+                        </span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> จ่ายสูงสุด: {{ $peakDebitMonth['month'] }} ({{ number_format($peakDebitMonth['amount'], 2) }} บ.)
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div style="position: relative; height: 380px; width: 100%;">
+                        <canvas id="apMonthlyTrendChart"></canvas>
+                    </div>
+                    <div class="text-center text-muted small mt-3 pt-2 border-top">
+                        <i class="bi bi-cursor-fill me-1 text-primary"></i> 
+                        <strong>คำแนะนำ:</strong> สามารถคลิกที่แท่งหรือจุดข้อมูลของแต่ละเดือนบนกราฟ เพื่อเปิดดูรายละเอียดบิลและคู่ค้าของงวดเดือนนั้นได้ทันที
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Breakdown Table Card -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="bi bi-table me-2 text-primary"></i> สรุปรายละเอียดรายเดือน 12 เดือน (Monthly Breakdown Table)
+                        </h6>
+                        <small class="text-muted">ตรวจสอบตัวเลขเกิดหนี้ จ่ายชำระ และหนี้คงค้างสะสมรายงวด</small>
+                    </div>
+                </div>
+                <div class="table-responsive p-2">
+                    <table class="table table-hover align-middle mb-0 w-100" id="monthlyTrendsTable">
+                        <thead class="table-light">
+                            <tr class="text-secondary small fw-bold">
+                                <th class="ps-3 text-center" style="width: 50px;">#</th>
+                                <th>งวดเดือน</th>
+                                <th class="text-end">ยอดเกิดหนี้ใหม่ (Credit)</th>
+                                <th class="text-end">ยอดจ่ายชำระ (Debit)</th>
+                                <th class="text-end">ผลต่างสุทธิงวดนี้ (Cr - Dr)</th>
+                                <th class="text-end text-primary">ภาระหนี้สะสมยกไป</th>
+                                <th class="text-center">จำนวนบิล</th>
+                                <th class="text-center">บริษัทคู่ค้า</th>
+                                <th class="text-center" style="width: 120px;">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $tIdx = 1; @endphp
+                            @foreach($monthlyTableData as $row)
+                                <tr class="{{ $row['has_data'] ? '' : 'table-light opacity-75' }}">
+                                    <td class="ps-3 text-center fw-bold text-muted">{{ $tIdx++ }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ $row['label'] }}</div>
+                                        <span class="text-muted" style="font-size: 0.75rem;">งวดที่ {{ $row['fiscal_month'] }}</span>
+                                    </td>
+                                    <td class="text-end font-monospace fw-bold text-danger">{{ number_format($row['credit'], 2) }}</td>
+                                    <td class="text-end font-monospace text-success fw-bold">{{ number_format($row['debit'], 2) }}</td>
+                                    <td class="text-end font-monospace fw-bold {{ $row['net'] > 0 ? 'text-danger' : ($row['net'] < 0 ? 'text-success' : 'text-muted') }}">
+                                        {{ ($row['net'] > 0 ? '+' : '') . number_format($row['net'], 2) }}
+                                    </td>
+                                    <td class="text-end font-monospace fw-black text-primary fs-6">{{ number_format($row['cumulative'], 2) }}</td>
+                                    <td class="text-center fw-bold">{{ number_format($row['bills_count']) }} ใบ</td>
+                                    <td class="text-center fw-bold">{{ number_format($row['vendors_count']) }} แห่ง</td>
+                                    <td class="text-center">
+                                        <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}&period={{ $row['period'] }}&tab=vendor" 
+                                           class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 shadow-sm text-nowrap" style="font-size: 0.8rem;">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i> ดูงวดนี้
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light border-top border-2">
+                            <tr class="fw-bold align-middle">
+                                <th colspan="2" class="ps-3 text-center py-2.5 text-secondary">
+                                    <i class="bi bi-calculator me-1"></i> รวม 12 เดือน (Total):
+                                </th>
+                                <th class="text-end font-monospace py-2.5 text-danger">{{ number_format($totalYearCredit, 2) }}</th>
+                                <th class="text-end font-monospace py-2.5 text-success">{{ number_format($totalYearDebit, 2) }}</th>
+                                <th class="text-end font-monospace py-2.5 {{ $totalYearNet > 0 ? 'text-danger' : 'text-success' }}">{{ ($totalYearNet > 0 ? '+' : '') . number_format($totalYearNet, 2) }}</th>
+                                <th class="text-end font-monospace py-2.5 text-primary fs-6">{{ number_format(end($chartCumulatives) ?: 0, 2) }}</th>
+                                <th class="text-center py-2.5">{{ number_format(collect($monthlyTableData)->sum('bills_count')) }}</th>
+                                <th class="text-center py-2.5">-</th>
                                 <th class="text-center py-2.5"></th>
                             </tr>
                         </tfoot>
@@ -1082,6 +1466,7 @@
     </div>
 </div>
 
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
 <script>
     function setTab(tabName) {
         const url = new URL(window.location);
@@ -1529,7 +1914,8 @@
                     type: 'GET',
                     data: { 
                         vendor: vendorName,
-                        budget_year: '{{ $budgetYear }}'
+                        budget_year: '{{ $budgetYear }}',
+                        period: '{{ $selectedPeriod }}'
                     },
                     dataType: 'json',
                     success: function(res) {
@@ -1554,9 +1940,11 @@
                                     agingBadge = '<span class="badge ' + badgeClass + ' rounded-pill px-2 py-0.5">' + Number(b.aging_days).toLocaleString() + '</span>';
                                 }
 
+                                var voucherSubHtml = b.voucher_numbers ? '<div class="text-muted fw-normal" style="font-size: 0.72rem;"><i class="bi bi-file-earmark-text text-secondary"></i> ' + b.voucher_numbers + '</div>' : '';
+
                                 rowsHtml += '<tr>' +
                                     '<td class="ps-3 text-center text-muted fw-bold" data-order="' + idx + '">' + (idx++) + '</td>' +
-                                    '<td class="fw-bold font-monospace text-primary">' + (b.bill_no || '-') + '</td>' +
+                                    '<td class="fw-bold font-monospace text-primary">' + (b.bill_no || '-') + voucherSubHtml + '</td>' +
                                     '<td class="text-center small text-nowrap" data-order="' + (b.parsed_bill_date || '') + '">' + (b.thai_bill_date || '-') + '</td>' +
                                     '<td class="text-center" data-order="' + (b.aging_days || 0) + '">' + agingBadge + '</td>' +
                                     '<td><small class="text-muted">' + (b.account_code || '') + '</small><br><span class="small text-dark">' + (b.account_name || '') + '</span></td>' +
@@ -1640,13 +2028,229 @@
                 }
             });
 
-            // Re-adjust columns when tabs are toggled
-            $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-                if ($.fn.dataTable.isDataTable('#vendorTable')) {
-                    vendorDt.columns.adjust().draw();
+            // 4. Initialize Monthly Trends Table DataTable
+            if ($.fn.DataTable.isDataTable('#monthlyTrendsTable')) {
+                $('#monthlyTrendsTable').DataTable().destroy();
+            }
+
+            var trendsDt = $('#monthlyTrendsTable').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-bottom"<"d-flex align-items-center"l><"d-flex align-items-center gap-2"fB>>' +
+                     'rt' +
+                     '<"d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top"<"text-muted small"i><"pagination-sm"p>>',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel-fill text-white fs-6"></i> ส่งออก Excel',
+                        className: 'btn btn-success btn-sm rounded-pill px-3 shadow-sm text-white fw-bold',
+                        title: 'สรุปแนวโน้มรายเดือน_HosFin_{{ $budgetYear }}',
+                        exportOptions: {
+                            columns: ':visible',
+                            footer: true
+                        }
+                    }
+                ],
+                language: {
+                    search: "ค้นหางวด:",
+                    searchPlaceholder: "พิมพ์ชื่อเดือน...",
+                    lengthMenu: "แสดง _MENU_ เดือน",
+                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ เดือน",
+                    infoEmpty: "ไม่พบข้อมูล",
+                    infoFiltered: "(กรองจากทั้งหมด _MAX_ เดือน)",
+                    zeroRecords: "ไม่พบงวดเดือนที่ตรงกับคำค้นหา",
+                    paginate: {
+                        previous: '<i class="bi bi-chevron-left"></i>',
+                        next: '<i class="bi bi-chevron-right"></i>'
+                    }
+                },
+                paging: false,
+                ordering: false,
+                autoWidth: false
+            });
+
+            // 5. Initialize AP Monthly Trend Chart (Option 1: Combo Chart)
+            var trendChartCanvas = document.getElementById('apMonthlyTrendChart');
+            var apTrendChart = null;
+
+            function initTrendChart() {
+                if (!trendChartCanvas) return;
+                if (apTrendChart) {
+                    apTrendChart.resize();
+                    return;
                 }
-                if ($.fn.dataTable.isDataTable('#billsTable')) {
+
+                var ctx = trendChartCanvas.getContext('2d');
+                var labels = @json($chartLabels);
+                var periods = @json($chartPeriods);
+                var credits = @json($chartCredits);
+                var debits = @json($chartDebits);
+                var cumulatives = @json($chartCumulatives);
+                var nets = @json($chartNets);
+
+                apTrendChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'line',
+                                label: 'ภาระหนี้สะสมยกไป (Cumulative Debt)',
+                                data: cumulatives,
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                borderWidth: 3.5,
+                                fill: false,
+                                tension: 0.25,
+                                pointBackgroundColor: '#f59e0b',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 5.5,
+                                pointHoverRadius: 8,
+                                yAxisID: 'y',
+                                order: 1
+                            },
+                            {
+                                type: 'line',
+                                label: 'ผลต่างสุทธิประจำเดือน (Net Cr - Dr)',
+                                data: nets,
+                                borderColor: '#0284c7',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderDash: [4, 4],
+                                fill: false,
+                                tension: 0.2,
+                                pointBackgroundColor: '#0284c7',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1.5,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                yAxisID: 'y',
+                                order: 2
+                            },
+                            {
+                                type: 'bar',
+                                label: 'เกิดหนี้ใหม่ (Credit)',
+                                data: credits,
+                                backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                                hoverBackgroundColor: '#dc2626',
+                                borderRadius: 6,
+                                barPercentage: 0.7,
+                                categoryPercentage: 0.7,
+                                yAxisID: 'y',
+                                order: 3
+                            },
+                            {
+                                type: 'bar',
+                                label: 'จ่ายชำระหนี้ (Debit)',
+                                data: debits,
+                                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                                hoverBackgroundColor: '#059669',
+                                borderRadius: 6,
+                                barPercentage: 0.7,
+                                categoryPercentage: 0.7,
+                                yAxisID: 'y',
+                                order: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        family: 'Nunito, sans-serif',
+                                        size: 12,
+                                        weight: 'bold'
+                                    },
+                                    usePointStyle: true,
+                                    padding: 16
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += Number(context.parsed.y).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: {
+                                        weight: '600'
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#f1f5f9'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (Math.abs(value) >= 1000000) {
+                                            return (value / 1000000).toFixed(1) + 'M';
+                                        } else if (Math.abs(value) >= 1000) {
+                                            return (value / 1000).toFixed(0) + 'k';
+                                        }
+                                        return value;
+                                    }
+                                }
+                            }
+                        },
+                        onClick: function(e, elements) {
+                            if (elements && elements.length > 0) {
+                                var index = elements[0].index;
+                                var targetPeriod = periods[index];
+                                if (targetPeriod) {
+                                    window.location.href = "{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}&period=" + targetPeriod + "&tab=vendor";
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Init chart if trends tab is active on load
+            if (window.currentTab === 'trends' || $('#trends-tab-pane').hasClass('show') || $('#trends-tab-pane').hasClass('active')) {
+                setTimeout(initTrendChart, 150);
+            }
+
+            // Re-adjust columns and chart when tabs are toggled
+            $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+                var target = $(e.target).attr('data-bs-target');
+                if (target === '#vendor-tab-pane' && $.fn.dataTable.isDataTable('#vendorTable')) {
+                    vendorDt.columns.adjust().draw();
+                } else if (target === '#bills-tab-pane' && $.fn.dataTable.isDataTable('#billsTable')) {
                     billsDt.columns.adjust().draw();
+                } else if (target === '#trends-tab-pane') {
+                    setTimeout(function() {
+                        initTrendChart();
+                        if (apTrendChart) apTrendChart.resize();
+                        if (trendsDt) trendsDt.columns.adjust().draw();
+                    }, 100);
                 }
             });
             // Tab state tracking
@@ -1656,12 +2260,19 @@
                 var url = new URL(window.location.href);
                 url.searchParams.set('tab', tab);
                 window.history.replaceState({}, '', url.toString());
+                $('#apPeriodTabs a.nav-link').each(function() {
+                    try {
+                        var href = new URL($(this).attr('href'), window.location.origin);
+                        href.searchParams.set('tab', tab);
+                        $(this).attr('href', href.pathname + href.search);
+                    } catch (e) {}
+                });
             };
 
             // Budget year change handler
             $('#select_budget_year').on('change', function() {
                 var yr = $(this).val();
-                window.location.href = "{{ url('hosfin/ap_report') }}?budget_year=" + yr + "&tab=" + (window.currentTab || 'vendor');
+                window.location.href = "{{ url('hosfin/ap_report') }}?budget_year=" + yr + "&period={{ $selectedPeriod }}&tab=" + (window.currentTab || 'vendor');
             });
         }
     });

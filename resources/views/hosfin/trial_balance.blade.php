@@ -73,7 +73,7 @@
             <div class="page-header-box mt-2" style="border-left-color: #10b981 !important;">
                 <div>
                     <h5 class="text-primary mb-0 fw-bold">
-                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน
+                        <i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> ข้อมูลบัญชีหน่วยงาน (Trial Balance)
                     </h5>
                     <small class="text-muted">นำเข้าไฟล์และเรียกดูรายงานงบทดลองประจำแต่ละเดือนแยกตามปีงบประมาณ</small>
                 </div>
@@ -92,14 +92,6 @@
                     <!-- Hidden input for category selection to keep JS functionality working -->
                     <input type="hidden" id="select_category" value="all">
 
-                    <!-- Link to Ratio Report -->
-                    <a href="{{ url('hosfin/ratio_report') }}?budget_year={{ $budgetYear }}&period={{ $selectedPeriod ?? 'all' }}" 
-                       class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm text-nowrap" 
-                       style="font-size: 0.88rem; height: 38px; font-weight: 700; background: #ffffff; border: 1.5px solid #3b82f6; color: #2563eb; transition: all 0.2s ease;"
-                       title="รายงานอัตราส่วนทางการเงินที่คำนวณจากงบทดลอง">
-                        <i class="bi bi-graph-up-arrow"></i> อัตราส่วน
-                    </a>
-                    
                     @php
                         $is_hosfin_licensed = \App\Services\LicenseVerificationService::isModuleLicensed('hosfin');
                     @endphp
@@ -113,8 +105,10 @@
                     <!-- Import MDB Button -->
                     <button type="button" class="btn btn-primary d-flex align-items-center gap-1 text-nowrap shadow-sm" 
                         @if($is_hosfin_licensed) data-bs-toggle="modal" data-bs-target="#importMdbModal" @else onclick="showLicenseRequiredAlert(event)" @endif>
-                        <i class="bi {{ $is_hosfin_licensed ? 'bi-database-fill-up' : 'bi-lock-fill text-warning' }}"></i> นำเข้าข้อมูลบัญชีหน่วยงาน hfo (.zip)
+                        <i class="bi {{ $is_hosfin_licensed ? 'bi-database-fill-up' : 'bi-lock-fill text-warning' }}"></i> นำเข้าข้อมูลบัญชี hfo (.zip)
                     </button>
+
+                    @include('hosfin.partials.header_nav', ['budgetYear' => $budgetYear])
                 </div>
             </div>
         </div>

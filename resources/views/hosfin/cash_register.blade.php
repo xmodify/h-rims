@@ -130,23 +130,7 @@
                         </select>
                     </div>
 
-                    <!-- [รับ-จ่าย (Cash)] placed BEFORE [เจ้าหนี้ (AP)] -->
-                    <a href="{{ url('hosfin/cash_register') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #059669; border: 1.5px solid #059669; color: #ffffff;">
-                        <i class="bi bi-cash-stack"></i> รับ-จ่าย (Cash)
-                    </a>
-                    <a href="{{ url('hosfin/ap_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #ef4444; color: #dc2626;">
-                        <i class="bi bi-receipt-cutoff"></i> เจ้าหนี้ (AP)
-                    </a>
-                    <a href="{{ url('hosfin/ar_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #0284c7; color: #0369a1;">
-                        <i class="bi bi-wallet2"></i> ลูกหนี้ (AR)
-                    </a>
-                    <a href="{{ url('hosfin/cost_report') }}?budget_year={{ $budgetYear }}" class="btn rounded-pill px-3 d-flex align-items-center gap-1.5 shadow-sm" 
-                       style="font-size: 0.85rem; height: 40px; font-weight: 700; background: #ffffff; border: 1.5px solid #d97706; color: #d97706;">
-                        <i class="bi bi-pie-chart"></i> ต้นทุน (LC/MC/CC)
-                    </a>
+                    @include('hosfin.partials.header_nav', ['budgetYear' => $budgetYear])
                 </div>
             </div>
         </div>

@@ -330,6 +330,8 @@
                         <span class="badge bg-indigo-subtle text-indigo px-2 py-0.5 rounded-pill" style="font-size: 0.76rem; background: #ede9fe; color: #5b21b6;">PlanFin</span>
                         <span class="d-none d-md-inline text-muted" style="font-size: 0.85rem; font-weight: 500;">({{ $hospCode }} - {{ $hospName }})</span>
                     </h5>
+
+                    @include('hosfin.partials.header_nav', ['budgetYear' => $budgetYear])
                 </div>
 
 

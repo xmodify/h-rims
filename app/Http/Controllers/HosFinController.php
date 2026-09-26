@@ -730,8 +730,18 @@ class HosFinController extends Controller
         $arTypeSummaries = collect();
 
         $cashBalance = 0;
+        $cashLiveBalance = 0;
+        $operatingCash = 0;
+        $operatingCashLive = 0;
+        $restrictedCash = 0;
         $cashAccountsCount = 0;
         $cashBankAccounts = collect();
+
+        $apUnpaidSum = 0;
+        $apUnpaidCount = 0;
+        $apTotalVendorsCount = 0;
+        $apTopCreditors = collect();
+        $arOutstandingSum = 0;
 
         $latestSyncLog = null;
         $glSyncTimeText = 'ยังไม่มีการซิงค์ (รอเชื่อมต่อ)';
@@ -2680,47 +2690,206 @@ class HosFinController extends Controller
     {
         $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
         $yearChoices = range(self::getCurrentBudgetYear() + 1, self::getCurrentBudgetYear() - 3);
+        $selectedPeriod = $request->input('period', 'all');
 
-        $unpaidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 0);
-        $paidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 1);
+        // Build 12 fiscal periods list for the fiscal year
+        $periods = [];
+        for ($m = 10; $m <= 12; $m++) {
+            $fm = $m - 9; // 10 -> 1, 11 -> 2, 12 -> 3
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear - 1,
+                'period'       => sprintf('%04d-%02d', $budgetYear - 1, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)($budgetYear - 1), -2)
+            ];
+        }
+        for ($m = 1; $m <= 9; $m++) {
+            $fm = $m + 3; // 1 -> 4, 2 -> 5, ... 9 -> 12
+            $periods[] = [
+                'fiscal_month' => $fm,
+                'month'        => $m,
+                'year'         => $budgetYear,
+                'period'       => sprintf('%04d-%02d', $budgetYear, $m),
+                'label'        => self::getThaiMonthName($m) . ' ' . substr((string)$budgetYear, -2)
+            ];
+        }
 
-        $totalUnpaidSum = (float)$unpaidQuery->sum('remaining_debt');
-        $totalUnpaidBillsCount = (int)$unpaidQuery->count();
-        $totalPaidSum = (float)$paidQuery->sum('total_debit');
-        $totalPaidBillsCount = (int)$paidQuery->count();
-        $totalVendorsCount = (int)$unpaidQuery->distinct('vendor_name')->count('vendor_name');
+        // Check which periods exist in hosfin_gl_journals
+        $existingMonths = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->where('i.account_code', 'like', '2101%')
+            ->where('j.fiscal_year', $budgetYear)
+            ->where('j.fiscal_month', '>', 0)
+            ->distinct()
+            ->pluck('j.fiscal_month')
+            ->toArray();
 
-        $vendorsSummary = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
-            ->select(
-                'vendor_name',
-                DB::raw('MAX(category) as category'),
-                DB::raw('COUNT(*) as total_bills'),
-                DB::raw('SUM(CASE WHEN is_paid = 0 THEN 1 ELSE 0 END) as unpaid_bills'),
-                DB::raw('SUM(total_credit) as total_credit'),
-                DB::raw('SUM(total_debit) as total_debit'),
-                DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt'),
-                DB::raw('GROUP_CONCAT(DISTINCT account_code) as account_codes'),
-                DB::raw('GROUP_CONCAT(DISTINCT account_name) as account_names')
-            )
-            ->groupBy('vendor_name')
-            ->orderBy('remaining_debt', 'desc')
-            ->get();
+        // Determine if specific period is selected
+        $selectedFm = null;
+        $selectedPeriodLabel = 'ภาพรวมสะสมทั้งปีงบประมาณ ' . $budgetYear;
 
-        // Get all unique account categories for dropdown filter
-        $accountChoices = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
-            ->whereNotNull('account_code')
-            ->where('account_code', '<>', '')
-            ->select('account_code', 'account_name', DB::raw('COUNT(*) as bill_count'))
-            ->groupBy('account_code', 'account_name')
-            ->orderBy('account_code')
-            ->get();
-
-        $bills = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
-                       ->orderBy('remaining_debt', 'desc')
-                       ->orderBy('bill_date', 'desc')
-                       ->get();
+        if ($selectedPeriod !== 'all') {
+            foreach ($periods as $p) {
+                if ($p['period'] === $selectedPeriod || (string)$p['fiscal_month'] === (string)$selectedPeriod) {
+                    $selectedFm = $p['fiscal_month'];
+                    $selectedPeriod = $p['period'];
+                    $selectedPeriodLabel = 'ประจำงวด ' . $p['label'];
+                    break;
+                }
+            }
+            if ($selectedFm === null) {
+                $selectedPeriod = 'all';
+            }
+        }
 
         $activeTab = $request->input('tab', 'vendor');
+
+        if ($selectedPeriod === 'all') {
+            // Full Year Cumulative Mode
+            $unpaidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 0);
+            $paidQuery = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->where('is_paid', 1);
+
+            $totalUnpaidSum = (float)$unpaidQuery->sum('remaining_debt');
+            $totalUnpaidBillsCount = (int)$unpaidQuery->count();
+            $totalPaidSum = (float)$paidQuery->sum('total_debit');
+            $totalPaidBillsCount = (int)$paidQuery->count();
+            $totalVendorsCount = (int)$unpaidQuery->distinct('vendor_name')->count('vendor_name');
+
+            $monthCreditSum = (float)\App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->sum('total_credit');
+            $monthDebitSum = (float)\App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)->sum('total_debit');
+            $monthNetSum = $monthCreditSum - $monthDebitSum;
+
+            $vendorsSummary = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+                ->select(
+                    'vendor_name',
+                    DB::raw('MAX(category) as category'),
+                    DB::raw('COUNT(*) as total_bills'),
+                    DB::raw('SUM(CASE WHEN is_paid = 0 THEN 1 ELSE 0 END) as unpaid_bills'),
+                    DB::raw('SUM(total_credit) as total_credit'),
+                    DB::raw('SUM(total_debit) as total_debit'),
+                    DB::raw('SUM(CASE WHEN is_paid = 0 THEN remaining_debt ELSE 0 END) as remaining_debt'),
+                    DB::raw('GROUP_CONCAT(DISTINCT account_code) as account_codes'),
+                    DB::raw('GROUP_CONCAT(DISTINCT account_name) as account_names')
+                )
+                ->groupBy('vendor_name')
+                ->orderBy('remaining_debt', 'desc')
+                ->get();
+
+            // Get all unique account categories for dropdown filter
+            $accountChoices = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+                ->whereNotNull('account_code')
+                ->where('account_code', '<>', '')
+                ->select('account_code', 'account_name', DB::raw('COUNT(*) as bill_count'))
+                ->groupBy('account_code', 'account_name')
+                ->orderBy('account_code')
+                ->get();
+
+            $bills = \App\Models\HosfinGlApBill::where('fiscal_year', $budgetYear)
+                           ->orderBy('remaining_debt', 'desc')
+                           ->orderBy('bill_date', 'desc')
+                           ->get();
+        } else {
+            // Monthly Period Mode
+            $monthJournalStats = DB::table('hosfin_gl_journals as j')
+                ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+                ->where('i.account_code', 'like', '2101%')
+                ->where('j.fiscal_year', $budgetYear)
+                ->where('j.fiscal_month', $selectedFm)
+                ->select(
+                    DB::raw('SUM(i.credit) as total_month_credit'),
+                    DB::raw('SUM(i.debit) as total_month_debit'),
+                    DB::raw('COUNT(DISTINCT j.apar) as total_month_bills'),
+                    DB::raw("COUNT(DISTINCT COALESCE(NULLIF(s.vendor_name, ''), NULLIF(j.apar, ''))) as total_month_vendors")
+                )
+                ->first();
+
+            $monthCreditSum = (float)($monthJournalStats->total_month_credit ?? 0);
+            $monthDebitSum  = (float)($monthJournalStats->total_month_debit ?? 0);
+            $monthNetSum    = $monthCreditSum - $monthDebitSum;
+            $totalUnpaidSum = max(0.0, $monthNetSum);
+            $totalUnpaidBillsCount = (int)($monthJournalStats->total_month_bills ?? 0);
+            $totalPaidSum = $monthDebitSum;
+            $totalPaidBillsCount = (int)($monthJournalStats->total_month_bills ?? 0);
+            $totalVendorsCount = (int)($monthJournalStats->total_month_vendors ?? 0);
+
+            // Monthly Vendor Summary
+            $vendorsSummary = DB::table('hosfin_gl_journals as j')
+                ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+                ->where('i.account_code', 'like', '2101%')
+                ->where('j.fiscal_year', $budgetYear)
+                ->where('j.fiscal_month', $selectedFm)
+                ->select(
+                    DB::raw("COALESCE(NULLIF(s.vendor_name, ''), NULLIF(j.apar, ''), 'ไม่ระบุ') as vendor_name"),
+                    DB::raw("MAX(COALESCE(s.category, 'ทั่วไป')) as category"),
+                    DB::raw("COUNT(DISTINCT j.apar) as total_bills"),
+                    DB::raw("SUM(CASE WHEN i.credit > i.debit THEN 1 ELSE 0 END) as unpaid_bills"),
+                    DB::raw("SUM(i.credit) as total_credit"),
+                    DB::raw("SUM(i.debit) as total_debit"),
+                    DB::raw("SUM(i.credit - i.debit) as remaining_debt"),
+                    DB::raw("GROUP_CONCAT(DISTINCT i.account_code) as account_codes"),
+                    DB::raw("GROUP_CONCAT(DISTINCT i.account_name) as account_names")
+                )
+                ->groupBy('vendor_name')
+                ->orderBy('total_credit', 'desc')
+                ->get();
+
+            // Monthly Account Choices
+            $accountChoices = DB::table('hosfin_gl_journals as j')
+                ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                ->where('i.account_code', 'like', '2101%')
+                ->where('j.fiscal_year', $budgetYear)
+                ->where('j.fiscal_month', $selectedFm)
+                ->whereNotNull('i.account_code')
+                ->where('i.account_code', '<>', '')
+                ->select('i.account_code', 'i.account_name', DB::raw('COUNT(DISTINCT j.apar) as bill_count'))
+                ->groupBy('i.account_code', 'i.account_name')
+                ->orderBy('i.account_code')
+                ->get();
+
+            // Monthly Bills List
+            $bills = DB::table('hosfin_gl_journals as j')
+                ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+                ->where('i.account_code', 'like', '2101%')
+                ->where('j.fiscal_year', $budgetYear)
+                ->where('j.fiscal_month', $selectedFm)
+                ->select(
+                    'j.apar as bill_no',
+                    DB::raw("MIN(j.voucher_date) as bill_date"),
+                    DB::raw("COALESCE(NULLIF(MAX(s.vendor_name), ''), NULLIF(j.apar, ''), 'ไม่ระบุ') as vendor_name"),
+                    DB::raw("MAX(COALESCE(s.category, 'ทั่วไป')) as category"),
+                    'i.account_code',
+                    DB::raw("MAX(i.account_name) as account_name"),
+                    DB::raw("SUM(i.credit) as total_credit"),
+                    DB::raw("SUM(i.debit) as total_debit"),
+                    DB::raw("SUM(i.credit - i.debit) as remaining_debt"),
+                    DB::raw("GROUP_CONCAT(DISTINCT j.voucher_no ORDER BY j.voucher_no SEPARATOR ', ') as voucher_numbers")
+                )
+                ->groupBy('j.apar', 'i.account_code')
+                ->orderBy('total_credit', 'desc')
+                ->get()
+                ->map(function($row) {
+                    $rem = (float)$row->remaining_debt;
+                    $row->is_paid = ($rem <= 0.01) ? 1 : 0;
+                    $row->remaining_debt = max(0.0, $rem);
+                    if (!empty($row->bill_date)) {
+                        $ts = strtotime($row->bill_date);
+                        $row->parsed_bill_date = date('Y-m-d', $ts);
+                        $thaiYear = (int)date('Y', $ts) + 543;
+                        $row->thai_bill_date = date('d/m/', $ts) . $thaiYear;
+                        $diffDays = (int)floor((time() - $ts) / 86400);
+                        $row->aging_days = max(0, $diffDays);
+                    } else {
+                        $row->parsed_bill_date = '';
+                        $row->thai_bill_date = '-';
+                        $row->aging_days = 0;
+                    }
+                    return $row;
+                });
+        }
 
         // Accounting Audit & Anomaly Detection
         // 1. Cross-account bills (bills booked across multiple 2101 accounts)
@@ -2794,20 +2963,117 @@ class HosFinController extends Controller
             ->orderBy('overpaid_amount', 'desc')
             ->get();
 
+        // 3. 12 Months AP Trend Calculation (เกิดหนี้ vs จ่ายชำระ + หนี้สะสม 12 เดือน)
+        $monthlyGlStats = DB::table('hosfin_gl_journals as j')
+            ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+            ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+            ->where('i.account_code', 'like', '2101%')
+            ->where('j.fiscal_year', $budgetYear)
+            ->select(
+                'j.fiscal_month',
+                DB::raw('SUM(i.credit) as month_credit'),
+                DB::raw('SUM(i.debit) as month_debit'),
+                DB::raw('COUNT(DISTINCT j.apar) as total_bills'),
+                DB::raw("COUNT(DISTINCT COALESCE(NULLIF(s.vendor_name, ''), NULLIF(j.apar, ''))) as total_vendors")
+            )
+            ->groupBy('j.fiscal_month')
+            ->get()
+            ->keyBy('fiscal_month');
+
+        $openingDebt = (float)($monthlyGlStats->get(0)->month_credit ?? 0) - (float)($monthlyGlStats->get(0)->month_debit ?? 0);
+
+        $chartLabels = [];
+        $chartPeriods = [];
+        $chartCredits = [];
+        $chartDebits = [];
+        $chartNets = [];
+        $chartCumulatives = [];
+        $monthlyTableData = [];
+
+        $runningBalance = $openingDebt;
+        $totalYearCredit = 0.0;
+        $totalYearDebit = 0.0;
+        $peakCreditMonth = ['month' => '-', 'amount' => 0.0];
+        $peakDebitMonth = ['month' => '-', 'amount' => 0.0];
+
+        foreach ($periods as $p) {
+            $fm = $p['fiscal_month'];
+            $st = $monthlyGlStats->get($fm);
+
+            $cr = (float)($st->month_credit ?? 0);
+            $dr = (float)($st->month_debit ?? 0);
+            $net = $cr - $dr;
+            $runningBalance += $net;
+            $billsCount = (int)($st->total_bills ?? 0);
+            $vendorsCount = (int)($st->total_vendors ?? 0);
+
+            $totalYearCredit += $cr;
+            $totalYearDebit += $dr;
+
+            $chartLabels[] = $p['label'];
+            $chartPeriods[] = $p['period'];
+            $chartCredits[] = $cr;
+            $chartDebits[] = $dr;
+            $chartNets[] = $net;
+            $chartCumulatives[] = $runningBalance;
+
+            if ($cr > $peakCreditMonth['amount']) {
+                $peakCreditMonth = ['month' => $p['label'], 'amount' => $cr];
+            }
+            if ($dr > $peakDebitMonth['amount']) {
+                $peakDebitMonth = ['month' => $p['label'], 'amount' => $dr];
+            }
+
+            $monthlyTableData[] = [
+                'fiscal_month' => $fm,
+                'label' => $p['label'],
+                'period' => $p['period'],
+                'credit' => $cr,
+                'debit' => $dr,
+                'net' => $net,
+                'cumulative' => $runningBalance,
+                'bills_count' => $billsCount,
+                'vendors_count' => $vendorsCount,
+                'has_data' => in_array($fm, $existingMonths),
+            ];
+        }
+
+        $totalYearNet = $totalYearCredit - $totalYearDebit;
+
         return view('hosfin.ap_report', [
             'budgetYear' => $budgetYear,
             'yearChoices' => $yearChoices,
+            'periods' => $periods,
+            'existingMonths' => $existingMonths,
+            'selectedPeriod' => $selectedPeriod,
+            'selectedPeriodLabel' => $selectedPeriodLabel,
             'activeTab' => $activeTab,
             'totalUnpaidSum' => $totalUnpaidSum,
             'totalUnpaidBillsCount' => $totalUnpaidBillsCount,
             'totalPaidSum' => $totalPaidSum,
             'totalPaidBillsCount' => $totalPaidBillsCount,
             'totalVendorsCount' => $totalVendorsCount,
+            'monthCreditSum' => $monthCreditSum,
+            'monthDebitSum' => $monthDebitSum,
+            'monthNetSum' => $monthNetSum,
             'vendorsSummary' => $vendorsSummary,
             'bills' => $bills,
             'crossAccountDetails' => $crossAccountDetails,
             'overpaidBills' => $overpaidBills,
             'accountChoices' => $accountChoices,
+            'chartLabels' => $chartLabels,
+            'chartPeriods' => $chartPeriods,
+            'chartCredits' => $chartCredits,
+            'chartDebits' => $chartDebits,
+            'chartNets' => $chartNets,
+            'chartCumulatives' => $chartCumulatives,
+            'monthlyTableData' => $monthlyTableData,
+            'openingDebt' => $openingDebt,
+            'totalYearCredit' => $totalYearCredit,
+            'totalYearDebit' => $totalYearDebit,
+            'totalYearNet' => $totalYearNet,
+            'peakCreditMonth' => $peakCreditMonth,
+            'peakDebitMonth' => $peakDebitMonth,
         ]);
     }
 
@@ -2821,9 +3087,89 @@ class HosFinController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Vendor name is required'], 400);
         }
 
+        $budgetYear = intval($request->input('budget_year', self::getCurrentBudgetYear()));
+        $selectedPeriod = $request->input('period', 'all');
+
+        if ($selectedPeriod !== 'all') {
+            // Find fiscal month
+            $selectedFm = null;
+            for ($m = 10; $m <= 12; $m++) {
+                if (sprintf('%04d-%02d', $budgetYear - 1, $m) === $selectedPeriod || (string)($m - 9) === (string)$selectedPeriod) {
+                    $selectedFm = $m - 9;
+                    break;
+                }
+            }
+            if ($selectedFm === null) {
+                for ($m = 1; $m <= 9; $m++) {
+                    if (sprintf('%04d-%02d', $budgetYear, $m) === $selectedPeriod || (string)($m + 3) === (string)$selectedPeriod) {
+                        $selectedFm = $m + 3;
+                        break;
+                    }
+                }
+            }
+
+            if ($selectedFm !== null) {
+                $bills = DB::table('hosfin_gl_journals as j')
+                    ->join('hosfin_gl_journal_items as i', 'j.id', '=', 'i.journal_id')
+                    ->leftJoin('hosfin_gl_subledgers as s', 'j.apar', '=', 's.subledger_code')
+                    ->where('i.account_code', 'like', '2101%')
+                    ->where('j.fiscal_year', $budgetYear)
+                    ->where('j.fiscal_month', $selectedFm)
+                    ->where(function($q) use ($vendor) {
+                        $q->where('s.vendor_name', $vendor)
+                          ->orWhere('j.apar', $vendor);
+                    })
+                    ->select(
+                        'j.apar as bill_no',
+                        DB::raw("MIN(j.voucher_date) as bill_date"),
+                        DB::raw("COALESCE(NULLIF(MAX(s.vendor_name), ''), NULLIF(j.apar, ''), 'ไม่ระบุ') as vendor_name"),
+                        DB::raw("MAX(COALESCE(s.category, 'ทั่วไป')) as category"),
+                        'i.account_code',
+                        DB::raw("MAX(i.account_name) as account_name"),
+                        DB::raw("SUM(i.credit) as total_credit"),
+                        DB::raw("SUM(i.debit) as total_debit"),
+                        DB::raw("SUM(i.credit - i.debit) as remaining_debt"),
+                        DB::raw("GROUP_CONCAT(DISTINCT j.voucher_no ORDER BY j.voucher_no SEPARATOR ', ') as voucher_numbers")
+                    )
+                    ->groupBy('j.apar', 'i.account_code')
+                    ->orderBy('total_credit', 'desc')
+                    ->get()
+                    ->map(function($row) {
+                        $rem = (float)$row->remaining_debt;
+                        $row->is_paid = ($rem <= 0.01) ? 1 : 0;
+                        $row->remaining_debt = max(0.0, $rem);
+                        if (!empty($row->bill_date)) {
+                            $ts = strtotime($row->bill_date);
+                            $row->parsed_bill_date = date('Y-m-d', $ts);
+                            $thaiYear = (int)date('Y', $ts) + 543;
+                            $row->thai_bill_date = date('d/m/', $ts) . $thaiYear;
+                            $diffDays = (int)floor((time() - $ts) / 86400);
+                            $row->aging_days = max(0, $diffDays);
+                        } else {
+                            $row->parsed_bill_date = '';
+                            $row->thai_bill_date = '-';
+                            $row->aging_days = 0;
+                        }
+                        return $row;
+                    });
+
+                return response()->json([
+                    'status' => 'success',
+                    'vendor' => $vendor,
+                    'period' => $selectedPeriod,
+                    'total_bills' => $bills->count(),
+                    'unpaid_bills' => $bills->where('is_paid', 0)->count(),
+                    'total_credit' => (float)$bills->sum('total_credit'),
+                    'total_debit' => (float)$bills->sum('total_debit'),
+                    'remaining_debt' => (float)$bills->where('is_paid', 0)->sum('remaining_debt'),
+                    'bills' => $bills,
+                ]);
+            }
+        }
+
         $query = \App\Models\HosfinGlApBill::where('vendor_name', $vendor);
         if ($request->filled('budget_year')) {
-            $query->where('fiscal_year', intval($request->input('budget_year')));
+            $query->where('fiscal_year', $budgetYear);
         }
 
         $bills = $query->orderBy('remaining_debt', 'desc')
@@ -2833,6 +3179,7 @@ class HosFinController extends Controller
         return response()->json([
             'status' => 'success',
             'vendor' => $vendor,
+            'period' => 'all',
             'total_bills' => $bills->count(),
             'unpaid_bills' => $bills->where('is_paid', 0)->count(),
             'total_credit' => (float)$bills->sum('total_credit'),

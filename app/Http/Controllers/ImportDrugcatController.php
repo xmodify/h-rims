@@ -1302,9 +1302,9 @@ class ImportDrugcatController extends Controller
                 if ($dt->gt($today)) {
                     $dt = $today->copy();
                 }
-                return $dt->format('Y-m-d');
+                return $dt->format('Y-m-d\TH:i:s\Z');
             } catch (\Exception $e) {
-                return $today->format('Y-m-d');
+                return $today->format('Y-m-d\TH:i:s\Z');
             }
         };
 
@@ -1433,7 +1433,7 @@ class ImportDrugcatController extends Controller
             $colIndex = 1;
             foreach ($rowData as $val) {
                 $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
-                if (in_array($colIndex, [2, 4, 15, 22])) {
+                if (in_array($colIndex, [2, 3, 4, 7, 13, 14, 15, 18, 19, 20, 21, 22])) {
                     $sheet->setCellValueExplicit($colLetter . $rowNum, (string)$val, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 } else {
                     $sheet->setCellValue($colLetter . $rowNum, $val);
